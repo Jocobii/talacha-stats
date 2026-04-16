@@ -321,7 +321,7 @@ export default function ImportPage() {
                 <option value="">— Seleccionar liga —</option>
                 {leagues.map(l => (
                   <option key={l.id} value={l.id}>
-                    {l.name} · {l.season}
+                    {l.name} · {l.dayOfWeek} · {l.season}
                   </option>
                 ))}
               </select>

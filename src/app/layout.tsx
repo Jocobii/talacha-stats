@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "FutbolStats — Panel de administración",
-  description: "Sistema de estadísticas para ligas de fútbol amateur",
+  title: "TalachaStats — Panel de administración",
+  description: "Sistema de estadísticas para ligas de fútbol amateur en Tijuana",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
