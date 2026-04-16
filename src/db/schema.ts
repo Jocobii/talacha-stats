@@ -315,6 +315,27 @@ export type StandingsColumnMap = {
   points: string;
 };
 
+// ---------------------------------------------------------------------------
+// PAGE_VIEWS — Contador de visitas únicas a las páginas públicas
+// visitor_id: UUID persistido en cookie (1 año) para identificar al navegador
+// ---------------------------------------------------------------------------
+export const pageViews = pgTable(
+  "page_views",
+  {
+    id:         uuid("id").primaryKey().defaultRandom(),
+    visitorId:  uuid("visitor_id").notNull(),
+    page:       text("page").notNull(), // pathname: "/", "/jugadores", "/jugador/[id]", "/analisis"
+    visitedAt:  timestamp("visited_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("pv_visitor_idx").on(t.visitorId),
+    index("pv_page_idx").on(t.page),
+    index("pv_visited_at_idx").on(t.visitedAt),
+  ]
+);
+
+export type PageView = typeof pageViews.$inferSelect;
+
 export const EVENT_TYPES = ["goal", "assist", "yellow_card", "red_card", "own_goal", "mvp"] as const;
 export type EventType = typeof EVENT_TYPES[number];
 

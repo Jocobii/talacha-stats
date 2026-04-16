@@ -28,7 +28,7 @@ export default function HomePage() {
 
           {/* Badge */}
           <span className="inline-block text-xs font-semibold bg-green-900 text-green-400 px-3 py-1 rounded-full uppercase tracking-widest">
-            Tijuana · Fútbol 7 Amateur
+            Tijuana · Fútbol Amateur
           </span>
 
           {/* Headline */}
