@@ -56,10 +56,11 @@ export type TeamAnalysis = {
 	avgGoalsAgainst: number;
 	last5: ("W" | "D" | "L")[];
 	currentStreak: TeamStreak | null;
-	roster: RosterPlayer[]; // plantel completo ordenado por contribuciones
+	roster: RosterPlayer[];
 	topScorer: RosterPlayer | null;
 	topAssist: RosterPlayer | null;
 	topContributor: RosterPlayer | null;
+	topScoringThreats: RosterPlayer[];
 	cardRisk: {
 		player: string;
 		alias: string | null;
@@ -67,6 +68,9 @@ export type TeamAnalysis = {
 		redCards: number;
 		note: string;
 	}[];
+	attackRank: number | null;
+	defenseRank: number | null;
+	totalTeams: number;
 };
 
 export type H2HRecord = {
@@ -89,12 +93,47 @@ export type WinProbability = {
 	method: string;
 };
 
+export type PositionScenario = {
+	currentPoints: number;
+	currentPosition: number | null;
+	ifWin: number | null;
+	ifDraw: number | null;
+	ifLoss: number | null;
+};
+
+export type PositionSimulator = {
+	teamA: PositionScenario;
+	teamB: PositionScenario;
+};
+
+type LeagueStandingRow = {
+	teamId: string;
+	points: number;
+	goalsFor: number;
+	goalsAgainst: number;
+};
+
+export type MatchPrediction = {
+	expectedGoalsA: number;
+	expectedGoalsB: number;
+	expectedTotal: number;
+	totalLabel: "cerrado" | "abierto" | "festival";
+	likelyScoreA: number;
+	likelyScoreB: number;
+	bothTeamsToScore: boolean;
+	offensiveEdge: "A" | "B" | "equal";
+	defensiveEdge: "A" | "B" | "equal";
+	hasData: boolean;
+};
+
 export type NarratorAnalysis = {
 	league: { id: string; name: string; season: string };
 	teamA: TeamAnalysis;
 	teamB: TeamAnalysis;
 	winProbability: WinProbability;
 	headToHead: H2HRecord;
+	positionSimulator: PositionSimulator;
+	matchPrediction: MatchPrediction;
 	narratorBullets: string[];
 	funFacts: string[];
 };
@@ -123,37 +162,49 @@ export async function generateNarratorAnalysis(
 		orderBy: [desc(matches.matchDate)],
 	});
 
-	// Análisis paralelo de ambos equipos
-	const [analysisA, analysisB] = await Promise.all([
+	// Análisis paralelo de ambos equipos + standings de la liga
+	const [analysisA, analysisB, allStandings] = await Promise.all([
 		buildTeamAnalysis(teamA, leagueId, completedMatches),
 		buildTeamAnalysis(teamB, leagueId, completedMatches),
+		getAllLeagueStandings(leagueId, completedMatches),
 	]);
 
-	const winProb = calcWinProbability(analysisA, analysisB);
+	const positionSimulator = buildPositionSimulator(teamAId, teamBId, allStandings);
+	const rankA = computeLeagueRanks(teamAId, allStandings);
+	const rankB = computeLeagueRanks(teamBId, allStandings);
+
+	const teamAFinal: TeamAnalysis = {
+		...analysisA,
+		attackRank: rankA.attackRank,
+		defenseRank: rankA.defenseRank,
+		totalTeams: allStandings.length,
+		topScoringThreats: analysisA.roster.filter((p) => p.goals > 0).slice(0, 3),
+	};
+
+	const teamBFinal: TeamAnalysis = {
+		...analysisB,
+		attackRank: rankB.attackRank,
+		defenseRank: rankB.defenseRank,
+		totalTeams: allStandings.length,
+		topScoringThreats: analysisB.roster.filter((p) => p.goals > 0).slice(0, 3),
+	};
+
+	const winProb = calcWinProbability(teamAFinal, teamBFinal);
 	const h2h = buildH2H(teamAId, teamBId, completedMatches);
 
-	const bullets = buildBullets(
-		teamA.name,
-		teamB.name,
-		analysisA,
-		analysisB,
-		winProb,
-		h2h,
-	);
-	const funFacts = buildFunFacts(
-		teamA.name,
-		teamB.name,
-		analysisA,
-		analysisB,
-		h2h,
-	);
+	const bullets = buildBullets(teamA.name, teamB.name, teamAFinal, teamBFinal, winProb, h2h);
+	const funFacts = buildFunFacts(teamA.name, teamB.name, teamAFinal, teamBFinal, h2h);
+
+	const matchPrediction = buildMatchPrediction(teamAFinal, teamBFinal);
 
 	return {
 		league: { id: league.id, name: league.name, season: league.season },
-		teamA: analysisA,
-		teamB: analysisB,
+		teamA: teamAFinal,
+		teamB: teamBFinal,
 		winProbability: winProb,
 		headToHead: h2h,
+		positionSimulator,
+		matchPrediction,
 		narratorBullets: bullets,
 		funFacts,
 	};
@@ -225,7 +276,11 @@ async function buildTeamAnalysis(
 		topScorer,
 		topAssist,
 		topContributor,
+		topScoringThreats: [],
 		cardRisk,
+		attackRank: null,
+		defenseRank: null,
+		totalTeams: 0,
 	};
 }
 
@@ -688,30 +743,36 @@ function buildFunFacts(
 ): string[] {
 	const facts: string[] = [];
 
-	// Mejor ataque
-	if (a.record.played > 0 && b.record.played > 0) {
-		if (a.avgGoalsFor > b.avgGoalsFor) {
-			facts.push(
-				`${aName} tiene el mejor ataque: ${a.avgGoalsFor} goles promedio vs ${b.avgGoalsFor} de ${bName}.`,
-			);
-		} else if (b.avgGoalsFor > a.avgGoalsFor) {
-			facts.push(
-				`${bName} tiene el mejor ataque: ${b.avgGoalsFor} goles promedio vs ${a.avgGoalsFor} de ${aName}.`,
-			);
-		}
+	// Contexto de ataque en la liga
+	if (a.attackRank !== null && a.totalTeams > 2) {
+		const label =
+			a.attackRank === 1
+				? `el equipo más goleador de la liga`
+				: `${ordinal(a.attackRank)} mejor ataque de ${a.totalTeams} equipos`;
+		facts.push(`${aName} tiene ${label} con ${a.goalsFor} goles anotados.`);
+	}
+	if (b.attackRank !== null && b.totalTeams > 2) {
+		const label =
+			b.attackRank === 1
+				? `el equipo más goleador de la liga`
+				: `${ordinal(b.attackRank)} mejor ataque de ${b.totalTeams} equipos`;
+		facts.push(`${bName} tiene ${label} con ${b.goalsFor} goles anotados.`);
 	}
 
-	// Mejor defensa
-	if (a.record.played > 0 && b.record.played > 0) {
-		if (a.avgGoalsAgainst < b.avgGoalsAgainst) {
-			facts.push(
-				`${aName} es más sólido en defensa: solo ${a.avgGoalsAgainst} goles en contra por partido.`,
-			);
-		} else if (b.avgGoalsAgainst < a.avgGoalsAgainst) {
-			facts.push(
-				`${bName} es más sólido en defensa: solo ${b.avgGoalsAgainst} goles en contra por partido.`,
-			);
-		}
+	// Contexto de defensa en la liga
+	if (a.defenseRank !== null && a.totalTeams > 2) {
+		const label =
+			a.defenseRank === 1
+				? `la mejor defensa de la liga`
+				: `${ordinal(a.defenseRank)} mejor defensa de ${a.totalTeams} equipos`;
+		facts.push(`${aName} tiene ${label} con ${a.goalsAgainst} goles en contra.`);
+	}
+	if (b.defenseRank !== null && b.totalTeams > 2) {
+		const label =
+			b.defenseRank === 1
+				? `la mejor defensa de la liga`
+				: `${ordinal(b.defenseRank)} mejor defensa de ${b.totalTeams} equipos`;
+		facts.push(`${bName} tiene ${label} con ${b.goalsAgainst} goles en contra.`);
 	}
 
 	// Diferencia de goles
@@ -782,6 +843,195 @@ function buildFunFacts(
 	}
 
 	return facts.slice(0, 6); // máximo 6 datos curiosos
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Predicción del partido
+// ────────────────────────────────────────────────────────────────────────────
+
+function buildMatchPrediction(a: TeamAnalysis, b: TeamAnalysis): MatchPrediction {
+	const hasData = a.record.played > 0 && b.record.played > 0;
+
+	if (!hasData) {
+		return {
+			expectedGoalsA: 0,
+			expectedGoalsB: 0,
+			expectedTotal: 0,
+			totalLabel: "cerrado",
+			likelyScoreA: 0,
+			likelyScoreB: 0,
+			bothTeamsToScore: false,
+			offensiveEdge: "equal",
+			defensiveEdge: "equal",
+			hasData: false,
+		};
+	}
+
+	const xA = round1((a.avgGoalsFor + b.avgGoalsAgainst) / 2);
+	const xB = round1((b.avgGoalsFor + a.avgGoalsAgainst) / 2);
+	const total = round1(xA + xB);
+
+	const totalLabel: MatchPrediction["totalLabel"] =
+		total < 3.5 ? "cerrado" : total <= 5.5 ? "abierto" : "festival";
+
+	const offensiveEdge: MatchPrediction["offensiveEdge"] =
+		a.avgGoalsFor > b.avgGoalsAgainst + 0.5
+			? "A"
+			: b.avgGoalsFor > a.avgGoalsAgainst + 0.5
+				? "B"
+				: "equal";
+
+	const defensiveEdge: MatchPrediction["defensiveEdge"] =
+		a.avgGoalsAgainst < b.avgGoalsFor - 0.5
+			? "A"
+			: b.avgGoalsAgainst < a.avgGoalsFor - 0.5
+				? "B"
+				: "equal";
+
+	return {
+		expectedGoalsA: xA,
+		expectedGoalsB: xB,
+		expectedTotal: total,
+		totalLabel,
+		likelyScoreA: Math.round(xA),
+		likelyScoreB: Math.round(xB),
+		bothTeamsToScore: xA >= 0.8 && xB >= 0.8,
+		offensiveEdge,
+		defensiveEdge,
+		hasData: true,
+	};
+}
+
+function round1(n: number): number {
+	return Math.round(n * 10) / 10;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Standings de la liga y simulador de posición
+// ────────────────────────────────────────────────────────────────────────────
+
+async function getAllLeagueStandings(
+	leagueId: string,
+	completedMatches: Awaited<ReturnType<typeof db.query.matches.findMany>>,
+): Promise<LeagueStandingRow[]> {
+	const latestJornada = await db
+		.select({ maxJornada: sql<number>`max(jornada)::int` })
+		.from(teamStandingsSnapshot)
+		.where(eq(teamStandingsSnapshot.leagueId, leagueId));
+
+	const jornada = latestJornada[0]?.maxJornada;
+
+	if (jornada) {
+		const rows = await db.query.teamStandingsSnapshot.findMany({
+			where: and(
+				eq(teamStandingsSnapshot.leagueId, leagueId),
+				eq(teamStandingsSnapshot.jornada, jornada),
+			),
+		});
+		return rows.map((r) => ({
+			teamId: r.teamId,
+			points: r.points,
+			goalsFor: r.goalsFor,
+			goalsAgainst: r.goalsAgainst,
+		}));
+	}
+
+	// Fallback: calcular desde partidos completados
+	const map = new Map<string, LeagueStandingRow>();
+	for (const m of completedMatches) {
+		for (const [tid, gf, ga] of [
+			[m.homeTeamId, m.homeScore, m.awayScore],
+			[m.awayTeamId, m.awayScore, m.homeScore],
+		] as [string, number, number][]) {
+			const row = map.get(tid) ?? { teamId: tid, points: 0, goalsFor: 0, goalsAgainst: 0 };
+			row.goalsFor += gf;
+			row.goalsAgainst += ga;
+			if (gf > ga) row.points += 3;
+			else if (gf === ga) row.points += 1;
+			map.set(tid, row);
+		}
+	}
+	return [...map.values()];
+}
+
+function rankByStandings(rows: LeagueStandingRow[]): Map<string, number> {
+	const sorted = [...rows].sort((a, b) => {
+		if (b.points !== a.points) return b.points - a.points;
+		const aDiff = a.goalsFor - a.goalsAgainst;
+		const bDiff = b.goalsFor - b.goalsAgainst;
+		if (bDiff !== aDiff) return bDiff - aDiff;
+		return b.goalsFor - a.goalsFor;
+	});
+	return new Map(sorted.map((r, i) => [r.teamId, i + 1]));
+}
+
+function buildPositionSimulator(
+	teamAId: string,
+	teamBId: string,
+	allStandings: LeagueStandingRow[],
+): PositionSimulator {
+	const empty: PositionScenario = {
+		currentPoints: 0,
+		currentPosition: null,
+		ifWin: null,
+		ifDraw: null,
+		ifLoss: null,
+	};
+
+	if (allStandings.length === 0) return { teamA: empty, teamB: empty };
+
+	const currentRanks = rankByStandings(allStandings);
+	const rowA = allStandings.find((r) => r.teamId === teamAId);
+	const rowB = allStandings.find((r) => r.teamId === teamBId);
+
+	function simulate(aDelta: number, bDelta: number) {
+		const sim = allStandings.map((r) => {
+			if (r.teamId === teamAId) return { ...r, points: r.points + aDelta };
+			if (r.teamId === teamBId) return { ...r, points: r.points + bDelta };
+			return r;
+		});
+		const ranks = rankByStandings(sim);
+		return { posA: ranks.get(teamAId) ?? null, posB: ranks.get(teamBId) ?? null };
+	}
+
+	const win = simulate(3, 0);
+	const draw = simulate(1, 1);
+	const loss = simulate(0, 3);
+
+	return {
+		teamA: {
+			currentPoints: rowA?.points ?? 0,
+			currentPosition: currentRanks.get(teamAId) ?? null,
+			ifWin: win.posA,
+			ifDraw: draw.posA,
+			ifLoss: loss.posA,
+		},
+		teamB: {
+			currentPoints: rowB?.points ?? 0,
+			currentPosition: currentRanks.get(teamBId) ?? null,
+			ifWin: loss.posB,
+			ifDraw: draw.posB,
+			ifLoss: win.posB,
+		},
+	};
+}
+
+function computeLeagueRanks(
+	teamId: string,
+	allStandings: LeagueStandingRow[],
+): { attackRank: number | null; defenseRank: number | null } {
+	if (allStandings.length === 0) return { attackRank: null, defenseRank: null };
+
+	const byAttack = [...allStandings].sort((a, b) => b.goalsFor - a.goalsFor);
+	const byDefense = [...allStandings].sort((a, b) => a.goalsAgainst - b.goalsAgainst);
+
+	const ai = byAttack.findIndex((r) => r.teamId === teamId);
+	const di = byDefense.findIndex((r) => r.teamId === teamId);
+
+	return {
+		attackRank: ai >= 0 ? ai + 1 : null,
+		defenseRank: di >= 0 ? di + 1 : null,
+	};
 }
 
 // ────────────────────────────────────────────────────────────────────────────

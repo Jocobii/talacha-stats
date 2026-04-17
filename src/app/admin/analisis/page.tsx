@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { NarratorAnalysis, RosterPlayer, TeamAnalysis } from "@/lib/narrator";
+import type { NarratorAnalysis, RosterPlayer, TeamAnalysis, PositionSimulator, MatchPrediction } from "@/lib/narrator";
 
 type League = { id: string; name: string; dayOfWeek: string; season: string };
 type Team   = { id: string; name: string };
@@ -148,7 +148,7 @@ function AnalysisPanel({
   teamAId: string;
   teamBId: string;
 }) {
-  const { teamA, teamB, winProbability: prob, headToHead: h2h, narratorBullets, funFacts } = analysis;
+  const { teamA, teamB, winProbability: prob, headToHead: h2h, narratorBullets, funFacts, positionSimulator, matchPrediction } = analysis;
 
   const exportParams = `leagueId=${leagueId}&teamA=${teamAId}&teamB=${teamBId}`;
 
@@ -202,6 +202,23 @@ function AnalysisPanel({
         <TeamCard team={teamA} color="blue" />
         <TeamCard team={teamB} color="red" />
       </div>
+
+      {/* Predicción del partido */}
+      <PredictionCard
+        pred={matchPrediction}
+        nameA={teamA.team.name}
+        nameB={teamB.team.name}
+      />
+
+      {/* Simulador de posición */}
+      <PositionSimulatorCard
+        sim={positionSimulator}
+        nameA={teamA.team.name}
+        nameB={teamB.team.name}
+      />
+
+      {/* Top 3 amenazas goleadoras */}
+      <ScoringThreatsCard teamA={teamA} teamB={teamB} />
 
       {/* Bullets del narrador */}
       <section className="bg-white rounded-xl shadow p-5">
@@ -345,6 +362,38 @@ function TeamCard({ team, color }: { team: TeamAnalysis; color: "blue" | "red" }
         </div>
       )}
 
+      {/* Ranking en la liga */}
+      {(team.attackRank !== null || team.defenseRank !== null) && team.totalTeams > 2 && (
+        <div className="flex gap-2 mb-3 flex-wrap">
+          {team.attackRank !== null && (() => {
+            const t = team.totalTeams;
+            const r = team.attackRank;
+            const [label, cls] =
+              r <= Math.ceil(t / 3)   ? ["Ataque fuerte",   "bg-green-100 text-green-700"] :
+              r <= Math.ceil(t * 2/3) ? ["Ataque regular",  "bg-yellow-100 text-yellow-700"] :
+                                        ["Ataque flojo",    "bg-red-100 text-red-600"];
+            return (
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cls}`}>
+                ⚔️ {label} ({r} de {t})
+              </span>
+            );
+          })()}
+          {team.defenseRank !== null && (() => {
+            const t = team.totalTeams;
+            const r = team.defenseRank;
+            const [label, cls] =
+              r <= Math.ceil(t / 3)   ? ["Defensa sólida",  "bg-green-100 text-green-700"] :
+              r <= Math.ceil(t * 2/3) ? ["Defensa regular", "bg-yellow-100 text-yellow-700"] :
+                                        ["Defensa débil",   "bg-red-100 text-red-600"];
+            return (
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cls}`}>
+                🛡️ {label} ({r} de {t})
+              </span>
+            );
+          })()}
+        </div>
+      )}
+
       {/* Top jugadores */}
       <div className="space-y-1.5">
         {team.topScorer && (
@@ -468,6 +517,187 @@ function RosterTable({ team, color }: { team: TeamAnalysis; color: "blue" | "red
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Predicción del partido
+// ────────────────────────────────────────────────────────────────────────────
+
+function PredictionCard({ pred, nameA, nameB }: {
+  pred: MatchPrediction;
+  nameA: string;
+  nameB: string;
+}) {
+  if (!pred.hasData) return null;
+
+  const totalLabels = {
+    cerrado:  { text: "Partido cerrado",       cls: "bg-blue-100 text-blue-700" },
+    abierto:  { text: "Partido abierto",        cls: "bg-yellow-100 text-yellow-700" },
+    festival: { text: "Festival de goles",      cls: "bg-red-100 text-red-700" },
+  };
+  const tl = totalLabels[pred.totalLabel];
+
+  const edgeLabel = (edge: "A" | "B" | "equal", nameA: string, nameB: string) =>
+    edge === "A" ? nameA : edge === "B" ? nameB : "Equilibrado";
+
+  return (
+    <div className="bg-white rounded-xl shadow p-5 space-y-5">
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-gray-800 text-base">🔮 Predicción del partido</h2>
+        <span className="text-[10px] text-gray-400 italic">Estimación basada en promedios</span>
+      </div>
+
+      {/* Marcador más probable */}
+      <div className="text-center">
+        <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Marcador más probable</p>
+        <div className="flex items-center justify-center gap-4">
+          <div className="text-right">
+            <p className="text-3xl font-black text-blue-600">{pred.likelyScoreA}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{nameA}</p>
+          </div>
+          <span className="text-2xl font-black text-gray-300">–</span>
+          <div className="text-left">
+            <p className="text-3xl font-black text-red-500">{pred.likelyScoreB}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{nameB}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Goles esperados */}
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <div className="bg-blue-50 rounded-lg p-3">
+          <p className="text-2xl font-black text-blue-600">{pred.expectedGoalsA}</p>
+          <p className="text-xs text-gray-500 mt-0.5">Goles esp. {nameA}</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3 flex flex-col items-center justify-center">
+          <p className="text-lg font-black text-gray-700">{pred.expectedTotal}</p>
+          <p className="text-xs text-gray-500">Total</p>
+          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full mt-1 ${tl.cls}`}>
+            {tl.text}
+          </span>
+        </div>
+        <div className="bg-red-50 rounded-lg p-3">
+          <p className="text-2xl font-black text-red-500">{pred.expectedGoalsB}</p>
+          <p className="text-xs text-gray-500 mt-0.5">Goles esp. {nameB}</p>
+        </div>
+      </div>
+
+      {/* Métricas */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500">¿Ambos equipos anotarán?</span>
+          <span className={`font-semibold ${pred.bothTeamsToScore ? "text-green-600" : "text-gray-400"}`}>
+            {pred.bothTeamsToScore ? "Probable que sí" : "No garantizado"}
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500">Ventaja ofensiva</span>
+          <span className="font-semibold text-gray-700">{edgeLabel(pred.offensiveEdge, nameA, nameB)}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500">Ventaja defensiva</span>
+          <span className="font-semibold text-gray-700">{edgeLabel(pred.defensiveEdge, nameA, nameB)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Simulador de posición
+// ────────────────────────────────────────────────────────────────────────────
+
+function PositionSimulatorCard({ sim, nameA, nameB }: {
+  sim: PositionSimulator;
+  nameA: string;
+  nameB: string;
+}) {
+  if (sim.teamA.currentPosition === null && sim.teamB.currentPosition === null) return null;
+
+  function PosDelta({ from, to }: { from: number | null; to: number | null }) {
+    if (from === null || to === null) return <span className="text-gray-300">—</span>;
+    const delta = from - to;
+    if (delta > 0) return <span className="text-green-600 font-bold">{to}° ↑{delta}</span>;
+    if (delta < 0) return <span className="text-red-500 font-bold">{to}° ↓{Math.abs(delta)}</span>;
+    return <span className="text-gray-500 font-bold">{to}° =</span>;
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow p-5">
+      <h2 className="font-bold text-gray-800 mb-4 text-base">📈 Simulador de posición</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {([
+          { name: nameA, s: sim.teamA, color: "blue" },
+          { name: nameB, s: sim.teamB, color: "red" },
+        ] as const).map(({ name, s, color }) => (
+          <div key={name} className={`rounded-lg border p-4 ${color === "blue" ? "border-blue-200 bg-blue-50" : "border-red-200 bg-red-50"}`}>
+            <p className={`font-bold text-sm mb-1 ${color === "blue" ? "text-blue-700" : "text-red-700"}`}>{name}</p>
+            <p className="text-xs text-gray-500 mb-3">Posición actual: <strong className="text-gray-800">{s.currentPosition ?? "—"}°</strong> · {s.currentPoints} pts</p>
+            <div className="space-y-1.5 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Si gana</span>
+                <PosDelta from={s.currentPosition} to={s.ifWin} />
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Si empata</span>
+                <PosDelta from={s.currentPosition} to={s.ifDraw} />
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Si pierde</span>
+                <PosDelta from={s.currentPosition} to={s.ifLoss} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Top 3 amenazas goleadoras
+// ────────────────────────────────────────────────────────────────────────────
+
+function ScoringThreatsCard({ teamA, teamB }: { teamA: TeamAnalysis; teamB: TeamAnalysis }) {
+  const hasThreats = teamA.topScoringThreats.length > 0 || teamB.topScoringThreats.length > 0;
+  if (!hasThreats) return null;
+
+  return (
+    <div className="bg-white rounded-xl shadow p-5">
+      <h2 className="font-bold text-gray-800 mb-4 text-base">🎯 Amenazas goleadoras</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {([
+          { team: teamA, color: "blue" },
+          { team: teamB, color: "red" },
+        ] as const).map(({ team, color }) => (
+          <div key={team.team.id}>
+            <p className={`text-xs font-bold uppercase tracking-wide mb-2 ${color === "blue" ? "text-blue-600" : "text-red-600"}`}>
+              {team.team.name}
+            </p>
+            {team.topScoringThreats.length === 0 ? (
+              <p className="text-xs text-gray-400">Sin datos de goles</p>
+            ) : (
+              <div className="space-y-2">
+                {team.topScoringThreats.map((p, i) => (
+                  <div key={p.playerId} className="flex items-center gap-3">
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0
+                      ${i === 0 ? (color === "blue" ? "bg-blue-500" : "bg-red-500") : "bg-gray-300"}`}>
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{playerDisplay(p)}</p>
+                      <p className="text-xs text-gray-400">{p.goals} goles · {p.goalsPerMatch} x partido</p>
+                    </div>
+                    <DangerBadge rating={p.dangerRating} goals={p.goals} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
