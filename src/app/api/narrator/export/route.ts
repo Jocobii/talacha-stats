@@ -54,7 +54,7 @@ export async function GET(request: Request) {
   // ── PNG ────────────────────────────────────────────────────────────────────
   return new ImageResponse(buildNarratorPngElement(analysis), {
     width: 800,
-    height: 1500,
+    height: 1900,
     headers: {
       "Content-Disposition": `attachment; filename="${filename}.png"`,
     },

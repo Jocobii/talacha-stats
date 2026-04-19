@@ -137,6 +137,22 @@ export async function buildNarratorPdf(
         leftX, yLeft, C.black,
       );
     }
+    if (a.topAssist && a.topAssist.playerId !== a.topScorer?.playerId) {
+      yLeft = teamLine(
+        `Asistidor: ${displayName(a.topAssist)} (${a.topAssist.assists} asist.)`,
+        leftX, yLeft, C.black,
+      );
+    }
+    if (a.attackRank !== null && a.totalTeams > 2) {
+      const t = a.totalTeams;
+      const rankLabel = a.attackRank <= Math.ceil(t / 3) ? "Ataque fuerte" :
+        a.attackRank <= Math.ceil(t * 2 / 3) ? "Ataque regular" : "Ataque flojo";
+      const defLabel = a.defenseRank !== null ? (
+        a.defenseRank <= Math.ceil(t / 3) ? "  Defensa solida" :
+        a.defenseRank <= Math.ceil(t * 2 / 3) ? "  Defensa regular" : "  Defensa debil"
+      ) : "";
+      yLeft = teamLine(`${rankLabel}${defLabel}`, leftX, yLeft, C.gray);
+    }
     if (a.cardRisk.length > 0) {
       yLeft = teamLine(
         `Tarjetas: ${a.cardRisk[0].player} — ${strip(a.cardRisk[0].note)}`,
@@ -165,6 +181,22 @@ export async function buildNarratorPdf(
         rightX, yRight, C.black,
       );
     }
+    if (b.topAssist && b.topAssist.playerId !== b.topScorer?.playerId) {
+      yRight = teamLine(
+        `Asistidor: ${displayName(b.topAssist)} (${b.topAssist.assists} asist.)`,
+        rightX, yRight, C.black,
+      );
+    }
+    if (b.attackRank !== null && b.totalTeams > 2) {
+      const t = b.totalTeams;
+      const rankLabel = b.attackRank <= Math.ceil(t / 3) ? "Ataque fuerte" :
+        b.attackRank <= Math.ceil(t * 2 / 3) ? "Ataque regular" : "Ataque flojo";
+      const defLabel = b.defenseRank !== null ? (
+        b.defenseRank <= Math.ceil(t / 3) ? "  Defensa solida" :
+        b.defenseRank <= Math.ceil(t * 2 / 3) ? "  Defensa regular" : "  Defensa debil"
+      ) : "";
+      yRight = teamLine(`${rankLabel}${defLabel}`, rightX, yRight, C.gray);
+    }
     if (b.cardRisk.length > 0) {
       yRight = teamLine(
         `Tarjetas: ${b.cardRisk[0].player} — ${strip(b.cardRisk[0].note)}`,
@@ -173,6 +205,89 @@ export async function buildNarratorPdf(
     }
 
     doc.y = Math.max(yLeft, yRight) + 12;
+
+    // ── Predicción del partido ────────────────────────────────────────────────
+    const pred = analysis.matchPrediction;
+    if (pred.hasData) {
+      doc.fill(C.black).fontSize(10).font("Helvetica-Bold").text("Prediccion del partido", 40);
+      doc.moveDown(0.3);
+      const totalLabelMap = { cerrado: "Partido cerrado", abierto: "Partido abierto", festival: "Festival de goles" };
+      doc
+        .fill(C.gray).fontSize(9).font("Helvetica")
+        .text(
+          `Marcador mas probable: ${pred.likelyScoreA}-${pred.likelyScoreB}  |  ` +
+          `Goles esperados: ${a.team.name} ${pred.expectedGoalsA} — ${b.team.name} ${pred.expectedGoalsB}  |  ` +
+          `Total: ${pred.expectedTotal} (${totalLabelMap[pred.totalLabel]})`,
+          44, doc.y, { width: W - 4 },
+        );
+      doc.moveDown(0.3);
+      const edgeLabel = (e: string) => e === "A" ? a.team.name : e === "B" ? b.team.name : "Equilibrado";
+      doc
+        .fill(C.gray).fontSize(9).font("Helvetica")
+        .text(
+          `Ambos anotan: ${pred.bothTeamsToScore ? "Probable" : "No garantizado"}  |  ` +
+          `Ventaja ofensiva: ${edgeLabel(pred.offensiveEdge)}  |  ` +
+          `Ventaja defensiva: ${edgeLabel(pred.defensiveEdge)}`,
+          44, doc.y, { width: W - 4 },
+        );
+      doc.moveDown(0.8);
+    }
+
+    // ── Simulador de posición ─────────────────────────────────────────────────
+    const sim = analysis.positionSimulator;
+    if (sim.teamA.currentPosition !== null || sim.teamB.currentPosition !== null) {
+      doc.fill(C.black).fontSize(10).font("Helvetica-Bold").text("Simulador de posicion", 40);
+      doc.moveDown(0.3);
+      for (const { name, s } of [
+        { name: a.team.name, s: sim.teamA },
+        { name: b.team.name, s: sim.teamB },
+      ]) {
+        const pos = (n: number | null) => n !== null ? `${n}°` : "—";
+        doc
+          .fill(C.gray).fontSize(9).font("Helvetica")
+          .text(
+            `${name} (ahora ${pos(s.currentPosition)}, ${s.currentPoints} pts): ` +
+            `Gana → ${pos(s.ifWin)}  Empata → ${pos(s.ifDraw)}  Pierde → ${pos(s.ifLoss)}`,
+            44, doc.y, { width: W - 4 },
+          );
+        doc.moveDown(0.3);
+      }
+      doc.moveDown(0.5);
+    }
+
+    // ── Amenazas goleadoras ───────────────────────────────────────────────────
+    const threatsA = a.topScoringThreats;
+    const threatsB = b.topScoringThreats;
+    if (threatsA.length > 0 || threatsB.length > 0) {
+      doc.fill(C.black).fontSize(10).font("Helvetica-Bold").text("Amenazas goleadoras", 40);
+      doc.moveDown(0.3);
+      const tStartY = doc.y;
+      let ytA = tStartY;
+      let ytB = tStartY;
+
+      if (threatsA.length > 0) {
+        ytA = teamLine(a.team.name, leftX, ytA, C.blue, true, 9);
+        for (const p of threatsA) {
+          const dangerLabel = p.dangerRating === "ALTO" ? "[ALTO]" : p.dangerRating === "MEDIO" ? "[MED]" : "";
+          ytA = teamLine(
+            `${displayName(p)} — ${p.goals} goles ${dangerLabel}`,
+            leftX, ytA, C.black,
+          );
+        }
+      }
+      if (threatsB.length > 0) {
+        ytB = teamLine(b.team.name, rightX, ytB, C.red, true, 9);
+        for (const p of threatsB) {
+          const dangerLabel = p.dangerRating === "ALTO" ? "[ALTO]" : p.dangerRating === "MEDIO" ? "[MED]" : "";
+          ytB = teamLine(
+            `${displayName(p)} — ${p.goals} goles ${dangerLabel}`,
+            rightX, ytB, C.black,
+          );
+        }
+      }
+      doc.y = Math.max(ytA, ytB) + 8;
+      doc.moveDown(0.5);
+    }
 
     // ── Guión del narrador ────────────────────────────────────────────────────
     doc.fill(C.black).fontSize(10).font("Helvetica-Bold").text("Guion del narrador", 40);

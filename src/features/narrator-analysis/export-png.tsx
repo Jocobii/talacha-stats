@@ -230,6 +230,137 @@ export function buildNarratorPngElement(
         <TeamCard team={b} color="red" />
       </div>
 
+      {/* ── Predicción del partido ──────────────────────────────────────── */}
+      {analysis.matchPrediction.hasData && (() => {
+        const pred = analysis.matchPrediction;
+        const totalLabelMap = { cerrado: "Partido cerrado", abierto: "Partido abierto", festival: "Festival de goles" };
+        const totalColor = { cerrado: "#1d4ed8", abierto: "#b45309", festival: "#dc2626" }[pred.totalLabel];
+        const edgeLabel = (e: string) => e === "A" ? a.team.name : e === "B" ? b.team.name : "Equilibrado";
+        return (
+          <Section>
+            <SectionTitle>Prediccion del partido</SectionTitle>
+            {/* Marcador */}
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginBottom: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <span style={{ fontSize: 32, fontWeight: 900, color: C.blueDk }}>{pred.likelyScoreA}</span>
+                <span style={{ fontSize: 10, color: C.gray }}>{a.team.name}</span>
+              </div>
+              <span style={{ fontSize: 20, fontWeight: 900, color: C.lgray }}>—</span>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <span style={{ fontSize: 32, fontWeight: 900, color: C.redDk }}>{pred.likelyScoreB}</span>
+                <span style={{ fontSize: 10, color: C.gray }}>{b.team.name}</span>
+              </div>
+            </div>
+            {/* Goles esperados */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, background: "#eff6ff", borderRadius: 8, padding: "6px 0" }}>
+                <span style={{ fontSize: 18, fontWeight: 900, color: C.blueDk }}>{pred.expectedGoalsA}</span>
+                <span style={{ fontSize: 9, color: C.gray }}>Goles esp. A</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, background: "#f9fafb", borderRadius: 8, padding: "6px 0" }}>
+                <span style={{ fontSize: 16, fontWeight: 900, color: C.dark }}>{pred.expectedTotal}</span>
+                <span style={{ fontSize: 9, color: totalColor, fontWeight: 700 }}>{totalLabelMap[pred.totalLabel]}</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, background: "#fef2f2", borderRadius: 8, padding: "6px 0" }}>
+                <span style={{ fontSize: 18, fontWeight: 900, color: C.redDk }}>{pred.expectedGoalsB}</span>
+                <span style={{ fontSize: 9, color: C.gray }}>Goles esp. B</span>
+              </div>
+            </div>
+            {/* Métricas */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {[
+                ["Ambos equipos anotan", pred.bothTeamsToScore ? "Probable que si" : "No garantizado"],
+                ["Ventaja ofensiva", edgeLabel(pred.offensiveEdge)],
+                ["Ventaja defensiva", edgeLabel(pred.defensiveEdge)],
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                  <span style={{ color: C.gray }}>{label}</span>
+                  <span style={{ color: C.dark, fontWeight: 600 }}>{value}</span>
+                </div>
+              ))}
+            </div>
+          </Section>
+        );
+      })()}
+
+      {/* ── Simulador de posición ────────────────────────────────────────── */}
+      {(analysis.positionSimulator.teamA.currentPosition !== null || analysis.positionSimulator.teamB.currentPosition !== null) && (() => {
+        const sim = analysis.positionSimulator;
+        const pos = (n: number | null) => n !== null ? `${n}°` : "—";
+        return (
+          <Section>
+            <SectionTitle>Simulador de posicion</SectionTitle>
+            <div style={{ display: "flex", gap: 12 }}>
+              {([
+                { name: a.team.name, s: sim.teamA, color: C.blueDk, bg: "#eff6ff" },
+                { name: b.team.name, s: sim.teamB, color: C.redDk, bg: "#fef2f2" },
+              ] as const).map(({ name, s, color, bg }) => (
+                <div key={name} style={{ display: "flex", flexDirection: "column", flex: 1, background: bg, borderRadius: 8, padding: "10px 12px", gap: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color }}>{name}</span>
+                  <span style={{ fontSize: 10, color: C.gray }}>Ahora: {pos(s.currentPosition)} · {s.currentPoints} pts</span>
+                  {[
+                    ["Si gana", s.ifWin],
+                    ["Si empata", s.ifDraw],
+                    ["Si pierde", s.ifLoss],
+                  ].map(([label, val]) => {
+                    const from = s.currentPosition;
+                    const to = val as number | null;
+                    const delta = from !== null && to !== null ? from - to : 0;
+                    const valColor = delta > 0 ? C.green : delta < 0 ? C.red : C.gray;
+                    return (
+                      <div key={String(label)} style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                        <span style={{ color: C.gray }}>{label}</span>
+                        <span style={{ color: valColor, fontWeight: 700 }}>{pos(to)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </Section>
+        );
+      })()}
+
+      {/* ── Amenazas goleadoras ─────────────────────────────────────────── */}
+      {(a.topScoringThreats.length > 0 || b.topScoringThreats.length > 0) && (
+        <Section>
+          <SectionTitle>Amenazas goleadoras</SectionTitle>
+          <div style={{ display: "flex", gap: 12 }}>
+            {([
+              { team: a, color: C.blueDk, bg: "#eff6ff" },
+              { team: b, color: C.redDk,  bg: "#fef2f2" },
+            ] as const).map(({ team, color, bg }) => (
+              <div key={team.team.id} style={{ display: "flex", flexDirection: "column", flex: 1, gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color }}>{team.team.name}</span>
+                {team.topScoringThreats.length === 0 ? (
+                  <span style={{ fontSize: 10, color: C.gray }}>Sin datos</span>
+                ) : (
+                  team.topScoringThreats.map((p, i) => (
+                    <div key={p.playerId} style={{ display: "flex", alignItems: "center", gap: 6, background: bg, borderRadius: 6, padding: "5px 8px" }}>
+                      <span style={{ fontSize: 10, fontWeight: 900, color: i === 0 ? color : C.gray, width: 14 }}>{i + 1}</span>
+                      <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: C.dark }}>{displayName(p)}</span>
+                        <span style={{ fontSize: 9, color: C.gray }}>{p.goals} goles</span>
+                      </div>
+                      {p.dangerRating !== "BAJO" && (
+                        <span style={{
+                          fontSize: 8, fontWeight: 700,
+                          background: p.dangerRating === "ALTO" ? "#fee2e2" : "#fef9c3",
+                          color: p.dangerRating === "ALTO" ? "#b91c1c" : "#92400e",
+                          borderRadius: 4, padding: "1px 4px",
+                        }}>
+                          {p.dangerRating}
+                        </span>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
       {/* ── Guión del narrador ──────────────────────────────────────────── */}
       <Section>
         <SectionTitle>Guion del narrador</SectionTitle>
@@ -451,6 +582,54 @@ function TeamCard({
         </div>
       )}
 
+      {/* Racha */}
+      {team.currentStreak && team.currentStreak.count >= 2 && (
+        <div style={{
+          display: "flex",
+          alignSelf: "flex-start",
+          background: team.currentStreak.type === "W" ? "#dcfce7" : team.currentStreak.type === "L" ? "#fee2e2" : "#f3f4f6",
+          borderRadius: 20,
+          padding: "3px 8px",
+          fontSize: 10,
+          fontWeight: 700,
+          color: team.currentStreak.type === "W" ? "#15803d" : team.currentStreak.type === "L" ? "#b91c1c" : "#4b5563",
+        }}>
+          Racha: {team.currentStreak.count} {{ W: "victorias", D: "empates", L: "derrotas" }[team.currentStreak.type]}
+        </div>
+      )}
+
+      {/* Ranking */}
+      {(team.attackRank !== null || team.defenseRank !== null) && team.totalTeams > 2 && (
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+          {team.attackRank !== null && (() => {
+            const t = team.totalTeams;
+            const r = team.attackRank;
+            const [label, bg, color] =
+              r <= Math.ceil(t / 3)   ? ["Ataque fuerte",  "#dcfce7", "#15803d"] :
+              r <= Math.ceil(t * 2/3) ? ["Ataque regular", "#fef9c3", "#92400e"] :
+                                        ["Ataque flojo",   "#fee2e2", "#b91c1c"];
+            return (
+              <span style={{ display: "flex", background: bg, color, borderRadius: 20, padding: "2px 7px", fontSize: 9, fontWeight: 700 }}>
+                {label}
+              </span>
+            );
+          })()}
+          {team.defenseRank !== null && (() => {
+            const t = team.totalTeams;
+            const r = team.defenseRank;
+            const [label, bg, color] =
+              r <= Math.ceil(t / 3)   ? ["Defensa solida",  "#dcfce7", "#15803d"] :
+              r <= Math.ceil(t * 2/3) ? ["Defensa regular", "#fef9c3", "#92400e"] :
+                                        ["Defensa debil",   "#fee2e2", "#b91c1c"];
+            return (
+              <span style={{ display: "flex", background: bg, color, borderRadius: 20, padding: "2px 7px", fontSize: 9, fontWeight: 700 }}>
+                {label}
+              </span>
+            );
+          })()}
+        </div>
+      )}
+
       {/* Top scorer */}
       {team.topScorer && (
         <div style={{ display: "flex", gap: 6, fontSize: 11, alignItems: "center" }}>
@@ -460,6 +639,19 @@ function TeamCard({
           </span>
           <span style={{ color: C.gray, marginLeft: "auto" }}>
             {team.topScorer.goals} goles
+          </span>
+        </div>
+      )}
+
+      {/* Top assist */}
+      {team.topAssist && team.topAssist.playerId !== team.topScorer?.playerId && (
+        <div style={{ display: "flex", gap: 6, fontSize: 11, alignItems: "center" }}>
+          <span>🎯</span>
+          <span style={{ color: C.dark, fontWeight: 600 }}>
+            {displayName(team.topAssist)}
+          </span>
+          <span style={{ color: C.gray, marginLeft: "auto" }}>
+            {team.topAssist.assists} asist.
           </span>
         </div>
       )}

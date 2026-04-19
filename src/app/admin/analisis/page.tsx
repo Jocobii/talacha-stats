@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import type { NarratorAnalysis, RosterPlayer, TeamAnalysis, PositionSimulator, MatchPrediction } from "@/lib/narrator";
 
 type League = { id: string; name: string; dayOfWeek: string; season: string };
@@ -11,6 +12,9 @@ type Team   = { id: string; name: string };
 // ────────────────────────────────────────────────────────────────────────────
 
 export default function AnalisisPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [leagues, setLeagues] = useState<League[]>([]);
   const [leagueId, setLeagueId] = useState("");
   const [leagueTeams, setLeagueTeams] = useState<Team[]>([]);
@@ -19,19 +23,76 @@ export default function AnalisisPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [analysis, setAnalysis] = useState<NarratorAnalysis | null>(null);
+  const [copied, setCopied] = useState(false);
 
+  // URL params to pre-fill on mount
+  const urlParams = useRef<{ leagueId: string; teamA: string; teamB: string } | null>(null);
+
+  // Load leagues + detect URL params on mount
   useEffect(() => {
+    const urlLeague = searchParams.get("leagueId");
+    const urlTeamA  = searchParams.get("teamA");
+    const urlTeamB  = searchParams.get("teamB");
+
+    if (urlLeague && urlTeamA && urlTeamB) {
+      urlParams.current = { leagueId: urlLeague, teamA: urlTeamA, teamB: urlTeamB };
+      setLeagueId(urlLeague);
+    }
+
     fetch("/api/leagues").then(r => r.json()).then(d => setLeagues(d.data ?? []));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Load teams when league changes; also handle URL auto-generate
   useEffect(() => {
     if (!leagueId) { setLeagueTeams([]); return; }
+
     fetch(`/api/teams?league_id=${leagueId}`)
       .then(r => r.json())
-      .then(d => setLeagueTeams(d.data ?? []));
-    setTeamA("");
-    setTeamB("");
-    setAnalysis(null);
+      .then(async (d) => {
+        const teams: Team[] = d.data ?? [];
+        setLeagueTeams(teams);
+
+        const params = urlParams.current;
+        if (params && params.leagueId === leagueId) {
+          urlParams.current = null;
+
+          const aExists = teams.some(t => t.id === params.teamA);
+          const bExists = teams.some(t => t.id === params.teamB);
+
+          if (!aExists || !bExists) {
+            setError(
+              !aExists && !bExists
+                ? "Los equipos del enlace no se encontraron en esta liga."
+                : `El equipo ${!aExists ? "A" : "B"} del enlace no se encontró en esta liga.`
+            );
+            return;
+          }
+
+          setTeamA(params.teamA);
+          setTeamB(params.teamB);
+
+          // Auto-generate analysis
+          setLoading(true);
+          setError("");
+          try {
+            const res  = await fetch(`/api/narrator?leagueId=${leagueId}&teamA=${params.teamA}&teamB=${params.teamB}`);
+            const data = await res.json();
+            if (!data.ok) { setError(data.error); return; }
+            setAnalysis(data.data);
+          } catch {
+            setError("Error de red al generar el análisis.");
+          } finally {
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Normal flow: clear previous selection
+        setTeamA("");
+        setTeamB("");
+        setAnalysis(null);
+      });
   }, [leagueId]);
 
   async function handleAnalyze() {
@@ -39,14 +100,25 @@ export default function AnalisisPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch(`/api/narrator?leagueId=${leagueId}&teamA=${teamA}&teamB=${teamB}`);
+      const res  = await fetch(`/api/narrator?leagueId=${leagueId}&teamA=${teamA}&teamB=${teamB}`);
       const data = await res.json();
       if (!data.ok) { setError(data.error); return; }
       setAnalysis(data.data);
+      router.replace(`?leagueId=${leagueId}&teamA=${teamA}&teamB=${teamB}`, { scroll: false });
     } catch {
       setError("Error de red al generar el análisis.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleShare() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: select URL manually
     }
   }
 
@@ -127,6 +199,8 @@ export default function AnalisisPage() {
           leagueId={leagueId}
           teamAId={teamA}
           teamBId={teamB}
+          onShare={handleShare}
+          copied={copied}
         />
       )}
     </div>
@@ -142,11 +216,15 @@ function AnalysisPanel({
   leagueId,
   teamAId,
   teamBId,
+  onShare,
+  copied,
 }: {
   analysis: NarratorAnalysis;
   leagueId: string;
   teamAId: string;
   teamBId: string;
+  onShare: () => void;
+  copied: boolean;
 }) {
   const { teamA, teamB, winProbability: prob, headToHead: h2h, narratorBullets, funFacts, positionSimulator, matchPrediction } = analysis;
 
@@ -154,8 +232,13 @@ function AnalysisPanel({
 
   return (
     <div className="space-y-5">
-      {/* Botones de exportar — llaman directamente al API */}
-      <div className="flex justify-end gap-2">
+      {/* Botones de acción */}
+      <div className="flex justify-end gap-2 flex-wrap">
+        <button
+          onClick={onShare}
+          className="flex items-center gap-1.5 bg-white border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition shadow-sm">
+          {copied ? "✅ Copiado" : "🔗 Compartir enlace"}
+        </button>
         <a
           href={`/api/narrator/export?format=pdf&${exportParams}`}
           download
@@ -174,9 +257,14 @@ function AnalysisPanel({
 
       {/* Encabezado del partido */}
       <div className="bg-gray-900 text-white rounded-xl p-4 text-center">
-        <p className="text-xs text-gray-400 uppercase tracking-widest mb-3">
+        <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">
           {analysis.league.name} · {analysis.league.season}
         </p>
+        {analysis.lastMatchday != null && (
+          <p className="text-xs text-gray-500 mb-3">
+            Datos hasta la jornada <span className="font-semibold text-gray-400">{analysis.lastMatchday}</span>
+          </p>
+        )}
         <div className="flex items-center justify-center gap-3">
           <div className="text-right flex-1 min-w-0">
             <p className="text-base sm:text-xl font-black text-blue-300 leading-tight break-words">
@@ -500,7 +588,7 @@ function RosterTable({ team, color }: { team: TeamAnalysis; color: "blue" | "red
               <tr key={p.playerId} className={`hover:bg-gray-50 ${p.contributions === 0 ? "opacity-50" : ""}`}>
                 <td className="px-3 py-2 font-medium text-gray-800 max-w-[130px] truncate">
                   {p.alias ? (
-                    <><span className="text-gray-400 mr-1">"{p.alias}"</span></>
+                    <><span className="text-gray-400 mr-1">&quot;{p.alias}&quot;</span></>
                   ) : p.fullName}
                   {p.alias && <span className="block text-gray-400 text-[10px]">{p.fullName}</span>}
                 </td>

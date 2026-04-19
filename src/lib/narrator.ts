@@ -128,6 +128,7 @@ export type MatchPrediction = {
 
 export type NarratorAnalysis = {
 	league: { id: string; name: string; season: string };
+	lastMatchday: number | null;
 	teamA: TeamAnalysis;
 	teamB: TeamAnalysis;
 	winProbability: WinProbability;
@@ -169,6 +170,12 @@ export async function generateNarratorAnalysis(
 		getAllLeagueStandings(leagueId, completedMatches),
 	]);
 
+	const latestJornadaRow = await db
+		.select({ maxJornada: sql<number>`max(jornada)::int` })
+		.from(teamStandingsSnapshot)
+		.where(eq(teamStandingsSnapshot.leagueId, leagueId));
+	const lastMatchday: number | null = latestJornadaRow[0]?.maxJornada ?? null;
+
 	const positionSimulator = buildPositionSimulator(teamAId, teamBId, allStandings);
 	const rankA = computeLeagueRanks(teamAId, allStandings);
 	const rankB = computeLeagueRanks(teamBId, allStandings);
@@ -199,6 +206,7 @@ export async function generateNarratorAnalysis(
 
 	return {
 		league: { id: league.id, name: league.name, season: league.season },
+		lastMatchday,
 		teamA: teamAFinal,
 		teamB: teamBFinal,
 		winProbability: winProb,
