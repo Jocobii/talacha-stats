@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import type { NarratorAnalysis, RosterPlayer, TeamAnalysis, PositionSimulator, MatchPrediction } from "@/lib/narrator";
 
@@ -8,10 +8,18 @@ type League = { id: string; name: string; dayOfWeek: string; season: string };
 type Team   = { id: string; name: string };
 
 // ────────────────────────────────────────────────────────────────────────────
-// Página principal
+// Export: envuelve el contenido en Suspense (requerido por useSearchParams)
 // ────────────────────────────────────────────────────────────────────────────
 
 export default function AnalisisPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-gray-400">Cargando…</div>}>
+      <AnalisisContent />
+    </Suspense>
+  );
+}
+
+function AnalisisContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
