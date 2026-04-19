@@ -17,9 +17,14 @@ export default function HomePage() {
         <span className="font-display font-black text-xl uppercase tracking-widest text-ink">
           TalachaStats
         </span>
-        <Link href="/login" className="text-ink-3 hover:text-ink text-sm transition">
-          Admin →
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/demo" className="text-sm font-semibold text-brand hover:text-brand-dim transition">
+            Ver demo →
+          </Link>
+          <Link href="/login" className="text-ink-3 hover:text-ink text-sm transition">
+            Admin →
+          </Link>
+        </div>
       </header>
 
       {/* Hero */}
