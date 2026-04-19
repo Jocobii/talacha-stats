@@ -4,13 +4,13 @@ import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 function LoginForm() {
-  const searchParams  = useSearchParams();
-  const router        = useRouter();
-  const from          = searchParams.get("from") ?? "/admin";
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const from = searchParams.get("from") ?? "/admin";
 
   const [password, setPassword] = useState("");
-  const [error,    setError]    = useState("");
-  const [loading,  setLoading]  = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -18,10 +18,10 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const res  = await fetch("/api/auth/login", {
-        method:  "POST",
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ password, from }),
+        body: JSON.stringify({ password, from }),
       });
       const data = await res.json();
 
@@ -82,7 +82,7 @@ function LoginForm() {
         </form>
 
         <p className="text-center text-xs text-gray-600">
-          ⚽ TalachaStats · Tijuana
+          TalachaStats · Tijuana
         </p>
       </div>
     </div>

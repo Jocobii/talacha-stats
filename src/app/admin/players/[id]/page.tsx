@@ -28,7 +28,7 @@ export default async function PlayerProfilePage({
           ← Todos los jugadores
         </Link>
         <Link
-          href={`/jugador/${id}`}
+          href={`/player/${id}`}
           target="_blank"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600 hover:text-green-700 transition"
         >

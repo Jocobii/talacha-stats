@@ -20,9 +20,8 @@ export default async function RankingPage({
   const ranking = await getCityRanking(city);
 
   return (
-    <div className="min-h-screen bg-pitch text-ink font-body flex flex-col">
+    <div className="text-ink flex flex-col flex-1">
 
-      {/* Header */}
       <header className="bg-pitch px-5 pt-8 pb-6 max-w-lg mx-auto w-full">
         <Link
           href="/"
@@ -49,7 +48,6 @@ export default async function RankingPage({
         </div>
       </header>
 
-      {/* Cuerpo */}
       <div className="flex-1 bg-surface rounded-t-3xl px-4 pt-6 pb-16">
         <div className="max-w-lg mx-auto space-y-3">
 
@@ -59,7 +57,6 @@ export default async function RankingPage({
             </div>
           )}
 
-          {/* Podio top 3 */}
           {ranking.length >= 3 && (
             <div className="grid grid-cols-3 gap-2 mb-4">
               {[
@@ -69,7 +66,7 @@ export default async function RankingPage({
               ].map(({ entry, pos, medal, goalsSize, mt }) => (
                 <Link
                   key={entry.playerId}
-                  href={`/jugador/${entry.playerId}`}
+                  href={`/player/${entry.playerId}`}
                   className={`bg-surface-2 border border-line rounded-2xl flex flex-col items-center text-center px-2 py-4 ${mt} hover:border-brand transition`}
                 >
                   <span className="text-xl mb-2">{medal}</span>
@@ -93,7 +90,6 @@ export default async function RankingPage({
             </div>
           )}
 
-          {/* Lista completa a partir del 4° */}
           {ranking.slice(ranking.length >= 3 ? 3 : 0).map((entry, idx) => (
             <RankRow
               key={entry.playerId}
@@ -107,10 +103,6 @@ export default async function RankingPage({
               <RankRow key={entry.playerId} entry={entry} position={idx + 1} />
             ))
           }
-
-          <p className="text-center text-xs text-ink-3 pt-4 font-display uppercase tracking-widest">
-            ⚽ TalachaStats · Tijuana
-          </p>
         </div>
       </div>
     </div>
@@ -122,7 +114,7 @@ function RankRow({ entry, position }: { entry: RankingEntry; position: number })
 
   return (
     <Link
-      href={`/jugador/${entry.playerId}`}
+      href={`/player/${entry.playerId}`}
       className="flex items-center gap-4 bg-surface-2 border border-line rounded-2xl px-4 py-3.5 hover:border-brand transition"
     >
       <div className={`w-8 text-center shrink-0 font-display font-black text-xl ${isTop10 ? "text-brand" : "text-ink-3"}`}>

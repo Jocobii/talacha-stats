@@ -4,8 +4,6 @@ import { getPlayerProfile } from "@/entities/player";
 import type { PlayerLeagueStats, PlayerGlobalProfile } from "@/entities/player";
 import ShareButton from "./ShareButton";
 
-// ── Metadata dinámica (preview en WhatsApp / redes) ──────────────────────────
-
 export async function generateMetadata({
   params,
 }: {
@@ -22,7 +20,7 @@ export async function generateMetadata({
   const g = profile.global;
   const desc =
     g.totalGoals > 0
-      ? `${g.totalGoals} goles en ${g.leaguesCount} liga${g.leaguesCount !== 1 ? "s"  : ""}${g.totalMatches > 0 ? ` · ${g.goalsPerMatch.toFixed(2)} goles/partido` : ""}`
+      ? `${g.totalGoals} goles en ${g.leaguesCount} liga${g.leaguesCount !== 1 ? "s" : ""}${g.totalMatches > 0 ? ` · ${g.goalsPerMatch.toFixed(2)} goles/partido` : ""}`
       : `Jugador amateur de fútbol 7`;
 
   return {
@@ -36,9 +34,7 @@ export async function generateMetadata({
   };
 }
 
-// ── Página principal (Server Component) ──────────────────────────────────────
-
-export default async function PublicPlayerProfile({
+export default async function PlayerProfilePage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -52,13 +48,11 @@ export default async function PublicPlayerProfile({
   const initial = (profile.alias ?? profile.fullName).charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="bg-gray-950 text-white flex flex-col flex-1">
 
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <div className="bg-gray-950 px-5 pt-10 pb-8">
         <div className="max-w-lg mx-auto">
 
-          {/* Avatar + nombre */}
           <div className="flex items-center gap-5 mb-6">
             <div className="w-20 h-20 rounded-full bg-green-500 flex items-center justify-center text-4xl font-black shrink-0 shadow-lg">
               {initial}
@@ -75,7 +69,6 @@ export default async function PublicPlayerProfile({
             </div>
           </div>
 
-          {/* Métrica hero */}
           {hasStats && (
             <div className="bg-gray-900 rounded-2xl px-6 py-5 flex items-center justify-between">
               <div>
@@ -106,14 +99,11 @@ export default async function PublicPlayerProfile({
         </div>
       </div>
 
-      {/* ── Cuerpo ───────────────────────────────────────────────────────── */}
-      <div className="bg-gray-100 min-h-screen rounded-t-3xl -mt-1 px-5 pt-7 pb-16">
+      <div className="bg-gray-100 flex-1 rounded-t-3xl -mt-1 px-5 pt-7 pb-16">
         <div className="max-w-lg mx-auto space-y-5">
 
-          {/* Stats globales */}
           {hasStats && <GlobalStatsBar global={g} />}
 
-          {/* Ligas */}
           {profile.leagues.length > 0 && (
             <section>
               <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
@@ -133,23 +123,15 @@ export default async function PublicPlayerProfile({
             </div>
           )}
 
-          {/* Botón compartir */}
           <ShareButton
-            url={`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/jugador/${id}`}
+            url={`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/player/${id}`}
             playerName={profile.alias ?? profile.fullName}
           />
-
-          {/* Branding */}
-          <p className="text-center text-xs text-gray-400 pt-2">
-            ⚽ TalachaStats · Tijuana
-          </p>
         </div>
       </div>
     </div>
   );
 }
-
-// ── Stats globales ────────────────────────────────────────────────────────────
 
 function GlobalStatsBar({ global: g }: { global: PlayerGlobalProfile }) {
   const items = [
@@ -175,8 +157,6 @@ function GlobalStatsBar({ global: g }: { global: PlayerGlobalProfile }) {
   );
 }
 
-// ── Tarjeta por liga ──────────────────────────────────────────────────────────
-
 function LeagueCard({ league: l }: { league: PlayerLeagueStats }) {
   const gpmColor =
     l.goalsPerMatch >= 1   ? "text-green-600"  :
@@ -185,11 +165,9 @@ function LeagueCard({ league: l }: { league: PlayerLeagueStats }) {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-      {/* Franja superior verde */}
       <div className="h-1 bg-green-500" />
 
       <div className="p-4 space-y-3">
-        {/* Encabezado */}
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="font-bold text-gray-900">{l.leagueName}</p>
@@ -208,14 +186,12 @@ function LeagueCard({ league: l }: { league: PlayerLeagueStats }) {
           )}
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-2">
           <StatBox label="Goles"  value={l.goals}         accent />
           <StatBox label="Asist." value={l.assists}        />
           <StatBox label="PJ"     value={l.matchesPlayed}  />
         </div>
 
-        {/* Tarjetas */}
         {(l.yellowCards > 0 || l.redCards > 0) && (
           <div className="flex gap-3 text-xs text-gray-500 pt-1">
             {l.yellowCards > 0 && (

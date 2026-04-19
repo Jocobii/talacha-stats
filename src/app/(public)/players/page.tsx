@@ -11,7 +11,7 @@ type Player = {
   alias: string | null;
 };
 
-export default function JugadoresPage() {
+export default function PlayersPage() {
   const [query,   setQuery]   = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(false);
@@ -37,10 +37,9 @@ export default function JugadoresPage() {
   }, [query, search]);
 
   return (
-    <div className="min-h-screen bg-pitch text-ink font-body">
+    <div className="text-ink flex flex-col flex-1">
 
-      {/* Header */}
-      <header className="bg-pitch px-5 pt-8 pb-6 max-w-lg mx-auto">
+      <header className="bg-pitch px-5 pt-8 pb-6 max-w-lg mx-auto w-full">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-ink-3 hover:text-ink text-sm transition mb-5"
@@ -66,11 +65,9 @@ export default function JugadoresPage() {
         </div>
       </header>
 
-      {/* Cuerpo */}
-      <div className="bg-surface min-h-screen rounded-t-3xl px-4 pt-6 pb-16">
+      <div className="bg-surface flex-1 rounded-t-3xl px-4 pt-6 pb-16">
         <div className="max-w-lg mx-auto space-y-3">
 
-          {/* Buscador */}
           <div className="relative">
             <Search
               size={16}
@@ -86,7 +83,6 @@ export default function JugadoresPage() {
             />
           </div>
 
-          {/* Estado */}
           {loading && (
             <p className="text-center text-sm text-ink-3 py-6">Buscando…</p>
           )}
@@ -97,11 +93,10 @@ export default function JugadoresPage() {
             </p>
           )}
 
-          {/* Lista */}
           {!loading && players.map((p) => (
             <Link
               key={p.id}
-              href={`/jugador/${p.id}`}
+              href={`/player/${p.id}`}
               className="flex items-center gap-4 bg-surface-2 border border-line rounded-2xl px-4 py-3.5 hover:border-brand transition"
             >
               <div className="w-11 h-11 rounded-full bg-brand flex items-center justify-center text-pitch font-display font-black text-lg shrink-0">

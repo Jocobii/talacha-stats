@@ -11,5 +11,5 @@ export default function AdminAnalisisRedirect({
   if (searchParams.teamB)    params.set("teamB",    searchParams.teamB);
 
   const qs = params.toString();
-  redirect(`/analisis${qs ? `?${qs}` : ""}`);
+  redirect(`/analysis${qs ? `?${qs}` : ""}`);
 }

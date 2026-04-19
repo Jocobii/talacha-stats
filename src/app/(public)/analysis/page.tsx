@@ -9,11 +9,11 @@ import type { NarratorAnalysis, RosterPlayer, TeamAnalysis, PositionSimulator, M
 type League = { id: string; name: string; dayOfWeek: string; season: string };
 type Team   = { id: string; name: string };
 
-export default function AnalisisPage() {
+export default function AnalysisPage() {
   return (
-    <div className="min-h-screen bg-pitch text-ink font-body">
+    <div className="text-ink flex flex-col flex-1">
 
-      <header className="bg-pitch px-5 pt-8 pb-6 max-w-2xl mx-auto">
+      <header className="bg-pitch px-5 pt-8 pb-6 max-w-2xl mx-auto w-full">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-ink-3 hover:text-ink text-sm transition mb-5"
@@ -32,10 +32,10 @@ export default function AnalisisPage() {
         </p>
       </header>
 
-      <div className="bg-surface min-h-screen rounded-t-3xl px-4 pt-6 pb-16">
+      <div className="bg-surface flex-1 rounded-t-3xl px-4 pt-6 pb-16">
         <div className="max-w-2xl mx-auto">
           <Suspense fallback={<p className="text-sm text-ink-3 py-8 text-center">Cargando…</p>}>
-            <AnalisisContent />
+            <AnalysisContent />
           </Suspense>
         </div>
       </div>
@@ -43,9 +43,7 @@ export default function AnalisisPage() {
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-
-function AnalisisContent() {
+function AnalysisContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -155,7 +153,6 @@ function AnalisisContent() {
 
   return (
     <div className="space-y-4">
-      {/* Selector */}
       <div className="bg-surface-2 border border-line rounded-2xl p-5 space-y-4">
         <div>
           <label className="block text-xs font-semibold text-ink-2 uppercase tracking-widest mb-2">Liga</label>
@@ -229,8 +226,6 @@ function AnalisisContent() {
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-
 function AnalysisPanel({
   analysis,
   leagueId,
@@ -253,7 +248,6 @@ function AnalysisPanel({
 
   return (
     <div className="space-y-4">
-      {/* Acciones */}
       <div className="flex justify-end gap-2 flex-wrap">
         <button onClick={onShare} className={actionBtnCls}>
           {copied ? "✅ Copiado" : "🔗 Compartir"}
@@ -266,7 +260,6 @@ function AnalysisPanel({
         </a>
       </div>
 
-      {/* VS */}
       <div className="bg-pitch border border-line rounded-2xl p-5 text-center">
         <p className="text-xs text-ink-3 uppercase tracking-widest mb-1">
           {analysis.league.name} · {analysis.league.season}
@@ -302,7 +295,6 @@ function AnalysisPanel({
 
       <ScoringThreatsCard teamA={teamA} teamB={teamB} />
 
-      {/* Guión */}
       <section className="bg-surface-2 border border-line rounded-2xl p-5">
         <h2 className="font-display font-black text-xl uppercase tracking-wide text-ink mb-3">🎙️ Guión del narrador</h2>
         <ul className="space-y-2">
@@ -335,8 +327,6 @@ function AnalysisPanel({
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-
 function WinProbBar({ prob, nameA, nameB }: { prob: NarratorAnalysis["winProbability"]; nameA: string; nameB: string }) {
   return (
     <div className="bg-surface-2 border border-line rounded-2xl p-5">
@@ -356,10 +346,10 @@ function WinProbBar({ prob, nameA, nameB }: { prob: NarratorAnalysis["winProbabi
 }
 
 function TeamCard({ team, color }: { team: TeamAnalysis; color: "blue" | "red" }) {
-  const accent      = color === "blue" ? "text-blue-400"  : "text-red-400";
-  const topBorder   = color === "blue" ? "border-t-blue-500" : "border-t-red-500";
-  const statBg      = color === "blue" ? "bg-blue-950 border-blue-900" : "bg-red-950 border-red-900";
-  const statVal     = color === "blue" ? "text-blue-300" : "text-red-300";
+  const accent    = color === "blue" ? "text-blue-400"  : "text-red-400";
+  const topBorder = color === "blue" ? "border-t-blue-500" : "border-t-red-500";
+  const statBg    = color === "blue" ? "bg-blue-950 border-blue-900" : "bg-red-950 border-red-900";
+  const statVal   = color === "blue" ? "text-blue-300" : "text-red-300";
 
   return (
     <div className={`bg-surface-2 border border-line border-t-2 ${topBorder} rounded-2xl p-5`}>

@@ -12,7 +12,6 @@ export default function ShareButton({
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
-    // En móvil usa la API nativa de compartir
     if (navigator.share) {
       await navigator.share({
         title: `${playerName} — TalachaStats`,
@@ -21,7 +20,6 @@ export default function ShareButton({
       });
       return;
     }
-    // En desktop copia al portapapeles
     await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);

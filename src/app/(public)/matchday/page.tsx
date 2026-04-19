@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     "Los mejores goleadores de la última jornada en todas las ligas de Tijuana.",
 };
 
-export default async function JornadaPage({
+export default async function MatchdayPage({
   searchParams,
 }: {
   searchParams: Promise<{ city?: string }>;
@@ -20,9 +20,8 @@ export default async function JornadaPage({
   const leagues = await getJornadaHonor(city);
 
   return (
-    <div className="min-h-screen bg-pitch text-ink font-body flex flex-col">
+    <div className="text-ink flex flex-col flex-1">
 
-      {/* Header */}
       <header className="bg-pitch px-5 pt-8 pb-6 max-w-lg mx-auto w-full">
         <Link
           href="/"
@@ -49,7 +48,6 @@ export default async function JornadaPage({
         </div>
       </header>
 
-      {/* Cuerpo */}
       <div className="flex-1 bg-surface rounded-t-3xl px-4 pt-6 pb-16">
         <div className="max-w-lg mx-auto space-y-4">
 
@@ -62,10 +60,6 @@ export default async function JornadaPage({
           {leagues.map((league) => (
             <LeagueHonorCard key={league.leagueId} league={league} />
           ))}
-
-          <p className="text-center text-xs text-ink-3 pt-4 font-display uppercase tracking-widest">
-            ⚽ TalachaStats · Tijuana
-          </p>
         </div>
       </div>
     </div>
@@ -110,7 +104,7 @@ function HeroRow({ hero, medal, rank }: { hero: JornadaHero; medal: string; rank
 
   return (
     <Link
-      href={`/jugador/${hero.playerId}`}
+      href={`/player/${hero.playerId}`}
       className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:border-brand border
         ${isBest ? "bg-pitch border-brand/30" : "bg-surface border-line"}`}
     >

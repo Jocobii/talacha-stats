@@ -12,9 +12,8 @@ export default function TrackVisit() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Normalizar rutas de perfil de jugador → "/jugador/[id]"
-    const page = pathname.startsWith("/jugador/")
-      ? "/jugador/[id]"
+    const page = pathname.startsWith("/player/")
+      ? "/player/[id]"
       : pathname;
 
     fetch("/api/analytics/visit", {

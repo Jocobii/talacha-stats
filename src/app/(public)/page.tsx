@@ -10,12 +10,12 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-pitch text-ink flex flex-col font-body">
+    <div className="text-ink flex flex-col flex-1">
 
       {/* Nav */}
       <header className="px-5 py-4 flex items-center justify-between max-w-4xl mx-auto w-full border-b border-line">
         <span className="font-display font-black text-xl uppercase tracking-widest text-ink">
-          ⚽ TalachaStats
+          TalachaStats
         </span>
         <Link href="/login" className="text-ink-3 hover:text-ink text-sm transition">
           Admin →
@@ -43,7 +43,6 @@ export default function HomePage() {
             en un solo perfil que puedes compartir cuando alguien te pregunte si juegas bien.
           </p>
 
-          {/* CTAs principales */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
             <Link
               href="/ranking"
@@ -53,7 +52,7 @@ export default function HomePage() {
               Ver ranking
             </Link>
             <Link
-              href="/jugadores"
+              href="/players"
               className="flex items-center justify-center gap-2 bg-surface-2 hover:bg-line border border-line text-ink font-bold px-8 py-4 rounded-xl text-base transition"
             >
               <Search size={18} strokeWidth={2.5} />
@@ -61,17 +60,16 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* CTAs secundarios */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              href="/jornada"
+              href="/matchday"
               className="flex items-center justify-center gap-2 bg-surface border border-line text-ink-2 hover:text-ink font-semibold px-6 py-3 rounded-xl text-sm transition"
             >
               <Star size={15} strokeWidth={2} />
               Tabla de honor
             </Link>
             <Link
-              href="/analisis"
+              href="/analysis"
               className="flex items-center justify-center gap-2 bg-surface border border-line text-ink-2 hover:text-ink font-semibold px-6 py-3 rounded-xl text-sm transition"
             >
               <BarChart3 size={15} strokeWidth={2} />
@@ -111,13 +109,6 @@ export default function HomePage() {
           ))}
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-pitch border-t border-line px-5 py-5 text-center">
-        <p className="text-ink-3 text-xs font-display uppercase tracking-widest">
-          ⚽ TalachaStats · Tijuana
-        </p>
-      </footer>
     </div>
   );
 }
