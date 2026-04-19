@@ -8,6 +8,13 @@
       "when": 1776304123958,
       "tag": "0000_soft_quentin_quire",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776563459333,
+      "tag": "0001_wet_thanos",
+      "breakpoints": true
     }
   ]
 }

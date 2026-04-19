@@ -1,6 +1,7 @@
 import type { Config } from "drizzle-kit";
 import { config } from "dotenv";
 
+config({ path: ".env.local" });
 config({ path: ".env" });
 
 export default {
@@ -8,6 +9,6 @@ export default {
 	out: "./src/db/migrations",
 	dialect: "postgresql",
 	dbCredentials: {
-		url: process.env.DATABASE_URL!,
+		url: String(process.env.DATABASE_URL!).trim(),
 	},
 } satisfies Config;

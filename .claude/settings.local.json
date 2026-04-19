@@ -6,7 +6,9 @@
       "Bash(npx tsc:*)",
       "Bash(npm uninstall:*)",
       "Bash(node -e \"console.log\\(require\\('crypto'\\).randomBytes\\(32\\).toString\\('hex'\\)\\)\")",
-      "Bash(pnpm tsc *)"
+      "Bash(pnpm tsc *)",
+      "Bash(pnpm add *)",
+      "Bash(pnpm build *)"
     ]
   }
 }

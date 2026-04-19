@@ -30,6 +30,7 @@ export const leagues = pgTable("leagues", {
   name: text("name").notNull(),
   dayOfWeek: text("day_of_week").notNull(), // lunes | martes | miercoles | ...
   season: text("season").notNull(), // "Apertura 2025"
+  city: text("city").notNull().default("Tijuana"),
   adminId: uuid("admin_id"), // referencia a auth.users de Supabase
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
