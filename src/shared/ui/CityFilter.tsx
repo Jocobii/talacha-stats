@@ -3,11 +3,7 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Suspense } from "react";
 import { MapPin } from "lucide-react";
-
-const CITIES = [
-  { value: "Tijuana", label: "Tijuana" },
-  // Agregar más ciudades aquí cuando sea necesario
-];
+import { MEXICO_CITIES } from "@/shared/lib/cities";
 
 function CityFilterInner() {
   const router   = useRouter();
@@ -29,10 +25,8 @@ function CityFilterInner() {
         onChange={handleChange}
         className="bg-surface-2 border border-line text-ink text-xs font-semibold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand appearance-none cursor-pointer"
       >
-        {CITIES.map((c) => (
-          <option key={c.value} value={c.value}>
-            {c.label}
-          </option>
+        {MEXICO_CITIES.map((c) => (
+          <option key={c} value={c}>{c}</option>
         ))}
       </select>
     </div>

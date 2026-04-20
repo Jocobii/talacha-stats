@@ -191,6 +191,14 @@ export function apiSuccess<T>(data: T, status = 200) {
   return Response.json({ ok: true, data }, { status });
 }
 
+export function apiSuccessPaginated<T>(
+  data: T[],
+  meta: import("@/shared/lib/pagination").PaginationMeta,
+  status = 200
+) {
+  return Response.json({ ok: true, data, meta }, { status });
+}
+
 export function apiError(message: string, status = 400) {
   return Response.json({ ok: false, error: message }, { status });
 }

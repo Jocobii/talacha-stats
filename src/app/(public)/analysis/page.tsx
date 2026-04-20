@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { BarChart3, ArrowLeft } from "lucide-react";
+import CityFilter from "@/shared/ui/CityFilter";
 import type { NarratorAnalysis, RosterPlayer, TeamAnalysis, PositionSimulator, MatchPrediction } from "@/lib/narrator";
 
 type League = { id: string; name: string; dayOfWeek: string; season: string };
@@ -27,9 +28,14 @@ export default function AnalysisPage() {
             Análisis
           </h1>
         </div>
-        <p className="text-ink-2 text-sm mt-0.5">
-          Selecciona dos equipos y obtén el análisis completo del partido.
-        </p>
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-ink-2 text-sm">
+            Selecciona dos equipos y obtén el análisis completo del partido.
+          </p>
+          <div className="shrink-0">
+            <CityFilter />
+          </div>
+        </div>
       </header>
 
       <div className="bg-surface flex-1 rounded-t-3xl px-4 pt-6 pb-16">
@@ -59,6 +65,8 @@ function AnalysisContent() {
 
   const urlParams = useRef<{ leagueId: string; teamA: string; teamB: string } | null>(null);
 
+  const city = searchParams.get("city") ?? "Tijuana";
+
   useEffect(() => {
     const urlLeague = searchParams.get("leagueId");
     const urlTeamA  = searchParams.get("teamA");
@@ -69,9 +77,14 @@ function AnalysisContent() {
       setLeagueId(urlLeague);
     }
 
-    fetch("/api/leagues").then(r => r.json()).then(d => setLeagues(d.data ?? []));
+    setLeagueId("");
+    setLeagueTeams([]);
+    setTeamA("");
+    setTeamB("");
+    setAnalysis(null);
+    fetch(`/api/leagues?city=${encodeURIComponent(city)}`).then(r => r.json()).then(d => setLeagues(d.data ?? []));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [city]);
 
   useEffect(() => {
     if (!leagueId) { setLeagueTeams([]); return; }

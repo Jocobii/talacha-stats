@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search, Users, ArrowLeft, ChevronRight } from "lucide-react";
 import CityFilter from "@/shared/ui/CityFilter";
@@ -11,30 +12,32 @@ type Player = {
   alias: string | null;
 };
 
-export default function PlayersPage() {
+function PlayersContent() {
+  const searchParams = useSearchParams();
+  const city = searchParams.get("city") ?? "Tijuana";
+
   const [query,   setQuery]   = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
 
-  const search = useCallback(async (q: string) => {
+  const search = useCallback(async (q: string, c: string) => {
     setLoading(true);
-    const url = q.trim()
-      ? `/api/players?q=${encodeURIComponent(q.trim())}`
-      : `/api/players`;
-    const res  = await fetch(url);
+    const params = new URLSearchParams({ city: c });
+    if (q.trim()) params.set("q", q.trim());
+    const res  = await fetch(`/api/players?${params.toString()}`);
     const data = await res.json();
     setPlayers(data.data ?? []);
     setFetched(true);
     setLoading(false);
   }, []);
 
-  useEffect(() => { search(""); }, [search]);
+  useEffect(() => { search("", city); }, [search, city]);
 
   useEffect(() => {
-    const t = setTimeout(() => search(query), 300);
+    const t = setTimeout(() => search(query, city), 300);
     return () => clearTimeout(t);
-  }, [query, search]);
+  }, [query, city, search]);
 
   return (
     <div className="text-ink flex flex-col flex-1">
@@ -116,5 +119,13 @@ export default function PlayersPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PlayersPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-ink-3 py-8 text-center">Cargando…</p>}>
+      <PlayersContent />
+    </Suspense>
   );
 }

@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Trophy, ArrowLeft } from "lucide-react";
 import { getCityRanking } from "@/entities/player/ranking";
 import type { RankingEntry } from "@/entities/player/ranking";
 import CityFilter from "@/shared/ui/CityFilter";
+import Pagination from "@/shared/ui/Pagination";
+import { parsePaginationParams } from "@/shared/lib/pagination";
 
 export const metadata: Metadata = {
   title: "Ranking Tijuana — TalachaStats",
@@ -14,10 +17,23 @@ export const metadata: Metadata = {
 export default async function RankingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ city?: string }>;
+  searchParams: Promise<{ city?: string; page?: string; limit?: string }>;
 }) {
-  const { city = "Tijuana" } = await searchParams;
-  const ranking = await getCityRanking(city);
+  const params = await searchParams;
+  const city = params.city ?? "Tijuana";
+  const pagination = parsePaginationParams(new URLSearchParams(params as Record<string, string>), { limit: 30 });
+
+  const { items: ranking, meta } = await getCityRanking(city, pagination);
+
+  // Podium only on page 1
+  const isFirstPage = pagination.page === 1;
+  const hasPodium = isFirstPage && meta.total >= 3;
+
+  // On page 1, skip first 3 (shown in podium). On other pages, show all items.
+  const listItems = isFirstPage && hasPodium ? ranking.slice(3) : ranking;
+
+  // Global position offset for numbering rows correctly across pages
+  const globalOffset = (pagination.page - 1) * pagination.limit;
 
   return (
     <div className="text-ink flex flex-col flex-1">
@@ -39,7 +55,10 @@ export default async function RankingPage({
               </h1>
             </div>
             <p className="text-ink-2 text-sm">
-              {ranking.length} jugadores · Fútbol Amateur
+              {meta.total} jugadores · Fútbol Amateur
+              {meta.totalPages > 1 && (
+                <span className="ml-2 text-ink-3">· pág. {meta.page}/{meta.totalPages}</span>
+              )}
             </p>
           </div>
           <div className="shrink-0 pt-1">
@@ -51,13 +70,14 @@ export default async function RankingPage({
       <div className="flex-1 bg-surface rounded-t-3xl px-4 pt-6 pb-16">
         <div className="max-w-lg mx-auto space-y-3">
 
-          {ranking.length === 0 && (
+          {meta.total === 0 && (
             <div className="bg-surface-2 border border-line rounded-2xl p-8 text-center text-ink-3 text-sm">
               Aún no hay estadísticas registradas.
             </div>
           )}
 
-          {ranking.length >= 3 && (
+          {/* Podium — page 1 only */}
+          {hasPodium && (
             <div className="grid grid-cols-3 gap-2 mb-4">
               {[
                 { entry: ranking[1], pos: 2, medal: "🥈", goalsSize: "text-3xl", mt: "mt-6" },
@@ -90,19 +110,21 @@ export default async function RankingPage({
             </div>
           )}
 
-          {ranking.slice(ranking.length >= 3 ? 3 : 0).map((entry, idx) => (
-            <RankRow
-              key={entry.playerId}
-              entry={entry}
-              position={idx + (ranking.length >= 3 ? 4 : 1)}
-            />
-          ))}
+          {listItems.map((entry, idx) => {
+            const position = hasPodium
+              ? globalOffset + idx + 4         // page 1: first 3 are podium, list starts at 4
+              : globalOffset + idx + 1;         // other pages: straightforward offset
+            return (
+              <RankRow key={entry.playerId} entry={entry} position={position} />
+            );
+          })}
 
-          {ranking.length > 0 && ranking.length < 3 &&
-            ranking.map((entry, idx) => (
-              <RankRow key={entry.playerId} entry={entry} position={idx + 1} />
-            ))
-          }
+          {/* Pagination */}
+          {meta.totalPages > 1 && (
+            <Suspense>
+              <Pagination meta={meta} className="pt-4" />
+            </Suspense>
+          )}
         </div>
       </div>
     </div>

@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { getActiveCity } from "@/shared/lib/active-city";
 
-async function getLeagues() {
+async function getLeagues(city: string) {
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-  const res = await fetch(`${base}/api/leagues`, { cache: "no-store" });
+  const res  = await fetch(`${base}/api/leagues?city=${encodeURIComponent(city)}`, { cache: "no-store" });
   return res.ok ? (await res.json()).data ?? [] : [];
 }
 
@@ -12,12 +13,16 @@ const DAY_LABELS: Record<string, string> = {
 };
 
 export default async function LeaguesPage() {
-  const leagues = await getLeagues();
+  const city    = await getActiveCity();
+  const leagues = await getLeagues(city);
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Ligas</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Ligas</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{city}</p>
+        </div>
         <Link
           href="/admin/leagues/new"
           className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700"
@@ -29,8 +34,8 @@ export default async function LeaguesPage() {
       {leagues.length === 0 ? (
         <div className="bg-white rounded-xl shadow p-12 text-center">
           <p className="text-4xl mb-4">⚽</p>
-          <p className="text-gray-600 font-medium mb-1">No hay ligas creadas</p>
-          <p className="text-gray-400 text-sm mb-6">Crea tu primera liga para empezar a registrar estadísticas</p>
+          <p className="text-gray-600 font-medium mb-1">No hay ligas en {city}</p>
+          <p className="text-gray-400 text-sm mb-6">Crea la primera liga para esta ciudad</p>
           <Link
             href="/admin/leagues/new"
             className="bg-green-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-green-700"

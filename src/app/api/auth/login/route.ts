@@ -1,4 +1,6 @@
 import { apiError } from "@/types";
+import { buildCityCookieHeader, ACTIVE_CITY_COOKIE } from "@/shared/lib/active-city";
+import { DEFAULT_CITY } from "@/shared/lib/cities";
 
 // POST /api/auth/login
 // Body: { password: string }
@@ -36,11 +38,16 @@ export async function POST(request: Request) {
 
   const redirectTo = from && from.startsWith("/admin") ? from : "/admin";
 
+  // Only set active_city if the cookie doesn't already exist (preserve previous selection)
+  const existingCity = request.headers.get("cookie")?.match(new RegExp(`${ACTIVE_CITY_COOKIE}=([^;]+)`))?.[1];
+  const setCookies   = [cookieOptions];
+  if (!existingCity) setCookies.push(buildCityCookieHeader(DEFAULT_CITY, isProduction));
+
   return new Response(JSON.stringify({ ok: true, redirect: redirectTo }), {
     status: 200,
     headers: {
       "Content-Type": "application/json",
-      "Set-Cookie": cookieOptions,
+      "Set-Cookie": setCookies.join(", "),
     },
   });
 }

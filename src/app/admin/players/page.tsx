@@ -1,24 +1,48 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import Pagination from "@/shared/ui/Pagination";
+import FilterBar from "@/shared/ui/FilterBar";
+import type { PaginationMeta } from "@/shared/lib/pagination";
+import { getActiveCity } from "@/shared/lib/active-city";
 
-async function getPlayers(q?: string) {
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-  const url = q ? `/api/players?q=${encodeURIComponent(q)}` : "/api/players";
-  const res = await fetch(`${base}${url}`, { cache: "no-store" });
-  return res.ok ? (await res.json()).data ?? [] : [];
+type Player = { id: string; fullName: string; alias: string | null; phone: string | null };
+
+async function getPlayers(searchParams: Record<string, string>, city: string) {
+  const base   = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const params = new URLSearchParams();
+  params.set("city", city);
+  if (searchParams.q)     params.set("q",     searchParams.q);
+  if (searchParams.page)  params.set("page",  searchParams.page);
+  if (searchParams.limit) params.set("limit", searchParams.limit);
+
+  const res = await fetch(`${base}/api/players?${params.toString()}`, { cache: "no-store" });
+  if (!res.ok) return { data: [] as Player[], meta: null };
+
+  const json = await res.json();
+  return {
+    data: (json.data ?? []) as Player[],
+    meta: (json.meta ?? null) as PaginationMeta | null,
+  };
 }
 
 export default async function PlayersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<Record<string, string>>;
 }) {
-  const { q } = await searchParams;
-  const players = await getPlayers(q);
+  const [params, city] = await Promise.all([searchParams, getActiveCity()]);
+  const { data: players, meta } = await getPlayers(params, city);
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Jugadores</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Jugadores</h1>
+          <p className="text-sm text-gray-400 mt-0.5">
+            {city}{meta ? ` · ${meta.total} jugadores` : ""}
+            {meta && meta.totalPages > 1 && ` · pág. ${meta.page}/${meta.totalPages}`}
+          </p>
+        </div>
         <Link
           href="/admin/players/new"
           className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700"
@@ -27,25 +51,23 @@ export default async function PlayersPage({
         </Link>
       </div>
 
-      <form method="get" className="mb-6">
-        <div className="flex gap-2">
-          <input
-            name="q"
-            defaultValue={q}
-            placeholder="Buscar por nombre o apodo..."
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+      <div className="mb-5">
+        <Suspense>
+          <FilterBar
+            fields={[
+              {
+                type: "search",
+                name: "q",
+                placeholder: "Buscar por nombre o apodo…",
+                label: "Buscar jugadores",
+              },
+            ]}
           />
-          <button
-            type="submit"
-            className="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800"
-          >
-            Buscar
-          </button>
-        </div>
-      </form>
+        </Suspense>
+      </div>
 
       {players.length === 0 ? (
-        <p className="text-gray-500">No se encontraron jugadores.</p>
+        <p className="text-gray-500 py-8 text-center text-sm">No se encontraron jugadores en {city}.</p>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="w-full text-sm">
@@ -58,16 +80,13 @@ export default async function PlayersPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {players.map((p: { id: string; fullName: string; alias: string | null; phone: string | null }) => (
+              {players.map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-800">{p.fullName}</td>
                   <td className="px-4 py-3 text-gray-500">{p.alias ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-500">{p.phone ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/players/${p.id}`}
-                      className="text-green-600 hover:underline"
-                    >
+                    <Link href={`/admin/players/${p.id}`} className="text-green-600 hover:underline">
                       Ver stats
                     </Link>
                   </td>
@@ -75,6 +94,14 @@ export default async function PlayersPage({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {meta && meta.totalPages > 1 && (
+        <div className="mt-6">
+          <Suspense>
+            <Pagination meta={meta} />
+          </Suspense>
         </div>
       )}
     </div>
