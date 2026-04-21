@@ -15,29 +15,32 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, Suspense } from "react";
 
 function ProgressBar() {
-  const pathname     = usePathname();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [width,   setWidth]   = useState(0);
+  const [width, setWidth] = useState(0);
   const [visible, setVisible] = useState(false);
 
-  const timerRef    = useRef<ReturnType<typeof setTimeout>>();
-  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function start() {
-    clearInterval(intervalRef.current);
-    clearTimeout(timerRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (timerRef.current) clearTimeout(timerRef.current);
+
     setVisible(true);
     setWidth(12);
-    // Avance falso: sube rápido al 30%, luego se frena exponencialmente hasta ~85%
+
     intervalRef.current = setInterval(() => {
       setWidth((w) => (w < 85 ? w + (85 - w) * 0.08 : w));
     }, 150);
   }
 
   function complete() {
-    clearInterval(intervalRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
     setWidth(100);
+
     timerRef.current = setTimeout(() => {
       setVisible(false);
       setWidth(0);
@@ -48,8 +51,8 @@ function ProgressBar() {
   useEffect(() => {
     complete();
     return () => {
-      clearTimeout(timerRef.current);
-      clearInterval(intervalRef.current);
+      clearTimeout(timerRef.current!);
+      clearInterval(intervalRef.current!);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, searchParams?.toString()]);
