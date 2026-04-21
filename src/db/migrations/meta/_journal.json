@@ -36,6 +36,20 @@
       "when": 1776823000000,
       "tag": "0004_assign_leagues_to_owner",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776824000000,
+      "tag": "0005_normalize_names",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776810184308,
+      "tag": "0006_salty_millenium_guard",
+      "breakpoints": true
     }
   ]
 }

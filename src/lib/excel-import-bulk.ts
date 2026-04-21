@@ -1,14 +1,17 @@
 import * as XLSX from "xlsx";
+import { sql } from "drizzle-orm";
+import { ilike, and, eq } from "drizzle-orm";
 import {
 	db,
 	players,
 	teams,
+	leagues,
 	playerSeasonStats,
 	playerSeasonStatsSnapshot,
 	teamStandingsSnapshot,
 	playerRegistrations,
 } from "@/db";
-import { ilike, or, eq, and } from "drizzle-orm";
+import { sanitizeName } from "@/shared/lib/normalize";
 
 // ---------------------------------------------------------------------------
 // TIPOS
@@ -77,102 +80,175 @@ export type BulkImportResult = {
 // COLUMN MAP — tipos para mapeo manual de columnas
 // ---------------------------------------------------------------------------
 
-export type ColumnMap = Record<string, string>; // campo → índice de columna (letra o número 0-based)
+export type ColumnMap = Record<string, string>;
 
 export type MappedImportOptions = {
-  type: BulkImportType;
-  sheetName?: string;
-  headerRow: number;         // índice 0-based de la fila con encabezados
-  columnMap: ColumnMap;      // { rawName: "1", goals: "3", teamName: "2" }
-  jornada?: number;
+	type: BulkImportType;
+	sheetName?: string;
+	headerRow: number;
+	columnMap: ColumnMap;
+	jornada?: number;
 };
 
-/**
- * Parsea un Excel usando un mapeo de columnas definido manualmente por el usuario.
- * headerRow: índice 0-based de la fila que contiene los encabezados (o -1 si no hay)
- * columnMap: { campo: índice_columna } donde índice_columna es 0-based (0=A, 1=B, ...)
- */
-export function parseBulkExcelMapped(
-  buffer: Buffer,
-  options: MappedImportOptions,
-): ParsedBulkImport {
-  const workbook = XLSX.read(buffer, { type: "buffer" });
-  const sheetName = options.sheetName ?? workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
+// ---------------------------------------------------------------------------
+// FUZZY MATCHING — búsqueda por similitud con unaccent + pg_trgm
+//
+// Estrategia en dos pasos:
+//   1. Buscar jugadores ya registrados en ligas de la misma ciudad
+//   2. Si no hay resultados, búsqueda global (fallback)
+//
+// Umbral de similitud: 0.30 — suficientemente permisivo para typos comunes
+// (martinez/martines ≈ 0.78) sin generar falsos positivos entre nombres
+// completamente distintos.
+// ---------------------------------------------------------------------------
 
-  const allRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-    header: 1,
-    defval: "",
-    raw: false,
-  });
+const SIMILARITY_THRESHOLD = 0.30;
 
-  const cleaned: string[][] = allRows.map((row) =>
-    (row as unknown[]).map((cell) => String(cell ?? "").trim()),
-  );
+type PlayerMatchRow = {
+	id: string;
+	full_name: string;
+	alias: string | null;
+	score: number;
+};
 
-  // Las filas de datos empiezan después de headerRow
-  const dataRows = cleaned.slice(options.headerRow + 1).filter((row) =>
-    row.some((cell) => cell !== ""),
-  );
+async function findSimilarPlayers(
+	normalizedName: string,
+	city: string,
+): Promise<PlayerMatchRow[]> {
+	// ── Paso 1: jugadores que ya jugaron en esta ciudad ──────────────────────
+	const cityResult = await db.execute<PlayerMatchRow>(sql`
+		SELECT DISTINCT ON (p.id)
+			p.id,
+			p.full_name,
+			p.alias,
+			GREATEST(
+				similarity(f_unaccent(p.full_name), f_unaccent(${normalizedName})),
+				COALESCE(similarity(f_unaccent(p.alias), f_unaccent(${normalizedName})), 0)
+			) AS score
+		FROM players p
+		WHERE (
+				similarity(f_unaccent(p.full_name), f_unaccent(${normalizedName})) > ${SIMILARITY_THRESHOLD}
+				OR (p.alias IS NOT NULL AND similarity(f_unaccent(p.alias), f_unaccent(${normalizedName})) > ${SIMILARITY_THRESHOLD})
+			)
+			AND EXISTS (
+				SELECT 1
+				FROM player_registrations pr
+				JOIN leagues l ON l.id = pr.league_id
+				WHERE pr.player_id = p.id
+				  AND l.city = ${city}
+			)
+		ORDER BY p.id, score DESC
+		LIMIT 5
+	`);
 
-  const map = options.columnMap;
+	if (cityResult.rows.length > 0) {
+		return cityResult.rows.sort((a, b) => b.score - a.score);
+	}
 
-  function getCell(row: string[], field: string): string {
-    const idx = map[field];
-    if (idx === undefined) return "";
-    const i = parseInt(idx);
-    return isNaN(i) ? "" : (row[i] ?? "");
-  }
+	// ── Paso 2: fallback global ───────────────────────────────────────────────
+	const globalResult = await db.execute<PlayerMatchRow>(sql`
+		SELECT
+			p.id,
+			p.full_name,
+			p.alias,
+			GREATEST(
+				similarity(f_unaccent(p.full_name), f_unaccent(${normalizedName})),
+				COALESCE(similarity(f_unaccent(p.alias), f_unaccent(${normalizedName})), 0)
+			) AS score
+		FROM players p
+		WHERE
+			similarity(f_unaccent(p.full_name), f_unaccent(${normalizedName})) > ${SIMILARITY_THRESHOLD}
+			OR (p.alias IS NOT NULL AND similarity(f_unaccent(p.alias), f_unaccent(${normalizedName})) > ${SIMILARITY_THRESHOLD})
+		ORDER BY score DESC
+		LIMIT 5
+	`);
 
-  if (options.type === "goleadores") {
-    const rows: GoleadoresRow[] = [];
-    for (const row of dataRows) {
-      const rawName = getCell(row, "rawName").trim();
-      if (!rawName) continue;
-
-      rows.push({
-        rawName,
-        teamName: getCell(row, "teamName"),
-        goals: num(getCell(row, "goals")),
-        assists: map.assists !== undefined ? num(getCell(row, "assists")) : undefined,
-        yellowCards: map.yellowCards !== undefined ? num(getCell(row, "yellowCards")) : undefined,
-        redCards: map.redCards !== undefined ? num(getCell(row, "redCards")) : undefined,
-        matchesPlayed: map.matchesPlayed !== undefined ? num(getCell(row, "matchesPlayed")) : undefined,
-      });
-    }
-    return { type: "goleadores", rows, jornada: options.jornada };
-  } else {
-    const rows: StandingsRow[] = [];
-    let pos = 1;
-    for (const row of dataRows) {
-      const teamName = getCell(row, "teamName").trim();
-      if (!teamName) continue;
-      if (["liguilla", "copa", "recopa"].includes(teamName.toLowerCase())) continue;
-
-      rows.push({
-        position: pos++,
-        teamName,
-        played: num(getCell(row, "played")),
-        wins: num(getCell(row, "wins")),
-        draws: num(getCell(row, "draws")),
-        losses: num(getCell(row, "losses")),
-        goalsFor: num(getCell(row, "goalsFor")),
-        goalsAgainst: num(getCell(row, "goalsAgainst")),
-        points: num(getCell(row, "points")),
-      });
-    }
-    return { type: "standings", rows, jornada: options.jornada };
-  }
+	return globalResult.rows;
 }
 
 // ---------------------------------------------------------------------------
-// PARSER — detecta el tipo de Excel automáticamente (fallback)
+// PARSER CON MAPEO MANUAL DE COLUMNAS
+// ---------------------------------------------------------------------------
+
+export function parseBulkExcelMapped(
+	buffer: Buffer,
+	options: MappedImportOptions,
+): ParsedBulkImport {
+	const workbook = XLSX.read(buffer, { type: "buffer" });
+	const sheetName = options.sheetName ?? workbook.SheetNames[0];
+	const sheet = workbook.Sheets[sheetName];
+
+	const allRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+		header: 1,
+		defval: "",
+		raw: false,
+	});
+
+	const cleaned: string[][] = allRows.map((row) =>
+		(row as unknown[]).map((cell) => String(cell ?? "").trim()),
+	);
+
+	const dataRows = cleaned
+		.slice(options.headerRow + 1)
+		.filter((row) => row.some((cell) => cell !== ""));
+
+	const map = options.columnMap;
+
+	function getCell(row: string[], field: string): string {
+		const idx = map[field];
+		if (idx === undefined) return "";
+		const i = parseInt(idx);
+		return isNaN(i) ? "" : (row[i] ?? "");
+	}
+
+	if (options.type === "goleadores") {
+		const rows: GoleadoresRow[] = [];
+		for (const row of dataRows) {
+			const rawName = sanitizeName(getCell(row, "rawName"));
+			if (!rawName) continue;
+
+			rows.push({
+				rawName,
+				teamName: sanitizeName(getCell(row, "teamName")),
+				goals: num(getCell(row, "goals")),
+				assists: map.assists !== undefined ? num(getCell(row, "assists")) : undefined,
+				yellowCards: map.yellowCards !== undefined ? num(getCell(row, "yellowCards")) : undefined,
+				redCards: map.redCards !== undefined ? num(getCell(row, "redCards")) : undefined,
+				matchesPlayed: map.matchesPlayed !== undefined ? num(getCell(row, "matchesPlayed")) : undefined,
+			});
+		}
+		return { type: "goleadores", rows, jornada: options.jornada };
+	} else {
+		const rows: StandingsRow[] = [];
+		let pos = 1;
+		for (const row of dataRows) {
+			const teamName = sanitizeName(getCell(row, "teamName"));
+			if (!teamName) continue;
+			if (["liguilla", "copa", "recopa"].includes(teamName)) continue;
+
+			rows.push({
+				position: pos++,
+				teamName,
+				played: num(getCell(row, "played")),
+				wins: num(getCell(row, "wins")),
+				draws: num(getCell(row, "draws")),
+				losses: num(getCell(row, "losses")),
+				goalsFor: num(getCell(row, "goalsFor")),
+				goalsAgainst: num(getCell(row, "goalsAgainst")),
+				points: num(getCell(row, "points")),
+			});
+		}
+		return { type: "standings", rows, jornada: options.jornada };
+	}
+}
+
+// ---------------------------------------------------------------------------
+// PARSER AUTOMÁTICO (auto-detect de tipo y columnas)
 // ---------------------------------------------------------------------------
 
 export function parseBulkExcel(buffer: Buffer): ParsedBulkImport {
 	const workbook = XLSX.read(buffer, { type: "buffer" });
 
-	// Intentar cada hoja hasta encontrar datos reconocibles
 	for (const sheetName of workbook.SheetNames) {
 		const sheet = workbook.Sheets[sheetName];
 		const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
@@ -182,14 +258,11 @@ export function parseBulkExcel(buffer: Buffer): ParsedBulkImport {
 
 		if (rows.length === 0) continue;
 
-		// Detectar jornada desde la hoja o nombre de sheet
 		const jornada = detectJornada(sheetName, sheet);
 
-		// Verificar si es formato GOLEADORES
 		const goleadoresResult = tryParseGoleadores(rows, jornada);
 		if (goleadoresResult) return goleadoresResult;
 
-		// Verificar si es formato TABLA GENERAL / STANDINGS
 		const standingsResult = tryParseStandings(rows, jornada);
 		if (standingsResult) return standingsResult;
 	}
@@ -198,8 +271,7 @@ export function parseBulkExcel(buffer: Buffer): ParsedBulkImport {
 }
 
 // ---------------------------------------------------------------------------
-// PARSER: Goleadores
-// Detecta columnas: NOMBRE / JUGADOR + EQUIPO + GOLES
+// PARSER INTERNO: Goleadores
 // ---------------------------------------------------------------------------
 
 function tryParseGoleadores(
@@ -211,7 +283,6 @@ function tryParseGoleadores(
 
 	const keys = Object.keys(sample);
 	const nameCol = findCol(keys, [
-		"NOMBRE DE JUGADOR",
 		"nombre de jugador",
 		"nombre",
 		"jugador",
@@ -222,46 +293,38 @@ function tryParseGoleadores(
 
 	if (!nameCol || !goalsCol) return null;
 
-	const assistsCol = findCol(keys, ["asistencias", "assists", "ast", "a"]);
-	const yellowCol = findCol(keys, ["amarillas", "yellow", "ta"]);
-	const redCol = findCol(keys, ["rojas", "red", "tr"]);
-	const playedCol = findCol(keys, ["partidos", "jugados", "pj", "jj"]);
+	const assistsCol  = findCol(keys, ["asistencias", "assists", "ast", "a"]);
+	const yellowCol   = findCol(keys, ["amarillas", "yellow", "ta"]);
+	const redCol      = findCol(keys, ["rojas", "red", "tr"]);
+	const playedCol   = findCol(keys, ["partidos", "jugados", "pj", "jj"]);
 
 	const result: GoleadoresRow[] = [];
 
 	for (const row of rows) {
-		const rawName = str(row[nameCol!]);
-		const goals = num(row[goalsCol!]);
+		const rawName = sanitizeName(str(row[nameCol!]));
+		const goals   = num(row[goalsCol!]);
 
-		// Saltar filas sin nombre o encabezados repetidos
-		if (
-			!rawName ||
-			rawName.toLowerCase().includes("nombre") ||
-			rawName.toLowerCase().includes("jugador")
-		)
-			continue;
-		// Saltar filas numéricas puras (números de ranking)
+		if (!rawName) continue;
+		if (rawName.includes("nombre") || rawName.includes("jugador")) continue;
 		if (/^\d+$/.test(rawName)) continue;
 
 		result.push({
 			rawName,
-			teamName: teamCol ? str(row[teamCol]) : "",
+			teamName: teamCol ? sanitizeName(str(row[teamCol])) : "",
 			goals,
-			assists: assistsCol ? num(row[assistsCol]) : undefined,
-			yellowCards: yellowCol ? num(row[yellowCol]) : undefined,
-			redCards: redCol ? num(row[redCol]) : undefined,
-			matchesPlayed: playedCol ? num(row[playedCol]) : undefined,
+			assists:     assistsCol ? num(row[assistsCol]) : undefined,
+			yellowCards: yellowCol   ? num(row[yellowCol])  : undefined,
+			redCards:    redCol      ? num(row[redCol])     : undefined,
+			matchesPlayed: playedCol ? num(row[playedCol])  : undefined,
 		});
 	}
 
 	if (result.length === 0) return null;
-
 	return { type: "goleadores", rows: result, jornada };
 }
 
 // ---------------------------------------------------------------------------
-// PARSER: Tabla general / Standings
-// Detecta columnas: EQUIPO + JJ/PJ + JG/WON + JE/DRAWN + JP/LOST + GF + GC + PTS
+// PARSER INTERNO: Standings
 // ---------------------------------------------------------------------------
 
 function tryParseStandings(
@@ -271,72 +334,45 @@ function tryParseStandings(
 	const sample = rows.find((r) => hasAnyValue(r));
 	if (!sample) return null;
 
-	const keys = Object.keys(sample);
+	const keys    = Object.keys(sample);
 	const teamCol = findCol(keys, ["equipo", "team", "club", "nombre"]);
-	const ptsCol = findCol(keys, ["pts", "puntos", "points", "ptos"]);
+	const ptsCol  = findCol(keys, ["pts", "puntos", "points", "ptos"]);
 
 	if (!teamCol || !ptsCol) return null;
 
 	const playedCol = findCol(keys, ["jj", "pj", "jugados", "played", "gp"]);
-	const winsCol = findCol(keys, ["jg", "ganados", "wins", "won", "w", "g"]);
-	const drawsCol = findCol(keys, [
-		"je",
-		"empatados",
-		"draws",
-		"drawn",
-		"d",
-		"e",
-	]);
-	const lossesCol = findCol(keys, [
-		"jp",
-		"perdidos",
-		"losses",
-		"lost",
-		"l",
-		"p",
-	]);
-	const gfCol = findCol(keys, ["gf", "goles a favor", "goals for", "for"]);
-	const gcCol = findCol(keys, [
-		"gc",
-		"goles en contra",
-		"goals against",
-		"against",
-	]);
+	const winsCol   = findCol(keys, ["jg", "ganados", "wins", "won", "w", "g"]);
+	const drawsCol  = findCol(keys, ["je", "empatados", "draws", "drawn", "d", "e"]);
+	const lossesCol = findCol(keys, ["jp", "perdidos", "losses", "lost", "l", "p"]);
+	const gfCol     = findCol(keys, ["gf", "goles a favor", "goals for", "for"]);
+	const gcCol     = findCol(keys, ["gc", "goles en contra", "goals against", "against"]);
 
 	const result: StandingsRow[] = [];
 	let pos = 1;
 
 	for (const row of rows) {
-		const teamName = str(row[teamCol!]);
+		const teamName = sanitizeName(str(row[teamCol!]));
 
-		// Saltar filas sin equipo, encabezados repetidos, zonas (LIGUILLA, COPA)
 		if (!teamName) continue;
-		if (
-			["equipo", "team", "liguilla", "copa", "recopa", "zona"].includes(
-				teamName.toLowerCase(),
-			)
-		)
-			continue;
+		if (["equipo", "team", "liguilla", "copa", "recopa", "zona"].includes(teamName)) continue;
 
-		// Detectar zona de clasificación en columnas adyacentes o en el nombre
 		const zone = detectZone(row);
 
 		result.push({
 			position: pos++,
 			teamName,
-			played: playedCol ? num(row[playedCol]) : 0,
-			wins: winsCol ? num(row[winsCol]) : 0,
-			draws: drawsCol ? num(row[drawsCol]) : 0,
-			losses: lossesCol ? num(row[lossesCol]) : 0,
-			goalsFor: gfCol ? num(row[gfCol]) : 0,
-			goalsAgainst: gcCol ? num(row[gcCol]) : 0,
-			points: num(row[ptsCol!]),
-			zone: zone ?? undefined,
+			played:       playedCol ? num(row[playedCol]) : 0,
+			wins:         winsCol   ? num(row[winsCol])   : 0,
+			draws:        drawsCol  ? num(row[drawsCol])  : 0,
+			losses:       lossesCol ? num(row[lossesCol]) : 0,
+			goalsFor:     gfCol     ? num(row[gfCol])     : 0,
+			goalsAgainst: gcCol     ? num(row[gcCol])     : 0,
+			points:       num(row[ptsCol!]),
+			zone:         zone ?? undefined,
 		});
 	}
 
 	if (result.length < 2) return null;
-
 	return { type: "standings", rows: result, jornada };
 }
 
@@ -350,51 +386,51 @@ export async function generateBulkPreview(
 ): Promise<BulkImportPreview> {
 	const warnings: string[] = [];
 
+	// Obtener la ciudad de la liga para el scope del matching
+	const league = await db.query.leagues.findFirst({
+		where: eq(leagues.id, leagueId),
+		columns: { city: true },
+	});
+	const city = league?.city ?? "";
+
 	if (parsed.type === "goleadores") {
 		const rows = parsed.rows as GoleadoresRow[];
 		const playerResolutions: PlayerResolution[] = [];
 
 		for (const row of rows) {
-			const normalized = `%${row.rawName.toLowerCase().trim()}%`;
-			const found = await db.query.players.findMany({
-				where: or(
-					ilike(players.fullName, normalized),
-					ilike(players.alias, normalized),
-				),
-				limit: 5,
-			});
+			const matches = await findSimilarPlayers(row.rawName, city);
 
-			if (found.length === 1) {
+			if (matches.length === 1) {
 				playerResolutions.push({
-					rawName: row.rawName,
-					teamName: row.teamName,
-					found: true,
-					playerId: found[0].id,
-					candidates: found.map((p) => ({
-						id: p.id,
-						fullName: p.fullName,
-						alias: p.alias,
+					rawName:    row.rawName,
+					teamName:   row.teamName,
+					found:      true,
+					playerId:   matches[0].id,
+					candidates: matches.map((m) => ({
+						id:       m.id,
+						fullName: m.full_name,
+						alias:    m.alias,
 					})),
 				});
-			} else if (found.length > 1) {
+			} else if (matches.length > 1) {
 				playerResolutions.push({
-					rawName: row.rawName,
-					teamName: row.teamName,
-					found: false,
-					candidates: found.map((p) => ({
-						id: p.id,
-						fullName: p.fullName,
-						alias: p.alias,
+					rawName:    row.rawName,
+					teamName:   row.teamName,
+					found:      false,
+					candidates: matches.map((m) => ({
+						id:       m.id,
+						fullName: m.full_name,
+						alias:    m.alias,
 					})),
 				});
 				warnings.push(
-					`"${row.rawName}" tiene ${found.length} coincidencias — seleccionar manualmente.`,
+					`"${row.rawName}" tiene ${matches.length} coincidencias — seleccionar manualmente.`,
 				);
 			} else {
 				playerResolutions.push({
-					rawName: row.rawName,
-					teamName: row.teamName,
-					found: false,
+					rawName:    row.rawName,
+					teamName:   row.teamName,
+					found:      false,
 					candidates: [],
 				});
 				warnings.push(
@@ -415,18 +451,22 @@ export async function generateBulkPreview(
 		};
 	}
 
-	// standings
+	// ── standings ──────────────────────────────────────────────────────────────
 	const rows = parsed.rows as StandingsRow[];
 	const teamWarnings: string[] = [];
 
 	for (const row of rows) {
 		const existing = await db.query.teams.findFirst({
-			where: and(ilike(teams.name, row.teamName), eq(teams.leagueId, leagueId)),
+			where: and(
+				ilike(teams.name, row.teamName),
+				eq(teams.leagueId, leagueId),
+			),
 		});
-		if (!existing)
+		if (!existing) {
 			teamWarnings.push(
 				`"${row.teamName}" no existe en la liga — se creará automáticamente.`,
 			);
+		}
 	}
 
 	return {
@@ -440,6 +480,9 @@ export async function generateBulkPreview(
 
 // ---------------------------------------------------------------------------
 // CONFIRM — inserta o actualiza en la base de datos
+//
+// Todo corre dentro de una transacción: si algo falla, se hace rollback
+// completo y la BD queda en el estado anterior a la importación.
 // ---------------------------------------------------------------------------
 
 export async function confirmBulkImport(
@@ -448,184 +491,187 @@ export async function confirmBulkImport(
 	const { leagueId, parsed, playerResolutions = {} } = payload;
 	const warnings: string[] = [];
 	let upserted = 0;
-	let created = 0;
+	let created  = 0;
 
-	if (parsed.type === "goleadores") {
-		const rows = parsed.rows as GoleadoresRow[];
+	await db.transaction(async (tx) => {
+		if (parsed.type === "goleadores") {
+			const rows = parsed.rows as GoleadoresRow[];
 
-		for (const row of rows) {
-			// 1. Resolver jugador
-			let playerId = playerResolutions[row.rawName];
+			for (const row of rows) {
+				// 1. Resolver jugador ──────────────────────────────────────────
+				let playerId = playerResolutions[row.rawName];
 
-			if (!playerId || playerId === "NEW") {
-				// Crear jugador nuevo
-				const [newPlayer] = await db
-					.insert(players)
-					.values({ fullName: row.rawName })
-					.returning();
-				playerId = newPlayer.id;
-				created++;
-			}
-
-			// 2. Resolver equipo (crear si no existe)
-			let teamId: string | null = null;
-			if (row.teamName) {
-				const existingTeam = await db.query.teams.findFirst({
-					where: and(
-						ilike(teams.name, row.teamName),
-						eq(teams.leagueId, leagueId),
-					),
-				});
-				if (existingTeam) {
-					teamId = existingTeam.id;
-				} else {
-					const [newTeam] = await db
-						.insert(teams)
-						.values({ name: row.teamName, leagueId })
+				if (!playerId || playerId === "NEW") {
+					const [newPlayer] = await tx
+						.insert(players)
+						.values({ fullName: sanitizeName(row.rawName) })
 						.returning();
-					teamId = newTeam.id;
+					playerId = newPlayer.id;
 					created++;
 				}
-			}
 
-			// 3. Registrar jugador en equipo si no está
-			if (teamId) {
-				await db
-					.insert(playerRegistrations)
-					.values({ playerId, teamId, leagueId })
-					.onConflictDoNothing();
-			}
+				// 2. Resolver equipo ───────────────────────────────────────────
+				let teamId: string | null = null;
+				if (row.teamName) {
+					const sanitizedTeam = sanitizeName(row.teamName);
+					const existingTeam  = await tx.query.teams.findFirst({
+						where: and(
+							ilike(teams.name, sanitizedTeam),
+							eq(teams.leagueId, leagueId),
+						),
+					});
+					if (existingTeam) {
+						teamId = existingTeam.id;
+					} else {
+						const [newTeam] = await tx
+							.insert(teams)
+							.values({ name: sanitizedTeam, leagueId })
+							.returning();
+						teamId = newTeam.id;
+						created++;
+					}
+				}
 
-			// 4. Upsert stats acumuladas (estado actual)
-			await db
-				.insert(playerSeasonStats)
-				.values({
-					playerId,
-					leagueId,
-					teamId,
-					goals: row.goals,
-					assists: row.assists ?? 0,
-					yellowCards: row.yellowCards ?? 0,
-					redCards: row.redCards ?? 0,
-					matchesPlayed: row.matchesPlayed ?? 0,
-					jornada: parsed.jornada ?? null,
-					updatedAt: new Date(),
-				})
-				.onConflictDoUpdate({
-					target: [playerSeasonStats.playerId, playerSeasonStats.leagueId],
-					set: {
-						goals: row.goals,
-						assists: row.assists ?? 0,
-						yellowCards: row.yellowCards ?? 0,
-						redCards: row.redCards ?? 0,
-						matchesPlayed: row.matchesPlayed ?? 0,
-						jornada: parsed.jornada ?? null,
-						updatedAt: new Date(),
-						...(teamId ? { teamId } : {}),
-					},
-				});
+				// 3. Registrar jugador en equipo si no está ────────────────────
+				if (teamId) {
+					await tx
+						.insert(playerRegistrations)
+						.values({ playerId, teamId, leagueId })
+						.onConflictDoNothing();
+				}
 
-			// 5. Snapshot histórico por jornada (solo si se conoce la jornada)
-			if (parsed.jornada != null) {
-				await db
-					.insert(playerSeasonStatsSnapshot)
+				// 4. Upsert stats acumuladas (estado actual de la temporada) ───
+				await tx
+					.insert(playerSeasonStats)
 					.values({
 						playerId,
 						leagueId,
 						teamId,
-						jornada: parsed.jornada,
-						goals: row.goals,
-						assists: row.assists ?? 0,
-						yellowCards: row.yellowCards ?? 0,
-						redCards: row.redCards ?? 0,
+						goals:        row.goals,
+						assists:      row.assists      ?? 0,
+						yellowCards:  row.yellowCards  ?? 0,
+						redCards:     row.redCards     ?? 0,
 						matchesPlayed: row.matchesPlayed ?? 0,
-						importedAt: new Date(),
+						jornada:      parsed.jornada ?? null,
+						updatedAt:    new Date(),
 					})
 					.onConflictDoUpdate({
-						target: [
-							playerSeasonStatsSnapshot.playerId,
-							playerSeasonStatsSnapshot.leagueId,
-							playerSeasonStatsSnapshot.jornada,
-						],
+						target: [playerSeasonStats.playerId, playerSeasonStats.leagueId],
 						set: {
-							goals: row.goals,
-							assists: row.assists ?? 0,
-							yellowCards: row.yellowCards ?? 0,
-							redCards: row.redCards ?? 0,
+							goals:        row.goals,
+							assists:      row.assists      ?? 0,
+							yellowCards:  row.yellowCards  ?? 0,
+							redCards:     row.redCards     ?? 0,
 							matchesPlayed: row.matchesPlayed ?? 0,
-							importedAt: new Date(),
+							jornada:      parsed.jornada ?? null,
+							updatedAt:    new Date(),
 							...(teamId ? { teamId } : {}),
 						},
 					});
+
+				// 5. Snapshot histórico por jornada ────────────────────────────
+				if (parsed.jornada != null) {
+					await tx
+						.insert(playerSeasonStatsSnapshot)
+						.values({
+							playerId,
+							leagueId,
+							teamId,
+							jornada:      parsed.jornada,
+							goals:        row.goals,
+							assists:      row.assists      ?? 0,
+							yellowCards:  row.yellowCards  ?? 0,
+							redCards:     row.redCards     ?? 0,
+							matchesPlayed: row.matchesPlayed ?? 0,
+							importedAt:   new Date(),
+						})
+						.onConflictDoUpdate({
+							target: [
+								playerSeasonStatsSnapshot.playerId,
+								playerSeasonStatsSnapshot.leagueId,
+								playerSeasonStatsSnapshot.jornada,
+							],
+							set: {
+								goals:        row.goals,
+								assists:      row.assists      ?? 0,
+								yellowCards:  row.yellowCards  ?? 0,
+								redCards:     row.redCards     ?? 0,
+								matchesPlayed: row.matchesPlayed ?? 0,
+								importedAt:   new Date(),
+								...(teamId ? { teamId } : {}),
+							},
+						});
+				}
+
+				upserted++;
 			}
+		} else {
+			// ── standings ─────────────────────────────────────────────────────
+			const rows = parsed.rows as StandingsRow[];
 
-			upserted++;
-		}
-	} else {
-		// standings
-		const rows = parsed.rows as StandingsRow[];
+			for (const row of rows) {
+				const sanitizedTeam = sanitizeName(row.teamName);
 
-		for (const row of rows) {
-			// Resolver o crear equipo
-			let teamId: string;
-			const existingTeam = await db.query.teams.findFirst({
-				where: and(
-					ilike(teams.name, row.teamName),
-					eq(teams.leagueId, leagueId),
-				),
-			});
-
-			if (existingTeam) {
-				teamId = existingTeam.id;
-			} else {
-				const [newTeam] = await db
-					.insert(teams)
-					.values({ name: row.teamName, leagueId })
-					.returning();
-				teamId = newTeam.id;
-				created++;
-			}
-
-			const jornada = parsed.jornada ?? 1;
-
-			await db
-				.insert(teamStandingsSnapshot)
-				.values({
-					teamId,
-					leagueId,
-					jornada,
-					played: row.played,
-					wins: row.wins,
-					draws: row.draws,
-					losses: row.losses,
-					goalsFor: row.goalsFor,
-					goalsAgainst: row.goalsAgainst,
-					points: row.points,
-					zone: row.zone ?? null,
-					updatedAt: new Date(),
-				})
-				.onConflictDoUpdate({
-					target: [
-						teamStandingsSnapshot.teamId,
-						teamStandingsSnapshot.leagueId,
-						teamStandingsSnapshot.jornada,
-					],
-					set: {
-						played: row.played,
-						wins: row.wins,
-						draws: row.draws,
-						losses: row.losses,
-						goalsFor: row.goalsFor,
-						goalsAgainst: row.goalsAgainst,
-						points: row.points,
-						zone: row.zone ?? null,
-						updatedAt: new Date(),
-					},
+				let teamId: string;
+				const existingTeam = await tx.query.teams.findFirst({
+					where: and(
+						ilike(teams.name, sanitizedTeam),
+						eq(teams.leagueId, leagueId),
+					),
 				});
 
-			upserted++;
+				if (existingTeam) {
+					teamId = existingTeam.id;
+				} else {
+					const [newTeam] = await tx
+						.insert(teams)
+						.values({ name: sanitizedTeam, leagueId })
+						.returning();
+					teamId = newTeam.id;
+					created++;
+				}
+
+				const jornada = parsed.jornada ?? 1;
+
+				await tx
+					.insert(teamStandingsSnapshot)
+					.values({
+						teamId,
+						leagueId,
+						jornada,
+						played:       row.played,
+						wins:         row.wins,
+						draws:        row.draws,
+						losses:       row.losses,
+						goalsFor:     row.goalsFor,
+						goalsAgainst: row.goalsAgainst,
+						points:       row.points,
+						zone:         row.zone ?? null,
+						updatedAt:    new Date(),
+					})
+					.onConflictDoUpdate({
+						target: [
+							teamStandingsSnapshot.teamId,
+							teamStandingsSnapshot.leagueId,
+							teamStandingsSnapshot.jornada,
+						],
+						set: {
+							played:       row.played,
+							wins:         row.wins,
+							draws:        row.draws,
+							losses:       row.losses,
+							goalsFor:     row.goalsFor,
+							goalsAgainst: row.goalsAgainst,
+							points:       row.points,
+							zone:         row.zone ?? null,
+							updatedAt:    new Date(),
+						},
+					});
+
+				upserted++;
+			}
 		}
-	}
+	});
 
 	return { type: parsed.type, upserted, created, warnings };
 }
@@ -646,11 +692,9 @@ function detectJornada(
 	sheetName: string,
 	sheet: XLSX.WorkSheet,
 ): number | undefined {
-	// Intentar desde el nombre del sheet: "JORNADA 13", "JORNADA 3 2026-1"
 	const match = sheetName.match(/jornada\s+(\d+)/i);
 	if (match) return parseInt(match[1]);
 
-	// Intentar desde las primeras filas del sheet
 	const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
 		defval: "",
 		header: 1,
@@ -666,7 +710,6 @@ function detectJornada(
 }
 
 function detectZone(row: Record<string, unknown>): string | null {
-	// Buscar en todas las columnas si hay una zona de clasificación
 	for (const val of Object.values(row)) {
 		const v = String(val).trim().toUpperCase();
 		if (["LIGUILLA", "COPA", "RECOPA"].includes(v)) return v;

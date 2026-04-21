@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { Search, X, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import type { PlayerSearchResult, PlayerPositions } from "@/entities/player/ranking";
 
@@ -119,6 +120,12 @@ export default function PlayerSearch({ city, leagueId }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <Link
+              href={`/player/${saved.id}`}
+              className="text-xs text-brand font-semibold hover:underline px-2 py-1 rounded-lg hover:bg-surface-2 transition"
+            >
+              Ver perfil ↗
+            </Link>
             <button
               onClick={openSearch}
               className="text-xs text-ink-3 hover:text-ink px-2 py-1 rounded-lg hover:bg-surface-2 transition"
@@ -304,9 +311,18 @@ function DisambiguationCard({
           ))}
         </div>
 
-        <div className="text-right shrink-0">
-          <p className="font-display font-black text-xl text-brand leading-none">{player.totalGoals}</p>
-          <p className="text-[10px] text-ink-3">goles</p>
+        <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
+          <div>
+            <p className="font-display font-black text-xl text-brand leading-none">{player.totalGoals}</p>
+            <p className="text-[10px] text-ink-3">goles</p>
+          </div>
+          <Link
+            href={`/player/${player.playerId}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-[11px] text-ink-3 hover:text-brand hover:underline transition"
+          >
+            Ver perfil ↗
+          </Link>
         </div>
       </div>
 

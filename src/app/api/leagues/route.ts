@@ -1,8 +1,8 @@
-import { db, leagues }                    from "@/db";
-import { eq, desc, and }                 from "drizzle-orm";
+import { db, leagues }                        from "@/db";
+import { eq, desc, and }                      from "drizzle-orm";
 import { CreateLeagueSchema, apiSuccess, apiError } from "@/types";
-import { getActiveCity, getRequestCity } from "@/shared/lib/active-city";
-import { getSessionUserFromRequest }     from "@/shared/lib/auth";
+import { getActiveCity, getRequestCity }      from "@/shared/lib/active-city";
+import { getSessionUserFromRequest }          from "@/shared/lib/auth";
 
 // GET /api/leagues?city=Tijuana
 // owner → todas las ligas de la ciudad | organizer → solo las suyas
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   return apiSuccess(rows);
 }
 
-// POST /api/leagues — asigna adminId del usuario conectado
+// POST /api/leagues
 export async function POST(request: Request) {
   const session = await getSessionUserFromRequest(request);
   if (!session) return apiError("No autenticado", 401);
@@ -32,8 +32,7 @@ export async function POST(request: Request) {
   const parsed = CreateLeagueSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.message);
 
-  const city = await getActiveCity();
-
+  const city    = await getActiveCity();
   const adminId =
     session.role === "owner" && parsed.data.adminId
       ? parsed.data.adminId

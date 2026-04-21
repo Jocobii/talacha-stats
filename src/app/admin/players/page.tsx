@@ -86,9 +86,16 @@ export default async function PlayersPage({
                   <td className="px-4 py-3 font-medium text-gray-800">{p.fullName}</td>
                   <td className="px-4 py-3 text-gray-500">{p.alias ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-500">{p.phone ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    <Link href={`/admin/players/${p.id}`} className="text-green-600 hover:underline">
+                  <td className="px-4 py-3 flex items-center gap-3">
+                    <Link href={`/admin/players/${p.id}`} className="text-green-600 hover:underline text-sm">
                       Ver stats
+                    </Link>
+                    <Link
+                      href={`/player/${p.id}`}
+                      target="_blank"
+                      className="text-gray-400 hover:text-gray-700 text-sm"
+                    >
+                      Perfil ↗
                     </Link>
                   </td>
                 </tr>

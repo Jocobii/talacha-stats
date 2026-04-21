@@ -9,13 +9,13 @@
  * en drizzle.__drizzle_migrations (por haber sido aplicada manualmente).
  */
 
-import { drizzle }  from "drizzle-orm/node-postgres";
-import { migrate }  from "drizzle-orm/node-postgres/migrator";
-import { Pool }     from "pg";
-import { config }   from "dotenv";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { Pool } from "pg";
+import { config } from "dotenv";
 import { createHash } from "crypto";
-import path         from "path";
-import fs           from "fs";
+import path from "path";
+import fs from "fs";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -27,7 +27,7 @@ if (!url) {
 }
 
 const migrationsFolder = path.join(process.cwd(), "src/db/migrations");
-const journalPath      = path.join(migrationsFolder, "meta/_journal.json");
+const journalPath = path.join(migrationsFolder, "meta/_journal.json");
 
 type JournalEntry = { idx: number; tag: string; when: number };
 const journal: { entries: JournalEntry[] } = JSON.parse(
@@ -35,12 +35,15 @@ const journal: { entries: JournalEntry[] } = JSON.parse(
 );
 
 const pool = new Pool({ connectionString: url });
-const db   = drizzle(pool);
+const db = drizzle(pool);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function sqlHash(tag: string): string {
-	const content = fs.readFileSync(path.join(migrationsFolder, `${tag}.sql`), "utf8");
+	const content = fs.readFileSync(
+		path.join(migrationsFolder, `${tag}.sql`),
+		"utf8",
+	);
 	return createHash("sha256").update(content).digest("hex");
 }
 
@@ -132,8 +135,6 @@ async function run() {
 	console.log("🗄️  TalachaStats — Migrador de base de datos");
 	console.log("──────────────────────────────────────────");
 	console.log(`📁  ${migrationsFolder}`);
-	console.log(`📋  Migraciones en journal: ${journal.entries.length}`);
-	journal.entries.forEach((e) => console.log(`     · ${e.tag}`));
 	console.log("──────────────────────────────────────────");
 
 	// 1. Sincronizar registros de migraciones ya aplicadas manualmente
@@ -151,7 +152,7 @@ async function run() {
 
 	const hashsBefore = await getRegisteredHashes();
 	await migrate(db, { migrationsFolder });
-	const hashsAfter  = await getRegisteredHashes();
+	const hashsAfter = await getRegisteredHashes();
 
 	const newCount = hashsAfter.size - hashsBefore.size;
 
@@ -168,7 +169,7 @@ run()
 	.then(() => pool.end())
 	.catch((e) => {
 		console.error("──────────────────────────────────────────");
-		console.error("❌  Error:", e.message);
+		console.error("❌  Error:", e);
 		console.error("──────────────────────────────────────────");
 		pool.end();
 		process.exit(1);

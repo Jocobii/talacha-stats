@@ -51,12 +51,12 @@ export const players = pgTable("players", {
 // LEAGUES — Liga por día/torneo (Liga Lunes, Liga Martes, etc.)
 // ---------------------------------------------------------------------------
 export const leagues = pgTable("leagues", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
+  id:        uuid("id").primaryKey().defaultRandom(),
+  name:      text("name").notNull(),
   dayOfWeek: text("day_of_week").notNull(), // lunes | martes | miercoles | ...
-  season: text("season").notNull(), // "Apertura 2025"
-  city: text("city").notNull().default("Tijuana"),
-  adminId: uuid("admin_id").references(() => users.id, { onDelete: "set null" }),
+  season:    text("season").notNull(),      // "Apertura 2025"
+  city:      text("city").notNull().default("Tijuana"),
+  adminId:   uuid("admin_id").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
