@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import TrackVisit from "@/shared/ui/TrackVisit";
+import NavigationProgress from "@/shared/ui/NavigationProgress";
 
 export const metadata: Metadata = {
   title: "TalachaStats — Tu historial de goles en todas las ligas",
@@ -11,6 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className="h-full">
       <body className="min-h-full antialiased">
+        <NavigationProgress />
         <TrackVisit />
         {children}
       </body>

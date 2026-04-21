@@ -5,22 +5,22 @@
 @theme {
   /* Fonts */
   --font-display: "Barlow Condensed", sans-serif;
-  --font-body:    "DM Sans", sans-serif;
+  --font-body: "DM Sans", sans-serif;
 
   /* Brand */
-  --color-brand:      #00E676;
-  --color-brand-dim:  #00C853;
+  --color-brand: #00E676;
+  --color-brand-dim: #00C853;
 
   /* Surfaces (dark) */
-  --color-pitch:      #0A0A0A;
-  --color-surface:    #141414;
-  --color-surface-2:  #1E1E1E;
-  --color-line:       #2A2A2A;
+  --color-pitch: #0A0A0A;
+  --color-surface: #141414;
+  --color-surface-2: #1E1E1E;
+  --color-line: #2A2A2A;
 
   /* Text */
-  --color-ink:        #F5F5F5;
-  --color-ink-2:      #999999;
-  --color-ink-3:      #555555;
+  --color-ink: #F5F5F5;
+  --color-ink-2: #999999;
+  --color-ink-3: #555555;
 }
 
 body {
