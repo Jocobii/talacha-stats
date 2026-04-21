@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const SESSION_COOKIE = "ts_session";
+
 export function proxy(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 
@@ -9,15 +11,15 @@ export function proxy(request: NextRequest) {
 		return NextResponse.next();
 	}
 
-	const session = request.cookies.get("admin_session");
-	const validToken = process.env.ADMIN_SESSION_TOKEN;
+	const sessionCookie = request.cookies.get(SESSION_COOKIE)?.value;
 
-	// Si la cookie es válida, dejar pasar
-	if (validToken && session?.value === validToken) {
+	// Si existe la cookie de sesión, dejar pasar.
+	// La validación completa del token + DB ocurre en el layout y los API routes.
+	if (sessionCookie) {
 		return NextResponse.next();
 	}
 
-	// Si no, redirigir al login guardando el destino
+	// Sin cookie → redirigir al login guardando el destino
 	const loginUrl = new URL("/login", request.url);
 	loginUrl.searchParams.set("from", pathname);
 	return NextResponse.redirect(loginUrl);

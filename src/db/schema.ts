@@ -3,12 +3,37 @@ import {
   uuid,
   text,
   integer,
+  boolean,
   date,
   timestamp,
   unique,
   index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+
+// ---------------------------------------------------------------------------
+// USERS — Cuentas de acceso al panel admin
+// Roles: "owner" (superadmin, ve todo) | "organizer" (solo sus ligas)
+// Preparado para "player" en el futuro.
+// ---------------------------------------------------------------------------
+export const users = pgTable(
+  "users",
+  {
+    id:           uuid("id").primaryKey().defaultRandom(),
+    email:        text("email").notNull().unique(),
+    passwordHash: text("password_hash").notNull(),
+    name:         text("name").notNull(),
+    role:         text("role").notNull().default("organizer"), // "owner" | "organizer"
+    active:       boolean("active").notNull().default(true),
+    createdAt:    timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("users_email_idx").on(t.email),
+  ]
+);
+
+export type User    = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
 
 // ---------------------------------------------------------------------------
 // PLAYERS — Identidad global del jugador (independiente de liga/equipo)
@@ -31,7 +56,7 @@ export const leagues = pgTable("leagues", {
   dayOfWeek: text("day_of_week").notNull(), // lunes | martes | miercoles | ...
   season: text("season").notNull(), // "Apertura 2025"
   city: text("city").notNull().default("Tijuana"),
-  adminId: uuid("admin_id"), // referencia a auth.users de Supabase
+  adminId: uuid("admin_id").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -147,9 +172,14 @@ export const playersRelations = relations(players, ({ many }) => ({
   events: many(matchEvents),
 }));
 
-export const leaguesRelations = relations(leagues, ({ many }) => ({
-  teams: many(teams),
-  matches: many(matches),
+export const usersRelations = relations(users, ({ many }) => ({
+  leagues: many(leagues),
+}));
+
+export const leaguesRelations = relations(leagues, ({ one, many }) => ({
+  admin:         one(users, { fields: [leagues.adminId], references: [users.id] }),
+  teams:         many(teams),
+  matches:       many(matches),
   registrations: many(playerRegistrations),
 }));
 

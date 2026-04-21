@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { getActiveCity } from "@/shared/lib/active-city";
+import { serverFetch } from "@/shared/lib/server-fetch";
 
 async function getLeagues(city: string) {
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-  const res  = await fetch(`${base}/api/leagues?city=${encodeURIComponent(city)}`, { cache: "no-store" });
+  const res  = await serverFetch(`${base}/api/leagues?city=${encodeURIComponent(city)}`, { cache: "no-store" });
   return res.ok ? (await res.json()).data ?? [] : [];
 }
 

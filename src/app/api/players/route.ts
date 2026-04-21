@@ -4,21 +4,29 @@ import { eq } from "drizzle-orm";
 import { CreatePlayerSchema, apiSuccess, apiSuccessPaginated, apiError } from "@/types";
 import { parsePaginationParams, buildMeta, toOffset } from "@/shared/lib/pagination";
 import { getRequestCity } from "@/shared/lib/active-city";
+import { getSessionUserFromRequest } from "@/shared/lib/auth";
 
 // GET /api/players?q=nombre&page=1&limit=20&city=Tijuana
 // Returns players who have at least one registration in a league of the active city.
+// Organizers only see players from their own leagues.
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q      = searchParams.get("q")?.trim() || undefined;
   const params = parsePaginationParams(searchParams, { limit: 50 });
 
   const city = await getRequestCity(request);
+  const user = await getSessionUserFromRequest(request);
 
-  // Get league IDs for the city
+  // Build the leagues filter: owners see all city leagues, organizers only their own
+  const leagueWhere = user && user.role !== "owner"
+    ? and(eq(leagues.city, city), eq(leagues.adminId, user.id))
+    : eq(leagues.city, city);
+
+  // Get league IDs for the city (scoped to user if organizer)
   const cityLeagues = await db
     .select({ id: leagues.id })
     .from(leagues)
-    .where(eq(leagues.city, city));
+    .where(leagueWhere);
 
   const leagueIds = cityLeagues.map((l) => l.id);
 

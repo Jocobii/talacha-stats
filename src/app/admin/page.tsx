@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { getActiveCity } from "@/shared/lib/active-city";
+import { serverFetch } from "@/shared/lib/server-fetch";
 
 async function getDashboardData(city: string) {
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   const [leaguesRes, playersRes] = await Promise.all([
-    fetch(`${base}/api/leagues?city=${encodeURIComponent(city)}`, { cache: "no-store" }),
-    fetch(`${base}/api/players?city=${encodeURIComponent(city)}`, { cache: "no-store" }),
+    serverFetch(`${base}/api/leagues?city=${encodeURIComponent(city)}`, { cache: "no-store" }),
+    serverFetch(`${base}/api/players?city=${encodeURIComponent(city)}`, { cache: "no-store" }),
   ]);
   const leagues = leaguesRes.ok ? (await leaguesRes.json()).data ?? [] : [];
   const players = playersRes.ok ? (await playersRes.json()).data ?? [] : [];

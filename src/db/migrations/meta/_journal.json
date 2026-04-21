@@ -22,6 +22,20 @@
       "when": 1776731949486,
       "tag": "0002_right_starfox",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776822000000,
+      "tag": "0003_users_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776823000000,
+      "tag": "0004_assign_leagues_to_owner",
+      "breakpoints": true
     }
   ]
 }

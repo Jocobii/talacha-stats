@@ -1,12 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { serverFetch } from "@/shared/lib/server-fetch";
+import { getSessionUser } from "@/shared/lib/auth";
+import { listUsers } from "@/entities/user";
+import OrganizerSection from "./OrganizerSection";
+
+type Organizer = { id: string; name: string; email: string };
 
 async function getLeagueData(id: string) {
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   const [leagueRes, standingsRes, scorersRes] = await Promise.all([
-    fetch(`${base}/api/leagues/${id}`, { cache: "no-store" }),
-    fetch(`${base}/api/leagues/${id}/standings`, { cache: "no-store" }),
-    fetch(`${base}/api/leagues/${id}/top-scorers?limit=5`, { cache: "no-store" }),
+    serverFetch(`${base}/api/leagues/${id}`, { cache: "no-store" }),
+    serverFetch(`${base}/api/leagues/${id}/standings`, { cache: "no-store" }),
+    serverFetch(`${base}/api/leagues/${id}/top-scorers?limit=5`, { cache: "no-store" }),
   ]);
 
   if (!leagueRes.ok) return null;
@@ -19,10 +25,17 @@ async function getLeagueData(id: string) {
 
 export default async function LeaguePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const data = await getLeagueData(id);
+  const [data, session] = await Promise.all([getLeagueData(id), getSessionUser()]);
   if (!data) notFound();
 
   const { league, standings, topScorers } = data;
+
+  const organizers: Organizer[] =
+    session?.role === "owner"
+      ? (await listUsers())
+          .filter((u) => u.role === "organizer" && u.active)
+          .map((u) => ({ id: u.id, name: u.name, email: u.email }))
+      : [];
 
   return (
     <div>
@@ -83,8 +96,16 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        {/* Top goleadores + partidos recientes */}
+        {/* Sidebar */}
         <div className="space-y-6">
+          {session?.role === "owner" && (
+            <OrganizerSection
+              leagueId={id}
+              current={league.admin ?? null}
+              organizers={organizers}
+            />
+          )}
+
           <div>
             <h2 className="text-lg font-semibold text-gray-700 mb-3">Top goleadores</h2>
             <div className="bg-white rounded-lg shadow p-4 space-y-2">

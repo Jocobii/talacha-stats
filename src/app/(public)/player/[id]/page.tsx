@@ -46,7 +46,7 @@ export default async function PlayerProfilePage({
     getPlayerProfile(id),
     getPlayerEgoStats(id),
   ]);
-  if (!profile) notFound();
+  if (!profile) return notFound();
 
   const { global: g } = profile;
   const hasStats = g.totalGoals > 0 || g.totalMatches > 0;

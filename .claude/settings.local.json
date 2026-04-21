@@ -11,7 +11,9 @@
       "Bash(pnpm build *)",
       "Bash(xargs grep *)",
       "Bash(pnpm dev *)",
-      "Bash(pnpm db:generate)"
+      "Bash(pnpm db:generate)",
+      "Bash(find src/app/admin/seed-liga -type f)",
+      "Bash(find src/app/seed-liga -type f)"
     ]
   }
 }

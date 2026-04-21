@@ -4,6 +4,7 @@ import Pagination from "@/shared/ui/Pagination";
 import FilterBar from "@/shared/ui/FilterBar";
 import type { PaginationMeta } from "@/shared/lib/pagination";
 import { getActiveCity } from "@/shared/lib/active-city";
+import { serverFetch } from "@/shared/lib/server-fetch";
 
 type Player = { id: string; fullName: string; alias: string | null; phone: string | null };
 
@@ -15,7 +16,7 @@ async function getPlayers(searchParams: Record<string, string>, city: string) {
   if (searchParams.page)  params.set("page",  searchParams.page);
   if (searchParams.limit) params.set("limit", searchParams.limit);
 
-  const res = await fetch(`${base}/api/players?${params.toString()}`, { cache: "no-store" });
+  const res = await serverFetch(`${base}/api/players?${params.toString()}`, { cache: "no-store" });
   if (!res.ok) return { data: [] as Player[], meta: null };
 
   const json = await res.json();

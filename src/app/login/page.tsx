@@ -5,31 +5,28 @@ import { useSearchParams, useRouter } from "next/navigation";
 
 function LoginForm() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const from = searchParams.get("from") ?? "/admin";
+  const router       = useRouter();
+  const from         = searchParams.get("from") ?? "/admin";
 
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [form, setForm]       = useState({ email: "", password: "" });
+  const [error, setError]     = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
-      const res = await fetch("/api/auth/login", {
+      const res  = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, from }),
+        body: JSON.stringify({ ...form, from }),
       });
       const data = await res.json();
-
       if (!data.ok) {
-        setError(data.error ?? "Contraseña incorrecta");
+        setError(data.error ?? "Credenciales incorrectas");
         return;
       }
-
       router.push(data.redirect ?? "/admin");
     } catch {
       setError("Error de conexión. Intenta de nuevo.");
@@ -51,16 +48,31 @@ function LoginForm() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl p-6 space-y-4">
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Correo electrónico
+            </label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={e => setForm({ ...form, email: e.target.value })}
+              placeholder="organizador@ejemplo.com"
+              autoFocus
+              required
+              className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Contraseña
             </label>
             <input
               type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
+              value={form.password}
+              onChange={e => setForm({ ...form, password: e.target.value })}
               placeholder="••••••••"
-              autoFocus
               required
               className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
@@ -74,7 +86,7 @@ function LoginForm() {
 
           <button
             type="submit"
-            disabled={loading || !password}
+            disabled={loading || !form.email || !form.password}
             className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition text-sm"
           >
             {loading ? "Verificando…" : "Entrar"}
@@ -82,7 +94,7 @@ function LoginForm() {
         </form>
 
         <p className="text-center text-xs text-gray-600">
-          TalachaStats · Tijuana
+          TalachaStats · Panel de organizadores
         </p>
       </div>
     </div>

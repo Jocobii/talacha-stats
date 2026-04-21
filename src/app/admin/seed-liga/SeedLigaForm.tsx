@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { MEXICO_CITIES } from "@/shared/lib/cities";
 
+type Organizer = { id: string; name: string; email: string };
+
 type FormState = {
   city:              string;
   name:              string;
@@ -12,6 +14,7 @@ type FormState = {
   numTeams:          number;
   numPlayersPerTeam: number;
   jornada:           number;
+  adminId:           string;
 };
 
 type StandingRow = {
@@ -69,9 +72,16 @@ const DEFAULT_FORM: FormState = {
   numTeams:          10,
   numPlayersPerTeam: 8,
   jornada:           16,
+  adminId:           "",
 };
 
-export default function SeedLigaPage() {
+export default function SeedLigaForm({
+  organizers,
+  isOwner,
+}: {
+  organizers: Organizer[];
+  isOwner: boolean;
+}) {
   const [form,    setForm]    = useState<FormState>(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
@@ -89,10 +99,11 @@ export default function SeedLigaPage() {
     setResult(null);
 
     try {
+      const body = { ...form, adminId: form.adminId || undefined };
       const res  = await fetch("/api/seed-liga", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(form),
+        body:    JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -128,9 +139,6 @@ export default function SeedLigaPage() {
         </div>
 
         {!result ? (
-          /* ---------------------------------------------------------------- */
-          /* FORM                                                               */
-          /* ---------------------------------------------------------------- */
           <form onSubmit={handleSubmit} className="space-y-6">
 
             {/* Liga */}
@@ -187,6 +195,33 @@ export default function SeedLigaPage() {
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-green-500"
                   />
                 </div>
+
+                {isOwner && (
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs text-gray-400 mb-1.5">Organizador</label>
+                    {organizers.length === 0 ? (
+                      <p className="text-xs text-yellow-400 py-2">
+                        No hay organizadores activos.{" "}
+                        <Link href="/admin/users" className="underline hover:text-yellow-300">
+                          Crear uno en Usuarios →
+                        </Link>
+                      </p>
+                    ) : (
+                      <select
+                        value={form.adminId}
+                        onChange={(e) => set("adminId", e.target.value)}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500"
+                      >
+                        <option value="">— Sin asignar —</option>
+                        {organizers.map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.name} ({o.email})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
               </div>
             </section>
 
@@ -221,7 +256,7 @@ export default function SeedLigaPage() {
               />
             </section>
 
-            {/* Resumen visual antes de enviar */}
+            {/* Resumen visual */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl px-6 py-4 flex flex-wrap gap-6 text-sm">
               <Stat label="Equipos"   value={String(form.numTeams)} />
               <Stat label="Jugadores" value={String(form.numTeams * form.numPlayersPerTeam)} />
@@ -257,12 +292,8 @@ export default function SeedLigaPage() {
           </form>
 
         ) : (
-          /* ---------------------------------------------------------------- */
-          /* RESULT                                                             */
-          /* ---------------------------------------------------------------- */
           <div className="space-y-6">
 
-            {/* Success header */}
             <div className="bg-green-900/30 border border-green-800 rounded-2xl px-6 py-5">
               <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-1">
                 Liga generada exitosamente
@@ -273,7 +304,6 @@ export default function SeedLigaPage() {
               </p>
             </div>
 
-            {/* Resumen numérico */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <ResultStat label="Equipos"       value={String(result.teamsCreated)} />
               <ResultStat label="Jugadores"     value={String(result.playersCreated)} />
@@ -281,7 +311,6 @@ export default function SeedLigaPage() {
               <ResultStat label="Top goleador"  value={`${result.topScorerGoals} goles`} />
             </div>
 
-            {/* Tabla de posiciones */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
               <div className="px-5 py-3 border-b border-gray-800">
                 <h3 className="text-sm font-semibold text-gray-300">Tabla de posiciones — Jornada {result.jornada}</h3>
@@ -335,7 +364,6 @@ export default function SeedLigaPage() {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex gap-3">
               <Link
                 href={`/admin/leagues/${result.leagueId}`}
@@ -356,10 +384,6 @@ export default function SeedLigaPage() {
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// SUB-COMPONENTS
-// ---------------------------------------------------------------------------
 
 function SliderField({
   label, value, min, max, step, description, onChange,
