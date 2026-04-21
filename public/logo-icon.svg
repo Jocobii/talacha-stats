@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 51 41" fill="none" role="img" aria-label="TalachaStats icon">
+  <title>TalachaStats</title>
+
+  <!-- Bars only — para favicon, app icon, foto de perfil -->
+  <rect x="0"  y="26" width="7" height="15" rx="2" fill="#00E676" fill-opacity="0.35"/>
+  <rect x="11" y="16" width="7" height="25" rx="2" fill="#00E676" fill-opacity="0.55"/>
+  <rect x="22" y="9"  width="7" height="32" rx="2" fill="#00E676" fill-opacity="0.75"/>
+  <rect x="33" y="3"  width="7" height="38" rx="2" fill="#00E676"/>
+  <rect x="44" y="12" width="7" height="29" rx="2" fill="#00E676" fill-opacity="0.65"/>
+</svg>

@@ -1,2 +1,10 @@
-export type { PlayerProfile, PlayerLeagueStats, PlayerGlobalProfile } from "./model";
-export { getPlayerProfile } from "./queries";
+export type {
+  PlayerProfile,
+  PlayerLeagueStats,
+  PlayerGlobalProfile,
+  PlayerPositions,
+  PlayerTeamGoalShare,
+  PlayerBadge,
+  PlayerEgoStats,
+} from "./model";
+export { getPlayerProfile, getPlayerEgoStats } from "./queries";

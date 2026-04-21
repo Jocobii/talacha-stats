@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 44" fill="none" role="img" aria-label="TalachaStats">
+  <title>TalachaStats</title>
+
+  <!-- Bars icon -->
+  <rect x="0"  y="29" width="7" height="12" rx="2" fill="#00E676" fill-opacity="0.35"/>
+  <rect x="11" y="19" width="7" height="22" rx="2" fill="#00E676" fill-opacity="0.55"/>
+  <rect x="22" y="10" width="7" height="31" rx="2" fill="#00E676" fill-opacity="0.75"/>
+  <rect x="33" y="3"  width="7" height="38" rx="2" fill="#00E676"/>
+  <rect x="44" y="13" width="7" height="28" rx="2" fill="#00E676" fill-opacity="0.65"/>
+
+  <!-- Wordmark — uses Barlow Condensed 900 (loaded by the app) -->
+  <text y="37" font-family="'Barlow Condensed', 'Arial Narrow', sans-serif" font-weight="900" font-size="34" letter-spacing="-0.3">
+    <tspan x="66" fill="#F5F5F5">Talacha</tspan><tspan fill="#00E676">Stats</tspan>
+  </text>
+</svg>

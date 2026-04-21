@@ -7,7 +7,7 @@
  *  2. match_events          → fallback si no hay import para esa liga
  */
 
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, and, inArray, desc, sql } from "drizzle-orm";
 import {
   db,
   players,
@@ -15,8 +15,19 @@ import {
   playerSeasonStats,
   matchEvents,
   matches,
+  leagues,
+  teams,
 } from "@/db";
-import type { PlayerProfile, PlayerLeagueStats, PlayerGlobalProfile } from "./model";
+import type {
+  PlayerProfile,
+  PlayerLeagueStats,
+  PlayerGlobalProfile,
+  PlayerEgoStats,
+  PlayerPositions,
+  PlayerTeamGoalShare,
+  PlayerBadge,
+} from "./model";
+import { getPlayerPositions } from "./ranking";
 
 // ── Función principal ─────────────────────────────────────────────────────────
 
@@ -77,6 +88,7 @@ export async function getPlayerProfile(
         leagueName: reg.league.name,
         dayOfWeek: reg.league.dayOfWeek,
         season: reg.league.season,
+        city: reg.league.city,
         teamId: reg.teamId,
         teamName: reg.team.name,
         goals: seasonStats.goals,
@@ -100,6 +112,7 @@ export async function getPlayerProfile(
       leagueName: reg.league.name,
       dayOfWeek: reg.league.dayOfWeek,
       season: reg.league.season,
+      city: reg.league.city,
       teamId: reg.teamId,
       teamName: reg.team.name,
       goals: fb.goals,
@@ -257,4 +270,201 @@ function emptyEventCounts(): EventCounts {
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+// ── Player Ego Stats ──────────────────────────────────────────────────────────
+// Todos los cálculos que alimentan el perfil público (ranking, racha, badges).
+// Sin dependencia del resultado de getPlayerProfile — queries propias.
+
+export async function getPlayerEgoStats(playerId: string): Promise<PlayerEgoStats> {
+  // Rows de season_stats con info de liga y equipo
+  const seasonRows = await db
+    .select({
+      leagueId:      playerSeasonStats.leagueId,
+      leagueName:    leagues.name,
+      teamId:        playerSeasonStats.teamId,
+      teamName:      teams.name,
+      goals:         playerSeasonStats.goals,
+      matchesPlayed: playerSeasonStats.matchesPlayed,
+      city:          leagues.city,
+    })
+    .from(playerSeasonStats)
+    .innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
+    .leftJoin(teams,   eq(playerSeasonStats.teamId,   teams.id))
+    .where(eq(playerSeasonStats.playerId, playerId));
+
+  const [streak, hatTricks, mvpCount] = await Promise.all([
+    fetchGoalStreak(playerId),
+    fetchHatTricks(playerId),
+    fetchMvpCount(playerId),
+  ]);
+
+  if (seasonRows.length === 0) {
+    return emptyEgoStats();
+  }
+
+  // Liga con más goles para el scope de posiciones
+  const bestRow = seasonRows.reduce((a, b) => (b.goals > a.goals ? b : a));
+
+  const positions = await getPlayerPositions(playerId, {
+    leagueId: bestRow.leagueId,
+    city:     bestRow.city,
+  });
+
+  const cityTopPercent =
+    positions.city && positions.city.goals > 0 && positions.city.total > 0
+      ? Math.ceil((positions.city.rank / positions.city.total) * 100)
+      : null;
+
+  const normalizedRows = seasonRows.map((r) => ({
+    leagueId:      r.leagueId,
+    leagueName:    r.leagueName,
+    teamId:        r.teamId,
+    teamName:      r.teamName ?? "—",
+    goals:         r.goals,
+    matchesPlayed: r.matchesPlayed,
+  }));
+
+  const teamGoalShares  = await fetchTeamGoalShares(normalizedRows);
+  const leaguesCount    = new Set(seasonRows.map((r) => r.leagueId)).size;
+  const totalMatches    = seasonRows.reduce((s, r) => s + r.matchesPlayed, 0);
+  const totalGoals      = seasonRows.reduce((s, r) => s + r.goals, 0);
+  const overallGPM      = totalMatches > 0 ? totalGoals / totalMatches : 0;
+  const badges          = computeBadges(positions, leaguesCount, mvpCount, streak, hatTricks, totalMatches, overallGPM);
+
+  return { positions, cityTopPercent, goalStreak: streak, hatTricks, teamGoalShares, badges };
+}
+
+// ── Helpers de ego stats ──────────────────────────────────────────────────────
+
+async function fetchGoalStreak(playerId: string): Promise<number> {
+  const rows = await db
+    .select({
+      matchId:   matches.id,
+      matchDate: matches.matchDate,
+      goals:     sql<number>`count(case when ${matchEvents.eventType} = 'goal' then 1 end)::int`,
+    })
+    .from(matchEvents)
+    .innerJoin(matches, eq(matchEvents.matchId, matches.id))
+    .where(and(
+      eq(matchEvents.playerId, playerId),
+      eq(matches.status, "completed"),
+    ))
+    .groupBy(matches.id, matches.matchDate)
+    .orderBy(desc(matches.matchDate));
+
+  let streak = 0;
+  for (const row of rows) {
+    if (row.goals > 0) streak++;
+    else break;
+  }
+  return streak;
+}
+
+async function fetchHatTricks(playerId: string): Promise<number> {
+  const rows = await db
+    .select({
+      matchId: matchEvents.matchId,
+      goals:   sql<number>`count(*)::int`,
+    })
+    .from(matchEvents)
+    .innerJoin(matches, eq(matchEvents.matchId, matches.id))
+    .where(and(
+      eq(matchEvents.playerId, playerId),
+      eq(matchEvents.eventType, "goal"),
+      eq(matches.status, "completed"),
+    ))
+    .groupBy(matchEvents.matchId);
+
+  return rows.filter((r) => r.goals >= 3).length;
+}
+
+async function fetchMvpCount(playerId: string): Promise<number> {
+  const rows = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(matchEvents)
+    .where(and(
+      eq(matchEvents.playerId, playerId),
+      eq(matchEvents.eventType, "mvp"),
+    ));
+  return rows[0]?.count ?? 0;
+}
+
+type SeasonRow = { leagueId: string; leagueName: string; teamId: string | null; teamName: string; goals: number; matchesPlayed: number };
+
+async function fetchTeamGoalShares(seasonRows: SeasonRow[]): Promise<PlayerTeamGoalShare[]> {
+  const relevant = seasonRows.filter((r) => r.teamId !== null && r.goals > 0);
+  if (relevant.length === 0) return [];
+
+  const leagueIds = [...new Set(relevant.map((r) => r.leagueId))];
+  const teamIds   = [...new Set(relevant.map((r) => r.teamId as string))];
+
+  const totals = await db
+    .select({
+      leagueId:   playerSeasonStats.leagueId,
+      teamId:     playerSeasonStats.teamId,
+      teamGoals:  sql<number>`sum(${playerSeasonStats.goals})::int`,
+    })
+    .from(playerSeasonStats)
+    .where(and(
+      inArray(playerSeasonStats.leagueId, leagueIds),
+      inArray(playerSeasonStats.teamId,   teamIds),
+    ))
+    .groupBy(playerSeasonStats.leagueId, playerSeasonStats.teamId);
+
+  const teamTotalMap = new Map<string, number>();
+  for (const row of totals) {
+    if (!row.teamId) continue;
+    teamTotalMap.set(`${row.leagueId}:${row.teamId}`, row.teamGoals);
+  }
+
+  return relevant
+    .map((r) => {
+      const teamGoals    = teamTotalMap.get(`${r.leagueId}:${r.teamId}`) ?? r.goals;
+      const sharePercent = teamGoals > 0 ? Math.round((r.goals / teamGoals) * 100) : 0;
+      return {
+        leagueId:     r.leagueId,
+        leagueName:   r.leagueName,
+        teamName:     r.teamName,
+        playerGoals:  r.goals,
+        teamGoals,
+        sharePercent,
+      };
+    })
+    .filter((s) => s.sharePercent > 0);
+}
+
+function computeBadges(
+  positions: PlayerPositions,
+  leaguesCount: number,
+  mvpCount: number,
+  goalStreak: number,
+  hatTricks: number,
+  totalMatches: number,
+  goalsPerMatch: number,
+): PlayerBadge[] {
+  const badges: PlayerBadge[] = [];
+  if (positions.league?.rank === 1)               badges.push("league_top_scorer");
+  if (leaguesCount >= 2)                          badges.push("multi_league");
+  if (goalsPerMatch >= 1.0 && totalMatches >= 5)  badges.push("marksman");
+  if (goalStreak >= 3)                            badges.push("on_streak");
+  if (mvpCount > 0)                               badges.push("mvp");
+  if (hatTricks > 0)                              badges.push("hat_trick_club");
+  if (totalMatches >= 25)                         badges.push("veteran");
+  return badges;
+}
+
+function emptyEgoStats(): PlayerEgoStats {
+  return {
+    positions: {
+      league: null,
+      city:   null,
+      global: { rank: 0, total: 0, goals: 0 },
+    },
+    cityTopPercent:  null,
+    goalStreak:      0,
+    hatTricks:       0,
+    teamGoalShares:  [],
+    badges:          [],
+  };
 }
