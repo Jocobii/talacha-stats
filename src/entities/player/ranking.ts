@@ -4,8 +4,8 @@
  * Sin asistencias — no se registran en ligas amateur.
  */
 
-import { eq, desc, sql, and, or, ilike } from "drizzle-orm";
-import { db, players, playerSeasonStats, leagues, teams } from "@/db";
+import { eq, desc, sql, and, or, ilike, inArray } from "drizzle-orm";
+import { db, players, playerSeasonStats, playerSeasonStatsSnapshot, leagues, teams } from "@/db";
 import {
 	type PaginationParams,
 	paginateArray,
@@ -24,7 +24,9 @@ export type RankingEntry = {
 	leaguesCount: number;
 	topLeague: string;
 	topTeam: string;
-	cities?: string[]; // populated for global scope
+	cities?: string[];       // populated for global scope
+	positionDelta: number | null; // +N subió, -N bajó, 0 igual, null = sin historial
+	isNew: boolean;               // apareció en esta jornada, no en la anterior
 };
 
 export type JornadaHero = {
@@ -84,6 +86,8 @@ function buildRankingEntry(
 	totalMatches: number,
 	leagueList: LeagueAcc[],
 	cities?: string[],
+	positionDelta: number | null = null,
+	isNew = false,
 ): RankingEntry {
 	const best = leagueList.reduce((b, l) => (l.goals > b.goals ? l : b));
 	return {
@@ -98,6 +102,8 @@ function buildRankingEntry(
 		topLeague: best.leagueName,
 		topTeam: best.teamName,
 		...(cities ? { cities } : {}),
+		positionDelta,
+		isNew,
 	};
 }
 
@@ -107,6 +113,91 @@ function sortRanking(ranking: RankingEntry[]): RankingEntry[] {
 		if (b.goalsPerMatch !== a.goalsPerMatch)
 			return b.goalsPerMatch - a.goalsPerMatch;
 		return a.fullName.localeCompare(b.fullName);
+	});
+}
+
+// Retorna para cada jugador sus goles acumulados en la jornada anterior (N-1)
+// agrupados por liga. Usa las dos jornadas más recientes de cada liga en el snapshot.
+async function getPrevGoalsByLeague(
+	leagueIds: string[],
+): Promise<Map<string, Map<string, number>>> {
+	if (leagueIds.length === 0) return new Map();
+
+	// Dos jornadas más recientes por liga
+	const jornadaRows = await db
+		.select({
+			leagueId: playerSeasonStatsSnapshot.leagueId,
+			jornada:  playerSeasonStatsSnapshot.jornada,
+		})
+		.from(playerSeasonStatsSnapshot)
+		.where(inArray(playerSeasonStatsSnapshot.leagueId, leagueIds))
+		.groupBy(playerSeasonStatsSnapshot.leagueId, playerSeasonStatsSnapshot.jornada)
+		.orderBy(playerSeasonStatsSnapshot.leagueId, desc(playerSeasonStatsSnapshot.jornada));
+
+	// Por liga: tomar la segunda jornada más reciente (la anterior)
+	const prevJornadaByLeague = new Map<string, number>();
+	const seenLeagues = new Map<string, number>(); // leagueId → count of jornadas seen
+
+	for (const row of jornadaRows) {
+		const count = (seenLeagues.get(row.leagueId) ?? 0) + 1;
+		seenLeagues.set(row.leagueId, count);
+		if (count === 2) prevJornadaByLeague.set(row.leagueId, row.jornada);
+	}
+
+	if (prevJornadaByLeague.size === 0) return new Map();
+
+	// Fetch snapshots de la jornada anterior para cada liga
+	// result: Map<leagueId, Map<playerId, goals>>
+	const result = new Map<string, Map<string, number>>();
+
+	for (const [leagueId, jornada] of prevJornadaByLeague) {
+		const rows = await db
+			.select({
+				playerId: playerSeasonStatsSnapshot.playerId,
+				goals:    playerSeasonStatsSnapshot.goals,
+			})
+			.from(playerSeasonStatsSnapshot)
+			.where(
+				and(
+					eq(playerSeasonStatsSnapshot.leagueId, leagueId),
+					eq(playerSeasonStatsSnapshot.jornada, jornada),
+				),
+			);
+
+		const playerMap = new Map<string, number>();
+		for (const r of rows) playerMap.set(r.playerId, r.goals);
+		result.set(leagueId, playerMap);
+	}
+
+	return result;
+}
+
+// Calcula positionDelta comparando ranking actual vs ranking previo.
+// prevTotals: Map<playerId, totalGoals en jornada anterior>
+function computeDeltas(
+	currentRanking: RankingEntry[],
+	prevTotals: Map<string, number>,
+): void {
+	if (prevTotals.size === 0) return;
+
+	// Ordenar jugadores previos por goles para asignar posiciones
+	const prevSorted = [...prevTotals.entries()]
+		.sort((a, b) => b[1] - a[1]);
+	const prevRankMap = new Map<string, number>(
+		prevSorted.map(([id], idx) => [id, idx + 1]),
+	);
+
+	currentRanking.forEach((entry, idx) => {
+		const currentPos = idx + 1;
+		const prevPos    = prevRankMap.get(entry.playerId);
+
+		if (prevPos === undefined) {
+			entry.isNew          = true;
+			entry.positionDelta  = null;
+		} else {
+			entry.positionDelta = prevPos - currentPos; // positivo = subió
+			entry.isNew         = false;
+		}
 	});
 }
 
@@ -165,6 +256,17 @@ export async function getCityRanking(
 		),
 	);
 
+	// Deltas vs jornada anterior (agrega goles previos de todas las ligas de la ciudad)
+	const leagueIds    = [...new Set(rows.map((r) => r.leagueId))];
+	const prevByLeague = await getPrevGoalsByLeague(leagueIds);
+	const prevTotals   = new Map<string, number>();
+	for (const playerMap of prevByLeague.values()) {
+		for (const [pid, goals] of playerMap) {
+			prevTotals.set(pid, (prevTotals.get(pid) ?? 0) + goals);
+		}
+	}
+	computeDeltas(ranking, prevTotals);
+
 	if (!pagination) return { items: ranking, meta: EMPTY_PAGINATION(ranking.length) };
 	return paginateArray(ranking, pagination);
 }
@@ -197,6 +299,14 @@ export async function getLeagueRanking(
 			{ leagueId, leagueName: r.leagueName, teamName: r.teamName ?? "—", goals: r.goals },
 		]),
 	);
+
+	// Deltas vs jornada anterior
+	const prevByLeague = await getPrevGoalsByLeague([leagueId]);
+	const prevTotals   = new Map<string, number>();
+	for (const [pid, goals] of prevByLeague.get(leagueId) ?? []) {
+		prevTotals.set(pid, goals);
+	}
+	computeDeltas(ranking, prevTotals);
 
 	if (!pagination) return { items: ranking, meta: EMPTY_PAGINATION(ranking.length) };
 	return paginateArray(ranking, pagination);
@@ -254,6 +364,17 @@ export async function getGlobalRanking(
 			buildRankingEntry(a.playerId, a.fullName, a.alias, a.totalGoals, a.totalMatches, a.leagues, a.cities),
 		),
 	);
+
+	// Deltas vs jornada anterior (todas las ligas del sistema)
+	const leagueIds    = [...new Set(rows.map((r) => r.leagueId))];
+	const prevByLeague = await getPrevGoalsByLeague(leagueIds);
+	const prevTotals   = new Map<string, number>();
+	for (const playerMap of prevByLeague.values()) {
+		for (const [pid, goals] of playerMap) {
+			prevTotals.set(pid, (prevTotals.get(pid) ?? 0) + goals);
+		}
+	}
+	computeDeltas(ranking, prevTotals);
 
 	if (!pagination) return { items: ranking, meta: EMPTY_PAGINATION(ranking.length) };
 	return paginateArray(ranking, pagination);

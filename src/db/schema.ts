@@ -317,6 +317,47 @@ export type StandingsColumnMap = {
 };
 
 // ---------------------------------------------------------------------------
+// PLAYER_SEASON_STATS_SNAPSHOT — Historial de goleadores por jornada
+//
+// Diseño: stats ACUMULADAS hasta esa jornada (igual que player_season_stats).
+// El delta entre jornadas se calcula en queries: J_N.goals − J_{N-1}.goals
+// Esto permite corregir re-importaciones sin romper el historial.
+//
+// UNIQUE (player_id, league_id, jornada) — una fila por jugador × liga × jornada
+// ---------------------------------------------------------------------------
+export const playerSeasonStatsSnapshot = pgTable(
+  "player_season_stats_snapshot",
+  {
+    id:            uuid("id").primaryKey().defaultRandom(),
+    playerId:      uuid("player_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+    leagueId:      uuid("league_id").notNull().references(() => leagues.id, { onDelete: "cascade" }),
+    teamId:        uuid("team_id").references(() => teams.id, { onDelete: "set null" }),
+    jornada:       integer("jornada").notNull(),
+    goals:         integer("goals").notNull().default(0),
+    assists:       integer("assists").notNull().default(0),
+    yellowCards:   integer("yellow_cards").notNull().default(0),
+    redCards:      integer("red_cards").notNull().default(0),
+    matchesPlayed: integer("matches_played").notNull().default(0),
+    importedAt:    timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    unique("unique_player_league_jornada_snap").on(t.playerId, t.leagueId, t.jornada),
+    index("psss_player_idx").on(t.playerId),
+    index("psss_league_idx").on(t.leagueId),
+    index("psss_jornada_idx").on(t.jornada),
+  ]
+);
+
+export const playerSeasonStatsSnapshotRelations = relations(playerSeasonStatsSnapshot, ({ one }) => ({
+  player: one(players, { fields: [playerSeasonStatsSnapshot.playerId], references: [players.id] }),
+  league: one(leagues, { fields: [playerSeasonStatsSnapshot.leagueId], references: [leagues.id] }),
+  team:   one(teams,   { fields: [playerSeasonStatsSnapshot.teamId],   references: [teams.id]   }),
+}));
+
+export type PlayerSeasonStatsSnapshot     = typeof playerSeasonStatsSnapshot.$inferSelect;
+export type NewPlayerSeasonStatsSnapshot  = typeof playerSeasonStatsSnapshot.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // PAGE_VIEWS — Contador de visitas únicas a las páginas públicas
 // visitor_id: UUID persistido en cookie (1 año) para identificar al navegador
 // ---------------------------------------------------------------------------

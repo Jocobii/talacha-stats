@@ -15,6 +15,13 @@
       "when": 1776563459333,
       "tag": "0001_wet_thanos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776731949486,
+      "tag": "0002_right_starfox",
+      "breakpoints": true
     }
   ]
 }

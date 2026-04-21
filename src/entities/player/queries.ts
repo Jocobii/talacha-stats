@@ -13,6 +13,7 @@ import {
   players,
   playerRegistrations,
   playerSeasonStats,
+  playerSeasonStatsSnapshot,
   matchEvents,
   matches,
   leagues,
@@ -337,46 +338,76 @@ export async function getPlayerEgoStats(playerId: string): Promise<PlayerEgoStat
 
 // ── Helpers de ego stats ──────────────────────────────────────────────────────
 
+// Racha activa: jornadas consecutivas con Δgoles > 0 desde la más reciente.
+// Usa snapshot en lugar de match_events — funciona con importación Excel.
 async function fetchGoalStreak(playerId: string): Promise<number> {
   const rows = await db
     .select({
-      matchId:   matches.id,
-      matchDate: matches.matchDate,
-      goals:     sql<number>`count(case when ${matchEvents.eventType} = 'goal' then 1 end)::int`,
+      leagueId: playerSeasonStatsSnapshot.leagueId,
+      jornada:  playerSeasonStatsSnapshot.jornada,
+      goals:    playerSeasonStatsSnapshot.goals,
     })
-    .from(matchEvents)
-    .innerJoin(matches, eq(matchEvents.matchId, matches.id))
-    .where(and(
-      eq(matchEvents.playerId, playerId),
-      eq(matches.status, "completed"),
-    ))
-    .groupBy(matches.id, matches.matchDate)
-    .orderBy(desc(matches.matchDate));
+    .from(playerSeasonStatsSnapshot)
+    .where(eq(playerSeasonStatsSnapshot.playerId, playerId))
+    .orderBy(
+      desc(playerSeasonStatsSnapshot.leagueId),
+      desc(playerSeasonStatsSnapshot.jornada),
+    );
 
-  let streak = 0;
-  for (const row of rows) {
-    if (row.goals > 0) streak++;
-    else break;
+  if (rows.length === 0) return 0;
+
+  // Agrupar por liga manteniendo orden jornada desc
+  const byLeague = new Map<string, { jornada: number; goals: number }[]>();
+  for (const r of rows) {
+    if (!byLeague.has(r.leagueId)) byLeague.set(r.leagueId, []);
+    byLeague.get(r.leagueId)!.push({ jornada: r.jornada, goals: r.goals });
   }
-  return streak;
+
+  // Por cada liga calcular racha activa y retornar la mayor
+  let bestStreak = 0;
+  for (const snaps of byLeague.values()) {
+    // snaps ya viene ordenado desc por jornada
+    let streak = 0;
+    for (let i = 0; i < snaps.length; i++) {
+      const prev  = snaps[i + 1];
+      const delta = snaps[i].goals - (prev?.goals ?? 0);
+      if (delta > 0) streak++;
+      else break;
+    }
+    if (streak > bestStreak) bestStreak = streak;
+  }
+  return bestStreak;
 }
 
+// Hat-tricks: jornadas donde el jugador anotó ≥ 3 goles (Δgoles ≥ 3 vs jornada anterior).
 async function fetchHatTricks(playerId: string): Promise<number> {
   const rows = await db
     .select({
-      matchId: matchEvents.matchId,
-      goals:   sql<number>`count(*)::int`,
+      leagueId: playerSeasonStatsSnapshot.leagueId,
+      jornada:  playerSeasonStatsSnapshot.jornada,
+      goals:    playerSeasonStatsSnapshot.goals,
     })
-    .from(matchEvents)
-    .innerJoin(matches, eq(matchEvents.matchId, matches.id))
-    .where(and(
-      eq(matchEvents.playerId, playerId),
-      eq(matchEvents.eventType, "goal"),
-      eq(matches.status, "completed"),
-    ))
-    .groupBy(matchEvents.matchId);
+    .from(playerSeasonStatsSnapshot)
+    .where(eq(playerSeasonStatsSnapshot.playerId, playerId))
+    .orderBy(
+      playerSeasonStatsSnapshot.leagueId,
+      playerSeasonStatsSnapshot.jornada,
+    );
 
-  return rows.filter((r) => r.goals >= 3).length;
+  const byLeague = new Map<string, { jornada: number; goals: number }[]>();
+  for (const r of rows) {
+    if (!byLeague.has(r.leagueId)) byLeague.set(r.leagueId, []);
+    byLeague.get(r.leagueId)!.push({ jornada: r.jornada, goals: r.goals });
+  }
+
+  let total = 0;
+  for (const snaps of byLeague.values()) {
+    for (let i = 0; i < snaps.length; i++) {
+      const prevGoals = i > 0 ? snaps[i - 1].goals : 0;
+      if (snaps[i].goals - prevGoals >= 3) total++;
+    }
+  }
+  return total;
 }
 
 async function fetchMvpCount(playerId: string): Promise<number> {

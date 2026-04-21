@@ -183,6 +183,10 @@ export default function ImportPage() {
       return;
     }
     if (!leagueId.trim()) { setError("Falta el ID de liga."); return; }
+    if (importType === "goleadores" && !jornada.trim()) {
+      setError("El número de jornada es obligatorio para registrar el historial y calcular posiciones ganadas/perdidas.");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
@@ -278,6 +282,19 @@ export default function ImportPage() {
     setExcludedRows(new Set());
   }
 
+  async function handleBackfill() {
+    if (!confirm("¿Copiar los datos actuales de goleadores al historial de jornadas? Esto es necesario una sola vez para activar los indicadores de posición ganada/perdida.")) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/import/backfill-snapshots", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) alert(`✅ ${data.data.message}`);
+      else alert(`❌ ${data.error}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const headerCols = excelPreview[headerRow] ?? [];
   const fields = importType === "goleadores" ? GOLEADORES_FIELDS : STANDINGS_FIELDS;
 
@@ -343,11 +360,14 @@ export default function ImportPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Jornada <span className="text-gray-400 font-normal">(opcional)</span>
+              Jornada
+              {importType === "goleadores" && (
+                <span className="ml-1 text-red-500 font-normal text-xs">* requerida para historial</span>
+              )}
             </label>
             <input value={jornada} onChange={e => setJornada(e.target.value)}
               type="number" min="1" placeholder="13"
-              className="w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              className={`w-32 border rounded-lg px-3 py-2 text-sm ${importType === "goleadores" && !jornada ? "border-orange-400 bg-orange-50" : "border-gray-300"}`} />
           </div>
 
           <div>

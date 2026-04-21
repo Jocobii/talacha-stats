@@ -4,6 +4,7 @@ import {
 	players,
 	teams,
 	playerSeasonStats,
+	playerSeasonStatsSnapshot,
 	teamStandingsSnapshot,
 	playerRegistrations,
 } from "@/db";
@@ -495,7 +496,7 @@ export async function confirmBulkImport(
 					.onConflictDoNothing();
 			}
 
-			// 4. Upsert stats acumuladas
+			// 4. Upsert stats acumuladas (estado actual)
 			await db
 				.insert(playerSeasonStats)
 				.values({
@@ -523,6 +524,40 @@ export async function confirmBulkImport(
 						...(teamId ? { teamId } : {}),
 					},
 				});
+
+			// 5. Snapshot histórico por jornada (solo si se conoce la jornada)
+			if (parsed.jornada != null) {
+				await db
+					.insert(playerSeasonStatsSnapshot)
+					.values({
+						playerId,
+						leagueId,
+						teamId,
+						jornada: parsed.jornada,
+						goals: row.goals,
+						assists: row.assists ?? 0,
+						yellowCards: row.yellowCards ?? 0,
+						redCards: row.redCards ?? 0,
+						matchesPlayed: row.matchesPlayed ?? 0,
+						importedAt: new Date(),
+					})
+					.onConflictDoUpdate({
+						target: [
+							playerSeasonStatsSnapshot.playerId,
+							playerSeasonStatsSnapshot.leagueId,
+							playerSeasonStatsSnapshot.jornada,
+						],
+						set: {
+							goals: row.goals,
+							assists: row.assists ?? 0,
+							yellowCards: row.yellowCards ?? 0,
+							redCards: row.redCards ?? 0,
+							matchesPlayed: row.matchesPlayed ?? 0,
+							importedAt: new Date(),
+							...(teamId ? { teamId } : {}),
+						},
+					});
+			}
 
 			upserted++;
 		}

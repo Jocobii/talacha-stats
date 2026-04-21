@@ -177,6 +177,9 @@ export default async function RankingPage({
                           {entry.goalsPerMatch.toFixed(2)}/PJ
                         </p>
                       )}
+                      <div className="mt-1">
+                        <DeltaBadge delta={entry.positionDelta} isNew={entry.isNew} />
+                      </div>
                     </Link>
                   ))}
                 </div>
@@ -201,6 +204,33 @@ export default async function RankingPage({
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Delta badge ───────────────────────────────────────────────────────────────
+
+function DeltaBadge({ delta, isNew }: { delta: number | null; isNew: boolean }) {
+  if (isNew) {
+    return (
+      <span className="text-[10px] font-bold text-brand uppercase tracking-wide">
+        NEW
+      </span>
+    );
+  }
+  if (delta === null || delta === 0) return null;
+
+  const up = delta > 0;
+  return (
+    <span className={`flex items-center gap-0.5 text-[11px] font-bold ${up ? "text-green-400" : "text-red-400"}`}>
+      {/* Triángulo SVG */}
+      <svg width="8" height="7" viewBox="0 0 8 7" fill="currentColor">
+        {up
+          ? <polygon points="4,0 8,7 0,7" />
+          : <polygon points="0,0 8,0 4,7" />
+        }
+      </svg>
+      {Math.abs(delta)}
+    </span>
   );
 }
 
@@ -259,11 +289,12 @@ function RankRow({
         </p>
       </div>
 
-      <div className="text-right shrink-0">
+      <div className="text-right shrink-0 flex flex-col items-end gap-1">
         <p className="font-display font-black text-2xl text-brand leading-none">{entry.totalGoals}</p>
         {entry.totalMatches > 0 && (
           <p className="text-[10px] text-ink-3">{entry.goalsPerMatch.toFixed(2)}/PJ</p>
         )}
+        <DeltaBadge delta={entry.positionDelta} isNew={entry.isNew} />
       </div>
     </Link>
   );
