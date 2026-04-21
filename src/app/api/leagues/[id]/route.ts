@@ -64,6 +64,7 @@ export async function PATCH(
       ...(parsed.data.name      !== undefined && { name:      parsed.data.name }),
       ...(parsed.data.dayOfWeek !== undefined && { dayOfWeek: parsed.data.dayOfWeek }),
       ...(parsed.data.season    !== undefined && { season:    parsed.data.season }),
+      ...(parsed.data.status    !== undefined && { status:    parsed.data.status }),
       ...(parsed.data.adminId   !== undefined && session.role === "owner" && { adminId: parsed.data.adminId }),
     })
     .where(eq(leagues.id, id))

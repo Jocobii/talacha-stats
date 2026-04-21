@@ -101,6 +101,7 @@ export async function getPlayerProfile(
         matchesPlayed: seasonStats.matchesPlayed,
         goalsPerMatch: gpm,
         source: "season_stats",
+        leagueStatus: "active" as const, // se sobreescribe en el paso 6
       };
     }
 
@@ -125,11 +126,24 @@ export async function getPlayerProfile(
       matchesPlayed: fb.matchesPlayed,
       goalsPerMatch: gpm,
       source: "match_events",
+      leagueStatus: "active" as const, // se sobreescribe en el paso 6
     };
   });
 
-  // 6. Ordenar: más goles → más asistencias → nombre de liga
+  // 6. Determinar status efectivo de cada liga (explícito + auto-detección de sucesor)
+  const leagueIds = registrations.map((r) => r.leagueId);
+  const finishedIds = await resolveFinishedLeagues(leagueIds);
+
+  for (const stat of leagueStats) {
+    stat.leagueStatus = finishedIds.has(stat.leagueId) ? "finished" : "active";
+  }
+
+  // 7. Ordenar: activas primero, luego por goles → asistencias → nombre
   leagueStats.sort((a, b) => {
+    // Activas antes que terminadas
+    if (a.leagueStatus !== b.leagueStatus) {
+      return a.leagueStatus === "active" ? -1 : 1;
+    }
     if (b.goals !== a.goals) return b.goals - a.goals;
     if (b.assists !== a.assists) return b.assists - a.assists;
     return a.leagueName.localeCompare(b.leagueName);
@@ -147,6 +161,42 @@ export async function getPlayerProfile(
     global,
     leagues: leagueStats,
   };
+}
+
+// ── Resolución de status de ligas ─────────────────────────────────────────────
+// Una liga se considera "finished" si:
+//   1. Su campo status = 'finished' (cierre explícito del admin), O
+//   2. Existe una liga con el mismo nombre + dayOfWeek + ciudad creada después
+//      (significa que fue reiniciada con "Nueva temporada" o manualmente).
+//
+// Esta función se ejecuta en cada carga del perfil — sin cron job necesario.
+
+async function resolveFinishedLeagues(leagueIds: string[]): Promise<Set<string>> {
+  if (leagueIds.length === 0) return new Set();
+
+  const l1 = leagues;
+
+  const rows = await db
+    .select({ id: l1.id })
+    .from(l1)
+    .where(
+      and(
+        inArray(l1.id, leagueIds),
+        sql`(
+          ${l1.status} = 'finished'
+          OR EXISTS (
+            SELECT 1 FROM leagues l2
+            WHERE l2.name      = ${l1.name}
+              AND l2.day_of_week = ${l1.dayOfWeek}
+              AND l2.city       = ${l1.city}
+              AND l2.created_at > ${l1.createdAt}
+              AND l2.id        != ${l1.id}
+          )
+        )`,
+      ),
+    );
+
+  return new Set(rows.map((r) => r.id));
 }
 
 // ── Fallback: conteos de match_events por liga ────────────────────────────────

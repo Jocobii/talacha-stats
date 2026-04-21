@@ -21,7 +21,9 @@ export const CreateLeagueSchema = z.object({
   adminId:   z.string().uuid().optional(),
 });
 
-export const UpdateLeagueSchema = CreateLeagueSchema.partial();
+export const UpdateLeagueSchema = CreateLeagueSchema.partial().extend({
+  status: z.enum(["active", "finished"]).optional(),
+});
 
 export const CreateTeamSchema = z.object({
   name: z.string().min(1).max(100),

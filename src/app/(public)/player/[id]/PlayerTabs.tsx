@@ -79,18 +79,20 @@ function TemporadaTab({
   leagues: PlayerLeagueStats[];
   shareByLeague: Map<string, PlayerTeamGoalShare>;
 }) {
-  if (leagues.length === 0) {
+  const active = leagues.filter((l) => l.leagueStatus === "active");
+
+  if (active.length === 0) {
     return (
-      <EmptyState message="Este jugador no tiene ligas activas registradas." />
+      <EmptyState message="Este jugador no tiene ligas activas en este momento." />
     );
   }
 
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[11px] font-bold text-ink-2 uppercase tracking-widest px-1">
-        Ligas ({leagues.length})
+        En curso ({active.length})
       </p>
-      {leagues.map((l) => (
+      {active.map((l) => (
         <LeagueCard
           key={l.leagueId}
           league={l}
@@ -110,45 +112,51 @@ function CarreraTab({
   leagues: PlayerLeagueStats[];
   global: PlayerGlobalProfile;
 }) {
-  if (leagues.length === 0) {
-    return <EmptyState message="No hay historial de carrera disponible." />;
+  const finished = leagues.filter((l) => l.leagueStatus === "finished");
+
+  if (finished.length === 0) {
+    return <EmptyState message="Aún no hay ligas terminadas en el historial." />;
   }
+
+  const totalGoals   = finished.reduce((s, l) => s + l.goals, 0);
+  const totalMatches = finished.reduce((s, l) => s + l.matchesPlayed, 0);
+  const totalAssists = finished.reduce((s, l) => s + l.assists, 0);
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Career summary pill */}
+      {/* Career summary — solo ligas terminadas */}
       <div className="bg-surface border border-line rounded-2xl p-4 flex items-center justify-between gap-4">
         <div>
           <p className="text-[11px] font-bold text-ink-2 uppercase tracking-widest mb-1">
-            Resumen de carrera
+            Historial terminado
           </p>
           <p className="font-display font-black text-3xl text-brand leading-none">
-            {g.totalGoals}
+            {totalGoals}
             <span className="text-ink-2 text-base font-sans font-normal ml-2">goles</span>
           </p>
         </div>
         <div className="flex gap-4 text-center">
           <div>
-            <p className="font-display font-black text-xl text-ink leading-none">{g.totalMatches}</p>
+            <p className="font-display font-black text-xl text-ink leading-none">{totalMatches}</p>
             <p className="text-[10px] text-ink-2 mt-0.5">PJ</p>
           </div>
           <div>
-            <p className="font-display font-black text-xl text-ink leading-none">{g.totalAssists}</p>
+            <p className="font-display font-black text-xl text-ink leading-none">{totalAssists}</p>
             <p className="text-[10px] text-ink-2 mt-0.5">Asist.</p>
           </div>
           <div>
-            <p className="font-display font-black text-xl text-ink leading-none">{g.leaguesCount}</p>
-            <p className="text-[10px] text-ink-2 mt-0.5">Liga{g.leaguesCount !== 1 ? "s" : ""}</p>
+            <p className="font-display font-black text-xl text-ink leading-none">{finished.length}</p>
+            <p className="text-[10px] text-ink-2 mt-0.5">Temporada{finished.length !== 1 ? "s" : ""}</p>
           </div>
         </div>
       </div>
 
-      {/* Timeline */}
+      {/* Timeline de ligas terminadas */}
       <div className="flex flex-col gap-2">
         <p className="text-[11px] font-bold text-ink-2 uppercase tracking-widest px-1">
-          Historial
+          Temporadas anteriores ({finished.length})
         </p>
-        {leagues.map((l, idx) => (
+        {finished.map((l, idx) => (
           <CareerRow key={`${l.leagueId}-${idx}`} league={l} />
         ))}
       </div>

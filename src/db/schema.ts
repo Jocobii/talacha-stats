@@ -57,6 +57,7 @@ export const leagues = pgTable("leagues", {
   season:    text("season").notNull(),      // "Apertura 2025"
   city:      text("city").notNull().default("Tijuana"),
   adminId:   uuid("admin_id").references(() => users.id, { onDelete: "set null" }),
+  status:    text("status").notNull().default("active"), // "active" | "finished"
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

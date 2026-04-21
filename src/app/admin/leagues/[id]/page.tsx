@@ -4,6 +4,7 @@ import { serverFetch } from "@/shared/lib/server-fetch";
 import { getSessionUser } from "@/shared/lib/auth";
 import { listUsers } from "@/entities/user";
 import OrganizerSection from "./OrganizerSection";
+import NewSeasonButton from "./NewSeasonButton";
 
 type Organizer = { id: string; name: string; email: string };
 
@@ -41,8 +42,18 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
     <div>
       <div className="mb-6">
         <Link href="/admin" className="text-sm text-gray-500 hover:underline">← Dashboard</Link>
-        <h1 className="text-2xl font-bold text-gray-800 mt-1">{league.name}</h1>
-        <p className="text-gray-500 capitalize">{league.dayOfWeek} — {league.season}</p>
+        <div className="flex items-start justify-between gap-4 mt-1">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">{league.name}</h1>
+            <p className="text-gray-500 capitalize">{league.dayOfWeek} — {league.season}</p>
+          </div>
+          <NewSeasonButton
+            leagueId={id}
+            leagueName={league.name}
+            dayOfWeek={league.dayOfWeek}
+            adminId={league.adminId ?? null}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

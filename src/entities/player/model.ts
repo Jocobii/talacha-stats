@@ -23,6 +23,7 @@ export type PlayerLeagueStats = {
   matchesPlayed: number;
   goalsPerMatch: number;        // métrica principal de rendimiento
   source: "season_stats" | "match_events"; // de dónde vienen los datos
+  leagueStatus: "active" | "finished";     // activa o terminada (explícito o por sucesor)
 };
 
 // Stats globales acumuladas de TODAS las ligas
