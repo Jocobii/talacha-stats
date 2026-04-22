@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
 import { sql } from "drizzle-orm";
-import { ilike, and, eq } from "drizzle-orm";
+import { ilike, and, eq, inArray, desc } from "drizzle-orm";
 import {
 	db,
 	players,
@@ -46,12 +46,24 @@ export type ParsedBulkImport =
 	| { type: "goleadores"; rows: GoleadoresRow[]; jornada?: number }
 	| { type: "standings"; rows: StandingsRow[]; jornada?: number };
 
+export type CandidateTeam = {
+	teamName: string;
+	leagueName: string;
+};
+
+export type PlayerCandidate = {
+	id: string;
+	fullName: string;
+	alias: string | null;
+	teams: CandidateTeam[];
+};
+
 export type PlayerResolution = {
 	rawName: string;
 	teamName: string;
 	found: boolean;
 	playerId?: string;
-	candidates: { id: string; fullName: string; alias: string | null }[];
+	candidates: PlayerCandidate[];
 };
 
 export type BulkImportPreview = {
@@ -97,12 +109,18 @@ export type MappedImportOptions = {
 //   1. Buscar jugadores ya registrados en ligas de la misma ciudad
 //   2. Si no hay resultados, búsqueda global (fallback)
 //
-// Umbral de similitud: 0.30 — suficientemente permisivo para typos comunes
-// (martinez/martines ≈ 0.78) sin generar falsos positivos entre nombres
-// completamente distintos.
+// Umbral de similitud: 0.45 — filtra falsos positivos de nombres que comparten
+// palabras comunes (carlos, guerrero) sin descartar typos reales (≥ 0.50).
+//
+// Coincidencia dominante: si el top candidato supera DOMINANT_MIN y su ventaja
+// sobre el segundo es ≥ DOMINANT_GAP, se auto-confirma aunque haya más candidatos.
+// Esto evita que nombres muy específicos queden como "ambiguos" cuando la
+// similitud con el resto es marginal.
 // ---------------------------------------------------------------------------
 
-const SIMILARITY_THRESHOLD = 0.30;
+const SIMILARITY_THRESHOLD = 0.45;
+const DOMINANT_SCORE_MIN = 0.65;
+const DOMINANT_GAP_MIN   = 0.25;
 
 type PlayerMatchRow = {
 	id: string;
@@ -164,6 +182,42 @@ async function findSimilarPlayers(
 	`);
 
 	return globalResult.rows;
+}
+
+// Enriquece una lista de candidatos con sus equipos en ligas activas.
+// Una sola query para todos los IDs — sin N+1.
+async function enrichWithActiveTeams(rows: PlayerMatchRow[]): Promise<PlayerCandidate[]> {
+	if (rows.length === 0) return [];
+
+	const ids = rows.map(r => r.id);
+	const teamRows = await db
+		.select({
+			playerId:   playerRegistrations.playerId,
+			teamName:   teams.name,
+			leagueName: leagues.name,
+		})
+		.from(playerRegistrations)
+		.innerJoin(teams,   eq(teams.id,   playerRegistrations.teamId))
+		.innerJoin(leagues, eq(leagues.id, playerRegistrations.leagueId))
+		.where(and(
+			inArray(playerRegistrations.playerId, ids),
+			eq(leagues.status, "active"),
+		))
+		.orderBy(desc(leagues.createdAt));
+
+	const teamsByPlayer = new Map<string, CandidateTeam[]>();
+	for (const row of teamRows) {
+		const list = teamsByPlayer.get(row.playerId) ?? [];
+		list.push({ teamName: row.teamName, leagueName: row.leagueName });
+		teamsByPlayer.set(row.playerId, list);
+	}
+
+	return rows.map(r => ({
+		id:       r.id,
+		fullName: r.full_name,
+		alias:    r.alias,
+		teams:    teamsByPlayer.get(r.id) ?? [],
+	}));
 }
 
 // ---------------------------------------------------------------------------
@@ -399,29 +453,31 @@ export async function generateBulkPreview(
 
 		for (const row of rows) {
 			const matches = await findSimilarPlayers(row.rawName, city);
+			const candidates = await enrichWithActiveTeams(matches);
 
-			if (matches.length === 1) {
+			const isExact =
+				matches.length >= 1 &&
+				matches[0].score >= 0.95;
+
+			const isDominant =
+				matches.length >= 2 &&
+				matches[0].score >= DOMINANT_SCORE_MIN &&
+				matches[0].score - matches[1].score >= DOMINANT_GAP_MIN;
+
+			if (matches.length === 1 || isExact || isDominant) {
 				playerResolutions.push({
-					rawName:    row.rawName,
-					teamName:   row.teamName,
-					found:      true,
-					playerId:   matches[0].id,
-					candidates: matches.map((m) => ({
-						id:       m.id,
-						fullName: m.full_name,
-						alias:    m.alias,
-					})),
+					rawName:  row.rawName,
+					teamName: row.teamName,
+					found:    true,
+					playerId: matches[0].id,
+					candidates,
 				});
 			} else if (matches.length > 1) {
 				playerResolutions.push({
-					rawName:    row.rawName,
-					teamName:   row.teamName,
-					found:      false,
-					candidates: matches.map((m) => ({
-						id:       m.id,
-						fullName: m.full_name,
-						alias:    m.alias,
-					})),
+					rawName:  row.rawName,
+					teamName: row.teamName,
+					found:    false,
+					candidates,
 				});
 				warnings.push(
 					`"${row.rawName}" tiene ${matches.length} coincidencias — seleccionar manualmente.`,

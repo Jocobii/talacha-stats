@@ -11,12 +11,19 @@ type ImportTemplate = {
   columnMap: string; // JSON string
 };
 
+type PlayerCandidate = {
+  id: string;
+  fullName: string;
+  alias: string | null;
+  teams: { teamName: string; leagueName: string }[];
+};
+
 type PlayerResolution = {
   rawName: string;
   teamName: string;
   found: boolean;
   playerId?: string;
-  candidates: { id: string; fullName: string; alias: string | null }[];
+  candidates: PlayerCandidate[];
 };
 
 type GoleadoresRow = { rawName: string; teamName: string; goals: number };
@@ -212,7 +219,12 @@ export default function ImportPage() {
       if (data.data.type === "goleadores" && data.data.playerResolutions) {
         const auto: Record<string, string> = {};
         for (const pm of data.data.playerResolutions as PlayerResolution[]) {
-          auto[pm.rawName] = pm.found && pm.playerId ? pm.playerId : "NEW";
+          if (pm.found && pm.playerId) {
+            auto[pm.rawName] = pm.playerId;
+          } else if (!pm.found && pm.candidates.length === 0) {
+            auto[pm.rawName] = "NEW";
+          }
+          // ambiguous (candidates exist, not auto-confirmed) → leave as "" to force explicit pick
         }
         setResolutions(auto);
       }
@@ -240,6 +252,15 @@ export default function ImportPage() {
 
   // PASO 3: Confirmar
   async function handleConfirm() {
+    if (preview?.type === "goleadores" && preview.playerResolutions) {
+      const unresolved = preview.playerResolutions.filter(
+        p => !p.found && p.candidates.length > 0 && !resolutions[p.rawName]
+      );
+      if (unresolved.length > 0) {
+        setError(`Selecciona el jugador correcto para: ${unresolved.map(p => p.rawName).join(", ")}`);
+        return;
+      }
+    }
     setLoading(true);
     setError("");
     try {
@@ -535,37 +556,143 @@ export default function ImportPage() {
           )}
 
           {/* Resolución de jugadores */}
-          {preview.type === "goleadores" && preview.playerResolutions && (
-            <div className="bg-white rounded-xl shadow p-5">
-              <h2 className="font-semibold text-gray-700 mb-4">
-                Jugadores
-                <span className="text-xs font-normal text-gray-400 ml-2">
-                  {preview.playerResolutions.filter(p => p.found).length} encontrados · {preview.playerResolutions.filter(p => !p.found).length} nuevos
-                </span>
-              </h2>
-              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                {preview.playerResolutions.map(pm => (
-                  <div key={pm.rawName} className="flex items-center gap-3">
-                    <div className="w-44 shrink-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{pm.rawName}</p>
-                      <p className="text-xs text-gray-400 truncate">{pm.teamName}</p>
+          {preview.type === "goleadores" && preview.playerResolutions && (() => {
+            const ambiguous = preview.playerResolutions.filter(p => !p.found && p.candidates.length > 0);
+            const newPlayers = preview.playerResolutions.filter(p => !p.found && p.candidates.length === 0);
+            const confirmed  = preview.playerResolutions.filter(p => p.found);
+
+            return (
+              <div className="space-y-4">
+
+                {/* Banner de atención */}
+                {ambiguous.length > 0 && (
+                  <div className="bg-orange-50 border-2 border-orange-400 rounded-xl p-4 flex gap-3">
+                    <span className="text-2xl leading-none">⚠️</span>
+                    <div>
+                      <p className="font-bold text-orange-800">
+                        {ambiguous.length === 1
+                          ? "1 jugador necesita tu atención"
+                          : `${ambiguous.length} jugadores necesitan tu atención`}
+                      </p>
+                      <p className="text-sm text-orange-700 mt-0.5">
+                        El sistema encontró nombres parecidos. Indica cuál es el jugador correcto antes de importar.
+                      </p>
                     </div>
-                    <select value={resolutions[pm.rawName] ?? "NEW"}
-                      onChange={e => setResolutions({ ...resolutions, [pm.rawName]: e.target.value })}
-                      className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm">
-                      <option value="NEW">+ Crear jugador nuevo</option>
-                      {pm.candidates.map(c => (
-                        <option key={c.id} value={c.id}>{c.fullName}{c.alias ? ` (${c.alias})` : ""}</option>
-                      ))}
-                    </select>
-                    <span className={`text-xs font-medium w-16 text-right ${pm.found ? "text-green-600" : "text-yellow-600"}`}>
-                      {pm.found ? "✓ Match" : "Nuevo"}
-                    </span>
                   </div>
-                ))}
+                )}
+
+                {/* Jugadores ambiguos — tarjetas prominentes */}
+                {ambiguous.map(pm => {
+                  const selected = resolutions[pm.rawName] ?? "";
+                  const resolved = selected !== "";
+                  return (
+                    <div key={pm.rawName}
+                      className={`rounded-xl border-2 p-4 transition-colors ${resolved ? "border-green-300 bg-green-50" : "border-orange-300 bg-white"}`}>
+
+                      {/* Nombre del Excel */}
+                      <div className="flex items-start gap-2 mb-4">
+                        <span className="text-xl leading-none">{resolved ? "✅" : "⚠️"}</span>
+                        <div>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">En el Excel</p>
+                          <p className="font-bold text-gray-900 text-base">{pm.rawName}</p>
+                          {pm.teamName && <p className="text-sm text-gray-500">{pm.teamName}</p>}
+                        </div>
+                      </div>
+
+                      {/* Opciones como tarjetas */}
+                      <p className="text-xs text-gray-500 mb-2 font-medium">¿Cuál es este jugador?</p>
+                      <div className="space-y-2">
+                        {pm.candidates.map(c => (
+                          <label key={c.id}
+                            className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                              selected === c.id ? "border-green-400 bg-green-50" : "border-gray-200 bg-white hover:border-green-200"
+                            }`}>
+                            <input type="radio"
+                              name={`player-${pm.rawName}`}
+                              value={c.id}
+                              checked={selected === c.id}
+                              onChange={() => setResolutions(prev => ({ ...prev, [pm.rawName]: c.id }))}
+                              className="mt-1 accent-green-600 shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-gray-900">{c.fullName}</p>
+                              {c.alias && <p className="text-xs text-gray-400 italic mt-0.5">"{c.alias}"</p>}
+                              {c.teams.length > 0 ? (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {c.teams.map((t, i) => (
+                                    <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                      {t.teamName} · {t.leagueName}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-gray-400 mt-1">Sin equipo en ligas activas</p>
+                              )}
+                            </div>
+                            {selected === c.id && <span className="text-green-500 text-lg shrink-0 mt-0.5">✓</span>}
+                          </label>
+                        ))}
+
+                        {/* Opción: crear nuevo */}
+                        <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                          selected === "NEW" ? "border-blue-300 bg-blue-50" : "border-gray-200 bg-white hover:border-blue-200"
+                        }`}>
+                          <input type="radio"
+                            name={`player-${pm.rawName}`}
+                            value="NEW"
+                            checked={selected === "NEW"}
+                            onChange={() => setResolutions(prev => ({ ...prev, [pm.rawName]: "NEW" }))}
+                            className="accent-blue-600 shrink-0"
+                          />
+                          <span className="text-sm text-gray-600 font-medium">+ No existe — crear jugador nuevo</span>
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Jugadores nuevos */}
+                {newPlayers.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <p className="font-semibold text-blue-800 text-sm mb-2">
+                      🆕 {newPlayers.length === 1 ? "1 jugador nuevo" : `${newPlayers.length} jugadores nuevos`} se crearán automáticamente
+                    </p>
+                    <ul className="space-y-1">
+                      {newPlayers.map(pm => (
+                        <li key={pm.rawName} className="text-sm text-blue-700 flex items-center gap-2">
+                          <span>•</span>
+                          <span>{pm.rawName}</span>
+                          {pm.teamName && <span className="text-blue-400 text-xs">({pm.teamName})</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Confirmados — colapsable para no distraer */}
+                {confirmed.length > 0 && (
+                  <details className="bg-white border border-gray-200 rounded-xl group">
+                    <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-gray-600 select-none list-none flex items-center gap-2">
+                      <span className="text-green-500">✅</span>
+                      {confirmed.length === 1 ? "1 jugador confirmado" : `${confirmed.length} jugadores confirmados`} automáticamente
+                      <span className="ml-auto text-xs text-gray-400 group-open:hidden">Ver lista ▼</span>
+                      <span className="ml-auto text-xs text-gray-400 hidden group-open:inline">Ocultar ▲</span>
+                    </summary>
+                    <div className="px-4 pb-4 pt-2 border-t border-gray-100 space-y-2">
+                      {confirmed.map(pm => (
+                        <div key={pm.rawName} className="flex items-center gap-2 text-sm">
+                          <span className="text-green-500 shrink-0">✓</span>
+                          <span className="text-gray-700">{pm.rawName}</span>
+                          {pm.teamName && <span className="text-gray-400 text-xs ml-1">· {pm.teamName}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Tabla de datos */}
           <div className="bg-white rounded-xl shadow overflow-hidden">
@@ -659,16 +786,30 @@ export default function ImportPage() {
 
           {error && <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
-          <div className="flex gap-3">
-            <button onClick={() => { setStep("map"); setError(""); }}
-              className="bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg text-sm hover:bg-gray-200">
-              ← Atrás
-            </button>
-            <button onClick={handleConfirm} disabled={loading}
-              className="bg-green-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50">
-              {loading ? "Importando..." : "Confirmar e importar ✓"}
-            </button>
-          </div>
+          {(() => {
+            const pendingCount = preview?.type === "goleadores"
+              ? (preview.playerResolutions?.filter(p => !p.found && p.candidates.length > 0 && !resolutions[p.rawName]).length ?? 0)
+              : 0;
+            return (
+              <div className="flex flex-col gap-3">
+                {pendingCount > 0 && (
+                  <p className="text-orange-700 text-sm bg-orange-50 border border-orange-200 px-3 py-2 rounded-lg">
+                    ⚠️ Faltan {pendingCount} jugador{pendingCount !== 1 ? "es" : ""} por seleccionar arriba.
+                  </p>
+                )}
+                <div className="flex gap-3">
+                  <button onClick={() => { setStep("map"); setError(""); }}
+                    className="bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg text-sm hover:bg-gray-200">
+                    ← Atrás
+                  </button>
+                  <button onClick={handleConfirm} disabled={loading || pendingCount > 0}
+                    className="bg-green-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {loading ? "Importando..." : "Confirmar e importar ✓"}
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
