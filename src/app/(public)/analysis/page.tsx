@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
+import { LeagueSelect } from "@/shared/ui/LeagueSelect";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { BarChart3, ArrowLeft } from "lucide-react";
 import CityFilter from "@/shared/ui/CityFilter";
 import type { NarratorAnalysis, RosterPlayer, TeamAnalysis, PositionSimulator, MatchPrediction } from "@/lib/narrator";
 
-type League = { id: string; name: string; dayOfWeek: string; season: string };
-type Team   = { id: string; name: string };
+type Team = { id: string; name: string };
 
 export default function AnalysisPage() {
   return (
@@ -53,7 +53,6 @@ function AnalysisContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [leagues,     setLeagues]     = useState<League[]>([]);
   const [leagueId,    setLeagueId]    = useState("");
   const [leagueTeams, setLeagueTeams] = useState<Team[]>([]);
   const [teamA,       setTeamA]       = useState("");
@@ -82,7 +81,6 @@ function AnalysisContent() {
     setTeamA("");
     setTeamB("");
     setAnalysis(null);
-    fetch(`/api/leagues?city=${encodeURIComponent(city)}`).then(r => r.json()).then(d => setLeagues(d.data ?? []));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city]);
 
@@ -169,16 +167,7 @@ function AnalysisContent() {
       <div className="bg-surface-2 border border-line rounded-2xl p-5 space-y-4">
         <div>
           <label className="block text-xs font-semibold text-ink-2 uppercase tracking-widest mb-2">Liga</label>
-          {leagues.length === 0 ? (
-            <p className="text-sm text-yellow-500">No hay ligas registradas.</p>
-          ) : (
-            <select value={leagueId} onChange={e => setLeagueId(e.target.value)} className={selectCls}>
-              <option value="">— Seleccionar liga —</option>
-              {leagues.map(l => (
-                <option key={l.id} value={l.id}>{l.name} · {l.dayOfWeek} · {l.season}</option>
-              ))}
-            </select>
-          )}
+          <LeagueSelect value={leagueId} onChange={setLeagueId} city={city} selectClassName={selectCls} />
         </div>
 
         {leagueTeams.length > 0 && (

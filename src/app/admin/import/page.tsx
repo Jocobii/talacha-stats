@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { LeagueSelect } from "@/shared/ui/LeagueSelect";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────
 type ImportTemplate = {
@@ -65,13 +66,10 @@ const STANDINGS_FIELDS = [
 
 type Step = "upload" | "map" | "preview" | "done";
 
-type League = { id: string; name: string; dayOfWeek: string; season: string };
-
 // ── Componente principal ───────────────────────────────────────────────────
 export default function ImportPage() {
   const [step, setStep] = useState<Step>("upload");
   const [leagueId, setLeagueId] = useState("");
-  const [leagues, setLeagues] = useState<League[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [importType, setImportType] = useState<"goleadores" | "standings">("goleadores");
   const [jornada, setJornada] = useState("");
@@ -101,7 +99,6 @@ export default function ImportPage() {
 
   useEffect(() => {
     loadTemplates();
-    loadLeagues();
   }, []);
 
   // Re-auto-mapear cuando el usuario cambia la fila de encabezados manualmente
@@ -115,11 +112,6 @@ export default function ImportPage() {
   async function loadTemplates() {
     const res = await fetch("/api/import/templates");
     if (res.ok) setTemplates((await res.json()).data ?? []);
-  }
-
-  async function loadLeagues() {
-    const res = await fetch("/api/leagues");
-    if (res.ok) setLeagues((await res.json()).data ?? []);
   }
 
   // PASO 1: Subir archivo y detectar columnas
@@ -348,22 +340,7 @@ export default function ImportPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Liga <span className="text-red-500">*</span>
             </label>
-            {leagues.length === 0 ? (
-              <p className="text-sm text-yellow-600 bg-yellow-50 px-3 py-2 rounded-lg">
-                No hay ligas creadas.{" "}
-                <a href="/admin/leagues/new" className="underline font-medium">Crear una liga</a>
-              </p>
-            ) : (
-              <select value={leagueId} onChange={e => setLeagueId(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option value="">— Seleccionar liga —</option>
-                {leagues.map(l => (
-                  <option key={l.id} value={l.id}>
-                    {l.name} · {l.dayOfWeek} · {l.season}
-                  </option>
-                ))}
-              </select>
-            )}
+            <LeagueSelect value={leagueId} onChange={setLeagueId} />
           </div>
 
           <div>
