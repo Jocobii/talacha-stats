@@ -5,12 +5,22 @@ import { getActiveCity, getRequestCity }      from "@/shared/lib/active-city";
 import { getSessionUserFromRequest }          from "@/shared/lib/auth";
 
 // GET /api/leagues?city=Tijuana
-// owner → todas las ligas de la ciudad | organizer → solo las suyas
+// Sin sesión (público) → solo ligas activas de la ciudad
+// owner              → todas las ligas de la ciudad
+// organizer          → solo las suyas
 export async function GET(request: Request) {
   const session = await getSessionUserFromRequest(request);
-  if (!session) return apiError("No autenticado", 401);
+  const city    = await getRequestCity(request);
 
-  const city = await getRequestCity(request);
+  if (!session) {
+    // Acceso público: devolver solo ligas activas de la ciudad
+    const rows = await db.query.leagues.findMany({
+      where: and(eq(leagues.city, city), eq(leagues.status, "active")),
+      orderBy: [desc(leagues.createdAt)],
+      with: { teams: true },
+    });
+    return apiSuccess(rows);
+  }
 
   const rows = await db.query.leagues.findMany({
     where: session.role === "owner"

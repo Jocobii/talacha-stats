@@ -72,15 +72,19 @@ function AnalysisContent() {
     const urlTeamB  = searchParams.get("teamB");
 
     if (urlLeague && urlTeamA && urlTeamB) {
+      // Hay params en la URL: guardarlos y cargar la liga.
+      // NO resetear el estado aquí — el segundo useEffect se encarga
+      // de buscar los equipos y disparar el análisis automáticamente.
       urlParams.current = { leagueId: urlLeague, teamA: urlTeamA, teamB: urlTeamB };
       setLeagueId(urlLeague);
+    } else {
+      // Sin params: limpiar todo (ej. al cambiar de ciudad sin URL compartida)
+      setLeagueId("");
+      setLeagueTeams([]);
+      setTeamA("");
+      setTeamB("");
+      setAnalysis(null);
     }
-
-    setLeagueId("");
-    setLeagueTeams([]);
-    setTeamA("");
-    setTeamB("");
-    setAnalysis(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city]);
 

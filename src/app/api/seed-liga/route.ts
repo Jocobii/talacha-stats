@@ -2,6 +2,7 @@ import { z } from "zod";
 import { db, leagues, teams, players, playerRegistrations, playerSeasonStats, teamStandingsSnapshot } from "@/db";
 import { apiSuccess, apiError } from "@/types";
 import { DAYS_OF_WEEK } from "@/db/schema";
+import { notInArray, eq, desc, sql } from "drizzle-orm";
 
 const SeedSchema = z.object({
   city:               z.string().min(2).max(100),
@@ -71,6 +72,25 @@ function pickN<T>(arr: T[], n: number): T[] {
   return [...arr].sort(() => Math.random() - 0.5).slice(0, n);
 }
 
+// Weighted sampling without replacement — jugadores con más goles tienen mayor probabilidad
+function weightedPickN(arr: { id: string; totalGoals: number }[], n: number): { id: string; totalGoals: number }[] {
+  const result: { id: string; totalGoals: number }[] = [];
+  const pool = [...arr];
+  for (let i = 0; i < Math.min(n, pool.length); i++) {
+    const weights = pool.map((p) => p.totalGoals + 8); // +8 piso: hasta 0 goles tienen chance
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    let idx = pool.length - 1;
+    for (let j = 0; j < pool.length; j++) {
+      r -= weights[j];
+      if (r <= 0) { idx = j; break; }
+    }
+    result.push(pool[idx]);
+    pool.splice(idx, 1);
+  }
+  return result;
+}
+
 // Poisson sampling — realistic goal distribution for amateur football
 function poissonSample(lambda: number): number {
   const L = Math.exp(-lambda);
@@ -83,15 +103,14 @@ function poissonSample(lambda: number): number {
   return k - 1;
 }
 
-// Simulate a match score given team strengths (0-100 scale)
-// lambda ≈ 1.5 for avg-strength teams → realistic 0-4 goals per side
+// Simulate a match score — calibrated for fútbol rápido/fut-7 amateur (5-12 goals per team)
 function simulateMatchScore(homeStrength: number, awayStrength: number): [number, number] {
-  const homeAdv = 5; // home field advantage in strength points
-  const homeExp = 1.3 + (homeStrength + homeAdv - awayStrength) / 65;
-  const awayExp = 1.3 + (awayStrength - homeStrength - homeAdv) / 65;
+  const homeAdv = 5;
+  const homeExp = 7.5 + (homeStrength + homeAdv - awayStrength) / 22;
+  const awayExp = 7.5 + (awayStrength - homeStrength - homeAdv) / 22;
   return [
-    poissonSample(Math.max(0.4, homeExp)),
-    poissonSample(Math.max(0.4, awayExp)),
+    poissonSample(Math.max(2.0, homeExp)),
+    poissonSample(Math.max(2.0, awayExp)),
   ];
 }
 
@@ -100,12 +119,12 @@ function simulateMatchScore(homeStrength: number, awayStrength: number): [number
 function distributeGoals(totalGoals: number, numPlayers: number): number[] {
   if (totalGoals === 0) return new Array(numPlayers).fill(0);
 
-  // Weights: first player is the "crack", descending from there
+  // El crack en fútbol rápido se come ~40-50% de los goles del equipo
   const weights = Array.from({ length: numPlayers }, (_, i) => {
-    if (i === 0) return rnd(7, 14);
-    if (i === 1) return rnd(4, 8);
-    if (i === 2) return rnd(3, 6);
-    if (i <= 4) return rnd(2, 4);
+    if (i === 0) return rnd(22, 32);
+    if (i === 1) return rnd(8, 14);
+    if (i === 2) return rnd(5, 9);
+    if (i <= 4) return rnd(2, 5);
     return rnd(1, 3);
   });
 
@@ -191,6 +210,49 @@ export async function POST(request: Request) {
       teamPlayerMap.push({ teamId: team.id, playerIds: inserted.map((p) => p.id) });
     }
 
+    // 3b. Jugadores multi-liga — favorece goleadores de otras ligas (weighted by goals)
+    const allNewPlayerIds = teamPlayerMap.flatMap((e) => e.playerIds);
+    let crossLeagueCount = 0;
+    const crossLeaguePlayerIds = new Set<string>();
+
+    if (allNewPlayerIds.length > 0) {
+      const eligible = await tx
+        .select({
+          id: players.id,
+          totalGoals: sql<number>`COALESCE(SUM(${playerSeasonStats.goals}), 0)`,
+        })
+        .from(players)
+        .leftJoin(playerSeasonStats, eq(players.id, playerSeasonStats.playerId))
+        .where(notInArray(players.id, allNewPlayerIds))
+        .groupBy(players.id)
+        .orderBy(desc(sql`COALESCE(SUM(${playerSeasonStats.goals}), 0)`))
+        .limit(80);
+
+      if (eligible.length > 0) {
+        const numCross = rnd(4, 7);
+        const chosen = weightedPickN(eligible, Math.min(numCross, eligible.length));
+
+        for (const { id: crossId } of chosen) {
+          const targetTeam = pick(teamRows);
+          const inserted = await tx.insert(playerRegistrations).values({
+            playerId:     crossId,
+            teamId:       targetTeam.id,
+            leagueId:     league.id,
+            jerseyNumber: rnd(2, 99),
+          }).onConflictDoNothing().returning();
+
+          if (inserted.length > 0) {
+            const entry = teamPlayerMap.find((e) => e.teamId === targetTeam.id);
+            if (entry) {
+              entry.playerIds.push(crossId);
+              crossLeaguePlayerIds.add(crossId);
+              crossLeagueCount++;
+            }
+          }
+        }
+      }
+    }
+
     // 4. Simular partidos jornada a jornada
     const strengths: Record<string, number> = Object.fromEntries(
       teamRows.map((t) => [t.id, rnd(56, 86)])
@@ -260,10 +322,12 @@ export async function POST(request: Request) {
       const played  = standings[teamId].played;
       const dist    = distributeGoals(gf, playerIds.length);
 
-      // Shuffle so el "crack" (índice 0 del distribuidor) sea aleatorio
-      const shuffledIds = [...playerIds].sort(() => Math.random() - 0.5);
+      // Jugadores multi-liga van primero: heredan el peso de "crack" (índice 0)
+      const crossInTeam  = playerIds.filter((id) => crossLeaguePlayerIds.has(id));
+      const regularInTeam = playerIds.filter((id) => !crossLeaguePlayerIds.has(id)).sort(() => Math.random() - 0.5);
+      const orderedIds   = [...crossInTeam, ...regularInTeam];
 
-      shuffledIds.forEach((playerId, i) => {
+      orderedIds.forEach((playerId, i) => {
         allStats.push({
           playerId,
           leagueId:     league.id,
@@ -292,8 +356,9 @@ export async function POST(request: Request) {
       city,
       season,
       jornada,
-      teamsCreated:  numTeams,
-      playersCreated: numTeams * numPlayersPerTeam,
+      teamsCreated:       numTeams,
+      playersCreated:     numTeams * numPlayersPerTeam,
+      crossLeaguePlayers: crossLeagueCount,
       leader: {
         name:         leader.name,
         points:       leaderStats.points,
