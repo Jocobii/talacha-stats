@@ -19,11 +19,11 @@ export default function AnalysisPage() {
           href="/"
           className="inline-flex items-center gap-1.5 text-ink-3 hover:text-ink text-sm transition mb-5"
         >
-          <ArrowLeft size={14} strokeWidth={2.5} />
+          <ArrowLeft size={16} strokeWidth={2} />
           Inicio
         </Link>
         <div className="flex items-center gap-2 mb-1">
-          <BarChart3 size={22} className="text-brand" strokeWidth={2.5} />
+          <BarChart3 size={24} className="text-brand" strokeWidth={2} />
           <h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">
             Análisis
           </h1>

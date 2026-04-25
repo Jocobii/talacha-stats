@@ -1,11 +1,11 @@
-@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 /* ── Design tokens — edita aquí para cambiar paleta o tipografía ── */
 @theme {
   /* Fonts */
   --font-display: "Barlow Condensed", sans-serif;
-  --font-body: "DM Sans", sans-serif;
+  --font-body: "Space Grotesk", sans-serif;
 
   /* Brand */
   --color-brand: #00E676;
@@ -26,4 +26,80 @@
 body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+}
+
+/* ── Animaciones hero ─────────────────────────────────────────── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.5); }
+  65%  { transform: scale(1.1);             }
+  100% { opacity: 1; transform: scale(1);   }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0  0px 0px rgba(0,230,118,0);    }
+  50%       { box-shadow: 0 0 24px 4px rgba(0,230,118,0.18); }
+}
+
+@keyframes cardFloat {
+  0%, 100% { transform: translateY(0px);  }
+  50%       { transform: translateY(-6px); }
+}
+
+.animate-fade-slide-up {
+  animation: fadeSlideUp 0.5s cubic-bezier(0.22,1,0.36,1) both;
+}
+.animate-pop-in {
+  animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.animate-glow-pulse {
+  animation: glowPulse 2.5s ease-in-out infinite;
+}
+.animate-card-float {
+  animation: cardFloat 4s ease-in-out infinite;
+}
+
+@keyframes fireText1 {
+  0%, 100% { filter: drop-shadow(0 0  6px rgba(255,87,34,0.95)) drop-shadow(0 0 16px rgba(255,160,0,0.55)); }
+  50%       { filter: drop-shadow(0 0 11px rgba(255,87,34,1.00)) drop-shadow(0 0 28px rgba(255,210,0,0.75)); }
+}
+@keyframes fireText2 {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(255,112,67,0.75)) drop-shadow(0 0 10px rgba(255,150,0,0.35)); }
+  50%       { filter: drop-shadow(0 0 7px rgba(255,112,67,0.90)) drop-shadow(0 0 18px rgba(255,180,0,0.50)); }
+}
+@keyframes fireText3 {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(255,138,101,0.55)) drop-shadow(0 0  7px rgba(255,150,0,0.20)); }
+  50%       { filter: drop-shadow(0 0 5px rgba(255,138,101,0.70)) drop-shadow(0 0 12px rgba(255,170,0,0.32)); }
+}
+
+@keyframes ghostFloat {
+  0%, 100% { transform: translateY(0px)   rotate(0deg);    }
+  33%       { transform: translateY(-14px) rotate(0.3deg);  }
+  66%       { transform: translateY(7px)   rotate(-0.2deg); }
+}
+
+@keyframes glowHeroPulse {
+  0%, 100% { opacity: 0.75; }
+  50%       { opacity: 1;    }
+}
+
+.animate-glow-hero {
+  animation: glowHeroPulse 5s ease-in-out infinite;
+}
+
+/* Respeta prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-slide-up,
+  .animate-pop-in,
+  .animate-glow-pulse,
+  .animate-card-float,
+  .animate-glow-hero {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }

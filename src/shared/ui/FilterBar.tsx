@@ -58,7 +58,7 @@ export default function FilterBar({ fields, className = "" }: FilterBarProps) {
 
   return (
     <div className={`flex flex-wrap items-center gap-3 ${className}`}>
-      <SlidersHorizontal size={15} className={`text-ink-3 shrink-0 ${isPending ? "animate-pulse" : ""}`} strokeWidth={2} />
+      <SlidersHorizontal size={16} className={`text-ink-3 shrink-0 ${isPending ? "animate-pulse" : ""}`} strokeWidth={2} />
 
       {fields.map((field) => {
         const current = searchParams.get(field.name) ?? "";
@@ -66,7 +66,7 @@ export default function FilterBar({ fields, className = "" }: FilterBarProps) {
         if (field.type === "search") {
           return (
             <div key={field.name} className="relative flex-1 min-w-[160px]">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none" strokeWidth={2} />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none" strokeWidth={2} />
               <input
                 type="search"
                 placeholder={field.placeholder ?? "Buscar…"}

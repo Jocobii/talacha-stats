@@ -27,13 +27,13 @@ export default async function MatchdayPage({
           href="/"
           className="inline-flex items-center gap-1.5 text-ink-3 hover:text-ink text-sm transition mb-5"
         >
-          <ArrowLeft size={14} strokeWidth={2.5} />
+          <ArrowLeft size={16} strokeWidth={2} />
           Inicio
         </Link>
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Star size={22} className="text-brand" strokeWidth={2.5} />
+              <Star size={24} className="text-brand" strokeWidth={2} />
               <h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">
                 Tabla de honor
               </h1>

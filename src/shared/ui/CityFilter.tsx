@@ -29,7 +29,7 @@ function CityFilterInner() {
   if (cities.length === 0) {
     return (
       <div className="flex items-center gap-1.5">
-        <MapPin size={12} className="text-ink-3 shrink-0" strokeWidth={2.5} />
+        <MapPin size={12} className="text-ink-3 shrink-0" strokeWidth={2} />
         <span className="bg-surface-2 border border-line text-ink text-xs font-semibold rounded-lg px-3 py-1.5">
           {current}
         </span>
@@ -43,7 +43,7 @@ function CityFilterInner() {
 
   return (
     <div className="flex items-center gap-1.5">
-      <MapPin size={12} className="text-ink-3 shrink-0" strokeWidth={2.5} />
+      <MapPin size={12} className="text-ink-3 shrink-0" strokeWidth={2} />
       <select
         value={current}
         onChange={handleChange}
@@ -61,7 +61,7 @@ export default function CityFilter() {
   return (
     <Suspense fallback={
       <div className="flex items-center gap-1.5">
-        <MapPin size={12} className="text-ink-3 shrink-0" strokeWidth={2.5} />
+        <MapPin size={12} className="text-ink-3 shrink-0" strokeWidth={2} />
         <span className="bg-surface-2 border border-line text-ink text-xs font-semibold rounded-lg px-3 py-1.5">
           Ciudad
         </span>

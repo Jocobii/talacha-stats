@@ -62,11 +62,11 @@ export default function Pagination({ meta, buildHref, className = "" }: Props) {
       {/* Prev */}
       {meta.hasPrev ? (
         <Link href={href(meta.page - 1)} className={normalLink} aria-label="Página anterior">
-          <ChevronLeft size={15} strokeWidth={2.5} />
+          <ChevronLeft size={16} strokeWidth={2} />
         </Link>
       ) : (
         <span className={disabledLink} aria-disabled>
-          <ChevronLeft size={15} strokeWidth={2.5} />
+          <ChevronLeft size={16} strokeWidth={2} />
         </span>
       )}
 
@@ -86,11 +86,11 @@ export default function Pagination({ meta, buildHref, className = "" }: Props) {
       {/* Next */}
       {meta.hasNext ? (
         <Link href={href(meta.page + 1)} className={normalLink} aria-label="Página siguiente">
-          <ChevronRight size={15} strokeWidth={2.5} />
+          <ChevronRight size={16} strokeWidth={2} />
         </Link>
       ) : (
         <span className={disabledLink} aria-disabled>
-          <ChevronRight size={15} strokeWidth={2.5} />
+          <ChevronRight size={16} strokeWidth={2} />
         </span>
       )}
     </nav>

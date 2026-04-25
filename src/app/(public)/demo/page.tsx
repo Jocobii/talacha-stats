@@ -162,7 +162,7 @@ export default function DemoPage() {
           <span className="ml-2 text-xs text-ink-3 font-medium">— Así se ve tu liga</span>
         </div>
         <Link href="/" className="text-ink-3 hover:text-ink text-sm transition flex items-center gap-1">
-          <ArrowLeft size={14} /> Inicio
+          <ArrowLeft size={16} /> Inicio
         </Link>
       </header>
 
@@ -178,7 +178,7 @@ export default function DemoPage() {
                   ? "border-brand text-brand"
                   : "border-transparent text-ink-3 hover:text-ink"}`}
             >
-              <Icon size={15} strokeWidth={2} />
+              <Icon size={16} strokeWidth={2} />
               {label}
             </button>
           ))}
@@ -215,7 +215,7 @@ function RankingTab({ onShowProfile }: { onShowProfile: () => void }) {
     <div className="flex flex-col flex-1">
       <div className="bg-pitch px-5 pt-8 pb-6 max-w-lg mx-auto w-full">
         <div className="flex items-center gap-2 mb-1">
-          <Trophy size={22} className="text-brand" strokeWidth={2.5} />
+          <Trophy size={24} className="text-brand" strokeWidth={2} />
           <h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">Ranking</h1>
         </div>
         <p className="text-ink-2 text-sm">{RANKING.length} jugadores · Fútbol Amateur Tijuana</p>
@@ -378,7 +378,7 @@ function MatchdayTab() {
     <div className="flex flex-col flex-1">
       <div className="bg-pitch px-5 pt-8 pb-6 max-w-lg mx-auto w-full">
         <div className="flex items-center gap-2 mb-1">
-          <Star size={22} className="text-brand" strokeWidth={2.5} />
+          <Star size={24} className="text-brand" strokeWidth={2} />
           <h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">Tabla de honor</h1>
         </div>
         <p className="text-ink-2 text-sm mt-0.5">Top goleadores · última jornada por liga</p>
@@ -441,7 +441,7 @@ function AnalysisTab() {
     <div className="flex flex-col flex-1">
       <div className="bg-pitch px-5 pt-8 pb-6 max-w-2xl mx-auto w-full">
         <div className="flex items-center gap-2 mb-1">
-          <BarChart3 size={22} className="text-brand" strokeWidth={2.5} />
+          <BarChart3 size={24} className="text-brand" strokeWidth={2} />
           <h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">Análisis</h1>
         </div>
         <p className="text-ink-2 text-sm mt-0.5">Pre-partido · Jornada {ANALYSIS.league.jornada}</p>
@@ -796,7 +796,7 @@ function CtaFooter() {
             className="flex items-center justify-center gap-2 bg-brand hover:bg-brand-dim text-pitch font-bold px-8 py-4 rounded-xl text-base transition"
           >
             WhatsApp
-            <ChevronRight size={16} strokeWidth={2.5} />
+            <ChevronRight size={16} strokeWidth={2} />
           </a>
           <a
             href="mailto:adalbertojocobi@gmail.com?subject=TalachaStats%20-%20mi%20liga"

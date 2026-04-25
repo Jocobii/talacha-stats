@@ -47,9 +47,9 @@ export default function CitySwitcher({ activeCity }: Props) {
         aria-expanded={open}
         aria-haspopup="listbox"
       >
-        <MapPin size={13} strokeWidth={2.5} />
+        <MapPin size={12} strokeWidth={2} />
         <span>{activeCity}</span>
-        <ChevronDown size={13} strokeWidth={2.5} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={12} strokeWidth={2} className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
@@ -57,7 +57,7 @@ export default function CitySwitcher({ activeCity }: Props) {
           {/* Search */}
           <div className="p-2 border-b border-gray-700">
             <div className="relative">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+              <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
               <input
                 autoFocus
                 type="search"
@@ -88,7 +88,7 @@ export default function CitySwitcher({ activeCity }: Props) {
                         : "text-gray-200 hover:bg-gray-800"}`}
                   >
                     {city}
-                    {city === activeCity && <Check size={13} strokeWidth={2.5} />}
+                    {city === activeCity && <Check size={12} strokeWidth={2} />}
                   </button>
                 </li>
               ))

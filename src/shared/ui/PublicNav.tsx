@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, Users, CalendarDays, BarChart3 } from "lucide-react";
+import { Home, Trophy, Users, CalendarDays, BarChart3, Info } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/",         label: "Inicio",    Icon: Home         },
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/players",  label: "Jugadores", Icon: Users        },
   { href: "/matchday", label: "Jornada",   Icon: CalendarDays },
   { href: "/analysis", label: "Análisis",  Icon: BarChart3    },
+  { href: "/about",    label: "Nosotros",  Icon: Info         },
 ] as const;
 
 export default function PublicNav() {
@@ -41,7 +42,7 @@ export default function PublicNav() {
                     : "text-ink-2 hover:bg-surface-2 hover:text-ink"
                 }`}
               >
-                <Icon size={18} strokeWidth={active ? 2.5 : 1.8} />
+                <Icon size={20} strokeWidth={2} />
                 {label}
               </Link>
             );
@@ -62,7 +63,7 @@ export default function PublicNav() {
                   active ? "text-brand" : "text-ink-3 hover:text-ink-2"
                 }`}
               >
-                <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
+                <Icon size={20} strokeWidth={2} />
                 <span className={`text-[10px] font-semibold uppercase tracking-wide leading-none ${
                   active ? "text-brand" : "text-ink-3"
                 }`}>

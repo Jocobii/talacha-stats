@@ -137,7 +137,7 @@ export default function PlayerSearch({ city, leagueId }: Props) {
               className="text-ink-3 hover:text-ink p-1 rounded-lg hover:bg-surface-2 transition"
               aria-label="Quitar perfil"
             >
-              <X size={13} strokeWidth={2.5} />
+              <X size={12} strokeWidth={2} />
             </button>
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function PlayerSearch({ city, leagueId }: Props) {
       <div className="mb-4">
         <div className="relative">
           <Search
-            size={15} strokeWidth={2.5}
+            size={16} strokeWidth={2}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none"
           />
           <input
@@ -198,7 +198,7 @@ export default function PlayerSearch({ city, leagueId }: Props) {
             onClick={() => { setShowSearch(false); setQuery(""); setResults([]); }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink p-1 rounded-lg transition"
           >
-            <X size={15} strokeWidth={2.5} />
+            <X size={16} strokeWidth={2} />
           </button>
         </div>
 
@@ -230,7 +230,7 @@ export default function PlayerSearch({ city, leagueId }: Props) {
       onClick={openSearch}
       className="w-full flex items-center gap-3 bg-surface-2 border border-line hover:border-brand rounded-2xl px-4 py-3 mb-4 transition group"
     >
-      <Search size={15} className="text-ink-3 group-hover:text-brand transition shrink-0" strokeWidth={2.5} />
+      <Search size={16} className="text-ink-3 group-hover:text-brand transition shrink-0" strokeWidth={2} />
       <span className="text-sm text-ink-3 group-hover:text-ink transition">
         ¿Dónde estoy en el ranking?
       </span>
@@ -290,7 +290,7 @@ function DisambiguationCard({
                 )}
               </p>
               <div className="flex items-center gap-1 mt-0.5">
-                <MapPin size={10} className="text-ink-3 shrink-0" />
+                <MapPin size={12} strokeWidth={2} className="text-ink-3 shrink-0" />
                 <p className="text-xs text-ink-3">{cities.join(" · ")}</p>
               </div>
             </div>
@@ -332,7 +332,7 @@ function DisambiguationCard({
           onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
           className="flex items-center gap-1 text-[11px] text-brand mt-2 ml-10 hover:underline"
         >
-          {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+          {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           {expanded
             ? "Ver menos"
             : `+${player.participations.length - 1} liga${player.participations.length - 1 !== 1 ? "s" : ""} más`}
