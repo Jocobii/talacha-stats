@@ -44,19 +44,19 @@ export default function HeroSection() {
           preserveAspectRatio="xMidYMid slice"
         >
           {/* Círculo central */}
-          <circle cx="50%" cy="50%" r="17%"  fill="none" stroke="#00E676" strokeWidth="1"   opacity="0.07" />
+          <circle cx="50%" cy="50%" r="17%"  fill="none" stroke="#00E676" strokeWidth="1.5" opacity="0.18" />
           {/* Punto central */}
-          <circle cx="50%" cy="50%" r="0.4%" fill="#00E676" opacity="0.15" />
+          <circle cx="50%" cy="50%" r="0.5%" fill="#00E676" opacity="0.35" />
           {/* Línea de medio campo */}
-          <line x1="0" y1="50%" x2="100%" y2="50%" stroke="#00E676" strokeWidth="0.8" opacity="0.05" />
+          <line x1="0" y1="50%" x2="100%" y2="50%" stroke="#00E676" strokeWidth="1" opacity="0.12" />
           {/* Arco área izq */}
-          <ellipse cx="0%"   cy="50%" rx="7%"  ry="13%" fill="none" stroke="#00E676" strokeWidth="0.8" opacity="0.045" />
+          <ellipse cx="0%"   cy="50%" rx="7%"  ry="13%" fill="none" stroke="#00E676" strokeWidth="1" opacity="0.11" />
           {/* Arco área der */}
-          <ellipse cx="100%" cy="50%" rx="7%"  ry="13%" fill="none" stroke="#00E676" strokeWidth="0.8" opacity="0.045" />
+          <ellipse cx="100%" cy="50%" rx="7%"  ry="13%" fill="none" stroke="#00E676" strokeWidth="1" opacity="0.11" />
           {/* Portería izq */}
-          <rect x="0"   y="43%" width="3.5%" height="14%" fill="none" stroke="#00E676" strokeWidth="0.8" opacity="0.035" />
+          <rect x="0"   y="43%" width="3.5%" height="14%" fill="none" stroke="#00E676" strokeWidth="1" opacity="0.09" />
           {/* Portería der */}
-          <rect x="96.5%" y="43%" width="3.5%" height="14%" fill="none" stroke="#00E676" strokeWidth="0.8" opacity="0.035" />
+          <rect x="96.5%" y="43%" width="3.5%" height="14%" fill="none" stroke="#00E676" strokeWidth="1" opacity="0.09" />
         </svg>
 
         {/* Glow radial — detrás de la card */}
@@ -68,7 +68,7 @@ export default function HeroSection() {
             width: "58%",
             height: "90%",
             background:
-              "radial-gradient(ellipse at 68% 28%, rgba(0,230,118,0.13) 0%, rgba(0,230,118,0.05) 42%, transparent 70%)",
+              "radial-gradient(ellipse at 68% 28%, rgba(0,230,118,0.22) 0%, rgba(0,230,118,0.09) 42%, transparent 70%)",
           }}
         />
 
@@ -81,7 +81,7 @@ export default function HeroSection() {
               top, left,
               fontSize: sz,
               lineHeight: 1,
-              opacity: 0.038,
+              opacity: 0.09,
               animation: `ghostFloat ${dur} ease-in-out ${delay} infinite`,
             }}
           >
