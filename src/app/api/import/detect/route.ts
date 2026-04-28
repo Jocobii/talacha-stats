@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import { readWorkbook, sheetToArrays } from "@/shared/lib/excel";
 import { apiSuccess, apiError } from "@/types";
 
 export type DetectResult = {
@@ -24,28 +24,19 @@ export async function POST(request: Request) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  let workbook: XLSX.WorkBook;
+  let workbook;
   try {
-    workbook = XLSX.read(buffer, { type: "buffer" });
+    workbook = await readWorkbook(buffer);
   } catch {
     return apiError("No se pudo leer el archivo Excel", 400);
   }
 
-  const sheets = workbook.SheetNames;
+  const sheets = workbook.sheetNames;
   const active = sheetName && sheets.includes(sheetName) ? sheetName : sheets[0];
-  const sheet = workbook.Sheets[active];
+  const sheet = workbook.sheets[active];
 
-  // Leer todas las filas como arrays (header: 1 = sin inferir encabezados)
-  const allRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-    header: 1,
-    defval: "",
-    raw: false,
-  });
-
-  // Limpiar: convertir cada celda a string, quitar filas completamente vacías
-  const cleaned: string[][] = allRows
-    .map((row) => (row as unknown[]).map((cell) => String(cell ?? "").trim()))
-    .filter((row) => row.some((cell) => cell !== ""));
+  // El wrapper ya filtra filas vacías y normaliza celdas a string
+  const cleaned = sheetToArrays(sheet);
 
   const preview = cleaned.slice(0, 15); // primeras 15 filas para el preview
 

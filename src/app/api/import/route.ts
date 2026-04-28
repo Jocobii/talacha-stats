@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
   let parsed;
   try {
-    parsed = parseExcelBuffer(buffer);
+    parsed = await parseExcelBuffer(buffer);
   } catch {
     return apiError("No se pudo parsear el archivo Excel. Verificar formato.", 400);
   }
