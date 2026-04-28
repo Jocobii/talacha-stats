@@ -52,8 +52,8 @@ export async function POST(request: Request) {
 	let parsed;
 	try {
 		parsed = mappingOptions
-			? parseBulkExcelMapped(buffer, mappingOptions)
-			: parseBulkExcel(buffer);
+			? await parseBulkExcelMapped(buffer, mappingOptions)
+			: await parseBulkExcel(buffer);
 	} catch (e: unknown) {
 		return apiError(
 			e instanceof Error ? e.message : "No se pudo parsear el archivo",

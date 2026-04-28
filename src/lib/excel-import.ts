@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import { readWorkbook, sheetToObjects } from "@/shared/lib/excel";
 import { db, players, teams, matches, matchEvents, playerRegistrations } from "@/db";
 import { ilike, or, eq, and } from "drizzle-orm";
 import type { EventType } from "@/db/schema";
@@ -70,22 +70,20 @@ export type ImportResult = {
  *   - "Eventos": columnas Jugador, Equipo, Equipo Local, Equipo Visitante, Jornada, Tipo, Minuto (opt), Fecha (opt)
  *   - "Resultados": columnas Jornada, Equipo Local, Goles Local, Equipo Visitante, Goles Visitante, Fecha (opt)
  */
-export function parseExcelBuffer(buffer: Buffer): ParsedImport {
-  const workbook = XLSX.read(buffer, { type: "buffer" });
+export async function parseExcelBuffer(buffer: Buffer): Promise<ParsedImport> {
+  const workbook = await readWorkbook(buffer);
 
   const events: ImportRow[] = [];
   const results: ResultRow[] = [];
 
   // Intentar leer hoja "Eventos" o la primera hoja
   const eventsSheet =
-    workbook.Sheets["Eventos"] ??
-    workbook.Sheets["eventos"] ??
-    workbook.Sheets[workbook.SheetNames[0]];
+    workbook.sheets["Eventos"] ??
+    workbook.sheets["eventos"] ??
+    workbook.sheets[workbook.sheetNames[0]];
 
   if (eventsSheet) {
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(eventsSheet, {
-      defval: "",
-    });
+    const rows = sheetToObjects(eventsSheet);
 
     for (const row of rows) {
       const jugador = str(row["Jugador"] ?? row["jugador"] ?? row["JUGADOR"]);
@@ -105,14 +103,12 @@ export function parseExcelBuffer(buffer: Buffer): ParsedImport {
 
   // Intentar leer hoja "Resultados"
   const resultsSheet =
-    workbook.Sheets["Resultados"] ??
-    workbook.Sheets["resultados"] ??
-    workbook.Sheets[workbook.SheetNames[1]];
+    workbook.sheets["Resultados"] ??
+    workbook.sheets["resultados"] ??
+    workbook.sheets[workbook.sheetNames[1]];
 
   if (resultsSheet) {
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(resultsSheet, {
-      defval: "",
-    });
+    const rows = sheetToObjects(resultsSheet);
 
     for (const row of rows) {
       const jornada = num(row["Jornada"] ?? row["jornada"]);

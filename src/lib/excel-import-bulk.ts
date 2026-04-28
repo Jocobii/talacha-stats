@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import { readWorkbook, sheetToArrays, sheetToObjects, type ParsedSheet } from "@/shared/lib/excel";
 import { sql } from "drizzle-orm";
 import { ilike, and, eq, inArray, desc } from "drizzle-orm";
 import {
@@ -224,25 +224,18 @@ async function enrichWithActiveTeams(rows: PlayerMatchRow[]): Promise<PlayerCand
 // PARSER CON MAPEO MANUAL DE COLUMNAS
 // ---------------------------------------------------------------------------
 
-export function parseBulkExcelMapped(
+export async function parseBulkExcelMapped(
 	buffer: Buffer,
 	options: MappedImportOptions,
-): ParsedBulkImport {
-	const workbook = XLSX.read(buffer, { type: "buffer" });
-	const sheetName = options.sheetName ?? workbook.SheetNames[0];
-	const sheet = workbook.Sheets[sheetName];
+): Promise<ParsedBulkImport> {
+	const workbook = await readWorkbook(buffer);
+	const sheetName = options.sheetName ?? workbook.sheetNames[0];
+	const sheet = workbook.sheets[sheetName];
+	if (!sheet) throw new Error(`Hoja "${sheetName}" no encontrada`);
 
-	const allRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-		header: 1,
-		defval: "",
-		raw: false,
-	});
+	const allRows = sheetToArrays(sheet);
 
-	const cleaned: string[][] = allRows.map((row) =>
-		(row as unknown[]).map((cell) => String(cell ?? "").trim()),
-	);
-
-	const dataRows = cleaned
+	const dataRows = allRows
 		.slice(options.headerRow + 1)
 		.filter((row) => row.some((cell) => cell !== ""));
 
@@ -300,15 +293,12 @@ export function parseBulkExcelMapped(
 // PARSER AUTOMÁTICO (auto-detect de tipo y columnas)
 // ---------------------------------------------------------------------------
 
-export function parseBulkExcel(buffer: Buffer): ParsedBulkImport {
-	const workbook = XLSX.read(buffer, { type: "buffer" });
+export async function parseBulkExcel(buffer: Buffer): Promise<ParsedBulkImport> {
+	const workbook = await readWorkbook(buffer);
 
-	for (const sheetName of workbook.SheetNames) {
-		const sheet = workbook.Sheets[sheetName];
-		const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-			defval: "",
-			raw: false,
-		});
+	for (const sheetName of workbook.sheetNames) {
+		const sheet = workbook.sheets[sheetName];
+		const rows = sheetToObjects(sheet);
 
 		if (rows.length === 0) continue;
 
@@ -746,19 +736,14 @@ function findCol(keys: string[], candidates: string[]): string | undefined {
 
 function detectJornada(
 	sheetName: string,
-	sheet: XLSX.WorkSheet,
+	sheet: ParsedSheet,
 ): number | undefined {
 	const match = sheetName.match(/jornada\s+(\d+)/i);
 	if (match) return parseInt(match[1]);
 
-	const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-		defval: "",
-		header: 1,
-	});
-
-	for (const row of rows.slice(0, 5)) {
+	for (const row of sheet.rows.slice(0, 5)) {
 		for (const cell of row) {
-			const m = String(cell).match(/jornada\s+(\d+)/i);
+			const m = cell.match(/jornada\s+(\d+)/i);
 			if (m) return parseInt(m[1]);
 		}
 	}
