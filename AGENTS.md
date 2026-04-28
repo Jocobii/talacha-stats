@@ -1,7 +1,9 @@
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+
 <!-- END:nextjs-agent-rules -->
 
 ---
@@ -29,14 +31,14 @@ El flujo de datos central es: **Excel semanal → importación bulk → stats di
 
 No asumas versiones de tus datos de entrenamiento. Las versiones reales son:
 
-| Paquete | Versión | Notas críticas |
-|---|---|---|
-| `next` | **16.x** | App Router obligatorio. Pages Router no existe en este proyecto |
-| `react` | **19.x** | Nuevas APIs de concurrencia disponibles |
-| `drizzle-orm` | **0.45.x** | API relacional: `db.query.*` para reads con joins |
-| `zod` | **4.x** | Breaking changes vs. Zod 3 — sintaxis puede diferir de tu training data |
-| `tailwindcss` | **4.x** | Breaking changes vs. v3 — nueva config, nueva sintaxis de plugins |
-| `typescript` | **5.x** | `strict: true` obligatorio |
+| Paquete       | Versión    | Notas críticas                                                          |
+| ------------- | ---------- | ----------------------------------------------------------------------- |
+| `next`        | **16.x**   | App Router obligatorio. Pages Router no existe en este proyecto         |
+| `react`       | **19.x**   | Nuevas APIs de concurrencia disponibles                                 |
+| `drizzle-orm` | **0.45.x** | API relacional: `db.query.*` para reads con joins                       |
+| `zod`         | **4.x**    | Breaking changes vs. Zod 3 — sintaxis puede diferir de tu training data |
+| `tailwindcss` | **4.x**    | Breaking changes vs. v3 — nueva config, nueva sintaxis de plugins       |
+| `typescript`  | **5.x**    | `strict: true` obligatorio                                              |
 
 Si necesitas saber qué hace una API específica, revisa `node_modules/[paquete]/README.md` antes de asumir.
 
@@ -136,26 +138,29 @@ type Player = { id: string; fullName: string; ... }
 ```typescript
 // Reads con joins → API relacional
 const result = await db.query.players.findMany({
-  with: { registrations: { with: { team: true } } },
-  where: eq(players.id, playerId),
+	with: { registrations: { with: { team: true } } },
+	where: eq(players.id, playerId),
 });
 
 // Escrituras → builders con upsert
-await db.insert(playerSeasonStats).values(data).onConflictDoUpdate({
-  target: [playerSeasonStats.playerId, playerSeasonStats.leagueId],
-  set: { goals: data.goals, updatedAt: new Date() },
-});
+await db
+	.insert(playerSeasonStats)
+	.values(data)
+	.onConflictDoUpdate({
+		target: [playerSeasonStats.playerId, playerSeasonStats.leagueId],
+		set: { goals: data.goals, updatedAt: new Date() },
+	});
 ```
 
 ### 4.3 Constraints clave
 
-| Tabla | Constraint | Regla práctica |
-|---|---|---|
-| `player_registrations` | `UNIQUE(player_id, league_id)` | Un jugador, un equipo por liga. Eliminar registro anterior para moverlo |
-| `player_season_stats` | `UNIQUE(player_id, league_id)` | Siempre upsert, nunca insert directo |
-| `player_season_stats_snapshot` | `UNIQUE(player_id, league_id, jornada)` | Re-importar la misma jornada sobreescribe |
-| `team_standings_snapshot` | `UNIQUE(team_id, league_id, jornada)` | Ídem |
-| `teams` | scoped a `league_id` | "Deportivo" en Liga Lunes ≠ Liga Martes |
+| Tabla                          | Constraint                              | Regla práctica                                                          |
+| ------------------------------ | --------------------------------------- | ----------------------------------------------------------------------- |
+| `player_registrations`         | `UNIQUE(player_id, league_id)`          | Un jugador, un equipo por liga. Eliminar registro anterior para moverlo |
+| `player_season_stats`          | `UNIQUE(player_id, league_id)`          | Siempre upsert, nunca insert directo                                    |
+| `player_season_stats_snapshot` | `UNIQUE(player_id, league_id, jornada)` | Re-importar la misma jornada sobreescribe                               |
+| `team_standings_snapshot`      | `UNIQUE(team_id, league_id, jornada)`   | Ídem                                                                    |
+| `teams`                        | scoped a `league_id`                    | "Deportivo" en Liga Lunes ≠ Liga Martes                                 |
 
 ### 4.4 Pool de conexiones
 
@@ -165,11 +170,11 @@ El cliente de DB está en `src/db/index.ts` con singleton para dev y `max: 1` pa
 
 ## 5. Normalización de texto — regla obligatoria
 
-| Momento | Función | Resultado |
-|---|---|---|
-| Antes de insertar en DB | `sanitizeName(raw)` | `"juan de la cruz"` |
-| Al mostrar en UI | `titleCase(stored)` | `"Juan de la Cruz"` |
-| Búsqueda en DB | `f_unaccent() + similarity()` | fuzzy matching |
+| Momento                 | Función                       | Resultado           |
+| ----------------------- | ----------------------------- | ------------------- |
+| Antes de insertar en DB | `sanitizeName(raw)`           | `"juan de la cruz"` |
+| Al mostrar en UI        | `titleCase(stored)`           | `"Juan de la Cruz"` |
+| Búsqueda en DB          | `f_unaccent() + similarity()` | fuzzy matching      |
 
 ```typescript
 import { sanitizeName, titleCase } from "@/shared/lib/normalize";
@@ -191,7 +196,7 @@ const user = await getSessionUserFromRequest(request);
 
 // Autorización de liga
 if (!canManageLeague(user, league.adminId)) {
-  return apiError("Sin permisos para esta liga", 403);
+	return apiError("Sin permisos para esta liga", 403);
 }
 ```
 
@@ -204,10 +209,10 @@ Roles: `owner` (ve todo) / `organizer` (solo sus ligas).
 Siempre usar los helpers de `src/types/index.ts`. Nunca `Response.json()` directo.
 
 ```typescript
-return apiSuccess(data);              // 200 { ok: true, data }
-return apiSuccess(data, 201);         // 201 al crear
+return apiSuccess(data); // 200 { ok: true, data }
+return apiSuccess(data, 201); // 201 al crear
 return apiSuccessPaginated(items, meta);
-return apiError("mensaje", 400);      // { ok: false, error }
+return apiError("mensaje", 400); // { ok: false, error }
 return apiError("no encontrado", 404);
 ```
 
@@ -252,26 +257,26 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 
 ### 8.5 Historial de decisiones de seguridad del proyecto
 
-| Decisión | Motivo |
-|---|---|
-| `exceljs` reemplazó a `xlsx` | CVEs de alta severidad en `xlsx` sin parche |
-| `uuid@8` en `.trivyignore` | Transitiva de `exceljs`. Fix (uuid v14) es incompatible con exceljs@4 |
-| Sesiones HMAC propias | Control total del token, sin deps adicionales |
-| `postcss` pinneado via overrides | CVE en versiones < 8.5.10 |
+| Decisión                         | Motivo                                                                |
+| -------------------------------- | --------------------------------------------------------------------- |
+| `exceljs` reemplazó a `xlsx`     | CVEs de alta severidad en `xlsx` sin parche                           |
+| `uuid@8` en `.trivyignore`       | Transitiva de `exceljs`. Fix (uuid v14) es incompatible con exceljs@4 |
+| Sesiones HMAC propias            | Control total del token, sin deps adicionales                         |
+| `postcss` pinneado via overrides | CVE en versiones < 8.5.10                                             |
 
 ---
 
 ## 9. Convenciones de naming
 
-| Elemento | Convención | Ejemplo |
-|---|---|---|
-| Archivos de lógica | `kebab-case` | `excel-import-bulk.ts` |
-| Componentes React | `PascalCase` | `ImportWizard.tsx` |
-| Funciones exportadas | `camelCase` | `confirmBulkImport()` |
-| Schemas Zod y tipos | `PascalCase` | `CreateLeagueSchema` |
-| Rutas API | `kebab-case` | `/api/top-scorers` |
-| Columnas DB | `snake_case` | `full_name`, `league_id` |
-| Ramas git | `feat/*`, `fix/*`, `chore/*` | `feat/player-profile` |
+| Elemento             | Convención                   | Ejemplo                  |
+| -------------------- | ---------------------------- | ------------------------ |
+| Archivos de lógica   | `kebab-case`                 | `excel-import-bulk.ts`   |
+| Componentes React    | `PascalCase`                 | `ImportWizard.tsx`       |
+| Funciones exportadas | `camelCase`                  | `confirmBulkImport()`    |
+| Schemas Zod y tipos  | `PascalCase`                 | `CreateLeagueSchema`     |
+| Rutas API            | `kebab-case`                 | `/api/top-scorers`       |
+| Columnas DB          | `snake_case`                 | `full_name`, `league_id` |
+| Ramas git            | `feat/*`, `fix/*`, `chore/*` | `feat/player-profile`    |
 
 ---
 
@@ -279,14 +284,14 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 
 `src/lib/` es código en producción activo. No lo elimines, pero tampoco crees funciones nuevas ahí. Si tocas un archivo de `src/lib/`, migralo a FSD en ese mismo commit.
 
-| Archivo legacy | Destino FSD |
-|---|---|
-| `lib/excel-import-bulk.ts` | `features/import-excel/bulk.ts` |
-| `lib/excel-import.ts` | `features/import-excel/events.ts` |
-| `lib/narrator.ts` | `features/narrator-analysis/analysis.ts` |
-| `lib/standings.ts` | `features/standings/calculate.ts` |
-| `lib/stats.ts` | `features/player-stats/aggregate.ts` |
-| `lib/preview.ts` | `features/match-preview/build.ts` |
+| Archivo legacy             | Destino FSD                              |
+| -------------------------- | ---------------------------------------- |
+| `lib/excel-import-bulk.ts` | `features/import-excel/bulk.ts`          |
+| `lib/excel-import.ts`      | `features/import-excel/events.ts`        |
+| `lib/narrator.ts`          | `features/narrator-analysis/analysis.ts` |
+| `lib/standings.ts`         | `features/standings/calculate.ts`        |
+| `lib/stats.ts`             | `features/player-stats/aggregate.ts`     |
+| `lib/preview.ts`           | `features/match-preview/build.ts`        |
 
 ---
 
