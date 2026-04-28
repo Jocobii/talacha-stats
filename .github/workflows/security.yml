@@ -40,7 +40,8 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
-          ignore-unfixed: true   # ignora CVEs sin fix disponible — ruido que no puedes resolver
+          ignore-unfixed: true        # ignora CVEs sin fix disponible — ruido que no puedes resolver
+          trivyignores: '.trivyignore' # CVEs suprimidos con justificación en ese archivo
           scanners: 'vuln,secret,misconfig'
 
       # ── Publicar resultados en GitHub Security tab ───────────────────────
@@ -75,8 +76,9 @@ jobs:
           format: 'sarif'
           output: 'trivy-full-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
-          exit-code: '0'         # no bloquea — solo reporta
-          ignore-unfixed: false  # incluye CVEs sin fix para tener visibilidad completa
+          exit-code: '0'          # no bloquea — solo reporta
+          ignore-unfixed: false   # incluye CVEs sin fix para tener visibilidad completa
+          trivyignores: '.trivyignore'
           scanners: 'vuln,secret,misconfig'
 
       - name: Upload full SARIF to GitHub Security

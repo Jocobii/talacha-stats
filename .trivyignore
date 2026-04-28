@@ -1,0 +1,30 @@
+# .trivyignore — CVEs suprimidos con justificación explícita
+#
+# REGLA: cada entrada DEBE tener un comentario que explique:
+#   1. Por qué no se puede parchear ahora
+#   2. Cuándo se debe revisar o quitar esta excepción
+#
+# Formato: un CVE/GHSA por línea, comentario encima
+# Referencia: https://trivy.dev/docs/configuration/filtering/#trivyignore
+
+# ── uuid (transitive dep de exceljs) ─────────────────────────────────────────
+# CVE: GHSA-w5hq-g745-h8pq
+# Severidad: HIGH (CVSS) / Moderate (npm advisory)
+# Paquete afectado: uuid@8.3.2 (requerido por exceljs@4.4.0)
+# Fix disponible: uuid >= 14.0.0
+#
+# Motivo de la excepción:
+#   El fix requiere uuid v14, que es un major version con breaking changes.
+#   exceljs@4.4.0 (la última versión disponible) no soporta uuid v14.
+#   Hacer override de uuid a v14 en pnpm rompe la importación de Excel,
+#   que es un flujo crítico del sistema.
+#
+# Vector de ataque: local — requiere que el atacante controle el argumento
+#   `buf` de las funciones v3/v5/v6. En este proyecto, uuid solo se usa
+#   internamente por exceljs para generar IDs de celdas; no hay superficie
+#   de ataque externa.
+#
+# Revisión pendiente: cuando exceljs publique una versión que use uuid >= 14
+#   o cuando uuid >= 14 sea compatible con exceljs.
+#   Ver: https://github.com/exceljs/exceljs/issues
+GHSA-w5hq-g745-h8pq
