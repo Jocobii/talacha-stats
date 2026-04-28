@@ -23,15 +23,62 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── Escaneo principal ────────────────────────────────────────────────
-      # Escanea el filesystem completo:
-      #   - Dependencias npm/pnpm (pnpm-lock.yaml)
-      #   - Misconfigurations en archivos de config
-      #   - Secretos hardcodeados
-      #
-      # exit-code: '1' → falla el pipeline si encuentra CRITICAL o HIGH
-      # Esto bloquea merges a master/dev con vulnerabilidades graves
-      - name: Run Trivy scan
+      # ── Paso 1: Tabla legible en los logs ───────────────────────────────────
+      # Corre primero sin fallar para que el dev vea exactamente qué encontró
+      # ANTES de que el pipeline falle. La salida aparece en los logs del paso
+      # con formato de tabla: Package | CVE | Severity | Installed | Fixed.
+      - name: Show vulnerabilities (human-readable)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'              # no falla aquí — solo muestra
+          ignore-unfixed: true
+          trivyignores: '.trivyignore'
+          scanners: 'vuln,secret,misconfig'
+
+      # ── Paso 2: Job Summary con detalle accionable ──────────────────────────
+      # Genera un resumen en Markdown visible directo en la página del workflow
+      # (pestaña "Summary"). El dev ve qué falló sin tener que abrir los logs.
+      - name: Generate Job Summary
+        if: always()
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'template'
+          template: '@/contrib/github.tpl'
+          output: 'trivy-summary.md'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          trivyignores: '.trivyignore'
+          scanners: 'vuln,secret,misconfig'
+
+      - name: Publish to GitHub Job Summary
+        if: always()
+        run: |
+          echo "## 🔒 Security Scan — Trivy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Severidades escaneadas:** CRITICAL, HIGH (con fix disponible)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -s trivy-summary.md ]; then
+            cat trivy-summary.md >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **Sin vulnerabilidades CRITICAL o HIGH encontradas.**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "📋 Detalle completo → pestaña **Security → Code scanning alerts**" >> $GITHUB_STEP_SUMMARY
+          echo "📄 CVEs suprimidos justificados → \`.trivyignore\`" >> $GITHUB_STEP_SUMMARY
+
+      # ── Paso 3: SARIF para GitHub Security tab ──────────────────────────────
+      # Genera el archivo SARIF y falla el pipeline si hay CRITICAL o HIGH.
+      # Se ejecuta después de mostrar la info al dev — así el error tiene contexto.
+      - name: Run Trivy — generate SARIF and enforce
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
@@ -39,22 +86,19 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
-          exit-code: '1'
-          ignore-unfixed: true        # ignora CVEs sin fix disponible — ruido que no puedes resolver
-          trivyignores: '.trivyignore' # CVEs suprimidos con justificación en ese archivo
+          exit-code: '1'              # ← aquí falla si encontró algo
+          ignore-unfixed: true
+          trivyignores: '.trivyignore'
           scanners: 'vuln,secret,misconfig'
 
-      # ── Publicar resultados en GitHub Security tab ───────────────────────
-      # Se ejecuta aunque el paso anterior haya fallado (if: always())
-      # Los resultados quedan visibles en Security → Code scanning alerts
-      - name: Upload SARIF to GitHub Security
+      - name: Upload SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
 
-  # ── Escaneo completo semanal (MEDIUM incluido, sin bloquear pipeline) ───
-  # Solo corre en el schedule — no en PRs
+  # ── Escaneo completo semanal (MEDIUM incluido, sin bloquear pipeline) ───────
+  # Solo corre en el schedule — no en PRs ni push
   trivy-full:
     name: Trivy — full scan (weekly)
     runs-on: ubuntu-latest
@@ -68,7 +112,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run Trivy — full severity scan
+      - name: Show all vulnerabilities (human-readable)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0'
+          ignore-unfixed: false
+          trivyignores: '.trivyignore'
+          scanners: 'vuln,secret,misconfig'
+
+      - name: Generate full SARIF
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
@@ -81,7 +137,16 @@ jobs:
           trivyignores: '.trivyignore'
           scanners: 'vuln,secret,misconfig'
 
-      - name: Upload full SARIF to GitHub Security
+      - name: Weekly summary
+        if: always()
+        run: |
+          echo "## 🔒 Weekly Security Scan — Trivy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Severidades:** CRITICAL, HIGH, MEDIUM (incluyendo sin fix disponible)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Revisa la pestaña **Security → Code scanning alerts** para el detalle completo." >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload full SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
