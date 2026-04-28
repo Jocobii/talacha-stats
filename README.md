@@ -28,10 +28,10 @@ TalachaStats resuelve un problema muy concreto: en las ligas de fútbol amateur 
 
 La plataforma tiene **dos caras**:
 
-| Cara | URL | Quién la usa |
-|---|---|---|
-| Pública | `/`, `/ranking`, `/player/[id]` | Jugadores, familiares, aficionados |
-| Admin | `/admin/*` | Organizadores de liga, narrador del Facebook Live |
+| Cara    | URL                             | Quién la usa                                      |
+| ------- | ------------------------------- | ------------------------------------------------- |
+| Pública | `/`, `/ranking`, `/player/[id]` | Jugadores, familiares, aficionados                |
+| Admin   | `/admin/*`                      | Organizadores de liga, narrador del Facebook Live |
 
 El **narrador del Facebook Live** es un usuario clave. Antes de cada partido necesita datos contextuales de los dos equipos (racha, goleadores, estadísticas). El módulo `/admin/analisis` y el endpoint `/api/narrator` están diseñados específicamente para él.
 
@@ -39,16 +39,16 @@ El **narrador del Facebook Live** es un usuario clave. Antes de cada partido nec
 
 ## 2. Stack tecnológico
 
-| Capa | Tecnología | Notas |
-|---|---|---|
-| Framework | **Next.js 16** (App Router) | Server Components por defecto |
-| Base de datos | **PostgreSQL** + **Drizzle ORM** | Hosted en Supabase |
-| Validación | **Zod 4** | Un schema = un tipo, sin duplicación |
-| Estilos | **Tailwind CSS 4** | Modo claro forzado, sin dark mode |
-| Excel | **ExcelJS** | Reemplazó a `xlsx` por CVEs críticos |
-| PDF | **PDFKit** | Exportación del análisis del narrador |
-| Lenguaje | **TypeScript 5** (strict) | `any` prohibido |
-| Package manager | **pnpm** | |
+| Capa            | Tecnología                       | Notas                                 |
+| --------------- | -------------------------------- | ------------------------------------- |
+| Framework       | **Next.js 16** (App Router)      | Server Components por defecto         |
+| Base de datos   | **PostgreSQL** + **Drizzle ORM** | Hosted en Supabase                    |
+| Validación      | **Zod 4**                        | Un schema = un tipo, sin duplicación  |
+| Estilos         | **Tailwind CSS 4**               | Modo claro forzado, sin dark mode     |
+| Excel           | **ExcelJS**                      | Reemplazó a `xlsx` por CVEs críticos  |
+| PDF             | **PDFKit**                       | Exportación del análisis del narrador |
+| Lenguaje        | **TypeScript 5** (strict)        | `any` prohibido                       |
+| Package manager | **pnpm**                         |                                       |
 
 ---
 
@@ -185,20 +185,20 @@ players ────────────────────────
 
 ### Tablas principales
 
-| Tabla | Descripción |
-|---|---|
-| `users` | Cuentas admin. Roles: `owner` (ve todo) / `organizer` (solo sus ligas) |
-| `players` | Identidad global del jugador — independiente de liga o equipo |
-| `leagues` | Liga por día/torneo. Tiene `city`, `season`, `status` |
-| `teams` | Equipo **siempre scoped a una liga**. "Deportivo" en Liga Lunes ≠ "Deportivo" en Liga Martes |
-| `player_registrations` | Pivote jugador ↔ equipo ↔ liga. `UNIQUE(player_id, league_id)` |
-| `matches` | Partido entre dos equipos de la misma liga |
-| `match_events` | Eventos granulares: `goal`, `assist`, `yellow_card`, `red_card`, `own_goal`, `mvp` |
-| `player_season_stats` | Stats acumuladas importadas desde Excel. `UNIQUE(player_id, league_id)`. **Fuente primaria** |
-| `player_season_stats_snapshot` | Historial por jornada. Permite progresión y re-importaciones sin romper el historial |
-| `team_standings_snapshot` | Tabla de posiciones importada. `UNIQUE(team_id, league_id, jornada)` |
-| `import_templates` | Plantillas de mapeo de columnas Excel → campos del sistema |
-| `page_views` | Visitas únicas por visitor_id (UUID en cookie) |
+| Tabla                          | Descripción                                                                                  |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
+| `users`                        | Cuentas admin. Roles: `owner` (ve todo) / `organizer` (solo sus ligas)                       |
+| `players`                      | Identidad global del jugador — independiente de liga o equipo                                |
+| `leagues`                      | Liga por día/torneo. Tiene `city`, `season`, `status`                                        |
+| `teams`                        | Equipo **siempre scoped a una liga**. "Deportivo" en Liga Lunes ≠ "Deportivo" en Liga Martes |
+| `player_registrations`         | Pivote jugador ↔ equipo ↔ liga. `UNIQUE(player_id, league_id)`                               |
+| `matches`                      | Partido entre dos equipos de la misma liga                                                   |
+| `match_events`                 | Eventos granulares: `goal`, `assist`, `yellow_card`, `red_card`, `own_goal`, `mvp`           |
+| `player_season_stats`          | Stats acumuladas importadas desde Excel. `UNIQUE(player_id, league_id)`. **Fuente primaria** |
+| `player_season_stats_snapshot` | Historial por jornada. Permite progresión y re-importaciones sin romper el historial         |
+| `team_standings_snapshot`      | Tabla de posiciones importada. `UNIQUE(team_id, league_id, jornada)`                         |
+| `import_templates`             | Plantillas de mapeo de columnas Excel → campos del sistema                                   |
+| `page_views`                   | Visitas únicas por visitor_id (UUID en cookie)                                               |
 
 ### Decisiones de diseño importantes
 
@@ -290,12 +290,12 @@ El panel admin: `http://localhost:3000/admin`
 
 ## 7. Variables de entorno
 
-| Variable | Descripción | Requerida |
-|---|---|---|
-| `DATABASE_URL` | Connection string de PostgreSQL | ✅ |
-| `SESSION_SECRET` | Secreto HMAC para tokens de sesión. Mínimo 32 chars | ✅ |
-| `SETUP_SECRET` | Contraseña para crear el primer usuario owner | ✅ |
-| `NEXT_PUBLIC_BASE_URL` | URL base pública (ej: `https://talachastats.com`) | ✅ |
+| Variable               | Descripción                                         | Requerida |
+| ---------------------- | --------------------------------------------------- | --------- |
+| `DATABASE_URL`         | Connection string de PostgreSQL                     | ✅        |
+| `SESSION_SECRET`       | Secreto HMAC para tokens de sesión. Mínimo 32 chars | ✅        |
+| `SETUP_SECRET`         | Contraseña para crear el primer usuario owner       | ✅        |
+| `NEXT_PUBLIC_BASE_URL` | URL base pública (ej: `https://talachastats.com`)   | ✅        |
 
 > **Nunca** subas `.env.local` al repositorio.
 
@@ -337,6 +337,7 @@ Adicionalmente, todos los lunes a las 8am corre un escaneo completo incluyendo `
 **2. Ver la tabla en los logs** del paso "Show vulnerabilities" — muestra Package, CVE, Severity, versión instalada y versión con fix.
 
 **3. Actualizar el paquete** si hay una versión con fix disponible:
+
 ```bash
 pnpm update <paquete>
 # o forzar versión específica en package.json y correr pnpm install
@@ -361,6 +362,7 @@ pnpm update <paquete>
 ### El archivo `.trivyignore`
 
 `.trivyignore` contiene CVEs suprimidos con justificación. **Toda entrada debe explicar:**
+
 - Por qué no se puede parchear ahora
 - Cuándo revisar o quitar la excepción
 
@@ -378,12 +380,12 @@ Agregar una entrada sin comentario es equivalente a parchear un bug sin entender
 
 ### Historial de decisiones de seguridad relevantes
 
-| Decisión | Motivo |
-|---|---|
-| `exceljs` reemplazó a `xlsx` | `xlsx` tenía CVEs de alta severidad sin parche disponible |
-| `uuid@8` suprimido en `.trivyignore` | Dependencia transitiva de `exceljs`. Fix requiere uuid v14, incompatible con exceljs@4 |
-| Sesiones HMAC propias (sin NextAuth) | Control total del ciclo de vida del token, sin dependencias adicionales |
-| `postcss` pinneado via `pnpm.overrides` | CVE de alta severidad en versiones < 8.5.10 |
+| Decisión                                | Motivo                                                                                 |
+| --------------------------------------- | -------------------------------------------------------------------------------------- |
+| `exceljs` reemplazó a `xlsx`            | `xlsx` tenía CVEs de alta severidad sin parche disponible                              |
+| `uuid@8` suprimido en `.trivyignore`    | Dependencia transitiva de `exceljs`. Fix requiere uuid v14, incompatible con exceljs@4 |
+| Sesiones HMAC propias (sin NextAuth)    | Control total del ciclo de vida del token, sin dependencias adicionales                |
+| `postcss` pinneado via `pnpm.overrides` | CVE de alta severidad en versiones < 8.5.10                                            |
 
 ---
 
@@ -391,15 +393,15 @@ Agregar una entrada sin comentario es equivalente a parchear un bug sin entender
 
 ### Naming
 
-| Elemento | Convención | Ejemplo |
-|---|---|---|
-| Archivos de lógica | `kebab-case` | `excel-import-bulk.ts` |
-| Componentes React | `PascalCase` | `NarratorPanel.tsx` |
-| Funciones | `camelCase` | `getLeagueStandings()` |
+| Elemento            | Convención   | Ejemplo                             |
+| ------------------- | ------------ | ----------------------------------- |
+| Archivos de lógica  | `kebab-case` | `excel-import-bulk.ts`              |
+| Componentes React   | `PascalCase` | `NarratorPanel.tsx`                 |
+| Funciones           | `camelCase`  | `getLeagueStandings()`              |
 | Tipos y schemas Zod | `PascalCase` | `PlayerStats`, `CreateLeagueSchema` |
-| Rutas API | `kebab-case` | `/api/top-scorers` |
-| Columnas DB | `snake_case` | `full_name`, `league_id` |
-| Variables TS | `camelCase` | `leagueId`, `homeScore` |
+| Rutas API           | `kebab-case` | `/api/top-scorers`                  |
+| Columnas DB         | `snake_case` | `full_name`, `league_id`            |
+| Variables TS        | `camelCase`  | `leagueId`, `homeScore`             |
 
 ### TypeScript
 
@@ -413,18 +415,18 @@ Agregar una entrada sin comentario es equivalente a parchear un bug sin entender
 ```typescript
 // ✅ CORRECTO — validar + llamar feature + responder
 export async function GET(request: Request) {
-  const leagueId = new URL(request.url).searchParams.get("league_id");
-  if (!leagueId) return apiError("Falta league_id", 400);
-  const standings = await getLeagueStandings(leagueId);
-  return apiSuccess(standings);
+	const leagueId = new URL(request.url).searchParams.get("league_id");
+	if (!leagueId) return apiError("Falta league_id", 400);
+	const standings = await getLeagueStandings(leagueId);
+	return apiSuccess(standings);
 }
 ```
 
 ### Responses
 
 ```typescript
-return apiSuccess(data);         // { ok: true, data }
-return apiSuccess(data, 201);    // crear recurso
+return apiSuccess(data); // { ok: true, data }
+return apiSuccess(data, 201); // crear recurso
 return apiError("mensaje", 400); // { ok: false, error }
 ```
 
@@ -460,17 +462,17 @@ POST   /api/[recurso]/[accion]   → acción especial (/merge, /confirm)
 
 El proyecto está en migración de `lib/` plana hacia FSD completo. La migración ocurre archivo por archivo cuando se toca cada módulo — no hay refactor masivo planeado.
 
-| Archivo | Estado | Destino objetivo |
-|---|---|---|
-| `src/lib/excel-import-bulk.ts` | Legacy en uso activo | `features/import-excel/` |
-| `src/lib/excel-import.ts` | Legacy (formato antiguo) | `features/import-excel/` |
-| `src/lib/narrator.ts` | Legacy en uso activo | `features/narrator-analysis/` |
-| `src/lib/standings.ts` | Legacy | `features/standings/` |
-| `src/lib/stats.ts` | Legacy | `features/player-stats/` |
-| `src/lib/preview.ts` | Legacy | `features/match-preview/` |
-| `src/features/narrator-analysis/` | **FSD ✅** | ya migrado |
-| `src/entities/player/` | **FSD ✅** | ya migrado |
-| `src/entities/user/` | **FSD ✅** | ya migrado |
+| Archivo                           | Estado                   | Destino objetivo              |
+| --------------------------------- | ------------------------ | ----------------------------- |
+| `src/lib/excel-import-bulk.ts`    | Legacy en uso activo     | `features/import-excel/`      |
+| `src/lib/excel-import.ts`         | Legacy (formato antiguo) | `features/import-excel/`      |
+| `src/lib/narrator.ts`             | Legacy en uso activo     | `features/narrator-analysis/` |
+| `src/lib/standings.ts`            | Legacy                   | `features/standings/`         |
+| `src/lib/stats.ts`                | Legacy                   | `features/player-stats/`      |
+| `src/lib/preview.ts`              | Legacy                   | `features/match-preview/`     |
+| `src/features/narrator-analysis/` | **FSD ✅**               | ya migrado                    |
+| `src/entities/player/`            | **FSD ✅**               | ya migrado                    |
+| `src/entities/user/`              | **FSD ✅**               | ya migrado                    |
 
 **Regla:** si tocas un archivo legacy, migralo en ese mismo PR. No crees funciones nuevas en `src/lib/`.
 
@@ -478,14 +480,14 @@ El proyecto está en migración de `lib/` plana hacia FSD completo. La migració
 
 ## Ramas de git
 
-| Rama | Propósito |
-|---|---|
-| `master` | Producción estable |
-| `dev` | Desarrollo activo — hacer PRs aquí |
-| `feat/*` | Features nuevas |
-| `fix/*` | Correcciones |
-| `chore/*` | Mantenimiento (deps, config) |
+| Rama      | Propósito                          |
+| --------- | ---------------------------------- |
+| `master`  | Producción estable                 |
+| `dev`     | Desarrollo activo — hacer PRs aquí |
+| `feat/*`  | Features nuevas                    |
+| `fix/*`   | Correcciones                       |
+| `chore/*` | Mantenimiento (deps, config)       |
 
 ---
 
-*TalachaStats — Tijuana, México*
+_TalachaStats — Tijuana, México_

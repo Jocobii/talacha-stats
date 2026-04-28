@@ -8,7 +8,7 @@ on:
   schedule:
     # Escaneo proactivo todos los lunes a las 8am UTC
     # Detecta CVEs nuevos en deps que no tocaste esa semana
-    - cron: '0 8 * * 1'
+    - cron: "0 8 * * 1"
 
 jobs:
   trivy:
@@ -29,14 +29,14 @@ jobs:
       - name: Show vulnerabilities (human-readable table)
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
+          scan-type: "fs"
+          scan-ref: "."
+          format: "table"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
           ignore-unfixed: true
-          trivyignores: '.trivyignore'
-          scanners: 'vuln,secret,misconfig'
+          trivyignores: ".trivyignore"
+          scanners: "vuln,secret,misconfig"
 
       # ── Paso 2: Job Summary con detalle accionable ──────────────────────────
       # Genera JSON, lo parsea con Python y escribe Markdown en la pestaña
@@ -45,15 +45,15 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'json'
-          output: 'trivy-results.json'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
+          scan-type: "fs"
+          scan-ref: "."
+          format: "json"
+          output: "trivy-results.json"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
           ignore-unfixed: true
-          trivyignores: '.trivyignore'
-          scanners: 'vuln,secret,misconfig'
+          trivyignores: ".trivyignore"
+          scanners: "vuln,secret,misconfig"
 
       - name: Publish Job Summary
         if: always()
@@ -126,21 +126,21 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
           ignore-unfixed: true
-          trivyignores: '.trivyignore'
-          scanners: 'vuln,secret,misconfig'
+          trivyignores: ".trivyignore"
+          scanners: "vuln,secret,misconfig"
 
       - name: Upload SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"
 
   # ── Escaneo completo semanal (MEDIUM incluido, sin bloquear pipeline) ───────
   # Solo corre en el schedule — no en PRs ni push
@@ -160,28 +160,28 @@ jobs:
       - name: Show all vulnerabilities (human-readable)
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'table'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          exit-code: '0'
+          scan-type: "fs"
+          scan-ref: "."
+          format: "table"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          exit-code: "0"
           ignore-unfixed: false
-          trivyignores: '.trivyignore'
-          scanners: 'vuln,secret,misconfig'
+          trivyignores: ".trivyignore"
+          scanners: "vuln,secret,misconfig"
 
       - name: Generate full SARIF
         if: always()
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-full-results.sarif'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          exit-code: '0'
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-full-results.sarif"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          exit-code: "0"
           ignore-unfixed: false
-          trivyignores: '.trivyignore'
-          scanners: 'vuln,secret,misconfig'
+          trivyignores: ".trivyignore"
+          scanners: "vuln,secret,misconfig"
 
       - name: Weekly summary
         if: always()
@@ -196,4 +196,4 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: 'trivy-full-results.sarif'
+          sarif_file: "trivy-full-results.sarif"
