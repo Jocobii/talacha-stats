@@ -1,0 +1,86 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master, dev]
+  schedule:
+    # Escaneo proactivo todos los lunes a las 8am UTC
+    # Detecta CVEs nuevos en deps que no tocaste esa semana
+    - cron: '0 8 * * 1'
+
+jobs:
+  trivy:
+    name: Trivy — filesystem & dependency scan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write # requerido para subir resultados a la pestaña Security
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Escaneo principal ────────────────────────────────────────────────
+      # Escanea el filesystem completo:
+      #   - Dependencias npm/pnpm (pnpm-lock.yaml)
+      #   - Misconfigurations en archivos de config
+      #   - Secretos hardcodeados
+      #
+      # exit-code: '1' → falla el pipeline si encuentra CRITICAL o HIGH
+      # Esto bloquea merges a master/dev con vulnerabilidades graves
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: true   # ignora CVEs sin fix disponible — ruido que no puedes resolver
+          scanners: 'vuln,secret,misconfig'
+
+      # ── Publicar resultados en GitHub Security tab ───────────────────────
+      # Se ejecuta aunque el paso anterior haya fallado (if: always())
+      # Los resultados quedan visibles en Security → Code scanning alerts
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ── Escaneo completo semanal (MEDIUM incluido, sin bloquear pipeline) ───
+  # Solo corre en el schedule — no en PRs
+  trivy-full:
+    name: Trivy — full scan (weekly)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy — full severity scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-full-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0'         # no bloquea — solo reporta
+          ignore-unfixed: false  # incluye CVEs sin fix para tener visibilidad completa
+          scanners: 'vuln,secret,misconfig'
+
+      - name: Upload full SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-full-results.sarif'
