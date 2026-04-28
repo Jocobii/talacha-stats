@@ -21,10 +21,17 @@ export async function readWorkbook(buffer: Buffer): Promise<ParsedWorkbook> {
   const sheets: Record<string, ParsedSheet> = {};
 
   for (const ws of wb.worksheets) {
+    // Ignorar hojas ocultas — el usuario no las ve en Excel y no debe verlas en el importador
+    if (ws.state === "hidden" || ws.state === "veryHidden") continue;
+
     sheetNames.push(ws.name);
 
     const rows: string[][] = [];
-    const lastCol = ws.actualColumnCount || ws.columnCount || 0;
+    // IMPORTANTE: actualColumnCount devuelve el CONTEO de columnas con datos,
+    // no el índice de la última columna. Si hay datos en cols 2-11, da 10,
+    // y el loop se detiene antes de leer la col 11 (ej: PTS.).
+    // columnCount sí da el índice máximo del span real de la hoja.
+    const lastCol = ws.columnCount || ws.actualColumnCount || 0;
     const lastRow = ws.actualRowCount || ws.rowCount || 0;
 
     for (let r = 1; r <= lastRow; r++) {
