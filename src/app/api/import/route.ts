@@ -1,17 +1,25 @@
-import { parseExcelBuffer, generateImportPreview, confirmImport } from "@/lib/excel-import";
+/**
+ * POST /api/import
+ *
+ * Flujo de importacion por eventos (goles, asistencias, tarjetas partido a partido).
+ * Controlador delgado: valida entrada, delega a features/import-excel.
+ */
+
+import {
+  generateEventPreview,
+  confirmEventImport,
+} from "@/features/import-excel";
 import { apiSuccess, apiError } from "@/types";
 import { z } from "zod";
 
-// POST /api/import
-// Content-Type: multipart/form-data
-// Body: file (xlsx), league_id, action (preview | confirm), resolutions (JSON, solo en confirm)
+const ResolutionsSchema = z.record(z.string(), z.string());
+
 export async function POST(request: Request) {
   const formData = await request.formData().catch(() => null);
   if (!formData) return apiError("Se esperaba multipart/form-data", 400);
 
-  const action = formData.get("action") as string;
+  const action = (formData.get("action") as string) || "preview";
   const leagueId = formData.get("league_id") as string;
-
   if (!leagueId) return apiError("Falta league_id", 400);
 
   const file = formData.get("file") as File | null;
@@ -19,38 +27,41 @@ export async function POST(request: Request) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  let parsed;
-  try {
-    parsed = await parseExcelBuffer(buffer);
-  } catch {
-    return apiError("No se pudo parsear el archivo Excel. Verificar formato.", 400);
-  }
-
-  if (action === "preview" || !action) {
-    const preview = await generateImportPreview(parsed);
-    return apiSuccess(preview);
+  if (action === "preview") {
+    try {
+      return apiSuccess(await generateEventPreview({ buffer, leagueId }));
+    } catch {
+      return apiError("No se pudo parsear el archivo. Verificar formato.", 400);
+    }
   }
 
   if (action === "confirm") {
-    const rawResolutions = formData.get("resolutions") as string;
-    let rawParsed: unknown;
+    let preview: Awaited<ReturnType<typeof generateEventPreview>>;
     try {
-      rawParsed = rawResolutions ? JSON.parse(rawResolutions) : {};
+      preview = await generateEventPreview({ buffer, leagueId });
     } catch {
-      return apiError("JSON de resoluciones inválido", 400);
+      return apiError("No se pudo parsear el archivo. Verificar formato.", 400);
     }
 
-    const ResolutionsSchema = z.record(z.string(), z.string());
-    const parsedRes = ResolutionsSchema.safeParse(rawParsed);
-    if (!parsedRes.success) return apiError("Formato de resoluciones inválido", 400);
+    const rawRes = formData.get("resolutions") as string | null;
+    let playerResolutions: Record<string, string> = {};
+    if (rawRes) {
+      let raw: unknown;
+      try {
+        raw = JSON.parse(rawRes);
+      } catch {
+        return apiError("JSON de resoluciones invalido", 400);
+      }
+      const r = ResolutionsSchema.safeParse(raw);
+      if (!r.success) return apiError("Formato de resoluciones invalido", 400);
+      playerResolutions = r.data;
+    }
 
-    const result = await confirmImport({
-      leagueId,
-      events: parsed.events,
-      results: parsed.results,
-      playerResolutions: parsedRes.data,
+    const result = await confirmEventImport({
+      leagueId,      events: preview.events,
+      results: preview.results,
+      playerResolutions,
     });
-
     return apiSuccess(result);
   }
 
