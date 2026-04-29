@@ -278,6 +278,95 @@ export async function setUserOrganization(
 }
 
 // ---------------------------------------------------------------------------
+// Showcase de ligas — homepage pública
+// ---------------------------------------------------------------------------
+
+export type LeagueShowcaseItem = {
+	id: string;
+	name: string;
+	city: string;
+	season: string;
+	teamCount: number;
+	playerCount: number;
+	topScorer: { fullName: string; alias: string | null; goals: number } | null;
+};
+
+/**
+ * Devuelve las ligas activas de una ciudad con datos de resumen para la
+ * vitrina de la homepage: número de equipos, jugadores y goleador actual.
+ */
+export async function getLeaguesShowcase(
+	city: string,
+	limit = 6,
+): Promise<LeagueShowcaseItem[]> {
+	const activeLeagues = await db.query.leagues.findMany({
+		where: and(eq(leagues.city, city), eq(leagues.status, "active")),
+		with: { teams: { columns: { id: true } } },
+		orderBy: [desc(leagues.createdAt)],
+		limit,
+	});
+
+	if (activeLeagues.length === 0) return [];
+
+	const leagueIds = activeLeagues.map((l) => l.id);
+
+	// Conteo de jugadores y datos de goleadores en paralelo
+	const [playerCounts, scorerRows] = await Promise.all([
+		db
+			.select({
+				leagueId: playerSeasonStats.leagueId,
+				count: sql<number>`count(*)`,
+			})
+			.from(playerSeasonStats)
+			.where(inArray(playerSeasonStats.leagueId, leagueIds))
+			.groupBy(playerSeasonStats.leagueId),
+
+		db
+			.select({
+				leagueId: playerSeasonStats.leagueId,
+				fullName: players.fullName,
+				alias: players.alias,
+				goals: playerSeasonStats.goals,
+			})
+			.from(playerSeasonStats)
+			.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
+			.where(inArray(playerSeasonStats.leagueId, leagueIds))
+			.orderBy(
+				desc(playerSeasonStats.goals),
+				desc(playerSeasonStats.assists),
+			),
+	]);
+
+	// Construir mapas para O(1) lookup
+	const playerCountMap = new Map(
+		playerCounts.map((r) => [r.leagueId, Number(r.count)]),
+	);
+
+	// Top scorer por liga: primer row encontrado por leagueId (ya vienen ordenados)
+	const topScorerMap = new Map<string, (typeof scorerRows)[0]>();
+	for (const row of scorerRows) {
+		if (!topScorerMap.has(row.leagueId)) {
+			topScorerMap.set(row.leagueId, row);
+		}
+	}
+
+	return activeLeagues.map((league) => {
+		const scorer = topScorerMap.get(league.id) ?? null;
+		return {
+			id: league.id,
+			name: league.name,
+			city: league.city,
+			season: league.season ?? "",
+			teamCount: league.teams.length,
+			playerCount: playerCountMap.get(league.id) ?? 0,
+			topScorer: scorer
+				? { fullName: scorer.fullName, alias: scorer.alias, goals: scorer.goals }
+				: null,
+		};
+	});
+}
+
+// ---------------------------------------------------------------------------
 // Hub público — datos de resumen para la página de organización
 // ---------------------------------------------------------------------------
 
