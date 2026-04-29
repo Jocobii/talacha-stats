@@ -36,3 +36,9 @@ export {
   type AnomalyRuleId,
   type HistoricalSnapshot,
 } from "./anomaly-detector";
+
+export {
+  generatePreview,
+  type PreviewInput,
+  type PreviewResult,
+} from "./preview";
