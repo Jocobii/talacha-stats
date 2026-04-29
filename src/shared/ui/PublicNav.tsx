@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, Users, CalendarDays, BarChart3, Info } from "lucide-react";
+import { Home, Trophy, Building2, Users, CalendarDays, BarChart3, Info } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/",         label: "Inicio",    Icon: Home         },
+  { href: "/ligas",    label: "Ligas",     Icon: Building2    },
   { href: "/ranking",  label: "Ranking",   Icon: Trophy       },
   { href: "/players",  label: "Jugadores", Icon: Users        },
   { href: "/matchday", label: "Jornada",   Icon: CalendarDays },

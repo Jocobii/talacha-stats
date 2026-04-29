@@ -15,10 +15,18 @@ export const CreatePlayerSchema = z.object({
 export const UpdatePlayerSchema = CreatePlayerSchema.partial();
 
 export const CreateLeagueSchema = z.object({
+<<<<<<< Updated upstream
   name:      z.string().min(2).max(100),
   dayOfWeek: z.enum(DAYS_OF_WEEK),
   season:    z.string().min(2).max(50),
   adminId:   z.string().uuid().optional(),
+=======
+  name:           z.string().min(2).max(100),
+  slug:           z.string().min(2).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+  dayOfWeek:      z.enum(DAYS_OF_WEEK),
+  season:         z.string().min(2).max(50),
+  organizationId: z.string().uuid().optional(),
+>>>>>>> Stashed changes
 });
 
 export const UpdateLeagueSchema = CreateLeagueSchema.partial().extend({

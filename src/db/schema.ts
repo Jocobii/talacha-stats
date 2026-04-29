@@ -52,10 +52,16 @@ export const players = pgTable("players", {
 
 // ---------------------------------------------------------------------------
 // LEAGUES — Liga por día/torneo (Liga Lunes, Liga Martes, etc.)
+<<<<<<< Updated upstream
+=======
+// Siempre pertenece a una organización (organization_id).
+// slug: URL-friendly único dentro de la organización ("liga-lunes", "liga-femenil")
+>>>>>>> Stashed changes
 // ---------------------------------------------------------------------------
 export const leagues = pgTable("leagues", {
 	id: uuid("id").primaryKey().defaultRandom(),
 	name: text("name").notNull(),
+	slug: text("slug"), // URL-friendly, único por organización
 	dayOfWeek: text("day_of_week").notNull(), // lunes | martes | miercoles | ...
 	season: text("season").notNull(), // "Apertura 2025"
 	city: text("city").notNull().default("Tijuana"),

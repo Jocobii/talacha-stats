@@ -3,6 +3,7 @@ import { eq, desc, and }                      from "drizzle-orm";
 import { CreateLeagueSchema, apiSuccess, apiError } from "@/types";
 import { getActiveCity, getRequestCity }      from "@/shared/lib/active-city";
 import { getSessionUserFromRequest }          from "@/shared/lib/auth";
+import { generateSlug }                       from "@/entities/organization";
 
 // GET /api/leagues?city=Tijuana
 // Sin sesión (público) → solo ligas activas de la ciudad
@@ -13,7 +14,6 @@ export async function GET(request: Request) {
   const city    = await getRequestCity(request);
 
   if (!session) {
-    // Acceso público: devolver solo ligas activas de la ciudad
     const rows = await db.query.leagues.findMany({
       where: and(eq(leagues.city, city), eq(leagues.status, "active")),
       orderBy: [desc(leagues.createdAt)],
@@ -25,7 +25,13 @@ export async function GET(request: Request) {
   const rows = await db.query.leagues.findMany({
     where: session.role === "owner"
       ? eq(leagues.city, city)
+<<<<<<< Updated upstream
       : and(eq(leagues.city, city), eq(leagues.adminId, session.id)),
+=======
+      : session.organizationId
+        ? eq(leagues.organizationId, session.organizationId)
+        : and(eq(leagues.city, city), eq(leagues.status, "active")),
+>>>>>>> Stashed changes
     orderBy: [desc(leagues.createdAt)],
     with: { teams: true },
   });
@@ -42,18 +48,38 @@ export async function POST(request: Request) {
   const parsed = CreateLeagueSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.message);
 
+<<<<<<< Updated upstream
   const city    = await getActiveCity();
   const adminId =
     session.role === "owner" && parsed.data.adminId
       ? parsed.data.adminId
       : session.id;
+=======
+  const city = await getActiveCity();
+
+  const organizationId =
+    session.role === "owner" && parsed.data.organizationId
+      ? parsed.data.organizationId
+      : session.organizationId ?? null;
+>>>>>>> Stashed changes
+
+  // Auto-generar slug desde nombre + día si no viene explícito
+  const slug = parsed.data.slug
+    ?? generateSlug(`${parsed.data.name} ${parsed.data.dayOfWeek}`);
 
   const [league] = await db
     .insert(leagues)
     .values({
+<<<<<<< Updated upstream
       name:      parsed.data.name,
       dayOfWeek: parsed.data.dayOfWeek,
       season:    parsed.data.season,
+=======
+      name:           parsed.data.name,
+      slug,
+      dayOfWeek:      parsed.data.dayOfWeek,
+      season:         parsed.data.season,
+>>>>>>> Stashed changes
       city,
       adminId,
     })
