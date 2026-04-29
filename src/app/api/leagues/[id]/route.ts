@@ -4,7 +4,7 @@ import { UpdateLeagueSchema, apiSuccess, apiError } from "@/types";
 import { getSessionUserFromRequest, canManageLeague } from "@/shared/lib/auth";
 
 // GET /api/leagues/:id
-// Cualquier usuario autenticado puede leer una liga (para selects, navegación, etc.)
+// Cualquier usuario autenticado puede leer una liga.
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -17,7 +17,12 @@ export async function GET(
   const league = await db.query.leagues.findFirst({
     where: eq(leagues.id, id),
     with: {
-      admin: { columns: { id: true, name: true, email: true } },
+      organization: {
+        columns: { id: true, name: true, slug: true, logoUrl: true },
+        with: {
+          members: { columns: { id: true, name: true, email: true } },
+        },
+      },
       teams: true,
       matches: {
         orderBy: (m, { desc }) => [desc(m.matchDate)],
@@ -29,8 +34,8 @@ export async function GET(
 
   if (!league) return apiError("Liga no encontrada", 404);
 
-  // Organizer solo puede ver sus propias ligas
-  if (!canManageLeague(session, league.adminId ?? null)) {
+  // Organizer solo puede ver ligas de su organización
+  if (!canManageLeague(session, league.organizationId ?? null)) {
     return apiError("Sin permiso para ver esta liga", 403);
   }
 
@@ -47,10 +52,9 @@ export async function PATCH(
 
   const { id } = await params;
 
-  // Verificar propiedad antes de editar
   const existing = await db.query.leagues.findFirst({ where: eq(leagues.id, id) });
   if (!existing) return apiError("Liga no encontrada", 404);
-  if (!canManageLeague(session, existing.adminId ?? null)) {
+  if (!canManageLeague(session, existing.organizationId ?? null)) {
     return apiError("Sin permiso para editar esta liga", 403);
   }
 
@@ -65,7 +69,10 @@ export async function PATCH(
       ...(parsed.data.dayOfWeek !== undefined && { dayOfWeek: parsed.data.dayOfWeek }),
       ...(parsed.data.season    !== undefined && { season:    parsed.data.season }),
       ...(parsed.data.status    !== undefined && { status:    parsed.data.status }),
-      ...(parsed.data.adminId   !== undefined && session.role === "owner" && { adminId: parsed.data.adminId }),
+      // Solo el owner puede reasignar la organización de una liga
+      ...(parsed.data.organizationId !== undefined && session.role === "owner" && {
+        organizationId: parsed.data.organizationId,
+      }),
     })
     .where(eq(leagues.id, id))
     .returning();
@@ -85,7 +92,7 @@ export async function DELETE(
 
   const existing = await db.query.leagues.findFirst({ where: eq(leagues.id, id) });
   if (!existing) return apiError("Liga no encontrada", 404);
-  if (!canManageLeague(session, existing.adminId ?? null)) {
+  if (!canManageLeague(session, existing.organizationId ?? null)) {
     return apiError("Sin permiso para eliminar esta liga", 403);
   }
 

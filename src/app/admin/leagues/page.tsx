@@ -52,6 +52,7 @@ export default async function LeaguesPage() {
             dayOfWeek: string;
             season: string;
             teams: unknown[];
+            organization?: { name: string } | null;
           }) => (
             <Link
               key={league.id}
@@ -60,6 +61,9 @@ export default async function LeaguesPage() {
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
+                  {league.organization && (
+                    <p className="text-xs text-gray-400 mb-0.5">{league.organization.name}</p>
+                  )}
                   <p className="font-semibold text-gray-800">{league.name}</p>
                   <p className="text-sm text-gray-500">{DAY_LABELS[league.dayOfWeek] ?? league.dayOfWeek} · {league.season}</p>
                 </div>

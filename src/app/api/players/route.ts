@@ -17,9 +17,9 @@ export async function GET(request: Request) {
   const city = await getRequestCity(request);
   const user = await getSessionUserFromRequest(request);
 
-  // Build the leagues filter: owners see all city leagues, organizers only their own
-  const leagueWhere = user && user.role !== "owner"
-    ? and(eq(leagues.city, city), eq(leagues.adminId, user.id))
+  // Build the leagues filter: owners see all city leagues, organizers only their org's leagues
+  const leagueWhere = user && user.role !== "owner" && user.organizationId
+    ? and(eq(leagues.city, city), eq(leagues.organizationId, user.organizationId))
     : eq(leagues.city, city);
 
   // Get league IDs for the city (scoped to user if organizer)

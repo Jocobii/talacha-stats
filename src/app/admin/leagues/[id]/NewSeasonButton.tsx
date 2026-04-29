@@ -4,13 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Props = {
-  leagueId: string;
-  leagueName: string;
-  dayOfWeek: string;
-  adminId: string | null;
+  leagueId:       string;
+  leagueName:     string;
+  dayOfWeek:      string;
+  organizationId: string | null;
 };
 
-export default function NewSeasonButton({ leagueId, leagueName, dayOfWeek, adminId }: Props) {
+export default function NewSeasonButton({ leagueId, leagueName, dayOfWeek, organizationId }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [season, setSeason] = useState("");
@@ -24,7 +24,7 @@ export default function NewSeasonButton({ leagueId, leagueName, dayOfWeek, admin
     setLoading(true);
     try {
       const body: Record<string, string> = { name: leagueName, dayOfWeek, season: season.trim() };
-      if (adminId) body.adminId = adminId;
+      if (organizationId) body.organizationId = organizationId;
 
       const res = await fetch("/api/leagues", {
         method: "POST",

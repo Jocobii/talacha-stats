@@ -7,7 +7,7 @@ import { getSessionUserFromRequest }          from "@/shared/lib/auth";
 // GET /api/leagues?city=Tijuana
 // Sin sesión (público) → solo ligas activas de la ciudad
 // owner              → todas las ligas de la ciudad
-// organizer          → solo las suyas
+// organizer          → solo las ligas de su organización
 export async function GET(request: Request) {
   const session = await getSessionUserFromRequest(request);
   const city    = await getRequestCity(request);
@@ -25,9 +25,14 @@ export async function GET(request: Request) {
   const rows = await db.query.leagues.findMany({
     where: session.role === "owner"
       ? eq(leagues.city, city)
-      : and(eq(leagues.city, city), eq(leagues.adminId, session.id)),
+      : session.organizationId
+        ? eq(leagues.organizationId, session.organizationId)
+        : and(eq(leagues.city, city), eq(leagues.status, "active")), // sin org → vacío
     orderBy: [desc(leagues.createdAt)],
-    with: { teams: true },
+    with: {
+      teams: true,
+      organization: { columns: { id: true, name: true, slug: true } },
+    },
   });
 
   return apiSuccess(rows);
@@ -42,20 +47,22 @@ export async function POST(request: Request) {
   const parsed = CreateLeagueSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.message);
 
-  const city    = await getActiveCity();
-  const adminId =
-    session.role === "owner" && parsed.data.adminId
-      ? parsed.data.adminId
-      : session.id;
+  const city = await getActiveCity();
+
+  // owner puede especificar cualquier org; organizer usa la suya automáticamente
+  const organizationId =
+    session.role === "owner" && parsed.data.organizationId
+      ? parsed.data.organizationId
+      : session.organizationId ?? null;
 
   const [league] = await db
     .insert(leagues)
     .values({
-      name:      parsed.data.name,
-      dayOfWeek: parsed.data.dayOfWeek,
-      season:    parsed.data.season,
+      name:           parsed.data.name,
+      dayOfWeek:      parsed.data.dayOfWeek,
+      season:         parsed.data.season,
       city,
-      adminId,
+      organizationId,
     })
     .returning();
 

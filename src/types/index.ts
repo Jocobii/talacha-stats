@@ -15,10 +15,10 @@ export const CreatePlayerSchema = z.object({
 export const UpdatePlayerSchema = CreatePlayerSchema.partial();
 
 export const CreateLeagueSchema = z.object({
-  name:      z.string().min(2).max(100),
-  dayOfWeek: z.enum(DAYS_OF_WEEK),
-  season:    z.string().min(2).max(50),
-  adminId:   z.string().uuid().optional(),
+  name:           z.string().min(2).max(100),
+  dayOfWeek:      z.enum(DAYS_OF_WEEK),
+  season:         z.string().min(2).max(50),
+  organizationId: z.string().uuid().optional(),
 });
 
 export const UpdateLeagueSchema = CreateLeagueSchema.partial().extend({
