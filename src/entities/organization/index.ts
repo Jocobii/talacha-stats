@@ -25,6 +25,7 @@ export {
 	// Público — hub
 	getLeagueSnapshot,
 	getOrgHubStats,
+	getLeaguesShowcase,
 	// Escritura
 	createOrganization,
 	updateOrganization,
@@ -32,4 +33,4 @@ export {
 	setUserOrganization,
 } from "./queries";
 
-export type { LeagueSnapshot, OrgHubStats } from "./queries";
+export type { LeagueSnapshot, OrgHubStats, LeagueShowcaseItem } from "./queries";

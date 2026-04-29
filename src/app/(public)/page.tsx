@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { Suspense }       from "react";
-import HeroSection        from "./HeroSection";
-import StatsBar           from "./StatsBar";
-import LeaguesTeaser      from "./LeaguesTeaser";
-import LeaderboardTeaser  from "./LeaderboardTeaser";
-import FeaturesSection    from "./FeaturesSection";
+import HeroSection       from "./HeroSection";
+import StatsBar          from "./StatsBar";
+import LeaderboardTeaser from "./LeaderboardTeaser";
+import LeaguesShowcase   from "./LeaguesShowcase";
+import OrganizerSection  from "./OrganizerSection";
+import FeaturesSection   from "./FeaturesSection";
+import { getLeaguesShowcase } from "@/entities/organization";
+import { getActiveCity } from "@/shared/lib/active-city";
 
 export const metadata: Metadata = {
   title: "TalachaStats — Tu historial de goles en todas las ligas",
@@ -12,25 +14,31 @@ export const metadata: Metadata = {
     "Estadísticas cross-liga para jugadores amateurs de fútbol 7 en Tijuana. Todos tus goles, todas tus ligas, un solo perfil.",
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const city = await getActiveCity();
+  const showcaseLeagues = await getLeaguesShowcase(city, 6);
+
   return (
     <div className="text-ink flex flex-col flex-1">
-      {/* Hero: fondo de cancha + glow + números fantasma + card animada */}
+
+      {/* Para el jugador — hero con puerta al organizador */}
       <HeroSection />
 
-      {/* Contadores */}
+      {/* Idea 1: números de la plataforma que cuentan al hacer scroll */}
       <StatsBar />
 
-      {/* Ligas activas — vitrina de organizaciones */}
-      <Suspense>
-        <LeaguesTeaser />
-      </Suspense>
-
-      {/* Mini leaderboard */}
+      {/* Idea 3: mini ranking — jugadores como protagonistas */}
       <LeaderboardTeaser />
 
-      {/* Features con scroll reveal */}
+      {/* Idea 2: vitrina de ligas registradas — datos reales de DB */}
+      <LeaguesShowcase leagues={showcaseLeagues} />
+
+      {/* Idea 1: sección "Para tu liga" — el organizador como protagonista */}
+      <OrganizerSection />
+
+      {/* Features generales con scroll reveal */}
       <FeaturesSection />
+
     </div>
   );
 }
