@@ -10,6 +10,7 @@ import {
 } from "@/entities/organization";
 import { titleCase } from "@/shared/lib/normalize";
 import ShareLeagueButton from "./ShareLeagueButton";
+import ScorerCard, { type ScorerData } from "./ScorerCard";
 
 type Props = { params: Promise<{ slug: string; leagueSlug: string }> };
 
@@ -151,45 +152,8 @@ export default async function LeaguePublicPage({ params }: Props) {
               <EmptyState text="Aún no hay estadísticas de goleadores." />
             ) : (
               <div className="space-y-1.5">
-                {scorers.map((scorer, idx) => (
-                  <div
-                    key={scorer.playerId}
-                    className="flex items-center gap-3 bg-surface-2 border border-line rounded-2xl px-4 py-3"
-                  >
-                    {/* Pos */}
-                    {idx < 3 ? (
-                      <div className="w-7 h-7 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
-                        <span className="font-display font-black text-sm text-brand">{idx + 1}</span>
-                      </div>
-                    ) : (
-                      <div className="w-7 text-center shrink-0 font-display font-black text-sm text-ink-3">
-                        {idx + 1}
-                      </div>
-                    )}
-
-                    {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-pitch font-display font-black text-sm shrink-0">
-                      {(scorer.alias ?? scorer.fullName).charAt(0).toUpperCase()}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-ink truncate">
-                        {scorer.alias ? `"${scorer.alias}"` : scorer.fullName}
-                      </p>
-                      <p className="text-xs text-ink-3 truncate">{scorer.teamName}</p>
-                    </div>
-
-                    {/* Goles */}
-                    <div className="text-right shrink-0">
-                      <p className={`font-display font-black text-xl leading-none ${idx < 3 ? "text-brand" : "text-ink"}`}>
-                        {scorer.goals}
-                      </p>
-                      {scorer.assists > 0 && (
-                        <p className="text-[10px] text-ink-3">{scorer.assists} ast</p>
-                      )}
-                    </div>
-                  </div>
+                {scorers.map((scorer: ScorerData, idx: number) => (
+                  <ScorerCard key={scorer.playerId} scorer={scorer} rank={idx + 1} />
                 ))}
               </div>
             )}

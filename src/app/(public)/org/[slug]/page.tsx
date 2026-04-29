@@ -7,9 +7,16 @@ import {
   getLeagueSnapshot,
   getOrgHubStats,
 } from "@/entities/organization";
-import OrgHeroHeader from "./OrgHeroHeader";
-import OrgStatsStrip from "./OrgStatsStrip";
-import LeagueSnapshotCard from "./LeagueSnapshotCard";
+import {
+  buildLeagueStories,
+  buildTickerItems,
+  buildNarrativeLine,
+} from "@/features/org-hub";
+import OrgHeroHeader        from "./OrgHeroHeader";
+import OrgStatsStrip        from "./OrgStatsStrip";
+import OrgTicker            from "./OrgTicker";
+import LeagueStoryCarousel  from "./LeagueStoryCarousel";
+import LeagueNarrativeCard  from "./LeagueNarrativeCard";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -30,26 +37,34 @@ export default async function OrgPublicPage({ params }: Props) {
 
   const totalTeams = org.leagues.reduce((acc, l) => acc + l.teams.length, 0);
 
-  // Fetch paralelo: stats del hub + snapshot de cada liga
   const [hubStats, snapshots] = await Promise.all([
     getOrgHubStats(org.id),
     Promise.all(org.leagues.map((l) => getLeagueSnapshot(l.id))),
   ]);
 
+  // Transformaciones de datos — toda la lógica de negocio en features/
+  const tickerItems = buildTickerItems(org.leagues, snapshots);
+  const leagueData = org.leagues.map((league, i) => ({
+    league,
+    snapshot: snapshots[i],
+    stories:   buildLeagueStories(league, snapshots[i], hubStats.totalGoals),
+    narrative: buildNarrativeLine(league, snapshots[i]),
+  }));
+
   return (
     <div className="text-ink flex flex-col flex-1 bg-pitch">
 
-      {/* ── Header con glow de fondo ── */}
-      <header className="relative px-5 pt-8 pb-0 max-w-lg mx-auto w-full overflow-hidden">
+      {/* ── Header — info de org + grid de stats ── */}
+      <header className="relative px-5 pt-8 pb-5 overflow-hidden">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0"
           style={{
-            background: "radial-gradient(ellipse at 80% 40%, rgba(0,230,118,0.07) 0%, transparent 60%)",
+            background:
+              "radial-gradient(ellipse at 70% 40%, rgba(0,230,118,0.07) 0%, transparent 60%)",
           }}
         />
-
-        <div className="relative z-10 pb-6">
+        <div className="relative z-10 max-w-lg mx-auto">
           <Link
             href="/ligas"
             className="inline-flex items-center gap-1.5 text-ink-3 hover:text-ink text-sm transition mb-5"
@@ -66,32 +81,41 @@ export default async function OrgPublicPage({ params }: Props) {
             totalTeams={totalTeams}
           />
 
+          {/* Grid de 3 stats — llena el header, elimina el vacío */}
           <OrgStatsStrip stats={hubStats} totalTeams={totalTeams} />
         </div>
       </header>
 
-      {/* ── Ligas ── */}
-      <div className="flex-1 bg-surface rounded-t-3xl px-4 pt-5 pb-16">
-        <div className="max-w-lg mx-auto">
-          <h2 className="text-xs font-bold text-ink-3 uppercase tracking-widest mb-3">
-            Ligas activas
-          </h2>
+      {/* ── Ticker B ── */}
+      {tickerItems.length > 0 && <OrgTicker items={tickerItems} />}
+
+      {/* ── Ligas: carrusel A + narrativa D — sin corte visual ── */}
+      <div className="flex-1 bg-surface px-4 pt-5 pb-16">
+        <div className="max-w-lg mx-auto space-y-8">
 
           {org.leagues.length === 0 ? (
             <p className="text-sm text-ink-3 text-center py-10">
               No hay ligas activas en este momento.
             </p>
           ) : (
-            <div className="space-y-2">
-              {org.leagues.map((league, i) => (
-                <LeagueSnapshotCard
-                  key={league.id}
+            leagueData.map(({ league, snapshot, stories, narrative }) => (
+              <section key={league.id} className="space-y-3">
+                <h2 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest px-0.5">
+                  {league.name}
+                </h2>
+
+                {/* A — carrusel rotante */}
+                <LeagueStoryCarousel stories={stories} />
+
+                {/* D — narrativa + stats + link */}
+                <LeagueNarrativeCard
                   league={league}
-                  snapshot={snapshots[i]}
+                  snapshot={snapshot}
+                  narrative={narrative}
                   orgSlug={org.slug}
                 />
-              ))}
-            </div>
+              </section>
+            ))
           )}
         </div>
       </div>

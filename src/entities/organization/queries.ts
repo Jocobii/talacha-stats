@@ -194,12 +194,13 @@ export async function getLatestStandings(leagueId: string) {
 export async function getLatestTopScorers(leagueId: string, limit = 10) {
 	return db
 		.select({
-			playerId: playerSeasonStats.playerId,
-			fullName: players.fullName,
-			alias: players.alias,
-			goals: playerSeasonStats.goals,
-			assists: playerSeasonStats.assists,
-			teamName: teams.name,
+			playerId:      playerSeasonStats.playerId,
+			fullName:      players.fullName,
+			alias:         players.alias,
+			goals:         playerSeasonStats.goals,
+			assists:       playerSeasonStats.assists,
+			matchesPlayed: playerSeasonStats.matchesPlayed,
+			teamName:      teams.name,
 		})
 		.from(playerSeasonStats)
 		.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
@@ -289,6 +290,10 @@ export type LeagueShowcaseItem = {
 	teamCount: number;
 	playerCount: number;
 	topScorer: { fullName: string; alias: string | null; goals: number } | null;
+	/** Slug de la organización dueña de la liga. Null si la liga no tiene org. */
+	orgSlug: string | null;
+	/** Slug de la propia liga. Null si aún no fue asignado. */
+	leagueSlug: string | null;
 };
 
 /**
@@ -301,7 +306,10 @@ export async function getLeaguesShowcase(
 ): Promise<LeagueShowcaseItem[]> {
 	const activeLeagues = await db.query.leagues.findMany({
 		where: and(eq(leagues.city, city), eq(leagues.status, "active")),
-		with: { teams: { columns: { id: true } } },
+		with: {
+			teams:        { columns: { id: true } },
+			organization: { columns: { slug: true } },
+		},
 		orderBy: [desc(leagues.createdAt)],
 		limit,
 	});
@@ -362,6 +370,8 @@ export async function getLeaguesShowcase(
 			topScorer: scorer
 				? { fullName: scorer.fullName, alias: scorer.alias, goals: scorer.goals }
 				: null,
+			orgSlug:    league.organization?.slug ?? null,
+			leagueSlug: league.slug ?? null,
 		};
 	});
 }

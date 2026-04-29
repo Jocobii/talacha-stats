@@ -89,16 +89,18 @@ function LeagueCardItem({ league, delay, visible }: {
         )}
       </div>
 
-      {/* CTA */}
-      <div className="px-4 pb-3.5">
-        <Link
-          href={`/ranking?scope=league`}
-          className="flex items-center justify-center gap-1 w-full text-xs font-semibold text-ink-3 group-hover:text-brand border border-line group-hover:border-brand/30 py-2 rounded-xl transition"
-        >
-          Ver liga
-          <ChevronRight size={12} strokeWidth={2} />
-        </Link>
-      </div>
+      {/* CTA — solo se muestra si hay URL real */}
+      {league.orgSlug && league.leagueSlug && (
+        <div className="px-4 pb-3.5">
+          <Link
+            href={`/org/${league.orgSlug}/${league.leagueSlug}`}
+            className="flex items-center justify-center gap-1 w-full text-xs font-semibold text-ink-3 group-hover:text-brand border border-line group-hover:border-brand/30 py-2 rounded-xl transition"
+          >
+            Ver liga
+            <ChevronRight size={12} strokeWidth={2} />
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
