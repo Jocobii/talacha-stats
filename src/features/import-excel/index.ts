@@ -26,3 +26,13 @@ export {
   type PlayerCandidate,
   type CandidateTeam,
 } from "./resolver";
+
+export {
+  detectAnomalies,
+  type AnomalyInput,
+  type AnomalyReport,
+  type AnomalyFlag,
+  type AnomalyLevel,
+  type AnomalyRuleId,
+  type HistoricalSnapshot,
+} from "./anomaly-detector";
