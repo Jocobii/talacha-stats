@@ -19,8 +19,7 @@
 
 import { sql } from "drizzle-orm";
 import { and, desc, eq, ilike, inArray } from "drizzle-orm";
-import { db, leagues, playerRegistrations, players, teams } from "@/db";
-import { sanitizeName } from "@/shared/lib/normalize";
+import { db, leagues, playerRegistrations, teams } from "@/db";
 
 // ---------------------------------------------------------------------------
 // Constantes de matching
@@ -42,43 +41,43 @@ const DOMINANT_GAP_MIN = 0.25;
 // ---------------------------------------------------------------------------
 
 export type CandidateTeam = {
-  teamName: string;
-  leagueName: string;
+	teamName: string;
+	leagueName: string;
 };
 
 export type PlayerCandidate = {
-  id: string;
-  fullName: string;
-  alias: string | null;
-  teams: CandidateTeam[];
+	id: string;
+	fullName: string;
+	alias: string | null;
+	teams: CandidateTeam[];
 };
 
 export type PlayerResolution = {
-  rawName: string;
-  teamName: string;
-  /** true si se encontró exactamente 1 candidato o hay un candidato dominante */
-  found: boolean;
-  /** playerId del candidato auto-confirmado (solo si found=true) */
-  playerId?: string;
-  candidates: PlayerCandidate[];
+	rawName: string;
+	teamName: string;
+	/** true si se encontró exactamente 1 candidato o hay un candidato dominante */
+	found: boolean;
+	/** playerId del candidato auto-confirmado (solo si found=true) */
+	playerId?: string;
+	candidates: PlayerCandidate[];
 };
 
 export type ResolverInput = {
-  /** Nombres únicos de jugadores tal como vienen del Excel (ya sanitizados) */
-  playerNames: string[];
-  /** Nombres únicos de equipos tal como vienen del Excel (ya sanitizados) */
-  teamNames: string[];
-  leagueId: string;
-  city: string;
+	/** Nombres únicos de jugadores tal como vienen del Excel (ya sanitizados) */
+	playerNames: string[];
+	/** Nombres únicos de equipos tal como vienen del Excel (ya sanitizados) */
+	teamNames: string[];
+	leagueId: string;
+	city: string;
 };
 
 export type ResolverOutput = {
-  playerResolutions: PlayerResolution[];
-  /**
-   * Mapa de nombre normalizado → teamId existente en la liga, o null si no existe.
-   * Los equipos con null deberán crearse durante el confirm.
-   */
-  teamMap: Map<string, string | null>;
+	playerResolutions: PlayerResolution[];
+	/**
+	 * Mapa de nombre normalizado → teamId existente en la liga, o null si no existe.
+	 * Los equipos con null deberán crearse durante el confirm.
+	 */
+	teamMap: Map<string, string | null>;
 };
 
 // ---------------------------------------------------------------------------
@@ -86,11 +85,11 @@ export type ResolverOutput = {
 // ---------------------------------------------------------------------------
 
 type SimilarityRow = {
-  query_name: string;
-  id: string;
-  full_name: string;
-  alias: string | null;
-  score: number;
+	query_name: string;
+	id: string;
+	full_name: string;
+	alias: string | null;
+	score: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -102,16 +101,16 @@ type SimilarityRow = {
  * Máximo 4 queries independientemente del tamaño del input.
  */
 export async function resolveImportEntities(
-  input: ResolverInput,
+	input: ResolverInput,
 ): Promise<ResolverOutput> {
-  const { playerNames, teamNames, leagueId, city } = input;
+	const { playerNames, teamNames, leagueId, city } = input;
 
-  const [playerResolutions, teamMap] = await Promise.all([
-    resolvePlayersBatch(playerNames, city),
-    resolveTeamsBatch(teamNames, leagueId),
-  ]);
+	const [playerResolutions, teamMap] = await Promise.all([
+		resolvePlayersBatch(playerNames, city),
+		resolveTeamsBatch(teamNames, leagueId),
+	]);
 
-  return { playerResolutions, teamMap };
+	return { playerResolutions, teamMap };
 }
 
 // ---------------------------------------------------------------------------
@@ -119,16 +118,16 @@ export async function resolveImportEntities(
 // ---------------------------------------------------------------------------
 
 async function resolvePlayersBatch(
-  names: string[],
-  city: string,
+	names: string[],
+	city: string,
 ): Promise<PlayerResolution[]> {
-  if (names.length === 0) return [];
+	if (names.length === 0) return [];
 
-  // ── Query 1: city-scoped batch similarity ─────────────────────────────────
-  // Resuelve todos los nombres en una sola query usando unnest.
-  // Drizzle no soporta unnest como función de tabla — usamos db.execute(sql``)
-  // que es el patrón aprobado en CLAUDE.md para operaciones no soportadas.
-  const cityRows = await db.execute<SimilarityRow>(sql`
+	// ── Query 1: city-scoped batch similarity ─────────────────────────────────
+	// Resuelve todos los nombres en una sola query usando unnest.
+	// Drizzle no soporta unnest como función de tabla — usamos db.execute(sql``)
+	// que es el patrón aprobado en CLAUDE.md para operaciones no soportadas.
+	const cityRows = await db.execute<SimilarityRow>(sql`
     SELECT DISTINCT ON (query_name, p.id)
       query_name,
       p.id,
@@ -156,17 +155,17 @@ async function resolvePlayersBatch(
     ORDER BY query_name, p.id, score DESC
   `);
 
-  // Agrupar resultados de city por query_name
-  const cityByName = groupByQueryName(cityRows.rows);
+	// Agrupar resultados de city por query_name
+	const cityByName = groupByQueryName(cityRows.rows);
 
-  // Identificar nombres sin resultado en city → necesitan fallback global
-  const unresolvedNames = names.filter((n) => !cityByName.has(n));
+	// Identificar nombres sin resultado en city → necesitan fallback global
+	const unresolvedNames = names.filter((n) => !cityByName.has(n));
 
-  // ── Query 2: global fallback (solo para nombres no resueltos en ciudad) ───
-  let globalByName = new Map<string, SimilarityRow[]>();
+	// ── Query 2: global fallback (solo para nombres no resueltos en ciudad) ───
+	let globalByName = new Map<string, SimilarityRow[]>();
 
-  if (unresolvedNames.length > 0) {
-    const globalRows = await db.execute<SimilarityRow>(sql`
+	if (unresolvedNames.length > 0) {
+		const globalRows = await db.execute<SimilarityRow>(sql`
       SELECT
         query_name,
         p.id,
@@ -186,37 +185,40 @@ async function resolvePlayersBatch(
       ORDER BY query_name, score DESC
     `);
 
-    globalByName = groupByQueryName(globalRows.rows);
-  }
+		globalByName = groupByQueryName(globalRows.rows);
+	}
 
-  // Combinar: city tiene prioridad, global como fallback
-  const allMatchesByName = new Map<string, SimilarityRow[]>();
-  for (const name of names) {
-    allMatchesByName.set(name, cityByName.get(name) ?? globalByName.get(name) ?? []);
-  }
+	// Combinar: city tiene prioridad, global como fallback
+	const allMatchesByName = new Map<string, SimilarityRow[]>();
+	for (const name of names) {
+		allMatchesByName.set(
+			name,
+			cityByName.get(name) ?? globalByName.get(name) ?? [],
+		);
+	}
 
-  // ── Query 3: enrich con equipos activos (batch por IDs) ───────────────────
-  const allCandidateIds = [
-    ...new Set([...allMatchesByName.values()].flat().map((r) => r.id)),
-  ];
-  const enrichedCandidates = await enrichWithActiveTeams(allCandidateIds);
-  const candidateMap = new Map(enrichedCandidates.map((c) => [c.id, c]));
+	// ── Query 3: enrich con equipos activos (batch por IDs) ───────────────────
+	const allCandidateIds = [
+		...new Set([...allMatchesByName.values()].flat().map((r) => r.id)),
+	];
+	const enrichedCandidates = await enrichWithActiveTeams(allCandidateIds);
+	const candidateMap = new Map(enrichedCandidates.map((c) => [c.id, c]));
 
-  // ── Construir resoluciones finales ────────────────────────────────────────
-  return names.map((name) => {
-    const matches = (allMatchesByName.get(name) ?? [])
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+	// ── Construir resoluciones finales ────────────────────────────────────────
+	return names.map((name) => {
+		const matches = (allMatchesByName.get(name) ?? [])
+			.sort((a, b) => b.score - a.score)
+			.slice(0, 5);
 
-    const candidates: PlayerCandidate[] = matches.map((m) => ({
-      id: m.id,
-      fullName: m.full_name,
-      alias: m.alias,
-      teams: candidateMap.get(m.id)?.teams ?? [],
-    }));
+		const candidates: PlayerCandidate[] = matches.map((m) => ({
+			id: m.id,
+			fullName: m.full_name,
+			alias: m.alias,
+			teams: candidateMap.get(m.id)?.teams ?? [],
+		}));
 
-    return classify(name, matches, candidates);
-  });
+		return classify(name, matches, candidates);
+	});
 }
 
 // ---------------------------------------------------------------------------
@@ -224,49 +226,49 @@ async function resolvePlayersBatch(
 // ---------------------------------------------------------------------------
 
 async function resolveTeamsBatch(
-  teamNames: string[],
-  leagueId: string,
+	teamNames: string[],
+	leagueId: string,
 ): Promise<Map<string, string | null>> {
-  const teamMap = new Map<string, string | null>(
-    teamNames.map((n) => [n, null]),
-  );
+	const teamMap = new Map<string, string | null>(
+		teamNames.map((n) => [n, null]),
+	);
 
-  if (teamNames.length === 0) return teamMap;
+	if (teamNames.length === 0) return teamMap;
 
-  // ── Query 4: equipos existentes en la liga ────────────────────────────────
-  // Usamos ilike con OR para cubrir variaciones menores de mayúsculas/acentos.
-  // Para listas grandes esto sigue siendo una sola query.
-  const existingTeams = await db.query.teams.findMany({
-    where: and(
-      eq(teams.leagueId, leagueId),
-      inArray(
-        teams.name,
-        teamNames, // exact match primero (sanitizeName ya normalizó a lowercase)
-      ),
-    ),
-    columns: { id: true, name: true },
-  });
+	// ── Query 4: equipos existentes en la liga ────────────────────────────────
+	// Usamos ilike con OR para cubrir variaciones menores de mayúsculas/acentos.
+	// Para listas grandes esto sigue siendo una sola query.
+	const existingTeams = await db.query.teams.findMany({
+		where: and(
+			eq(teams.leagueId, leagueId),
+			inArray(
+				teams.name,
+				teamNames, // exact match primero (sanitizeName ya normalizó a lowercase)
+			),
+		),
+		columns: { id: true, name: true },
+	});
 
-  // Primer paso: exact match (sanitizeName garantiza lowercase en ambos lados)
-  for (const team of existingTeams) {
-    teamMap.set(team.name, team.id);
-  }
+	// Primer paso: exact match (sanitizeName garantiza lowercase en ambos lados)
+	for (const team of existingTeams) {
+		teamMap.set(team.name, team.id);
+	}
 
-  // Segundo paso: fuzzy ilike para nombres que no matchearon exacto
-  // (diferencias de espacios, tildes que no pasaron por sanitizeName, etc.)
-  const stillUnresolved = teamNames.filter((n) => teamMap.get(n) === null);
+	// Segundo paso: fuzzy ilike para nombres que no matchearon exacto
+	// (diferencias de espacios, tildes que no pasaron por sanitizeName, etc.)
+	const stillUnresolved = teamNames.filter((n) => teamMap.get(n) === null);
 
-  if (stillUnresolved.length > 0) {
-    for (const name of stillUnresolved) {
-      const found = await db.query.teams.findFirst({
-        where: and(ilike(teams.name, name), eq(teams.leagueId, leagueId)),
-        columns: { id: true },
-      });
-      if (found) teamMap.set(name, found.id);
-    }
-  }
+	if (stillUnresolved.length > 0) {
+		for (const name of stillUnresolved) {
+			const found = await db.query.teams.findFirst({
+				where: and(ilike(teams.name, name), eq(teams.leagueId, leagueId)),
+				columns: { id: true },
+			});
+			if (found) teamMap.set(name, found.id);
+		}
+	}
 
-  return teamMap;
+	return teamMap;
 }
 
 // ---------------------------------------------------------------------------
@@ -274,41 +276,41 @@ async function resolveTeamsBatch(
 // ---------------------------------------------------------------------------
 
 async function enrichWithActiveTeams(
-  playerIds: string[],
+	playerIds: string[],
 ): Promise<PlayerCandidate[]> {
-  if (playerIds.length === 0) return [];
+	if (playerIds.length === 0) return [];
 
-  const rows = await db
-    .select({
-      playerId: playerRegistrations.playerId,
-      teamName: teams.name,
-      leagueName: leagues.name,
-    })
-    .from(playerRegistrations)
-    .innerJoin(teams, eq(teams.id, playerRegistrations.teamId))
-    .innerJoin(leagues, eq(leagues.id, playerRegistrations.leagueId))
-    .where(
-      and(
-        inArray(playerRegistrations.playerId, playerIds),
-        eq(leagues.status, "active"),
-      ),
-    )
-    .orderBy(desc(leagues.createdAt));
+	const rows = await db
+		.select({
+			playerId: playerRegistrations.playerId,
+			teamName: teams.name,
+			leagueName: leagues.name,
+		})
+		.from(playerRegistrations)
+		.innerJoin(teams, eq(teams.id, playerRegistrations.teamId))
+		.innerJoin(leagues, eq(leagues.id, playerRegistrations.leagueId))
+		.where(
+			and(
+				inArray(playerRegistrations.playerId, playerIds),
+				eq(leagues.status, "active"),
+			),
+		)
+		.orderBy(desc(leagues.createdAt));
 
-  // Agrupar por playerId
-  const teamsByPlayer = new Map<string, CandidateTeam[]>();
-  for (const row of rows) {
-    const list = teamsByPlayer.get(row.playerId) ?? [];
-    list.push({ teamName: row.teamName, leagueName: row.leagueName });
-    teamsByPlayer.set(row.playerId, list);
-  }
+	// Agrupar por playerId
+	const teamsByPlayer = new Map<string, CandidateTeam[]>();
+	for (const row of rows) {
+		const list = teamsByPlayer.get(row.playerId) ?? [];
+		list.push({ teamName: row.teamName, leagueName: row.leagueName });
+		teamsByPlayer.set(row.playerId, list);
+	}
 
-  return playerIds.map((id) => ({
-    id,
-    fullName: "", // se sobreescribe en el caller con full_name de la query de similitud
-    alias: null,
-    teams: teamsByPlayer.get(id) ?? [],
-  }));
+	return playerIds.map((id) => ({
+		id,
+		fullName: "", // se sobreescribe en el caller con full_name de la query de similitud
+		alias: null,
+		teams: teamsByPlayer.get(id) ?? [],
+	}));
 }
 
 // ---------------------------------------------------------------------------
@@ -316,46 +318,46 @@ async function enrichWithActiveTeams(
 // ---------------------------------------------------------------------------
 
 function classify(
-  rawName: string,
-  matches: SimilarityRow[],
-  candidates: PlayerCandidate[],
+	rawName: string,
+	matches: SimilarityRow[],
+	candidates: PlayerCandidate[],
 ): PlayerResolution {
-  // Sin candidatos → jugador nuevo
-  if (matches.length === 0) {
-    return { rawName, teamName: "", found: false, candidates: [] };
-  }
+	// Sin candidatos → jugador nuevo
+	if (matches.length === 0) {
+		return { rawName, teamName: "", found: false, candidates: [] };
+	}
 
-  // Match exacto o único candidato → auto-confirmar
-  const isExact = matches[0].score >= 0.95;
-  const isUnique = matches.length === 1;
+	// Match exacto o único candidato → auto-confirmar
+	const isExact = matches[0].score >= 0.95;
+	const isUnique = matches.length === 1;
 
-  if (isExact || isUnique) {
-    return {
-      rawName,
-      teamName: candidates[0]?.teams[0]?.teamName ?? "",
-      found: true,
-      playerId: matches[0].id,
-      candidates,
-    };
-  }
+	if (isExact || isUnique) {
+		return {
+			rawName,
+			teamName: candidates[0]?.teams[0]?.teamName ?? "",
+			found: true,
+			playerId: matches[0].id,
+			candidates,
+		};
+	}
 
-  // Candidato dominante: score alto y ventaja clara sobre el segundo
-  const isDominant =
-    matches[0].score >= DOMINANT_SCORE_MIN &&
-    matches[0].score - matches[1].score >= DOMINANT_GAP_MIN;
+	// Candidato dominante: score alto y ventaja clara sobre el segundo
+	const isDominant =
+		matches[0].score >= DOMINANT_SCORE_MIN &&
+		matches[0].score - matches[1].score >= DOMINANT_GAP_MIN;
 
-  if (isDominant) {
-    return {
-      rawName,
-      teamName: candidates[0]?.teams[0]?.teamName ?? "",
-      found: true,
-      playerId: matches[0].id,
-      candidates,
-    };
-  }
+	if (isDominant) {
+		return {
+			rawName,
+			teamName: candidates[0]?.teams[0]?.teamName ?? "",
+			found: true,
+			playerId: matches[0].id,
+			candidates,
+		};
+	}
 
-  // Ambiguo → requiere selección manual
-  return { rawName, teamName: "", found: false, candidates };
+	// Ambiguo → requiere selección manual
+	return { rawName, teamName: "", found: false, candidates };
 }
 
 // ---------------------------------------------------------------------------
@@ -363,23 +365,21 @@ function classify(
 // ---------------------------------------------------------------------------
 
 /** Agrupa filas de similitud por query_name, ordenadas por score desc. */
-function groupByQueryName(
-  rows: SimilarityRow[],
-): Map<string, SimilarityRow[]> {
-  const map = new Map<string, SimilarityRow[]>();
-  for (const row of rows) {
-    const list = map.get(row.query_name) ?? [];
-    list.push(row);
-    map.set(row.query_name, list);
-  }
-  // ordenar cada grupo por score desc
-  for (const [key, list] of map) {
-    map.set(
-      key,
-      list.sort((a, b) => b.score - a.score),
-    );
-  }
-  return map;
+function groupByQueryName(rows: SimilarityRow[]): Map<string, SimilarityRow[]> {
+	const map = new Map<string, SimilarityRow[]>();
+	for (const row of rows) {
+		const list = map.get(row.query_name) ?? [];
+		list.push(row);
+		map.set(row.query_name, list);
+	}
+	// ordenar cada grupo por score desc
+	for (const [key, list] of map) {
+		map.set(
+			key,
+			list.sort((a, b) => b.score - a.score),
+		);
+	}
+	return map;
 }
 
 /**
@@ -389,5 +389,5 @@ function groupByQueryName(
  * único lugar donde se construye SQL con valores de usuario.
  */
 function escapeSql(value: string): string {
-  return value.replace(/'/g, "''").replace(/\\/g, "\\\\");
+	return value.replace(/'/g, "''").replace(/\\/g, "\\\\");
 }

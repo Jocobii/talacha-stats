@@ -106,7 +106,7 @@ function EventList({ title, events }: {
             <li key={e.id} className="flex items-center gap-2 text-sm">
               <span>{EVENT_LABELS[e.eventType] ?? e.eventType}</span>
               <span className="font-medium text-gray-800">{e.player.alias ?? e.player.fullName}</span>
-              {e.minute && <span className="text-gray-400 text-xs">{e.minute}'</span>}
+              {e.minute && <span className="text-gray-400 text-xs">{e.minute}&apos;</span>}
             </li>
           ))}
         </ul>

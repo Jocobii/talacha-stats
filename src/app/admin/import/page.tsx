@@ -309,19 +309,6 @@ export default function ImportPage() {
     setExcludedRows(new Set());
   }
 
-  async function handleBackfill() {
-    if (!confirm("¿Copiar los datos actuales de goleadores al historial de jornadas? Esto es necesario una sola vez para activar los indicadores de posición ganada/perdida.")) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/import/backfill-snapshots", { method: "POST" });
-      const data = await res.json();
-      if (data.ok) alert(`✅ ${data.data.message}`);
-      else alert(`❌ ${data.error}`);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   const headerCols = excelPreview[headerRow] ?? [];
   const fields = importType === "goleadores" ? GOLEADORES_FIELDS : STANDINGS_FIELDS;
 

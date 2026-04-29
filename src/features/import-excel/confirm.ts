@@ -188,15 +188,22 @@ async function confirmGoleadores(
 			})
 			.filter((v): v is NonNullable<typeof v> => v !== null);
 
-		if (registrationValues.length > 0) {
+		// Dedup registrations por (playerId, leagueId) — UNIQUE constraint de la tabla
+		const regMap = new Map<string, { playerId: string; teamId: string; leagueId: string }>();
+		for (const r of registrationValues) {
+			regMap.set(`${r.playerId}:${r.leagueId}`, r);
+		}
+		const regValuesDeduped = [...regMap.values()];
+
+		if (regValuesDeduped.length > 0) {
 			await tx
 				.insert(playerRegistrations)
-				.values(registrationValues)
+				.values(regValuesDeduped)
 				.onConflictDoNothing();
 		}
 
 		// Paso 4: Upsert player_season_stats en batch
-		const statsValues = rows
+		const statsValuesRaw = rows
 			.map((r) => {
 				const playerId = rawNameToPlayerId.get(r.rawName);
 				if (!playerId) {
@@ -223,6 +230,14 @@ async function confirmGoleadores(
 			})
 			.filter((v): v is NonNullable<typeof v> => v !== null);
 
+		// Dedup por (playerId, leagueId) — mismo jugador dos veces en el Excel
+		// Se conserva la última ocurrencia (orden del Excel)
+		const statsMap = new Map<string, typeof statsValuesRaw[0]>();
+		for (const s of statsValuesRaw) {
+			statsMap.set(`${s.playerId}:${s.leagueId}`, s);
+		}
+		const statsValues = [...statsMap.values()];
+
 		if (statsValues.length > 0) {
 			await tx
 				.insert(playerSeasonStats)
@@ -244,7 +259,7 @@ async function confirmGoleadores(
 
 		// Paso 5: Upsert snapshot por jornada en batch
 		if (jornada != null) {
-			const snapshotValues = statsValues.map((s) => ({
+			const snapshotValuesRaw = statsValues.map((s) => ({
 				playerId: s.playerId,
 				leagueId: s.leagueId,
 				teamId: s.teamId,
@@ -256,6 +271,13 @@ async function confirmGoleadores(
 				matchesPlayed: s.matchesPlayed,
 				importedAt: new Date(),
 			}));
+
+			// Dedup por (playerId, leagueId, jornada)
+			const snapMap = new Map<string, typeof snapshotValuesRaw[0]>();
+			for (const s of snapshotValuesRaw) {
+				snapMap.set(`${s.playerId}:${s.leagueId}:${s.jornada}`, s);
+			}
+			const snapshotValues = [...snapMap.values()];
 
 			if (snapshotValues.length > 0) {
 				await tx
