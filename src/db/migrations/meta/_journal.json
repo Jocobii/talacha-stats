@@ -64,6 +64,13 @@
       "when": 1777445092445,
       "tag": "0008_talented_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1777500000000,
+      "tag": "0009_league_slugs",
+      "breakpoints": false
     }
   ]
 }
