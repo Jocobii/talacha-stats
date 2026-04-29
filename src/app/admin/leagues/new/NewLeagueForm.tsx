@@ -14,15 +14,21 @@ const DAYS = [
   { value: "domingo",   label: "Domingo" },
 ];
 
-type Organizer = { id: string; name: string; email: string };
+type Organization = { id: string; name: string; city: string };
 
-export default function NewLeagueForm({ organizers }: { organizers: Organizer[] }) {
+export default function NewLeagueForm({
+  organizations,
+  defaultOrganizationId,
+}: {
+  organizations: Organization[];
+  defaultOrganizationId?: string; // pre-selecciona la org del organizador
+}) {
   const router = useRouter();
   const [form, setForm] = useState({
     name: "",
     dayOfWeek: "lunes",
     season: "",
-    adminId: "",
+    organizationId: defaultOrganizationId ?? (organizations[0]?.id ?? ""),
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -33,20 +39,22 @@ export default function NewLeagueForm({ organizers }: { organizers: Organizer[] 
       setError("Nombre y temporada son obligatorios.");
       return;
     }
+    if (!form.organizationId) {
+      setError("Debes seleccionar una organización.");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
-      const body: Record<string, string> = {
-        name: form.name,
-        dayOfWeek: form.dayOfWeek,
-        season: form.season,
-      };
-      if (form.adminId) body.adminId = form.adminId;
-
       const res = await fetch("/api/leagues", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          name:           form.name,
+          dayOfWeek:      form.dayOfWeek,
+          season:         form.season,
+          organizationId: form.organizationId,
+        }),
       });
       const data = await res.json();
       if (!data.ok) { setError(data.error); return; }
@@ -66,6 +74,29 @@ export default function NewLeagueForm({ organizers }: { organizers: Organizer[] 
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-6 space-y-5">
+
+        {/* Organización — solo visible si el owner puede escoger entre varias */}
+        {organizations.length > 1 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Organización <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={form.organizationId}
+              onChange={(e) => setForm({ ...form, organizationId: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              <option value="">— Seleccionar organización —</option>
+              {organizations.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name} · {o.city}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Nombre */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Nombre de la liga <span className="text-red-500">*</span>
@@ -73,11 +104,15 @@ export default function NewLeagueForm({ organizers }: { organizers: Organizer[] 
           <input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="Liga Lunes Tijuana"
+            placeholder="Liga Lunes, Liga Femenil, Copa…"
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           />
+          <p className="text-xs text-gray-400 mt-1">
+            Solo el nombre de la liga, sin repetir el nombre de la organización.
+          </p>
         </div>
 
+        {/* Día */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Día de la semana <span className="text-red-500">*</span>
@@ -93,6 +128,7 @@ export default function NewLeagueForm({ organizers }: { organizers: Organizer[] 
           </select>
         </div>
 
+        {/* Temporada */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Temporada <span className="text-red-500">*</span>
@@ -105,26 +141,6 @@ export default function NewLeagueForm({ organizers }: { organizers: Organizer[] 
           />
           <p className="text-xs text-gray-400 mt-1">Ej: Apertura 2025, Clausura 2026, 2026-1</p>
         </div>
-
-        {organizers.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Organizador
-            </label>
-            <select
-              value={form.adminId}
-              onChange={(e) => setForm({ ...form, adminId: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-            >
-              <option value="">— Sin asignar —</option>
-              {organizers.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name} ({o.email})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
         {error && (
           <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>

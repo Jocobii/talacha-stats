@@ -15,10 +15,11 @@ import { getUserById }    from "@/entities/user";
 // ── Tipo público de sesión ────────────────────────────────────────────────────
 
 export type SessionUser = {
-  id:    string;
-  email: string;
-  name:  string;
-  role:  "owner" | "organizer";
+  id:             string;
+  email:          string;
+  name:           string;
+  role:           "owner" | "organizer";
+  organizationId: string | null;
 };
 
 // ── Para Server Components ────────────────────────────────────────────────────
@@ -50,18 +51,24 @@ async function resolveUser(token: string): Promise<SessionUser | null> {
   if (!user || !user.active) return null;
 
   return {
-    id:    user.id,
-    email: user.email,
-    name:  user.name,
-    role:  user.role as SessionUser["role"],
+    id:             user.id,
+    email:          user.email,
+    name:           user.name,
+    role:           user.role as SessionUser["role"],
+    organizationId: user.organizationId ?? null,
   };
 }
 
-/** Verifica que el usuario sea owner o que la liga le pertenezca. */
+/**
+ * Verifica que el usuario pueda gestionar una liga.
+ * - owner: puede gestionar cualquier liga.
+ * - organizer: solo puede gestionar ligas de su propia organización.
+ */
 export function canManageLeague(
   user: SessionUser,
-  leagueAdminId: string | null,
+  leagueOrganizationId: string | null,
 ): boolean {
   if (user.role === "owner") return true;
-  return leagueAdminId === user.id;
+  if (!user.organizationId || !leagueOrganizationId) return false;
+  return user.organizationId === leagueOrganizationId;
 }

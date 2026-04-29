@@ -1,5 +1,13 @@
 import { db } from "@/db";
-import { organizations, users, leagues, teamStandingsSnapshot, playerSeasonStats, teams, players } from "@/db/schema";
+import {
+	organizations,
+	users,
+	leagues,
+	teamStandingsSnapshot,
+	playerSeasonStats,
+	teams,
+	players,
+} from "@/db/schema";
 import { eq, asc, desc, and, sql, inArray } from "drizzle-orm";
 import type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
 
@@ -170,7 +178,9 @@ export async function getLatestStandings(leagueId: string) {
 		with: { team: { columns: { id: true, name: true } } },
 		orderBy: [
 			desc(teamStandingsSnapshot.points),
-			desc(sql`${teamStandingsSnapshot.goalsFor} - ${teamStandingsSnapshot.goalsAgainst}`),
+			desc(
+				sql`${teamStandingsSnapshot.goalsFor} - ${teamStandingsSnapshot.goalsAgainst}`,
+			),
 			desc(teamStandingsSnapshot.goalsFor),
 		],
 	});
@@ -184,12 +194,12 @@ export async function getLatestStandings(leagueId: string) {
 export async function getLatestTopScorers(leagueId: string, limit = 10) {
 	return db
 		.select({
-			playerId:   playerSeasonStats.playerId,
-			fullName:   players.fullName,
-			alias:      players.alias,
-			goals:      playerSeasonStats.goals,
-			assists:    playerSeasonStats.assists,
-			teamName:   teams.name,
+			playerId: playerSeasonStats.playerId,
+			fullName: players.fullName,
+			alias: players.alias,
+			goals: playerSeasonStats.goals,
+			assists: playerSeasonStats.assists,
+			teamName: teams.name,
 		})
 		.from(playerSeasonStats)
 		.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
@@ -264,10 +274,7 @@ export async function setUserOrganization(
 	userId: string,
 	organizationId: string | null,
 ): Promise<void> {
-	await db
-		.update(users)
-		.set({ organizationId })
-		.where(eq(users.id, userId));
+	await db.update(users).set({ organizationId }).where(eq(users.id, userId));
 }
 
 // ---------------------------------------------------------------------------
@@ -289,7 +296,9 @@ export type OrgHubStats = {
  * Retorna el líder de tabla, top goleador y última jornada de una liga.
  * Usado en las cards del hub de organización.
  */
-export async function getLeagueSnapshot(leagueId: string): Promise<LeagueSnapshot> {
+export async function getLeagueSnapshot(
+	leagueId: string,
+): Promise<LeagueSnapshot> {
 	const jornadaRows = await db
 		.select({ max: sql<number>`max(${teamStandingsSnapshot.jornada})` })
 		.from(teamStandingsSnapshot)
@@ -300,19 +309,19 @@ export async function getLeagueSnapshot(leagueId: string): Promise<LeagueSnapsho
 	const [leaderRow, scorerRows] = await Promise.all([
 		lastJornada
 			? db.query.teamStandingsSnapshot.findFirst({
-				where: and(
-					eq(teamStandingsSnapshot.leagueId, leagueId),
-					eq(teamStandingsSnapshot.jornada, lastJornada),
-				),
-				with: { team: { columns: { name: true } } },
-				orderBy: [desc(teamStandingsSnapshot.points)],
-			})
+					where: and(
+						eq(teamStandingsSnapshot.leagueId, leagueId),
+						eq(teamStandingsSnapshot.jornada, lastJornada),
+					),
+					with: { team: { columns: { name: true } } },
+					orderBy: [desc(teamStandingsSnapshot.points)],
+				})
 			: Promise.resolve(null),
 		db
 			.select({
 				fullName: players.fullName,
-				alias:    players.alias,
-				goals:    playerSeasonStats.goals,
+				alias: players.alias,
+				goals: playerSeasonStats.goals,
 			})
 			.from(playerSeasonStats)
 			.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
@@ -327,7 +336,11 @@ export async function getLeagueSnapshot(leagueId: string): Promise<LeagueSnapsho
 			? { teamName: leaderRow.team.name, points: leaderRow.points }
 			: null,
 		topScorer: scorerRows[0]
-			? { fullName: scorerRows[0].fullName, alias: scorerRows[0].alias, goals: scorerRows[0].goals }
+			? {
+					fullName: scorerRows[0].fullName,
+					alias: scorerRows[0].alias,
+					goals: scorerRows[0].goals,
+				}
 			: null,
 	};
 }
@@ -347,7 +360,9 @@ export async function getOrgHubStats(orgId: string): Promise<OrgHubStats> {
 
 	const [goalsResult, jornadaResult] = await Promise.all([
 		db
-			.select({ total: sql<number>`coalesce(sum(${playerSeasonStats.goals}), 0)` })
+			.select({
+				total: sql<number>`coalesce(sum(${playerSeasonStats.goals}), 0)`,
+			})
 			.from(playerSeasonStats)
 			.where(inArray(playerSeasonStats.leagueId, leagueIds)),
 		db

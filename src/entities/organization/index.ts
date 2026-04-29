@@ -4,10 +4,7 @@ export {
 	generateSlug,
 } from "./model";
 
-export type {
-	CreateOrganizationInput,
-	UpdateOrganizationInput,
-} from "./model";
+export type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
 
 export {
 	// Admin

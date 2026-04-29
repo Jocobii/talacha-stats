@@ -13,9 +13,31 @@ import {
 import { relations } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
+// ORGANIZATIONS — Entidad organizadora (Novofut, Casablanca, Furati…)
+// Una organización tiene múltiples usuarios y múltiples ligas.
+// ---------------------------------------------------------------------------
+export const organizations = pgTable(
+	"organizations",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		name: text("name").notNull(),
+		slug: text("slug").notNull().unique(), // URL-friendly: "novofut", "casablanca-fc"
+		logoUrl: text("logo_url"),
+		city: text("city").notNull().default("Tijuana"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(t) => [index("organizations_slug_idx").on(t.slug)],
+);
+
+export type Organization = typeof organizations.$inferSelect;
+export type NewOrganization = typeof organizations.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // USERS — Cuentas de acceso al panel admin
-// Roles: "owner" (superadmin, ve todo) | "organizer" (solo sus ligas)
-// Preparado para "player" en el futuro.
+// Roles: "owner" (superadmin, ve todo) | "organizer" (solo su organización)
+// Un usuario pertenece a máximo una organización (organization_id nullable).
 // ---------------------------------------------------------------------------
 export const users = pgTable(
 	"users",
@@ -26,11 +48,17 @@ export const users = pgTable(
 		name: text("name").notNull(),
 		role: text("role").notNull().default("organizer"), // "owner" | "organizer"
 		active: boolean("active").notNull().default(true),
+		organizationId: uuid("organization_id").references(() => organizations.id, {
+			onDelete: "set null",
+		}),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
 	},
-	(t) => [index("users_email_idx").on(t.email)],
+	(t) => [
+		index("users_email_idx").on(t.email),
+		index("users_organization_idx").on(t.organizationId),
+	],
 );
 
 export type User = typeof users.$inferSelect;
@@ -52,11 +80,6 @@ export const players = pgTable("players", {
 
 // ---------------------------------------------------------------------------
 // LEAGUES — Liga por día/torneo (Liga Lunes, Liga Martes, etc.)
-<<<<<<< Updated upstream
-=======
-// Siempre pertenece a una organización (organization_id).
-// slug: URL-friendly único dentro de la organización ("liga-lunes", "liga-femenil")
->>>>>>> Stashed changes
 // ---------------------------------------------------------------------------
 export const leagues = pgTable("leagues", {
 	id: uuid("id").primaryKey().defaultRandom(),
@@ -65,7 +88,7 @@ export const leagues = pgTable("leagues", {
 	dayOfWeek: text("day_of_week").notNull(), // lunes | martes | miercoles | ...
 	season: text("season").notNull(), // "Apertura 2025"
 	city: text("city").notNull().default("Tijuana"),
-	adminId: uuid("admin_id").references(() => users.id, {
+	organizationId: uuid("organization_id").references(() => organizations.id, {
 		onDelete: "set null",
 	}),
 	status: text("status").notNull().default("active"), // "active" | "finished"
@@ -189,17 +212,28 @@ export const matchEvents = pgTable(
 // ---------------------------------------------------------------------------
 // RELATIONS (para queries con Drizzle relational API)
 // ---------------------------------------------------------------------------
+export const organizationsRelations = relations(organizations, ({ many }) => ({
+	leagues: many(leagues),
+	members: many(users),
+}));
+
 export const playersRelations = relations(players, ({ many }) => ({
 	registrations: many(playerRegistrations),
 	events: many(matchEvents),
 }));
 
-export const usersRelations = relations(users, ({ many }) => ({
-	leagues: many(leagues),
+export const usersRelations = relations(users, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [users.organizationId],
+		references: [organizations.id],
+	}),
 }));
 
 export const leaguesRelations = relations(leagues, ({ one, many }) => ({
-	admin: one(users, { fields: [leagues.adminId], references: [users.id] }),
+	organization: one(organizations, {
+		fields: [leagues.organizationId],
+		references: [organizations.id],
+	}),
 	teams: many(teams),
 	matches: many(matches),
 	registrations: many(playerRegistrations),
@@ -268,6 +302,7 @@ export type Player = typeof players.$inferSelect;
 export type NewPlayer = typeof players.$inferInsert;
 export type League = typeof leagues.$inferSelect;
 export type NewLeague = typeof leagues.$inferInsert;
+// Organization types are exported above near the table definition
 export type Team = typeof teams.$inferSelect;
 export type NewTeam = typeof teams.$inferInsert;
 export type PlayerRegistration = typeof playerRegistrations.$inferSelect;

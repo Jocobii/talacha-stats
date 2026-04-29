@@ -12,7 +12,7 @@ const SeedSchema = z.object({
   numTeams:           z.number().int().min(6).max(16),
   numPlayersPerTeam:  z.number().int().min(7).max(14),
   jornada:            z.number().int().min(13).max(20),
-  adminId:            z.string().uuid().optional(),
+  organizationId:     z.string().uuid().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -166,11 +166,11 @@ export async function POST(request: Request) {
   const parsed = SeedSchema.safeParse(body);
   if (!parsed.success) return apiError(parsed.error.message, 400);
 
-  const { city, name, dayOfWeek, season, numTeams, numPlayersPerTeam, jornada, adminId } = parsed.data;
+  const { city, name, dayOfWeek, season, numTeams, numPlayersPerTeam, jornada, organizationId } = parsed.data;
 
   const result = await db.transaction(async (tx) => {
     // 1. Liga
-    const [league] = await tx.insert(leagues).values({ name, dayOfWeek, season, city, adminId: adminId ?? null }).returning();
+    const [league] = await tx.insert(leagues).values({ name, dayOfWeek, season, city, organizationId: organizationId ?? null }).returning();
 
     // 2. Equipos
     const teamNames = pickN(TEAM_NAMES_POOL, numTeams);
