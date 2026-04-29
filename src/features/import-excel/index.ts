@@ -42,3 +42,9 @@ export {
   type PreviewInput,
   type PreviewResult,
 } from "./preview";
+
+export {
+  confirmImport,
+  type ConfirmInput,
+  type ConfirmResult,
+} from "./confirm";
