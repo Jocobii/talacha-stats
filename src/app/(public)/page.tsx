@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import HeroSection       from "./HeroSection";
-import StatsBar          from "./StatsBar";
-import LeaderboardTeaser from "./LeaderboardTeaser";
-import FeaturesSection   from "./FeaturesSection";
+import { Suspense }       from "react";
+import HeroSection        from "./HeroSection";
+import StatsBar           from "./StatsBar";
+import LeaguesTeaser      from "./LeaguesTeaser";
+import LeaderboardTeaser  from "./LeaderboardTeaser";
+import FeaturesSection    from "./FeaturesSection";
 
 export const metadata: Metadata = {
   title: "TalachaStats — Tu historial de goles en todas las ligas",
@@ -16,10 +18,15 @@ export default function HomePage() {
       {/* Hero: fondo de cancha + glow + números fantasma + card animada */}
       <HeroSection />
 
-      {/* Idea 1: contadores que suben al hacer scroll */}
+      {/* Contadores */}
       <StatsBar />
 
-      {/* Idea 3: mini leaderboard con entrada en cascada */}
+      {/* Ligas activas — vitrina de organizaciones */}
+      <Suspense>
+        <LeaguesTeaser />
+      </Suspense>
+
+      {/* Mini leaderboard */}
       <LeaderboardTeaser />
 
       {/* Features con scroll reveal */}

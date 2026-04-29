@@ -48,10 +48,9 @@ export const users = pgTable(
 		name: text("name").notNull(),
 		role: text("role").notNull().default("organizer"), // "owner" | "organizer"
 		active: boolean("active").notNull().default(true),
-		organizationId: uuid("organization_id").references(
-			() => organizations.id,
-			{ onDelete: "set null" },
-		),
+		organizationId: uuid("organization_id").references(() => organizations.id, {
+			onDelete: "set null",
+		}),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
@@ -81,11 +80,11 @@ export const players = pgTable("players", {
 
 // ---------------------------------------------------------------------------
 // LEAGUES — Liga por día/torneo (Liga Lunes, Liga Martes, etc.)
-// Siempre pertenece a una organización (organization_id).
 // ---------------------------------------------------------------------------
 export const leagues = pgTable("leagues", {
 	id: uuid("id").primaryKey().defaultRandom(),
 	name: text("name").notNull(),
+	slug: text("slug"), // URL-friendly, único por organización
 	dayOfWeek: text("day_of_week").notNull(), // lunes | martes | miercoles | ...
 	season: text("season").notNull(), // "Apertura 2025"
 	city: text("city").notNull().default("Tijuana"),
@@ -213,13 +212,10 @@ export const matchEvents = pgTable(
 // ---------------------------------------------------------------------------
 // RELATIONS (para queries con Drizzle relational API)
 // ---------------------------------------------------------------------------
-export const organizationsRelations = relations(
-	organizations,
-	({ many }) => ({
-		leagues: many(leagues),
-		members: many(users),
-	}),
-);
+export const organizationsRelations = relations(organizations, ({ many }) => ({
+	leagues: many(leagues),
+	members: many(users),
+}));
 
 export const playersRelations = relations(players, ({ many }) => ({
 	registrations: many(playerRegistrations),
