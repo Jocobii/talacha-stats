@@ -68,9 +68,9 @@
 		{
 			"idx": 9,
 			"version": "7",
-			"when": 1777448165748,
-			"tag": "0009_striped_lyja",
-			"breakpoints": true
+			"when": 1777500000000,
+			"tag": "0009_league_slugs",
+			"breakpoints": false
 		}
 	]
 }

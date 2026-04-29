@@ -1,29 +1,30 @@
 -- ---------------------------------------------------------------------------
 -- 0009_league_slugs.sql
--- Agrega slug a leagues para URLs públicas limpias.
--- UNIQUE (organization_id, slug) — único dentro de la organización.
--- Backfill: genera slug desde el nombre + día de semana.
+-- Agrega slug a la tabla leagues para URLs públicas limpias.
+-- Backfill: genera slug desde nombre + día de la semana.
+-- Índice único compuesto (organization_id, slug) — slugs únicos por org.
 -- ---------------------------------------------------------------------------
 
+-- 1. Agregar columna slug (nullable durante la migración)
 ALTER TABLE leagues
   ADD COLUMN IF NOT EXISTS slug TEXT;
 
--- Backfill: nombre + día de semana → slug
--- Ej: "Liga Lunes" + lunes → "liga-lunes"
--- Ej: "Liga Femenil" + martes → "liga-femenil-martes"
+-- 2. Backfill: generar slug desde nombre + día de semana
+--    "Liga Lunes" + "lunes" → "liga-lunes-lunes"  (se limpia después)
+--    Usamos unaccent para manejar acentos correctamente.
 UPDATE leagues
 SET slug = regexp_replace(
-    regexp_replace(
-      lower(unaccent(name || ' ' || day_of_week)),
-      '[^a-z0-9]+', '-', 'g'
-    ),
-    '-+$', ''
-  )
-WHERE slug IS NULL;
+             regexp_replace(
+               lower(unaccent(name || '-' || day_of_week)),
+               '[^a-z0-9]+', '-', 'g'
+             ),
+             '-+$', ''
+           )
+WHERE slug IS NULL OR slug = '';
 
--- Resolver colisiones dentro de la misma organización (si las hubiera):
--- Agregar sufijo numérico a duplicados
-WITH duplicates AS (
+-- 3. Resolver duplicados dentro de la misma organización
+--    Si hay dos ligas con mismo slug en la misma org, agrega sufijo numérico.
+WITH numbered AS (
   SELECT id,
          slug,
          organization_id,
@@ -35,14 +36,17 @@ WITH duplicates AS (
   WHERE organization_id IS NOT NULL
 )
 UPDATE leagues l
-SET slug = l.slug || '-' || d.rn
-FROM duplicates d
-WHERE l.id = d.id AND d.rn > 1;
+SET slug = n.slug || '-' || n.rn
+FROM numbered n
+WHERE l.id = n.id
+  AND n.rn > 1;
 
--- Unique constraint: slug único dentro de una organización
+-- 4. Índice único por organización (permite mismo slug en orgs distintas)
 CREATE UNIQUE INDEX IF NOT EXISTS leagues_org_slug_idx
   ON leagues (organization_id, slug)
   WHERE organization_id IS NOT NULL;
 
--- Índice general para lookups
-CREATE INDEX IF NOT EXISTS leagues_slug_idx ON leagues(slug);
+-- 5. Índice para búsquedas de ligas sin org por slug (por si se necesita)
+CREATE INDEX IF NOT EXISTS leagues_slug_idx
+  ON leagues (slug)
+  WHERE slug IS NOT NULL;

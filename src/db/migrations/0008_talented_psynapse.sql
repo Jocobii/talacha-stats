@@ -8,7 +8,7 @@ CREATE TABLE "organizations" (
 	CONSTRAINT "organizations_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
-ALTER TABLE "leagues" DROP CONSTRAINT "leagues_admin_id_users_id_fk";
+ALTER TABLE "leagues" DROP CONSTRAINT IF EXISTS "leagues_admin_id_users_id_fk";
 --> statement-breakpoint
 ALTER TABLE "leagues" ADD COLUMN "organization_id" uuid;--> statement-breakpoint
 ALTER TABLE "users" ADD COLUMN "organization_id" uuid;--> statement-breakpoint
