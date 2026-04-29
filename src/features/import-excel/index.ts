@@ -17,3 +17,12 @@ export {
   type MappedImportOptions,
   type ColumnMap,
 } from "./parser";
+
+export {
+  resolveImportEntities,
+  type ResolverInput,
+  type ResolverOutput,
+  type PlayerResolution,
+  type PlayerCandidate,
+  type CandidateTeam,
+} from "./resolver";
