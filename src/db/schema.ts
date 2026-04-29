@@ -8,6 +8,7 @@ import {
   timestamp,
   unique,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -408,6 +409,72 @@ export const pageViews = pgTable(
 );
 
 export type PageView = typeof pageViews.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// IMPORT_AUDIT_LOG — Registro de cada importación realizada
+// Permite auditar qué se importó, cuándo, por quién, y si hubo anomalías.
+// ---------------------------------------------------------------------------
+export const importAuditLog = pgTable(
+  "import_audit_log",
+  {
+    id:             uuid("id").primaryKey().defaultRandom(),
+    leagueId:       uuid("league_id").notNull().references(() => leagues.id, { onDelete: "cascade" }),
+    importedBy:     uuid("imported_by").references(() => users.id, { onDelete: "set null" }),
+    importType:     text("import_type").notNull(), // "goleadores" | "standings" | "events"
+    jornada:        integer("jornada"),
+    rowsProcessed:  integer("rows_processed").notNull().default(0),
+    rowsCreated:    integer("rows_created").notNull().default(0),
+    anomalySummary: jsonb("anomaly_summary"),        // AnomalyReport[] serializado
+    warnings:       text("warnings").array(),
+    importedAt:     timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("ial_league_idx").on(t.leagueId),
+    index("ial_imported_at_idx").on(t.importedAt),
+    index("ial_jornada_idx").on(t.leagueId, t.jornada),
+  ]
+);
+
+export const importAuditLogRelations = relations(importAuditLog, ({ one }) => ({
+  league:     one(leagues, { fields: [importAuditLog.leagueId],   references: [leagues.id] }),
+  importedBy: one(users,   { fields: [importAuditLog.importedBy], references: [users.id]   }),
+}));
+
+export type ImportAuditLog    = typeof importAuditLog.$inferSelect;
+export type NewImportAuditLog = typeof importAuditLog.$inferInsert;
+
+export const EVENT_TYPES = ["goal", "assist", "yellow_card", "red_card", "own_goal", "mvp"] as const;
+export type EventType = typeof EVENT_TYPES[number];
+
+export const MATCH_STATUSES = ["scheduled", "completed", "cancelled"] as const;
+export type MatchStatus = typeof MATCH_STATUSES[number];
+
+export const DAYS_OF_WEEK = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"] as const;
+export type DayOfWeek = typeof DAYS_OF_WEEK[number];
+id("league_id").notNull().references(() => leagues.id, { onDelete: "cascade" }),
+    importedBy:     uuid("imported_by").references(() => users.id, { onDelete: "set null" }),
+    importType:     text("import_type").notNull(), // "goleadores" | "standings" | "events"
+    jornada:        integer("jornada"),
+    rowsProcessed:  integer("rows_processed").notNull().default(0),
+    rowsCreated:    integer("rows_created").notNull().default(0),
+    anomalySummary: jsonb("anomaly_summary"),        // AnomalyReport[] serializado
+    warnings:       text("warnings").array(),
+    importedAt:     timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("ial_league_idx").on(t.leagueId),
+    index("ial_imported_at_idx").on(t.importedAt),
+    index("ial_jornada_idx").on(t.leagueId, t.jornada),
+  ]
+);
+
+export const importAuditLogRelations = relations(importAuditLog, ({ one }) => ({
+  league:     one(leagues, { fields: [importAuditLog.leagueId],   references: [leagues.id] }),
+  importedBy: one(users,   { fields: [importAuditLog.importedBy], references: [users.id]   }),
+}));
+
+export type ImportAuditLog    = typeof importAuditLog.$inferSelect;
+export type NewImportAuditLog = typeof importAuditLog.$inferInsert;
 
 export const EVENT_TYPES = ["goal", "assist", "yellow_card", "red_card", "own_goal", "mvp"] as const;
 export type EventType = typeof EVENT_TYPES[number];
