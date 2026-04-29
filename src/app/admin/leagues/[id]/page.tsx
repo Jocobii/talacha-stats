@@ -2,11 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { serverFetch } from "@/shared/lib/server-fetch";
 import { getSessionUser } from "@/shared/lib/auth";
-import { listUsers } from "@/entities/user";
-import OrganizerSection from "./OrganizerSection";
+import { listOrganizations } from "@/entities/organization";
+import OrganizationSection from "./OrganizerSection";
 import NewSeasonButton from "./NewSeasonButton";
-
-type Organizer = { id: string; name: string; email: string };
 
 async function getLeagueData(id: string) {
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
@@ -18,8 +16,8 @@ async function getLeagueData(id: string) {
 
   if (!leagueRes.ok) return null;
   return {
-    league: (await leagueRes.json()).data,
-    standings: standingsRes.ok ? (await standingsRes.json()).data?.standings ?? [] : [],
+    league:     (await leagueRes.json()).data,
+    standings:  standingsRes.ok ? (await standingsRes.json()).data?.standings ?? [] : [],
     topScorers: scorersRes.ok ? (await scorersRes.json()).data ?? [] : [],
   };
 }
@@ -30,13 +28,10 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
   if (!data) notFound();
 
   const { league, standings, topScorers } = data;
+  const isOwner = session?.role === "owner";
 
-  const organizers: Organizer[] =
-    session?.role === "owner"
-      ? (await listUsers())
-          .filter((u) => u.role === "organizer" && u.active)
-          .map((u) => ({ id: u.id, name: u.name, email: u.email }))
-      : [];
+  // Solo el owner puede reasignar la org de una liga
+  const allOrganizations = isOwner ? await listOrganizations() : [];
 
   return (
     <div>
@@ -45,13 +40,20 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
         <div className="flex items-start justify-between gap-4 mt-1">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">{league.name}</h1>
-            <p className="text-gray-500 capitalize">{league.dayOfWeek} — {league.season}</p>
+            <p className="text-gray-500 capitalize">
+              {league.dayOfWeek} — {league.season}
+              {league.organization && (
+                <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                  {league.organization.name}
+                </span>
+              )}
+            </p>
           </div>
           <NewSeasonButton
             leagueId={id}
             leagueName={league.name}
             dayOfWeek={league.dayOfWeek}
-            adminId={league.adminId ?? null}
+            organizationId={league.organizationId ?? null}
           />
         </div>
       </div>
@@ -109,13 +111,12 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {session?.role === "owner" && (
-            <OrganizerSection
-              leagueId={id}
-              current={league.admin ?? null}
-              organizers={organizers}
-            />
-          )}
+          <OrganizationSection
+            leagueId={id}
+            current={league.organization ?? null}
+            organizations={allOrganizations}
+            isOwner={isOwner ?? false}
+          />
 
           <div>
             <h2 className="text-lg font-semibold text-gray-700 mb-3">Top goleadores</h2>
@@ -162,7 +163,9 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
                 >
                   <p className="text-xs text-gray-400 mb-1">
                     J{m.matchday ?? "?"} · {m.matchDate}
-                    {m.status === "scheduled" && <span className="ml-2 bg-yellow-100 text-yellow-700 px-1 rounded text-xs">Pendiente</span>}
+                    {m.status === "scheduled" && (
+                      <span className="ml-2 bg-yellow-100 text-yellow-700 px-1 rounded text-xs">Pendiente</span>
+                    )}
                   </p>
                   <div className="flex items-center justify-between text-sm font-medium text-gray-800">
                     <span className="flex-1">{m.homeTeam.name}</span>

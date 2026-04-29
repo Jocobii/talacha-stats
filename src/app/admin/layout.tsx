@@ -25,11 +25,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           </Link>
 
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-none min-w-0 flex-1">
-            <Link href="/admin/leagues"  className="hover:bg-white/10 text-sm px-3 py-1.5 rounded-lg shrink-0 transition">Ligas</Link>
-            <Link href="/admin/teams"    className="hover:bg-white/10 text-sm px-3 py-1.5 rounded-lg shrink-0 transition">Equipos</Link>
-            <Link href="/admin/players"  className="hover:bg-white/10 text-sm px-3 py-1.5 rounded-lg shrink-0 transition">Jugadores</Link>
-            <Link href="/admin/import"   className="hover:bg-white/10 text-sm px-3 py-1.5 rounded-lg shrink-0 transition">Importar</Link>
-            <Link href="/admin/analisis" className="text-sm font-semibold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg shrink-0 transition">📊 Análisis</Link>
+            <Link href="/admin/organizations" className="hover:bg-white/10 text-sm px-3 py-1.5 rounded-lg shrink-0 transition">Organizaciones</Link>
+            <Link href="/admin/leagues"       className="hover:bg-white/10 text-sm px-3 py-1.5 rounded-lg shrink-0 transition">Ligas</Link>
+            <Link href="/admin/teams"         className="hover:bg-white/10 text-sm px-3 py-1.5 rounded-lg shrink-0 transition">Equipos</Link>
+            <Link href="/admin/players"       className="hover:bg-white/10 text-sm px-3 py-1.5 rounded-lg shrink-0 transition">Jugadores</Link>
+            <Link href="/admin/import"        className="hover:bg-white/10 text-sm px-3 py-1.5 rounded-lg shrink-0 transition">Importar</Link>
+            <Link href="/admin/analisis"      className="text-sm font-semibold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg shrink-0 transition">📊 Análisis</Link>
             {user.role === "owner" && (
               <Link href="/admin/users" className="hover:bg-white/10 text-sm px-3 py-1.5 rounded-lg shrink-0 transition">👥 Usuarios</Link>
             )}
