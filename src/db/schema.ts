@@ -85,6 +85,7 @@ export const leagues = pgTable("leagues", {
 	id: uuid("id").primaryKey().defaultRandom(),
 	name: text("name").notNull(),
 	slug: text("slug"), // URL-friendly, único por organización
+	category: text("category"), // "Libre", "Libre Femenil", "2015-2016", "Mixto"
 	dayOfWeek: text("day_of_week").notNull(), // lunes | martes | miercoles | ...
 	season: text("season").notNull(), // "Apertura 2025"
 	city: text("city").notNull().default("Tijuana"),

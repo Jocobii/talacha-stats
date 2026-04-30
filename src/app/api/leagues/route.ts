@@ -65,6 +65,7 @@ export async function POST(request: Request) {
 		.values({
 			name: parsed.data.name,
 			slug,
+			category: parsed.data.category ?? null,
 			dayOfWeek: parsed.data.dayOfWeek,
 			season: parsed.data.season,
 			city,
