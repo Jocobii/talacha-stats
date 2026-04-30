@@ -1,0 +1,18 @@
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Deps
+node_modules/
+
+# DB
+src/db/migrations/*.sql
+
+# Auto-generados
+next-env.d.ts
+pnpm-lock.yaml
+
+# Configs que no queremos reformatear
+*.min.js
