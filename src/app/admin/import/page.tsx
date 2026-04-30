@@ -33,11 +33,25 @@ type StandingsRow = {
   draws: number; losses: number; goalsFor: number; goalsAgainst: number; points: number;
 };
 
+type AnomalyLevel = "ok" | "warning" | "critical";
+type AnomalyFlag = {
+  rule: string;
+  level: AnomalyLevel;
+  message: string;
+  context: { current: number; previous?: number; average?: number; zscore?: number };
+};
+type AnomalyReport = {
+  rawName: string;
+  level: AnomalyLevel;
+  flags: AnomalyFlag[];
+};
+
 type BulkPreview = {
   type: "goleadores" | "standings";
   jornada?: number;
   rows: GoleadoresRow[] | StandingsRow[];
   playerResolutions?: PlayerResolution[];
+  anomalyReports?: AnomalyReport[];
   warnings: string[];
   summary: { players?: number; teams?: number; totalGoals?: number };
 };
@@ -295,19 +309,6 @@ export default function ImportPage() {
     setExcludedRows(new Set());
   }
 
-  async function handleBackfill() {
-    if (!confirm("¿Copiar los datos actuales de goleadores al historial de jornadas? Esto es necesario una sola vez para activar los indicadores de posición ganada/perdida.")) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/import/backfill-snapshots", { method: "POST" });
-      const data = await res.json();
-      if (data.ok) alert(`✅ ${data.data.message}`);
-      else alert(`❌ ${data.error}`);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   const headerCols = excelPreview[headerRow] ?? [];
   const fields = importType === "goleadores" ? GOLEADORES_FIELDS : STANDINGS_FIELDS;
 
@@ -532,11 +533,83 @@ export default function ImportPage() {
             </div>
           )}
 
+          {/* ── Anomalías detectadas ── */}
+          {preview.type === "goleadores" && preview.anomalyReports && (() => {
+            const critical = preview.anomalyReports!.filter(r => r.level === "critical");
+            const warned = preview.anomalyReports!.filter(r => r.level === "warning");
+            if (critical.length === 0 && warned.length === 0) return null;
+
+            return (
+              <div className="space-y-3">
+                {/* Resumen */}
+                <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border ${critical.length > 0
+                  ? "bg-red-50 border-red-200 text-red-800"
+                  : "bg-amber-50 border-amber-200 text-amber-800"
+                  }`}>
+                  <span>{critical.length > 0 ? "🚨" : "⚠️"}</span>
+                  <span>
+                    {critical.length > 0 && `${critical.length} anomalía${critical.length !== 1 ? "s" : ""} crítica${critical.length !== 1 ? "s" : ""}`}
+                    {critical.length > 0 && warned.length > 0 && " · "}
+                    {warned.length > 0 && `${warned.length} aviso${warned.length !== 1 ? "s" : ""}`}
+                    {" — Revisa antes de importar"}
+                  </span>
+                </div>
+
+                {/* Críticos — siempre visibles */}
+                {critical.map(r => (
+                  <div key={r.rawName} className="bg-red-50 border-2 border-red-300 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-bold text-red-700 text-sm">{r.rawName}</span>
+                      <span className="ml-auto text-xs font-semibold uppercase tracking-wide bg-red-200 text-red-800 px-2 py-0.5 rounded-full">
+                        Crítico
+                      </span>
+                    </div>
+                    <ul className="space-y-1">
+                      {r.flags.map((f, i) => (
+                        <li key={i} className="text-xs text-red-700 flex items-start gap-1.5">
+                          <span className="shrink-0 mt-0.5">•</span>
+                          <span>{f.message}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+
+                {/* Avisos — colapsables */}
+                {warned.length > 0 && (
+                  <details className="bg-amber-50 border border-amber-200 rounded-xl group">
+                    <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-amber-800 select-none list-none flex items-center gap-2">
+                      <span>⚠️</span>
+                      {warned.length === 1 ? "1 aviso" : `${warned.length} avisos`} — puede ser normal, revisa si tienes dudas
+                      <span className="ml-auto text-xs text-amber-600 group-open:hidden">Ver ▼</span>
+                      <span className="ml-auto text-xs text-amber-600 hidden group-open:inline">Ocultar ▲</span>
+                    </summary>
+                    <div className="px-4 pb-4 pt-2 border-t border-amber-200 space-y-3">
+                      {warned.map(r => (
+                        <div key={r.rawName}>
+                          <p className="text-xs font-semibold text-amber-900 mb-1">{r.rawName}</p>
+                          <ul className="space-y-0.5">
+                            {r.flags.map((f, i) => (
+                              <li key={i} className="text-xs text-amber-700 flex items-start gap-1.5">
+                                <span className="shrink-0">•</span>
+                                <span>{f.message}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Resolución de jugadores */}
           {preview.type === "goleadores" && preview.playerResolutions && (() => {
             const ambiguous = preview.playerResolutions.filter(p => !p.found && p.candidates.length > 0);
             const newPlayers = preview.playerResolutions.filter(p => !p.found && p.candidates.length === 0);
-            const confirmed  = preview.playerResolutions.filter(p => p.found);
+            const confirmed = preview.playerResolutions.filter(p => p.found);
 
             return (
               <div className="space-y-4">
@@ -581,9 +654,8 @@ export default function ImportPage() {
                       <div className="space-y-2">
                         {pm.candidates.map(c => (
                           <label key={c.id}
-                            className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                              selected === c.id ? "border-green-400 bg-green-50" : "border-gray-200 bg-white hover:border-green-200"
-                            }`}>
+                            className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${selected === c.id ? "border-green-400 bg-green-50" : "border-gray-200 bg-white hover:border-green-200"
+                              }`}>
                             <input type="radio"
                               name={`player-${pm.rawName}`}
                               value={c.id}
@@ -593,7 +665,7 @@ export default function ImportPage() {
                             />
                             <div className="flex-1 min-w-0">
                               <p className="font-semibold text-gray-900">{c.fullName}</p>
-                              {c.alias && <p className="text-xs text-gray-400 italic mt-0.5">"{c.alias}"</p>}
+                              {c.alias && <p className="text-xs text-gray-400 italic mt-0.5">&quot;{c.alias}&quot;</p>}
                               {c.teams.length > 0 ? (
                                 <div className="flex flex-wrap gap-1 mt-1.5">
                                   {c.teams.map((t, i) => (
@@ -611,9 +683,8 @@ export default function ImportPage() {
                         ))}
 
                         {/* Opción: crear nuevo */}
-                        <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                          selected === "NEW" ? "border-blue-300 bg-blue-50" : "border-gray-200 bg-white hover:border-blue-200"
-                        }`}>
+                        <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${selected === "NEW" ? "border-blue-300 bg-blue-50" : "border-gray-200 bg-white hover:border-blue-200"
+                          }`}>
                           <input type="radio"
                             name={`player-${pm.rawName}`}
                             value="NEW"

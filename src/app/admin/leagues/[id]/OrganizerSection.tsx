@@ -2,18 +2,26 @@
 
 import { useState } from "react";
 
-type Organizer = { id: string; name: string; email: string };
+type OrgMember     = { id: string; name: string; email: string };
+type Organization  = { id: string; name: string; slug: string; logoUrl?: string | null; members?: OrgMember[] };
+
 type Props = {
-  leagueId: string;
-  current: Organizer | null;
-  organizers: Organizer[];
+  leagueId:      string;
+  current:       Organization | null;
+  organizations: Organization[]; // solo visible para el owner
+  isOwner:       boolean;
 };
 
-export default function OrganizerSection({ leagueId, current, organizers }: Props) {
-  const [editing, setEditing] = useState(false);
+export default function OrganizationSection({
+  leagueId,
+  current,
+  organizations,
+  isOwner,
+}: Props) {
+  const [editing, setEditing]   = useState(false);
   const [selected, setSelected] = useState(current?.id ?? "");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState("");
 
   async function handleSave() {
     setSaving(true);
@@ -22,7 +30,7 @@ export default function OrganizerSection({ leagueId, current, organizers }: Prop
       const res = await fetch(`/api/leagues/${leagueId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminId: selected || null }),
+        body: JSON.stringify({ organizationId: selected || null }),
       });
       const data = await res.json();
       if (!data.ok) { setError(data.error); return; }
@@ -35,9 +43,9 @@ export default function OrganizerSection({ leagueId, current, organizers }: Prop
 
   return (
     <div className="bg-white rounded-lg shadow p-4">
-      <h2 className="text-sm font-semibold text-gray-700 mb-3">Organizador</h2>
+      <h2 className="text-sm font-semibold text-gray-700 mb-3">Organización</h2>
 
-      {editing ? (
+      {editing && isOwner ? (
         <div className="space-y-3">
           <select
             value={selected}
@@ -45,10 +53,8 @@ export default function OrganizerSection({ leagueId, current, organizers }: Prop
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             <option value="">— Sin asignar —</option>
-            {organizers.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.name} ({o.email})
-              </option>
+            {organizations.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
             ))}
           </select>
           {error && <p className="text-red-600 text-xs">{error}</p>}
@@ -69,23 +75,34 @@ export default function OrganizerSection({ leagueId, current, organizers }: Prop
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-2">
           <div>
             {current ? (
               <>
                 <p className="text-sm font-medium text-gray-800">{current.name}</p>
-                <p className="text-xs text-gray-400">{current.email}</p>
+                {current.members && current.members.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {current.members.map((m) => (
+                      <div key={m.id} className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
+                        <p className="text-xs text-gray-500">{m.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </>
             ) : (
-              <p className="text-sm text-gray-400">Sin asignar</p>
+              <p className="text-sm text-gray-400">Sin organización asignada</p>
             )}
           </div>
-          <button
-            onClick={() => setEditing(true)}
-            className="text-xs text-green-600 hover:underline"
-          >
-            Cambiar
-          </button>
+          {isOwner && (
+            <button
+              onClick={() => setEditing(true)}
+              className="text-xs text-green-600 hover:underline flex-shrink-0"
+            >
+              Cambiar
+            </button>
+          )}
         </div>
       )}
     </div>

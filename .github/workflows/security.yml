@@ -1,0 +1,199 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master, dev]
+  schedule:
+    # Escaneo proactivo todos los lunes a las 8am UTC
+    # Detecta CVEs nuevos en deps que no tocaste esa semana
+    - cron: "0 8 * * 1"
+
+jobs:
+  trivy:
+    name: Trivy — filesystem & dependency scan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write # requerido para subir resultados a la pestaña Security
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Paso 1: Tabla legible en los logs ───────────────────────────────────
+      # Muestra Package | CVE | Severity | Installed | Fixed en los logs
+      # ANTES de que el pipeline falle — exit-code 0 aquí, falla en el paso 3.
+      - name: Show vulnerabilities (human-readable table)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "table"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
+          ignore-unfixed: true
+          trivyignores: ".trivyignore"
+          scanners: "vuln,secret,misconfig"
+
+      # ── Paso 2: Job Summary con detalle accionable ──────────────────────────
+      # Genera JSON, lo parsea con Python y escribe Markdown en la pestaña
+      # "Summary" del workflow run. El dev ve qué falló sin abrir los logs.
+      - name: Generate JSON for summary
+        if: always()
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "json"
+          output: "trivy-results.json"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
+          ignore-unfixed: true
+          trivyignores: ".trivyignore"
+          scanners: "vuln,secret,misconfig"
+
+      - name: Publish Job Summary
+        if: always()
+        run: |
+          python3 << 'EOF'
+          import json, os, sys
+
+          summary_file = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/stdout")
+
+          try:
+              with open("trivy-results.json") as f:
+                  data = json.load(f)
+          except Exception as e:
+              with open(summary_file, "a") as out:
+                  out.write(f"## 🔒 Security Scan — Trivy\n\n⚠️ No se pudo leer el reporte JSON: {e}\n")
+              sys.exit(0)
+
+          vulns = []
+          for result in data.get("Results", []):
+              for v in (result.get("Vulnerabilities") or []):
+                  vulns.append({
+                      "pkg":       v.get("PkgName", "?"),
+                      "id":        v.get("VulnerabilityID", "?"),
+                      "severity":  v.get("Severity", "?"),
+                      "installed": v.get("InstalledVersion", "?"),
+                      "fixed":     v.get("FixedVersion") or "sin fix",
+                      "title":     v.get("Title", ""),
+                  })
+
+          lines = ["## 🔒 Security Scan — Trivy", ""]
+          lines += ["**Severidades:** `CRITICAL`, `HIGH` — solo con fix disponible", ""]
+
+          if vulns:
+              lines.append(f"⚠️ **{len(vulns)} vulnerabilidad(es) encontrada(s)**")
+              lines.append("")
+              lines.append("| Paquete | CVE | Severidad | Instalado | Fix disponible | Descripción |")
+              lines.append("|---|---|---|---|---|---|")
+              icons = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "⚪"}
+              for v in vulns:
+                  icon = icons.get(v["severity"], "❓")
+                  cve_url = f"https://avd.aquasec.com/nvd/{v['id'].lower()}"
+                  lines.append(
+                      f"| `{v['pkg']}` | [{v['id']}]({cve_url}) | {icon} {v['severity']} "
+                      f"| {v['installed']} | `{v['fixed']}` | {v['title']} |"
+                  )
+              lines += [
+                  "",
+                  "**Acción requerida:** actualiza el paquete a la versión con fix.",
+                  "Si es una dependencia transitiva que no puedes actualizar, documenta el motivo en `.trivyignore`.",
+              ]
+          else:
+              lines.append("✅ **Sin vulnerabilidades CRITICAL o HIGH con fix disponible.**")
+
+          lines += [
+              "",
+              "---",
+              "📋 Historial completo → pestaña **Security → Code scanning alerts**",
+              "📄 Excepciones justificadas → `.trivyignore`",
+          ]
+
+          with open(summary_file, "a") as out:
+              out.write("\n".join(lines) + "\n")
+          EOF
+
+      # ── Paso 3: SARIF para GitHub Security tab + enforce ────────────────────
+      # Se ejecuta siempre (if: always) para que el archivo SARIF exista incluso
+      # si los pasos anteriores fallaron. exit-code 1 bloquea el merge si hay
+      # CRITICAL o HIGH con fix disponible.
+      - name: Generate SARIF and enforce
+        if: always()
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+          ignore-unfixed: true
+          trivyignores: ".trivyignore"
+          scanners: "vuln,secret,misconfig"
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+  # ── Escaneo completo semanal (MEDIUM incluido, sin bloquear pipeline) ───────
+  # Solo corre en el schedule — no en PRs ni push
+  trivy-full:
+    name: Trivy — full scan (weekly)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show all vulnerabilities (human-readable)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "table"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          exit-code: "0"
+          ignore-unfixed: false
+          trivyignores: ".trivyignore"
+          scanners: "vuln,secret,misconfig"
+
+      - name: Generate full SARIF
+        if: always()
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-full-results.sarif"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          exit-code: "0"
+          ignore-unfixed: false
+          trivyignores: ".trivyignore"
+          scanners: "vuln,secret,misconfig"
+
+      - name: Weekly summary
+        if: always()
+        run: |
+          echo "## 🔒 Weekly Security Scan — Trivy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Severidades:** CRITICAL, HIGH, MEDIUM (incluyendo sin fix disponible)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Revisa la pestaña **Security → Code scanning alerts** para el detalle completo." >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload full SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: "trivy-full-results.sarif"

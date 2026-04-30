@@ -91,13 +91,27 @@ body {
   animation: glowHeroPulse 5s ease-in-out infinite;
 }
 
+@keyframes tickerScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-ticker {
+  animation: tickerScroll 22s linear infinite;
+}
+
+.animate-ticker-wrap:hover .animate-ticker {
+  animation-play-state: paused;
+}
+
 /* Respeta prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-slide-up,
   .animate-pop-in,
   .animate-glow-pulse,
   .animate-card-float,
-  .animate-glow-hero {
+  .animate-glow-hero,
+  .animate-ticker {
     animation: none;
     opacity: 1;
     transform: none;

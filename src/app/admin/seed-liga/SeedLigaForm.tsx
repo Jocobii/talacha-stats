@@ -14,7 +14,7 @@ type FormState = {
   numTeams:          number;
   numPlayersPerTeam: number;
   jornada:           number;
-  adminId:           string;
+  organizationId:           string;
 };
 
 type StandingRow = {
@@ -72,7 +72,7 @@ const DEFAULT_FORM: FormState = {
   numTeams:          10,
   numPlayersPerTeam: 8,
   jornada:           16,
-  adminId:           "",
+  organizationId:           "",
 };
 
 export default function SeedLigaForm({
@@ -99,7 +99,7 @@ export default function SeedLigaForm({
     setResult(null);
 
     try {
-      const body = { ...form, adminId: form.adminId || undefined };
+      const body = { ...form, organizationId: form.organizationId || undefined };
       const res  = await fetch("/api/seed-liga", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -208,8 +208,8 @@ export default function SeedLigaForm({
                       </p>
                     ) : (
                       <select
-                        value={form.adminId}
-                        onChange={(e) => set("adminId", e.target.value)}
+                        value={form.organizationId}
+                        onChange={(e) => set("organizationId", e.target.value)}
                         className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500"
                       >
                         <option value="">— Sin asignar —</option>

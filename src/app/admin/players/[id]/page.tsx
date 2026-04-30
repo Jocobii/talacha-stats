@@ -52,7 +52,7 @@ export default async function PlayerProfilePage({
             </h1>
             {profile.alias && (
               <p className="text-green-400 text-lg font-semibold mt-0.5">
-                "{profile.alias}"
+                &quot;{profile.alias}&quot;
               </p>
             )}
             {profile.phone && (
@@ -113,11 +113,11 @@ export default async function PlayerProfilePage({
 
 function GlobalStatsBar({ global: g }: { global: PlayerGlobalProfile }) {
   const stats = [
-    { label: "Goles",          value: g.totalGoals,          color: "text-green-600"  },
-    { label: "Asistencias",    value: g.totalAssists,         color: "text-blue-600"   },
-    { label: "Contribuciones", value: g.totalContributions,   color: "text-purple-600" },
-    { label: "Partidos",       value: g.totalMatches,         color: "text-gray-800"   },
-    { label: "Ligas",          value: g.leaguesCount,         color: "text-orange-600" },
+    { label: "Goles", value: g.totalGoals, color: "text-green-600" },
+    { label: "Asistencias", value: g.totalAssists, color: "text-blue-600" },
+    { label: "Contribuciones", value: g.totalContributions, color: "text-purple-600" },
+    { label: "Partidos", value: g.totalMatches, color: "text-gray-800" },
+    { label: "Ligas", value: g.leaguesCount, color: "text-orange-600" },
   ];
 
   return (
@@ -138,9 +138,9 @@ function GlobalStatsBar({ global: g }: { global: PlayerGlobalProfile }) {
 
 function LeagueCard({ league: l }: { league: PlayerLeagueStats }) {
   const gpmColor =
-    l.goalsPerMatch >= 1    ? "text-green-600"  :
-    l.goalsPerMatch >= 0.5  ? "text-yellow-600" :
-                              "text-gray-500";
+    l.goalsPerMatch >= 1 ? "text-green-600" :
+      l.goalsPerMatch >= 0.5 ? "text-yellow-600" :
+        "text-gray-500";
 
   return (
     <div className="bg-white rounded-xl shadow border-t-4 border-green-500 p-5 space-y-4">
@@ -164,9 +164,9 @@ function LeagueCard({ league: l }: { league: PlayerLeagueStats }) {
 
       {/* Stats: goles, asistencias, partidos */}
       <div className="grid grid-cols-3 gap-2">
-        <StatBox label="Goles"  value={l.goals}         color="bg-green-50 text-green-700" />
-        <StatBox label="Asist." value={l.assists}        color="bg-blue-50 text-blue-700"   />
-        <StatBox label="PJ"     value={l.matchesPlayed}  color="bg-gray-50 text-gray-700"   />
+        <StatBox label="Goles" value={l.goals} color="bg-green-50 text-green-700" />
+        <StatBox label="Asist." value={l.assists} color="bg-blue-50 text-blue-700" />
+        <StatBox label="PJ" value={l.matchesPlayed} color="bg-gray-50 text-gray-700" />
       </div>
 
       {/* Goles por partido — o total de goles si no hay PJ */}

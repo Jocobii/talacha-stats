@@ -16,7 +16,7 @@ function PlayersContent() {
   const searchParams = useSearchParams();
   const city = searchParams.get("city") ?? "Tijuana";
 
-  const [query,   setQuery]   = useState("");
+  const [query, setQuery] = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
@@ -25,13 +25,14 @@ function PlayersContent() {
     setLoading(true);
     const params = new URLSearchParams({ city: c });
     if (q.trim()) params.set("q", q.trim());
-    const res  = await fetch(`/api/players?${params.toString()}`);
+    const res = await fetch(`/api/players?${params.toString()}`);
     const data = await res.json();
     setPlayers(data.data ?? []);
     setFetched(true);
     setLoading(false);
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { search("", city); }, [search, city]);
 
   useEffect(() => {
@@ -109,7 +110,7 @@ function PlayersContent() {
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-ink truncate">{p.fullName}</p>
                 {p.alias && (
-                  <p className="text-sm text-brand truncate">"{p.alias}"</p>
+                  <p className="text-sm text-brand truncate">&quot;{p.alias}&quot;</p>
                 )}
               </div>
 

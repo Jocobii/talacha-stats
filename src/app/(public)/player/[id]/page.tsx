@@ -48,9 +48,9 @@ export default async function PlayerProfilePage({
 
   const { global: g } = profile;
   const hasStats = g.totalGoals > 0 || g.totalMatches > 0;
-  const initial  = (profile.alias ?? profile.fullName).charAt(0).toUpperCase();
+  const initial = (profile.alias ?? profile.fullName).charAt(0).toUpperCase();
 
-  const cityPos      = egoStats.positions.city;
+  const cityPos = egoStats.positions.city;
   const showCityRank = cityPos !== null && cityPos.goals > 0;
 
   return (
@@ -68,7 +68,7 @@ export default async function PlayerProfilePage({
             </h1>
             {profile.alias && (
               <p className="text-brand text-sm font-semibold mt-1">
-                "{profile.alias}"
+                &quot;{profile.alias}&quot;
               </p>
             )}
           </div>
@@ -134,8 +134,8 @@ function CityRankCard({
 }) {
   const medal =
     rank === 1 ? "🥇" :
-    rank === 2 ? "🥈" :
-    rank === 3 ? "🥉" : null;
+      rank === 2 ? "🥈" :
+        rank === 3 ? "🥉" : null;
 
   return (
     <div className="bg-surface border border-line rounded-2xl p-5 flex items-center gap-4">
@@ -175,7 +175,7 @@ function StatsHero({ global: g }: { global: PlayerGlobalProfile }) {
           </p>
         </div>
         <div className="flex gap-4 pb-1">
-          <StatPill label="Goles"   value={g.totalGoals}   />
+          <StatPill label="Goles" value={g.totalGoals} />
           {g.totalMatches > 0 && (
             <StatPill label="PJ" value={g.totalMatches} />
           )}
@@ -185,7 +185,7 @@ function StatsHero({ global: g }: { global: PlayerGlobalProfile }) {
 
       {g.totalContributions > g.totalGoals && (
         <div className="mt-4 pt-4 border-t border-line flex gap-4">
-          <StatPill label="Asistencias"  value={g.totalAssists}       />
+          <StatPill label="Asistencias" value={g.totalAssists} />
           <StatPill label="Contribuciones" value={g.totalContributions} accent />
         </div>
       )}
@@ -214,12 +214,12 @@ function StatPill({
 
 const BADGE_CONFIG: Record<PlayerBadge, { icon: string; label: string }> = {
   league_top_scorer: { icon: "🥇", label: "Goleador de liga" },
-  multi_league:      { icon: "🌐", label: "Multiligas"       },
-  marksman:          { icon: "🎯", label: "Artillero"        },
-  on_streak:         { icon: "🔥", label: "En racha"         },
-  mvp:               { icon: "🎖️",  label: "MVP"             },
-  hat_trick_club:    { icon: "⚽",  label: "Hat-trick"       },
-  veteran:           { icon: "🏅", label: "Veterano"         },
+  multi_league: { icon: "🌐", label: "Multiligas" },
+  marksman: { icon: "🎯", label: "Artillero" },
+  on_streak: { icon: "🔥", label: "En racha" },
+  mvp: { icon: "🎖️", label: "MVP" },
+  hat_trick_club: { icon: "⚽", label: "Hat-trick" },
+  veteran: { icon: "🏅", label: "Veterano" },
 };
 
 function BadgesGrid({ badges }: { badges: PlayerBadge[] }) {
