@@ -9,21 +9,19 @@ import { usePathname } from "next/navigation";
  * No renderiza nada — solo dispara el tracking al montar.
  */
 export default function TrackVisit() {
-  const pathname = usePathname();
+	const pathname = usePathname();
 
-  useEffect(() => {
-    const page = pathname.startsWith("/player/")
-      ? "/player/[id]"
-      : pathname;
+	useEffect(() => {
+		const page = pathname.startsWith("/player/") ? "/player/[id]" : pathname;
 
-    fetch("/api/analytics/visit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ page }),
-    }).catch(() => {
-      // Silenciar — nunca romper la UX por un error de analytics
-    });
-  }, [pathname]);
+		fetch("/api/analytics/visit", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ page }),
+		}).catch(() => {
+			// Silenciar — nunca romper la UX por un error de analytics
+		});
+	}, [pathname]);
 
-  return null;
+	return null;
 }

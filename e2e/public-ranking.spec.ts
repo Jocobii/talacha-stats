@@ -7,14 +7,10 @@ test.describe("Given a visitor on the public ranking page", () => {
 
 	test.describe("When the city ranking renders with seeded data", () => {
 		test("Then the page heading is 'Ranking'", async ({ page }) => {
-			await expect(
-				page.getByRole("heading", { level: 1, name: "Ranking" }),
-			).toBeVisible();
+			await expect(page.getByRole("heading", { level: 1, name: "Ranking" })).toBeVisible();
 		});
 
-		test("Then a CAMPEÓN badge marks the top scorer of the podium", async ({
-			page,
-		}) => {
+		test("Then a CAMPEÓN badge marks the top scorer of the podium", async ({ page }) => {
 			// CAMPEÓN is rendered only when the city ranking query returns a
 			// non-empty result and a leader can be identified — its presence
 			// is a strong signal that the data path (seed → query → render)
@@ -22,14 +18,10 @@ test.describe("Given a visitor on the public ranking page", () => {
 			await expect(page.getByText("CAMPEÓN").first()).toBeVisible();
 		});
 
-		test("Then the Top 10 list renders at least one entry", async ({
-			page,
-		}) => {
+		test("Then the Top 10 list renders at least one entry", async ({ page }) => {
 			// Each entry is an anchor pointing to /player/<uuid>; finding at
 			// least one proves the list rendered with real data.
-			await expect(
-				page.locator('a[href^="/player/"]').first(),
-			).toBeVisible();
+			await expect(page.locator('a[href^="/player/"]').first()).toBeVisible();
 		});
 	});
 
@@ -38,15 +30,10 @@ test.describe("Given a visitor on the public ranking page", () => {
 			// `getByRole("link").filter({ hasText: "CAMPEÓN" })` returns the
 			// anchor wrapping the badge — that's the leader's card. Clicking
 			// it should navigate to /player/<uuid>.
-			await page
-				.getByRole("link")
-				.filter({ hasText: "CAMPEÓN" })
-				.click();
+			await page.getByRole("link").filter({ hasText: "CAMPEÓN" }).click();
 		});
 
-		test("Then the URL navigates to a /player/<uuid> route", async ({
-			page,
-		}) => {
+		test("Then the URL navigates to a /player/<uuid> route", async ({ page }) => {
 			await expect(page).toHaveURL(/\/player\/[a-f0-9-]{36}$/);
 		});
 

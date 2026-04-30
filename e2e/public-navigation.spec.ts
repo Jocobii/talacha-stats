@@ -14,9 +14,7 @@ test.describe("Given a visitor on the public homepage", () => {
 			// (The mobile bottom-nav has the same exact label, but at the
 			// default viewport 1280×720 it's `display:none` via `sm:hidden`
 			// so it doesn't appear in the accessibility tree.)
-			await page
-				.getByRole("link", { name: "Ranking", exact: true })
-				.click();
+			await page.getByRole("link", { name: "Ranking", exact: true }).click();
 		});
 
 		test("Then the URL becomes /ranking", async ({ page }) => {
@@ -28,9 +26,7 @@ test.describe("Given a visitor on the public homepage", () => {
 			// client-side navigation the <title> can lag while metadata
 			// streams in, and the H1 is the truthful signal that the
 			// destination page rendered.
-			await expect(
-				page.getByRole("heading", { level: 1, name: "Ranking" }),
-			).toBeVisible();
+			await expect(page.getByRole("heading", { level: 1, name: "Ranking" })).toBeVisible();
 		});
 	});
 });

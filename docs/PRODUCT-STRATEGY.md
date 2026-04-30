@@ -12,7 +12,7 @@ Este documento define **qué somos, qué NO somos, y por qué**. Toda decisión 
 
 **TalachaStats es la capa de identidad digital y contenido para ligas locales de fútbol amateur en México.** Convierte el corte semanal de Excel del organizador en perfiles de jugador, presencia digital de la liga y contenido listo para postear.
 
-**Tagline:** *"Tu liga, en serio."*
+**Tagline:** _"Tu liga, en serio."_
 
 ---
 
@@ -35,11 +35,13 @@ Ligas locales pequeñas en México:
 El producto vive de dos psicologías paralelas. Toda feature debe servir al menos a una de las dos, idealmente a las dos.
 
 ### 3.1 El jugador
+
 - Quiere **presumir** su posición en el ranking, sus goles, sus rachas.
 - Quiere un **historial** que persista al cambiar de liga.
 - Es la fuerza de venta sin saberlo: presiona al organizador para que adopte TalachaStats.
 
 ### 3.2 El organizador
+
 - Quiere que su liga **se vea más profesional** que las del compa de la otra colonia.
 - Quiere **contenido listo para postear** sin trabajo extra.
 - Quiere **argumentos para reclutar** jugadores y patrocinadores.
@@ -90,7 +92,8 @@ Hacerlo significaría:
 El producto se construye en capas. Cada capa profundiza el valor sin cambiar el ADN.
 
 ### Capa 1 — Identidad de la liga (base)
-*Estado: existe parcialmente.*
+
+_Estado: existe parcialmente._
 
 - Página pública por liga con branding propio (logo, colores)
 - URL bonita y compartible: `talachastats.com/lunes-villa-magna`
@@ -100,7 +103,8 @@ El producto se construye en capas. Cada capa profundiza el valor sin cambiar el 
 **Promesa al organizador:** "Tu liga tiene presencia digital permanente. Mándalo en un link."
 
 ### Capa 2 — Generación automática de contenido (LA CUÑA)
-*Estado: por construir. Es la prioridad estratégica.*
+
+_Estado: por construir. Es la prioridad estratégica._
 
 Cada lunes/martes después de que el organizador sube el corte (Excel), TalachaStats genera automáticamente:
 
@@ -112,7 +116,8 @@ Cada lunes/martes después de que el organizador sube el corte (Excel), TalachaS
 **Por qué importa:** esto es lo que el organizador hoy hace **a mano en Canva los lunes**. Le ahorramos 1–2 horas por semana. Es el motivo por el que mandará el Excel todas las semanas. Es lo que **no tiene nadie más** en este nicho.
 
 ### Capa 3 — Pre-partido del narrador (DIFERENCIADOR)
-*Estado: existe `lib/narrator.ts`, falta UI dedicada.*
+
+_Estado: existe `lib/narrator.ts`, falta UI dedicada._
 
 Pantalla específica para el narrador del Facebook Live:
 
@@ -124,7 +129,8 @@ Pantalla específica para el narrador del Facebook Live:
 **Por qué importa:** convierte el Facebook Live en transmisión semi-profesional. El narrador se vuelve nuestro **evangelizador interno**: si lo enamoramos, defiende TalachaStats con el organizador.
 
 ### Capa 4 — Ecosistema (futuro, monetización)
-*Estado: no construir hasta tener 20+ ligas activas.*
+
+_Estado: no construir hasta tener 20+ ligas activas._
 
 - Comparativos entre ligas (ranking de Pichichis cruzando ligas, etc.)
 - Vitrina de "jugadores libres" buscando liga
@@ -136,6 +142,7 @@ Pantalla específica para el narrador del Facebook Live:
 ## 7. Persona del organizador — qué SÍ y qué NO
 
 ### Sí construimos para él
+
 - Generador de contenido visual semanal (Capa 2)
 - Página pública de su liga con branding propio
 - Apoyo al narrador (Capa 3)
@@ -143,6 +150,7 @@ Pantalla específica para el narrador del Facebook Live:
 - Excusas para presumir ("tu liga es la que más hat-tricks tiene en la zona")
 
 ### No construimos para él (al menos no hasta tener tracción)
+
 - Calendario / fixtures / sorteos
 - Cobro de inscripciones / pagos
 - Arbitraje / asignación de árbitros
@@ -154,28 +162,31 @@ Pantalla específica para el narrador del Facebook Live:
 
 ## 8. Roadmap recomendado (próximos 90 días)
 
-| Sprint | Objetivo | Entregable |
-|---|---|---|
-| 1–2 sem | Validar con organizadores reales | 5 entrevistas: "¿qué postearías esta semana sobre tu liga si tuvieras tiempo?" |
-| 3–6 sem | Capa 2 — generador de contenido | Pipeline post-importación que produce 5–7 piezas listas para postear |
-| 7–8 sem | Capa 3 — pantalla del narrador | UI dedicada para el narrador, optimizada para uso en vivo |
-| 9–12 sem | Pulido y caso de éxito | Documentar 1–2 ligas piloto como caso de éxito vendible |
+| Sprint   | Objetivo                         | Entregable                                                                     |
+| -------- | -------------------------------- | ------------------------------------------------------------------------------ |
+| 1–2 sem  | Validar con organizadores reales | 5 entrevistas: "¿qué postearías esta semana sobre tu liga si tuvieras tiempo?" |
+| 3–6 sem  | Capa 2 — generador de contenido  | Pipeline post-importación que produce 5–7 piezas listas para postear           |
+| 7–8 sem  | Capa 3 — pantalla del narrador   | UI dedicada para el narrador, optimizada para uso en vivo                      |
+| 9–12 sem | Pulido y caso de éxito           | Documentar 1–2 ligas piloto como caso de éxito vendible                        |
 
 ---
 
 ## 9. Métricas que importan
 
 ### Métricas de salud del viral loop (jugador)
+
 - % de jugadores que comparten su perfil al menos 1 vez
 - Visitas únicas a perfiles de jugador
 - Tiempo en perfil
 
 ### Métricas de adopción del organizador
+
 - # de ligas activas (con corte recibido en últimas 2 semanas)
 - # de piezas de contenido generadas y descargadas/compartidas por liga
 - Frecuencia con que el narrador entra a su pantalla pre-partido
 
 ### Métricas que NO obsesionan
+
 - Total de usuarios registrados (vanidad)
 - Tiempo total en la plataforma (no es el modelo)
 

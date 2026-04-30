@@ -9,11 +9,13 @@
 Vas a ayudarme con **TalachaStats**, una plataforma web para estadísticas de fútbol amateur en ligas locales de México. Antes de proponer cualquier idea, feature, copy o cambio técnico, necesitas internalizar este contexto. No lo cuestiones como punto de partida — son decisiones tomadas con intención.
 
 ### Quiénes somos en una frase
+
 TalachaStats es la **capa de identidad digital y contenido** para ligas locales de fútbol amateur. Convertimos el corte semanal de Excel del organizador en perfiles de jugador, presencia digital de la liga y contenido listo para postear.
 
-Tagline: *"Tu liga, en serio."*
+Tagline: _"Tu liga, en serio."_
 
 ### Mercado objetivo
+
 Ligas locales pequeñas (8–16 equipos), organizador independiente, presupuesto limitado, hoy operan con WhatsApp + Excel + Facebook Live, sin presencia digital persistente.
 
 **No somos para:** federaciones, ligas profesionales, academias formales, clubes con software propio.
@@ -24,12 +26,15 @@ Ligas locales pequeñas (8–16 equipos), organizador independiente, presupuesto
 2. **El organizador**: quiere que su liga se vea más profesional que las de otros, contenido listo para postear sin esfuerzo, argumentos para reclutar jugadores y patrocinadores, apoyo al narrador del Facebook Live.
 
 ### Motor de crecimiento (viral loop)
+
 Jugador juega en liga con TalachaStats → presume sus stats → amigos quieren lo mismo → presionan a sus organizadores → organizador adopta → más jugadores → más presión → más adopción.
 
 **El jugador es el motor. El organizador es la puerta.** Si la puerta se cierra (porque al organizador no le interesa), el motor no sirve.
 
 ### LO QUE NO CONSTRUIMOS — regla dura
+
 **No construimos software de gestión de ligas** (sorteos, calendario, pagos, arbitraje, cancha, inscripciones). Eso ya lo hace bien el organizador con WhatsApp y Excel. Si construimos eso:
+
 - Perdemos foco
 - Perdemos sencillez (nuestra ventaja)
 - Competimos con TeamSnap / LeagueApps / SportsEngine y perdemos
@@ -40,12 +45,14 @@ Regla: no construir features de "manejar la liga" hasta tener al menos **10 liga
 ### LO QUE SÍ CONSTRUIMOS — propuesta de valor por capas
 
 **Capa 1 — Identidad de la liga (base, parcialmente existe):**
+
 - Página pública por liga con branding propio
 - URL bonita compartible (`talachastats.com/lunes-villa-magna`)
 - Tabla de posiciones, goleadores, perfiles de jugador
 
 **Capa 2 — Generación automática de contenido (LA CUÑA, prioridad estratégica):**
 Cada semana después del corte, TalachaStats genera:
+
 - Imagen de la jornada lista para WhatsApp/Facebook
 - Píldoras del narrador (datos curiosos, rachas, hat-tricks)
 - Carrusel/reel de jugadores destacados
@@ -70,15 +77,18 @@ Ante cualquier idea/feature propuesta, antes de implementar pregunta en orden:
 5. ¿Hay 10 ligas pidiéndolo? (Si no, no construir aún.)
 
 ### Stack técnico (referencia rápida)
+
 Next.js 16 (App Router), React 19, PostgreSQL + Drizzle 0.45, Zod 4, Tailwind 4, TypeScript estricto. Arquitectura Feature-Sliced Design: `app → features → entities → shared`. Para detalles técnicos completos, ver `AGENTS.md` y `CLAUDE.md` en la raíz del proyecto.
 
 ### Cómo trabajar conmigo
+
 - Empieza siempre validando que la idea pasa la heurística de 5 preguntas.
 - Si propones una feature, indica explícitamente cuál capa (1, 2, 3, 4) y cuál ego refuerza.
 - Si crees que algo del posicionamiento debería cambiar, dilo abiertamente con argumentos — no asumas.
 - Prefiere respuestas directas, sin rodeos. No me digas que "es una excelente idea" — dime si funciona o no y por qué.
 
 ### Qué viene primero ahora (Q2 2026)
+
 1. Validar Capa 2 con 5 entrevistas a organizadores reales.
 2. Construir el generador automático de contenido post-importación.
 3. Construir la pantalla del narrador.

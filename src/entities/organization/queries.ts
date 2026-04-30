@@ -146,10 +146,7 @@ export async function getPublicLeague(orgSlug: string, leagueSlug: string) {
 	if (!org) return null;
 
 	const league = await db.query.leagues.findFirst({
-		where: and(
-			eq(leagues.organizationId, org.id),
-			eq(leagues.slug, leagueSlug),
-		),
+		where: and(eq(leagues.organizationId, org.id), eq(leagues.slug, leagueSlug)),
 		with: { teams: true },
 	});
 	if (!league) return null;
@@ -178,9 +175,7 @@ export async function getLatestStandings(leagueId: string) {
 		with: { team: { columns: { id: true, name: true } } },
 		orderBy: [
 			desc(teamStandingsSnapshot.points),
-			desc(
-				sql`${teamStandingsSnapshot.goalsFor} - ${teamStandingsSnapshot.goalsAgainst}`,
-			),
+			desc(sql`${teamStandingsSnapshot.goalsFor} - ${teamStandingsSnapshot.goalsAgainst}`),
 			desc(teamStandingsSnapshot.goalsFor),
 		],
 	});
@@ -194,13 +189,13 @@ export async function getLatestStandings(leagueId: string) {
 export async function getLatestTopScorers(leagueId: string, limit = 10) {
 	return db
 		.select({
-			playerId:      playerSeasonStats.playerId,
-			fullName:      players.fullName,
-			alias:         players.alias,
-			goals:         playerSeasonStats.goals,
-			assists:       playerSeasonStats.assists,
+			playerId: playerSeasonStats.playerId,
+			fullName: players.fullName,
+			alias: players.alias,
+			goals: playerSeasonStats.goals,
+			assists: playerSeasonStats.assists,
 			matchesPlayed: playerSeasonStats.matchesPlayed,
-			teamName:      teams.name,
+			teamName: teams.name,
 		})
 		.from(playerSeasonStats)
 		.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
@@ -300,14 +295,11 @@ export type LeagueShowcaseItem = {
  * Devuelve las ligas activas de una ciudad con datos de resumen para la
  * vitrina de la homepage: número de equipos, jugadores y goleador actual.
  */
-export async function getLeaguesShowcase(
-	city: string,
-	limit = 6,
-): Promise<LeagueShowcaseItem[]> {
+export async function getLeaguesShowcase(city: string, limit = 6): Promise<LeagueShowcaseItem[]> {
 	const activeLeagues = await db.query.leagues.findMany({
 		where: and(eq(leagues.city, city), eq(leagues.status, "active")),
 		with: {
-			teams:        { columns: { id: true } },
+			teams: { columns: { id: true } },
 			organization: { columns: { slug: true } },
 		},
 		orderBy: [desc(leagues.createdAt)],
@@ -339,16 +331,11 @@ export async function getLeaguesShowcase(
 			.from(playerSeasonStats)
 			.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
 			.where(inArray(playerSeasonStats.leagueId, leagueIds))
-			.orderBy(
-				desc(playerSeasonStats.goals),
-				desc(playerSeasonStats.assists),
-			),
+			.orderBy(desc(playerSeasonStats.goals), desc(playerSeasonStats.assists)),
 	]);
 
 	// Construir mapas para O(1) lookup
-	const playerCountMap = new Map(
-		playerCounts.map((r) => [r.leagueId, Number(r.count)]),
-	);
+	const playerCountMap = new Map(playerCounts.map((r) => [r.leagueId, Number(r.count)]));
 
 	// Top scorer por liga: primer row encontrado por leagueId (ya vienen ordenados)
 	const topScorerMap = new Map<string, (typeof scorerRows)[0]>();
@@ -370,7 +357,7 @@ export async function getLeaguesShowcase(
 			topScorer: scorer
 				? { fullName: scorer.fullName, alias: scorer.alias, goals: scorer.goals }
 				: null,
-			orgSlug:    league.organization?.slug ?? null,
+			orgSlug: league.organization?.slug ?? null,
 			leagueSlug: league.slug ?? null,
 		};
 	});
@@ -395,9 +382,7 @@ export type OrgHubStats = {
  * Retorna el líder de tabla, top goleador y última jornada de una liga.
  * Usado en las cards del hub de organización.
  */
-export async function getLeagueSnapshot(
-	leagueId: string,
-): Promise<LeagueSnapshot> {
+export async function getLeagueSnapshot(leagueId: string): Promise<LeagueSnapshot> {
 	const jornadaRows = await db
 		.select({ max: sql<number>`max(${teamStandingsSnapshot.jornada})` })
 		.from(teamStandingsSnapshot)
@@ -431,9 +416,7 @@ export async function getLeagueSnapshot(
 
 	return {
 		lastJornada,
-		leader: leaderRow
-			? { teamName: leaderRow.team.name, points: leaderRow.points }
-			: null,
+		leader: leaderRow ? { teamName: leaderRow.team.name, points: leaderRow.points } : null,
 		topScorer: scorerRows[0]
 			? {
 					fullName: scorerRows[0].fullName,

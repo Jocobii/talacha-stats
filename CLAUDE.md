@@ -10,14 +10,14 @@ Este archivo define cómo trabajamos en este proyecto. Toda respuesta, todo arch
 
 ## Stack
 
-| Capa | Tecnología |
-|---|---|
-| Framework | Next.js 15 (App Router) |
+| Capa          | Tecnología               |
+| ------------- | ------------------------ |
+| Framework     | Next.js 15 (App Router)  |
 | Base de datos | PostgreSQL + Drizzle ORM |
-| Validación | Zod |
-| Estilos | Tailwind CSS |
-| Excel | SheetJS (xlsx) |
-| Lenguaje | TypeScript estricto |
+| Validación    | Zod                      |
+| Estilos       | Tailwind CSS             |
+| Excel         | SheetJS (xlsx)           |
+| Lenguaje      | TypeScript estricto      |
 
 ---
 
@@ -80,6 +80,7 @@ src/
 ## Reglas de arquitectura (no negociables)
 
 ### 1. Regla de dependencias FSD
+
 ```
 ✅ app/api/ → features/ → entities/ → shared/
 ✅ app/(admin)/ → features/ → shared/ui/
@@ -89,7 +90,9 @@ src/
 ```
 
 ### 2. API Routes = controladores delgados
+
 Los archivos `route.ts` solo hacen tres cosas:
+
 1. Parsear y validar la entrada con Zod
 2. Llamar a una función de `features/` o `entities/`
 3. Retornar `apiSuccess()` o `apiError()`
@@ -114,6 +117,7 @@ export async function GET(request: Request) {
 ```
 
 ### 3. Server Components por defecto, Client solo cuando necesario
+
 ```typescript
 // ✅ Page que solo muestra datos → Server Component (sin "use client")
 export default async function LeaguePage({ params }) {
@@ -130,11 +134,12 @@ export function ImportWizard() {
 ```
 
 ### 4. Un schema Zod, un tipo — mismo archivo
+
 ```typescript
 // entities/player/model.ts
 export const PlayerSchema = z.object({
-  fullName: z.string().min(2).max(100),
-  alias: z.string().max(50).optional(),
+	fullName: z.string().min(2).max(100),
+	alias: z.string().max(50).optional(),
 });
 
 export type Player = z.infer<typeof PlayerSchema>;
@@ -142,6 +147,7 @@ export type Player = z.infer<typeof PlayerSchema>;
 ```
 
 ### 5. Transacciones en features, no en routes ni en queries
+
 ```typescript
 // features/import-excel/confirm.ts ✅
 export async function confirmImport(data: ParsedImport) {
@@ -157,6 +163,7 @@ export async function confirmImport(data: ParsedImport) {
 ## Reglas de backend
 
 ### Naming de endpoints
+
 ```
 GET    /api/[recurso]               → listar
 POST   /api/[recurso]               → crear
@@ -167,15 +174,17 @@ POST   /api/[recurso]/[accion]      → acción especial (ej: /merge, /confirm)
 ```
 
 ### Responses siempre consistentes
+
 ```typescript
 // Siempre usar apiSuccess / apiError de shared/api/response.ts
-return apiSuccess(data);          // { ok: true, data }
-return apiSuccess(data, 201);     // crear
-return apiError("mensaje", 400);  // { ok: false, error }
+return apiSuccess(data); // { ok: true, data }
+return apiSuccess(data, 201); // crear
+return apiError("mensaje", 400); // { ok: false, error }
 return apiError("no encontrado", 404);
 ```
 
 ### Validación de entrada obligatoria
+
 Todo input externo pasa por Zod antes de tocar la DB.
 
 ```typescript
@@ -185,6 +194,7 @@ if (!parsed.success) return apiError(parsed.error.message, 400);
 ```
 
 ### Queries de DB
+
 - Usar la API relacional de Drizzle (`db.query.*`) para lecturas con joins
 - Usar `db.select/insert/update/delete` para escrituras y queries con lógica compleja
 - No usar `sql.raw()` salvo para operaciones que Drizzle no soporta (ej: transacciones con conflictos complejos)
@@ -195,6 +205,7 @@ if (!parsed.success) return apiError(parsed.error.message, 400);
 ## Reglas de frontend
 
 ### Componentes
+
 ```
 shared/ui/          → componentes genéricos: Button, Badge, Table, Modal
 features/*/ui/      → componentes específicos de un feature: ImportWizard, NarratorPanel
@@ -202,12 +213,14 @@ app/(admin)/*/      → páginas: componen features y entities, no tienen lógic
 ```
 
 ### Estilos con Tailwind
+
 - Clases utilitarias directas, sin CSS custom salvo en `globals.css`
 - Colores del sistema: `green-600` para acciones primarias, `gray-*` para neutros, `red-*` para destructivos
 - Modo claro forzado — este es un panel administrativo, sin soporte dark mode
 - No usar clases de Tailwind con `!important` ni `style={}` inline salvo casos excepcionales
 
 ### Estado del cliente
+
 ```typescript
 // ✅ Estado local con useState para forms y UI transitoria
 const [step, setStep] = useState<Step>("upload");
@@ -219,6 +232,7 @@ const [step, setStep] = useState<Step>("upload");
 ```
 
 ### Formularios
+
 - Sin librerías de forms (react-hook-form, formik) — el proyecto es suficientemente simple
 - Validar en el cliente antes de enviar (feedback inmediato), validar en el server (fuente de verdad)
 - Mostrar errores de la API en la UI siempre
@@ -227,15 +241,15 @@ const [step, setStep] = useState<Step>("upload");
 
 ## Convenciones de nombres
 
-| Elemento | Convención | Ejemplo |
-|---|---|---|
-| Archivos de lógica | kebab-case | `player-stats.ts` |
-| Componentes React | PascalCase | `NarratorPanel.tsx` |
-| Funciones | camelCase | `getLeagueStandings()` |
-| Tipos y schemas | PascalCase | `PlayerStats`, `CreateLeagueSchema` |
-| Rutas API | kebab-case | `/api/top-scorers` |
-| Columnas DB | snake_case | `full_name`, `league_id` |
-| Variables TS | camelCase | `leagueId`, `homeScore` |
+| Elemento           | Convención | Ejemplo                             |
+| ------------------ | ---------- | ----------------------------------- |
+| Archivos de lógica | kebab-case | `player-stats.ts`                   |
+| Componentes React  | PascalCase | `NarratorPanel.tsx`                 |
+| Funciones          | camelCase  | `getLeagueStandings()`              |
+| Tipos y schemas    | PascalCase | `PlayerStats`, `CreateLeagueSchema` |
+| Rutas API          | kebab-case | `/api/top-scorers`                  |
+| Columnas DB        | snake_case | `full_name`, `league_id`            |
+| Variables TS       | camelCase  | `leagueId`, `homeScore`             |
 
 ---
 

@@ -5,11 +5,7 @@ import { z } from "zod";
 // Supabase usa dos dominios distintos:
 //   *.supabase.co  → conexión directa (puerto 5432)
 //   *.supabase.com → pooler (puerto 6543)
-const PROD_DB_PATTERNS: RegExp[] = [
-	/supabase\.co\b/,
-	/supabase\.com\b/,
-	/supabase\.io\b/,
-];
+const PROD_DB_PATTERNS: RegExp[] = [/supabase\.co\b/, /supabase\.com\b/, /supabase\.io\b/];
 
 function looksLikeProdDatabase(url: string): boolean {
 	return PROD_DB_PATTERNS.some((pattern) => pattern.test(url));
@@ -37,14 +33,9 @@ const EnvSchema = z.object({
 				"DATABASE_URL debe ser una connection string de PostgreSQL (empieza con postgres://)",
 		}),
 
-	NODE_ENV: z
-		.enum(["development", "production", "test"])
-		.default("development"),
+	NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 
-	NEXT_PUBLIC_BASE_URL: z
-		.string()
-		.url("NEXT_PUBLIC_BASE_URL debe ser una URL válida")
-		.optional(),
+	NEXT_PUBLIC_BASE_URL: z.string().url("NEXT_PUBLIC_BASE_URL debe ser una URL válida").optional(),
 
 	ADMIN_PASSWORD: z
 		.string({ error: "ADMIN_PASSWORD es requerida" })

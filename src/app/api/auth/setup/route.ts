@@ -31,10 +31,7 @@ export async function POST(request: Request) {
 	// Solo permitir si no existe ningún usuario todavía
 	const total = await countUsers();
 	if (total > 0) {
-		return apiError(
-			"El sistema ya tiene usuarios. Usa el panel de admin.",
-			409,
-		);
+		return apiError("El sistema ya tiene usuarios. Usa el panel de admin.", 409);
 	}
 
 	const user = await createUser({

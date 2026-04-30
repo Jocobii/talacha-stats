@@ -30,9 +30,7 @@ const migrationsFolder = path.join(process.cwd(), "src/db/migrations");
 const journalPath = path.join(migrationsFolder, "meta/_journal.json");
 
 type JournalEntry = { idx: number; tag: string; when: number };
-const journal: { entries: JournalEntry[] } = JSON.parse(
-	fs.readFileSync(journalPath, "utf8"),
-);
+const journal: { entries: JournalEntry[] } = JSON.parse(fs.readFileSync(journalPath, "utf8"));
 
 const pool = new Pool({ connectionString: url });
 const db = drizzle(pool);
@@ -40,10 +38,7 @@ const db = drizzle(pool);
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function sqlHash(tag: string): string {
-	const content = fs.readFileSync(
-		path.join(migrationsFolder, `${tag}.sql`),
-		"utf8",
-	);
+	const content = fs.readFileSync(path.join(migrationsFolder, `${tag}.sql`), "utf8");
 	return createHash("sha256").update(content).digest("hex");
 }
 
@@ -98,10 +93,7 @@ async function syncAppliedMigrations(): Promise<number> {
 // Heurística: intenta correr el SQL en una transacción que siempre hace ROLLBACK.
 // Si falla con un error de "ya existe", la migración ya fue aplicada.
 async function isAlreadyApplied(tag: string): Promise<boolean> {
-	const content = fs.readFileSync(
-		path.join(migrationsFolder, `${tag}.sql`),
-		"utf8",
-	);
+	const content = fs.readFileSync(path.join(migrationsFolder, `${tag}.sql`), "utf8");
 	const statements = content
 		.split("--> statement-breakpoint")
 		.map((s) => s.trim())
@@ -122,9 +114,7 @@ async function isAlreadyApplied(tag: string): Promise<boolean> {
 		const msg = (e as Error).message ?? "";
 		// Errores típicos cuando algo ya existe
 		const alreadyExists =
-			msg.includes("already exists") ||
-			msg.includes("duplicate") ||
-			msg.includes("ya existe");
+			msg.includes("already exists") || msg.includes("duplicate") || msg.includes("ya existe");
 		return alreadyExists;
 	} finally {
 		client.release();

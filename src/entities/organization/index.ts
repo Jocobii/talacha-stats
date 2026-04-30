@@ -1,8 +1,4 @@
-export {
-	CreateOrganizationSchema,
-	UpdateOrganizationSchema,
-	generateSlug,
-} from "./model";
+export { CreateOrganizationSchema, UpdateOrganizationSchema, generateSlug } from "./model";
 
 export type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
 

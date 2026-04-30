@@ -149,7 +149,6 @@ src/
 │       ├── LeagueSelect.tsx
 │       ├── CityFilter.tsx
 │       ├── Pagination.tsx
-│       ├── NavigationProgress.tsx
 │       └── TrackVisit.tsx
 │
 ├── db/
@@ -365,9 +364,7 @@ test.describe("Given a visitor on the public homepage", () => {
 		});
 
 		test("Then the page heading shows 'Ranking'", async ({ page }) => {
-			await expect(
-				page.getByRole("heading", { level: 1, name: "Ranking" }),
-			).toBeVisible();
+			await expect(page.getByRole("heading", { level: 1, name: "Ranking" })).toBeVisible();
 		});
 	});
 });

@@ -8,16 +8,16 @@ const config: UserConfig = {
 			2,
 			"always",
 			[
-				"feat",     // nueva funcionalidad
-				"fix",      // corrección de bug
-				"chore",    // tareas de mantenimiento (deps, config, etc.)
-				"docs",     // solo documentación
+				"feat", // nueva funcionalidad
+				"fix", // corrección de bug
+				"chore", // tareas de mantenimiento (deps, config, etc.)
+				"docs", // solo documentación
 				"refactor", // refactor sin cambio de comportamiento
-				"test",     // agregar o corregir pruebas
-				"style",    // formato, espacios, puntos y coma (sin lógica)
-				"perf",     // mejora de rendimiento
-				"ci",       // cambios en CI/CD
-				"revert",   // revertir un commit anterior
+				"test", // agregar o corregir pruebas
+				"style", // formato, espacios, puntos y coma (sin lógica)
+				"perf", // mejora de rendimiento
+				"ci", // cambios en CI/CD
+				"revert", // revertir un commit anterior
 			],
 		],
 		// El subject no puede terminar en punto

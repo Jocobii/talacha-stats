@@ -31,11 +31,7 @@ if (!url) {
 	process.exit(1);
 }
 
-const PROD_PATTERNS: RegExp[] = [
-	/supabase\.co\b/,
-	/supabase\.com\b/,
-	/supabase\.io\b/,
-];
+const PROD_PATTERNS: RegExp[] = [/supabase\.co\b/, /supabase\.com\b/, /supabase\.io\b/];
 
 if (PROD_PATTERNS.some((p) => p.test(url))) {
 	console.error(
@@ -295,11 +291,7 @@ function detShuffle(n: number, seed: number): number[] {
 }
 
 function aliasFor(fullName: string): string {
-	const first = fullName
-		.split(" ")[0]
-		.toLowerCase()
-		.normalize("NFD")
-		.replace(/[̀-ͯ]/g, "");
+	const first = fullName.split(" ")[0].toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 	return `@${first}`;
 }
 
@@ -384,12 +376,8 @@ async function run(): Promise<void> {
 			})),
 		)
 		.returning();
-	const activeLeagues = leagues.filter(
-		(_, i) => LEAGUE_DEFS[i].status === "active",
-	);
-	const finishedLeagues = leagues.filter(
-		(_, i) => LEAGUE_DEFS[i].status === "finished",
-	);
+	const activeLeagues = leagues.filter((_, i) => LEAGUE_DEFS[i].status === "active");
+	const finishedLeagues = leagues.filter((_, i) => LEAGUE_DEFS[i].status === "finished");
 	console.log(
 		`✓ leagues:          ${leagues.length}  (${activeLeagues.length} activas, ${finishedLeagues.length} finalizadas, 2 ciudades)`,
 	);
@@ -408,9 +396,7 @@ async function run(): Promise<void> {
 		}
 	}
 	const teams = await db.insert(schema.teams).values(teamRows).returning();
-	console.log(
-		`✓ teams:            ${teams.length}  (${TEAMS_PER_LEAGUE} per league)`,
-	);
+	console.log(`✓ teams:            ${teams.length}  (${TEAMS_PER_LEAGUE} per league)`);
 	const teamsByLeague = new Map<string, schema.Team[]>();
 	for (const t of teams) {
 		const arr = teamsByLeague.get(t.leagueId) ?? [];
@@ -422,18 +408,14 @@ async function run(): Promise<void> {
 	const playerRows: schema.NewPlayer[] = [];
 	for (let i = 0; i < TOTAL_PLAYERS; i++) {
 		const first = FIRST_NAMES[i % FIRST_NAMES.length];
-		const last =
-			LAST_NAMES[Math.floor(i / FIRST_NAMES.length) % LAST_NAMES.length];
+		const last = LAST_NAMES[Math.floor(i / FIRST_NAMES.length) % LAST_NAMES.length];
 		const fullName = `${first} ${last}`;
 		playerRows.push({
 			fullName,
 			alias: i % 5 === 0 ? aliasFor(fullName) : null,
 		});
 	}
-	const players = await db
-		.insert(schema.players)
-		.values(playerRows)
-		.returning();
+	const players = await db.insert(schema.players).values(playerRows).returning();
 	console.log(`✓ players:          ${players.length}`);
 
 	// ── Registrations + season stats ─────────────────────────────────────────
@@ -475,9 +457,7 @@ async function run(): Promise<void> {
 	}
 	await db.insert(schema.playerRegistrations).values(registrationRows);
 	await db.insert(schema.playerSeasonStats).values(statRows);
-	console.log(
-		`✓ registrations:    ${registrationRows.length}  (cross-liga via shuffles)`,
-	);
+	console.log(`✓ registrations:    ${registrationRows.length}  (cross-liga via shuffles)`);
 	console.log(`✓ season stats:     ${statRows.length}`);
 
 	// ── Snapshot history (Liga Lunes Apertura 2026 only) ─────────────────────
@@ -505,38 +485,32 @@ async function run(): Promise<void> {
 		}
 	}
 	await db.insert(schema.playerSeasonStatsSnapshot).values(snapshotRows);
-	console.log(
-		`✓ snapshots:        ${snapshotRows.length}  (3 jornadas × top 12 of Liga Lunes)`,
-	);
+	console.log(`✓ snapshots:        ${snapshotRows.length}  (3 jornadas × top 12 of Liga Lunes)`);
 
 	// ── Standings snapshots (Liga Lunes top 10 at jornada 12) ────────────────
 	const lunesTeams = teamsByLeague.get(ligaLunes.id)!;
-	const standingRows: schema.NewTeamStandingsSnapshot[] = lunesTeams.map(
-		(t, i) => {
-			const wins = 2 + det(i, 8, 41);
-			const draws = det(i, 4, 42);
-			const losses = 12 - wins - draws;
-			const goalsFor = wins * 3 + draws + det(i, 12, 43);
-			const goalsAgainst = losses * 2 + draws + det(i, 8, 44);
-			return {
-				teamId: t.id,
-				leagueId: ligaLunes.id,
-				jornada: 12,
-				played: 12,
-				wins,
-				draws,
-				losses,
-				goalsFor,
-				goalsAgainst,
-				points: wins * 3 + draws,
-				zone: i < 4 ? "LIGUILLA" : i >= 8 ? "DESCENSO" : null,
-			};
-		},
-	);
+	const standingRows: schema.NewTeamStandingsSnapshot[] = lunesTeams.map((t, i) => {
+		const wins = 2 + det(i, 8, 41);
+		const draws = det(i, 4, 42);
+		const losses = 12 - wins - draws;
+		const goalsFor = wins * 3 + draws + det(i, 12, 43);
+		const goalsAgainst = losses * 2 + draws + det(i, 8, 44);
+		return {
+			teamId: t.id,
+			leagueId: ligaLunes.id,
+			jornada: 12,
+			played: 12,
+			wins,
+			draws,
+			losses,
+			goalsFor,
+			goalsAgainst,
+			points: wins * 3 + draws,
+			zone: i < 4 ? "LIGUILLA" : i >= 8 ? "DESCENSO" : null,
+		};
+	});
 	await db.insert(schema.teamStandingsSnapshot).values(standingRows);
-	console.log(
-		`✓ team standings:   ${standingRows.length}  (jornada 12 of Liga Lunes)`,
-	);
+	console.log(`✓ team standings:   ${standingRows.length}  (jornada 12 of Liga Lunes)`);
 
 	// ── Matches + match events (active leagues only) ─────────────────────────
 	// 5 matches per active league × 6 = 30 matches. Each completed match
@@ -577,9 +551,7 @@ async function run(): Promise<void> {
 		}
 	}
 	const matches = await db.insert(schema.matches).values(matchRows).returning();
-	console.log(
-		`✓ matches:          ${matches.length}  (completed, across 6 active leagues)`,
-	);
+	console.log(`✓ matches:          ${matches.length}  (completed, across 6 active leagues)`);
 
 	// Events: pick scorers from registered players of the league for that team.
 	const regsByLeagueTeam = new Map<string, schema.NewPlayerRegistration[]>();
@@ -592,10 +564,8 @@ async function run(): Promise<void> {
 	const eventRows: schema.NewMatchEvent[] = [];
 	for (let mi = 0; mi < matches.length; mi++) {
 		const m = matches[mi];
-		const homeRoster =
-			regsByLeagueTeam.get(`${m.leagueId}:${m.homeTeamId}`) ?? [];
-		const awayRoster =
-			regsByLeagueTeam.get(`${m.leagueId}:${m.awayTeamId}`) ?? [];
+		const homeRoster = regsByLeagueTeam.get(`${m.leagueId}:${m.homeTeamId}`) ?? [];
+		const awayRoster = regsByLeagueTeam.get(`${m.leagueId}:${m.awayTeamId}`) ?? [];
 		// Goals
 		for (let g = 0; g < m.homeScore && homeRoster.length > 0; g++) {
 			const r = homeRoster[det(mi * 13 + g, homeRoster.length, 7)];
@@ -642,9 +612,7 @@ async function run(): Promise<void> {
 	if (eventRows.length > 0) {
 		await db.insert(schema.matchEvents).values(eventRows);
 	}
-	console.log(
-		`✓ match events:     ${eventRows.length}  (goals · yellows · reds)`,
-	);
+	console.log(`✓ match events:     ${eventRows.length}  (goals · yellows · reds)`);
 
 	console.log("──────────────────────────────────────────");
 	console.log("✅  Seed completo. Dataset MVP cubre:");

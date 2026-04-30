@@ -1,387 +1,413 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TalachaStats — Conceptos de Logo</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>TalachaStats — Conceptos de Logo</title>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
 
-  :root {
-    --brand:     #00E676;
-    --brand-dim: #00C853;
-    --pitch:     #0A0A0A;
-    --surface:   #141414;
-    --surface-2: #1E1E1E;
-    --line:      #2A2A2A;
-    --ink:       #F5F5F5;
-    --ink-2:     #999999;
-  }
+			:root {
+				--brand: #00e676;
+				--brand-dim: #00c853;
+				--pitch: #0a0a0a;
+				--surface: #141414;
+				--surface-2: #1e1e1e;
+				--line: #2a2a2a;
+				--ink: #f5f5f5;
+				--ink-2: #999999;
+			}
 
-  body {
-    background: #080808;
-    font-family: 'DM Sans', sans-serif;
-    color: var(--ink);
-    padding: 48px 32px;
-    min-height: 100vh;
-  }
+			body {
+				background: #080808;
+				font-family: "DM Sans", sans-serif;
+				color: var(--ink);
+				padding: 48px 32px;
+				min-height: 100vh;
+			}
 
-  .page-title {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--ink-2);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    text-align: center;
-    margin-bottom: 48px;
-  }
+			.page-title {
+				font-family: "DM Sans", sans-serif;
+				font-size: 13px;
+				font-weight: 500;
+				color: var(--ink-2);
+				letter-spacing: 3px;
+				text-transform: uppercase;
+				text-align: center;
+				margin-bottom: 48px;
+			}
 
-  .concepts {
-    display: flex;
-    flex-direction: column;
-    gap: 48px;
-    max-width: 900px;
-    margin: 0 auto;
-  }
+			.concepts {
+				display: flex;
+				flex-direction: column;
+				gap: 48px;
+				max-width: 900px;
+				margin: 0 auto;
+			}
 
-  .concept-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    align-items: center;
-  }
+			.concept-row {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 24px;
+				align-items: center;
+			}
 
-  /* Card that holds the logo */
-  .logo-card {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 48px 32px;
-    min-height: 200px;
-  }
+			/* Card that holds the logo */
+			.logo-card {
+				background: var(--surface);
+				border: 1px solid var(--line);
+				border-radius: 16px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 48px 32px;
+				min-height: 200px;
+			}
 
-  .logo-card.light-bg {
-    background: #F5F5F5;
-    border-color: #E0E0E0;
-  }
+			.logo-card.light-bg {
+				background: #f5f5f5;
+				border-color: #e0e0e0;
+			}
 
-  /* Description panel */
-  .concept-desc {
-    padding: 8px 16px;
-  }
+			/* Description panel */
+			.concept-desc {
+				padding: 8px 16px;
+			}
 
-  .concept-number {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--brand);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-  }
+			.concept-number {
+				font-size: 11px;
+				font-weight: 700;
+				color: var(--brand);
+				letter-spacing: 3px;
+				text-transform: uppercase;
+				margin-bottom: 10px;
+			}
 
-  .concept-name {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 26px;
-    font-weight: 800;
-    color: var(--ink);
-    margin-bottom: 10px;
-    line-height: 1;
-  }
+			.concept-name {
+				font-family: "Barlow Condensed", sans-serif;
+				font-size: 26px;
+				font-weight: 800;
+				color: var(--ink);
+				margin-bottom: 10px;
+				line-height: 1;
+			}
 
-  .concept-notes {
-    font-size: 13px;
-    color: var(--ink-2);
-    line-height: 1.7;
-  }
+			.concept-notes {
+				font-size: 13px;
+				color: var(--ink-2);
+				line-height: 1.7;
+			}
 
-  .concept-notes strong {
-    color: var(--ink);
-  }
+			.concept-notes strong {
+				color: var(--ink);
+			}
 
-  .tag {
-    display: inline-block;
-    background: var(--surface-2);
-    border: 1px solid var(--line);
-    border-radius: 4px;
-    padding: 3px 8px;
-    font-size: 11px;
-    color: var(--ink-2);
-    margin-top: 10px;
-    margin-right: 4px;
-  }
+			.tag {
+				display: inline-block;
+				background: var(--surface-2);
+				border: 1px solid var(--line);
+				border-radius: 4px;
+				padding: 3px 8px;
+				font-size: 11px;
+				color: var(--ink-2);
+				margin-top: 10px;
+				margin-right: 4px;
+			}
 
-  .divider {
-    height: 1px;
-    background: var(--line);
-  }
+			.divider {
+				height: 1px;
+				background: var(--line);
+			}
 
-  /* ══════════════════════════════
+			/* ══════════════════════════════
      CONCEPTO 1 — WORDMARK puro
   ══════════════════════════════ */
-  .logo-1 {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-  }
+			.logo-1 {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 2px;
+			}
 
-  .logo-1 .word-top {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 52px;
-    font-weight: 900;
-    color: var(--ink);
-    letter-spacing: -1px;
-    line-height: 1;
-    text-transform: uppercase;
-  }
+			.logo-1 .word-top {
+				font-family: "Barlow Condensed", sans-serif;
+				font-size: 52px;
+				font-weight: 900;
+				color: var(--ink);
+				letter-spacing: -1px;
+				line-height: 1;
+				text-transform: uppercase;
+			}
 
-  .logo-1 .word-bottom {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 52px;
-    font-weight: 900;
-    color: var(--brand);
-    letter-spacing: -1px;
-    line-height: 1;
-    text-transform: uppercase;
-  }
+			.logo-1 .word-bottom {
+				font-family: "Barlow Condensed", sans-serif;
+				font-size: 52px;
+				font-weight: 900;
+				color: var(--brand);
+				letter-spacing: -1px;
+				line-height: 1;
+				text-transform: uppercase;
+			}
 
-  .logo-1 .tagline {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--ink-2);
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    margin-top: 6px;
-  }
+			.logo-1 .tagline {
+				font-family: "DM Sans", sans-serif;
+				font-size: 10px;
+				font-weight: 600;
+				color: var(--ink-2);
+				letter-spacing: 4px;
+				text-transform: uppercase;
+				margin-top: 6px;
+			}
 
-  /* ══════════════════════════════
+			/* ══════════════════════════════
      CONCEPTO 2 — MONOGRAMA TS
   ══════════════════════════════ */
-  .logo-2 {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-  }
+			.logo-2 {
+				display: flex;
+				align-items: center;
+				gap: 20px;
+			}
 
-  .monogram {
-    position: relative;
-    width: 72px;
-    height: 72px;
-    flex-shrink: 0;
-  }
+			.monogram {
+				position: relative;
+				width: 72px;
+				height: 72px;
+				flex-shrink: 0;
+			}
 
-  .monogram-bg {
-    width: 72px;
-    height: 72px;
-    background: var(--brand);
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+			.monogram-bg {
+				width: 72px;
+				height: 72px;
+				background: var(--brand);
+				border-radius: 14px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
 
-  .monogram-text {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 38px;
-    font-weight: 900;
-    color: #000;
-    line-height: 1;
-    letter-spacing: -2px;
-  }
+			.monogram-text {
+				font-family: "Barlow Condensed", sans-serif;
+				font-size: 38px;
+				font-weight: 900;
+				color: #000;
+				line-height: 1;
+				letter-spacing: -2px;
+			}
 
-  .logo-2-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-  }
+			.logo-2-text {
+				display: flex;
+				flex-direction: column;
+				gap: 0;
+			}
 
-  .logo-2-text .name {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 32px;
-    font-weight: 900;
-    color: var(--ink);
-    text-transform: uppercase;
-    letter-spacing: -0.5px;
-    line-height: 1;
-  }
+			.logo-2-text .name {
+				font-family: "Barlow Condensed", sans-serif;
+				font-size: 32px;
+				font-weight: 900;
+				color: var(--ink);
+				text-transform: uppercase;
+				letter-spacing: -0.5px;
+				line-height: 1;
+			}
 
-  .logo-2-text .name span {
-    color: var(--brand);
-  }
+			.logo-2-text .name span {
+				color: var(--brand);
+			}
 
-  .logo-2-text .sub {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--ink-2);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-top: 3px;
-  }
+			.logo-2-text .sub {
+				font-size: 10px;
+				font-weight: 600;
+				color: var(--ink-2);
+				letter-spacing: 3px;
+				text-transform: uppercase;
+				margin-top: 3px;
+			}
 
-  /* ══════════════════════════════
+			/* ══════════════════════════════
      CONCEPTO 3 — ICONO + PALABRA
      (barra de stats + nombre)
   ══════════════════════════════ */
-  .logo-3 {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
+			.logo-3 {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 12px;
+			}
 
-  .stats-icon {
-    display: flex;
-    align-items: flex-end;
-    gap: 5px;
-    height: 36px;
-  }
+			.stats-icon {
+				display: flex;
+				align-items: flex-end;
+				gap: 5px;
+				height: 36px;
+			}
 
-  .bar {
-    width: 8px;
-    background: var(--brand);
-    border-radius: 3px 3px 0 0;
-  }
+			.bar {
+				width: 8px;
+				background: var(--brand);
+				border-radius: 3px 3px 0 0;
+			}
 
-  .bar.b1 { height: 40%; opacity: 0.4; }
-  .bar.b2 { height: 65%; opacity: 0.6; }
-  .bar.b3 { height: 85%; opacity: 0.8; }
-  .bar.b4 { height: 100%; opacity: 1; }
-  .bar.b5 { height: 75%; opacity: 0.7; }
+			.bar.b1 {
+				height: 40%;
+				opacity: 0.4;
+			}
+			.bar.b2 {
+				height: 65%;
+				opacity: 0.6;
+			}
+			.bar.b3 {
+				height: 85%;
+				opacity: 0.8;
+			}
+			.bar.b4 {
+				height: 100%;
+				opacity: 1;
+			}
+			.bar.b5 {
+				height: 75%;
+				opacity: 0.7;
+			}
 
-  .logo-3-name {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 42px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: -0.5px;
-    line-height: 1;
-    color: var(--ink);
-  }
+			.logo-3-name {
+				font-family: "Barlow Condensed", sans-serif;
+				font-size: 42px;
+				font-weight: 900;
+				text-transform: uppercase;
+				letter-spacing: -0.5px;
+				line-height: 1;
+				color: var(--ink);
+			}
 
-  .logo-3-name span {
-    color: var(--brand);
-  }
+			.logo-3-name span {
+				color: var(--brand);
+			}
 
-  .logo-3-dot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    background: var(--brand);
-    border-radius: 50%;
-    margin-left: 3px;
-    vertical-align: middle;
-    margin-bottom: 6px;
-  }
+			.logo-3-dot {
+				display: inline-block;
+				width: 7px;
+				height: 7px;
+				background: var(--brand);
+				border-radius: 50%;
+				margin-left: 3px;
+				vertical-align: middle;
+				margin-bottom: 6px;
+			}
 
-  /* ── Bottom note ── */
-  .bottom-note {
-    text-align: center;
-    margin-top: 48px;
-    font-size: 12px;
-    color: var(--ink-2);
-    line-height: 1.8;
-  }
-</style>
-</head>
-<body>
+			/* ── Bottom note ── */
+			.bottom-note {
+				text-align: center;
+				margin-top: 48px;
+				font-size: 12px;
+				color: var(--ink-2);
+				line-height: 1.8;
+			}
+		</style>
+	</head>
+	<body>
+		<p class="page-title">TalachaStats — Conceptos de identidad visual</p>
 
-<p class="page-title">TalachaStats — Conceptos de identidad visual</p>
+		<div class="concepts">
+			<!-- ══ CONCEPTO 1 ══ -->
+			<div class="concept-row">
+				<div class="logo-card">
+					<div class="logo-1">
+						<span class="word-top">Talacha</span>
+						<span class="word-bottom">Stats</span>
+						<span class="tagline">Estadísticas de jugador · Ciudad</span>
+					</div>
+				</div>
+				<div class="concept-desc">
+					<div class="concept-number">Concepto 01</div>
+					<div class="concept-name">Wordmark en dos líneas</div>
+					<div class="concept-notes">
+						Lo más directo. <strong>"Talacha"</strong> en blanco arriba, <strong>"Stats"</strong> en
+						verde neón abajo. Dos palabras, dos pesos visuales, un solo golpe. Funciona bien en
+						cualquier tamaño y es fácil de leer a distancia. La tagline puede quitarse cuando se usa
+						pequeño.
+					</div>
+					<span class="tag">Simple</span>
+					<span class="tag">Versátil</span>
+					<span class="tag">Legible</span>
+				</div>
+			</div>
 
-<div class="concepts">
+			<div class="divider"></div>
 
-  <!-- ══ CONCEPTO 1 ══ -->
-  <div class="concept-row">
-    <div class="logo-card">
-      <div class="logo-1">
-        <span class="word-top">Talacha</span>
-        <span class="word-bottom">Stats</span>
-        <span class="tagline">Estadísticas de jugador · Ciudad</span>
-      </div>
-    </div>
-    <div class="concept-desc">
-      <div class="concept-number">Concepto 01</div>
-      <div class="concept-name">Wordmark en dos líneas</div>
-      <div class="concept-notes">
-        Lo más directo. <strong>"Talacha"</strong> en blanco arriba, <strong>"Stats"</strong> en verde neón abajo. Dos palabras, dos pesos visuales, un solo golpe.
-        Funciona bien en cualquier tamaño y es fácil de leer a distancia. La tagline puede quitarse cuando se usa pequeño.
-      </div>
-      <span class="tag">Simple</span>
-      <span class="tag">Versátil</span>
-      <span class="tag">Legible</span>
-    </div>
-  </div>
+			<!-- ══ CONCEPTO 2 ══ -->
+			<div class="concept-row">
+				<div class="logo-card">
+					<div class="logo-2">
+						<div class="monogram">
+							<div class="monogram-bg">
+								<span class="monogram-text">TS</span>
+							</div>
+						</div>
+						<div class="logo-2-text">
+							<span class="name">Talacha<span>Stats</span></span>
+							<span class="sub">Player Rankings · Stats</span>
+						</div>
+					</div>
+				</div>
+				<div class="concept-desc">
+					<div class="concept-number">Concepto 02</div>
+					<div class="concept-name">Monograma TS + Wordmark</div>
+					<div class="concept-notes">
+						El bloque verde con <strong>"TS"</strong> sirve como ícono independiente — foto de
+						perfil de Facebook, favicon, sticker de WhatsApp. El wordmark al lado lo completa cuando
+						hay espacio. Dos piezas que funcionan solas o juntas.
+					</div>
+					<span class="tag">Ícono independiente</span>
+					<span class="tag">Redes sociales</span>
+					<span class="tag">Memorable</span>
+				</div>
+			</div>
 
-  <div class="divider"></div>
+			<div class="divider"></div>
 
-  <!-- ══ CONCEPTO 2 ══ -->
-  <div class="concept-row">
-    <div class="logo-card">
-      <div class="logo-2">
-        <div class="monogram">
-          <div class="monogram-bg">
-            <span class="monogram-text">TS</span>
-          </div>
-        </div>
-        <div class="logo-2-text">
-          <span class="name">Talacha<span>Stats</span></span>
-          <span class="sub">Player Rankings · Stats</span>
-        </div>
-      </div>
-    </div>
-    <div class="concept-desc">
-      <div class="concept-number">Concepto 02</div>
-      <div class="concept-name">Monograma TS + Wordmark</div>
-      <div class="concept-notes">
-        El bloque verde con <strong>"TS"</strong> sirve como ícono independiente — foto de perfil de Facebook, favicon, sticker de WhatsApp. El wordmark al lado lo completa cuando hay espacio. Dos piezas que funcionan solas o juntas.
-      </div>
-      <span class="tag">Ícono independiente</span>
-      <span class="tag">Redes sociales</span>
-      <span class="tag">Memorable</span>
-    </div>
-  </div>
+			<!-- ══ CONCEPTO 3 ══ -->
+			<div class="concept-row">
+				<div class="logo-card">
+					<div class="logo-3">
+						<div class="stats-icon">
+							<div class="bar b1"></div>
+							<div class="bar b2"></div>
+							<div class="bar b3"></div>
+							<div class="bar b4"></div>
+							<div class="bar b5"></div>
+						</div>
+						<div class="logo-3-name">Talacha<span>Stats</span><span class="logo-3-dot"></span></div>
+					</div>
+				</div>
+				<div class="concept-desc">
+					<div class="concept-number">Concepto 03</div>
+					<div class="concept-name">Ícono de barras + Wordmark</div>
+					<div class="concept-notes">
+						Las barras de estadísticas como símbolo visual comunican el propósito al instante —
+						incluso antes de leer el nombre. El punto verde al final del nombre añade energía sin
+						agregar ruido. Más "app" que los otros dos.
+					</div>
+					<span class="tag">Comunica el producto</span>
+					<span class="tag">Moderno</span>
+					<span class="tag">Tech</span>
+				</div>
+			</div>
+		</div>
 
-  <div class="divider"></div>
-
-  <!-- ══ CONCEPTO 3 ══ -->
-  <div class="concept-row">
-    <div class="logo-card">
-      <div class="logo-3">
-        <div class="stats-icon">
-          <div class="bar b1"></div>
-          <div class="bar b2"></div>
-          <div class="bar b3"></div>
-          <div class="bar b4"></div>
-          <div class="bar b5"></div>
-        </div>
-        <div class="logo-3-name">
-          Talacha<span>Stats</span><span class="logo-3-dot"></span>
-        </div>
-      </div>
-    </div>
-    <div class="concept-desc">
-      <div class="concept-number">Concepto 03</div>
-      <div class="concept-name">Ícono de barras + Wordmark</div>
-      <div class="concept-notes">
-        Las barras de estadísticas como símbolo visual comunican el propósito al instante — incluso antes de leer el nombre. El punto verde al final del nombre añade energía sin agregar ruido. Más "app" que los otros dos.
-      </div>
-      <span class="tag">Comunica el producto</span>
-      <span class="tag">Moderno</span>
-      <span class="tag">Tech</span>
-    </div>
-  </div>
-
-</div>
-
-<div class="bottom-note">
-  Paleta: <strong style="color:#00E676">#00E676</strong> · <strong style="color:#F5F5F5">#F5F5F5</strong> · <strong style="color:#141414; background:#444; padding: 0 4px; border-radius:3px">#141414</strong>
-  &nbsp;·&nbsp; Tipografía: Barlow Condensed 900 + DM Sans
-</div>
-
-</body>
+		<div class="bottom-note">
+			Paleta: <strong style="color: #00e676">#00E676</strong> ·
+			<strong style="color: #f5f5f5">#F5F5F5</strong> ·
+			<strong style="color: #141414; background: #444; padding: 0 4px; border-radius: 3px"
+				>#141414</strong
+			>
+			&nbsp;·&nbsp; Tipografía: Barlow Condensed 900 + DM Sans
+		</div>
+	</body>
 </html>

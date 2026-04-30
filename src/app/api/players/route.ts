@@ -10,80 +10,75 @@ import { getSessionUserFromRequest } from "@/shared/lib/auth";
 // Returns players who have at least one registration in a league of the active city.
 // Organizers only see players from their own leagues.
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const q      = searchParams.get("q")?.trim() || undefined;
-  const params = parsePaginationParams(searchParams, { limit: 50 });
+	const { searchParams } = new URL(request.url);
+	const q = searchParams.get("q")?.trim() || undefined;
+	const params = parsePaginationParams(searchParams, { limit: 50 });
 
-  const city = await getRequestCity(request);
-  const user = await getSessionUserFromRequest(request);
+	const city = await getRequestCity(request);
+	const user = await getSessionUserFromRequest(request);
 
-  // Build the leagues filter: owners see all city leagues, organizers only their org's leagues
-  const leagueWhere = user && user.role !== "owner" && user.organizationId
-    ? and(eq(leagues.city, city), eq(leagues.organizationId, user.organizationId))
-    : eq(leagues.city, city);
+	// Build the leagues filter: owners see all city leagues, organizers only their org's leagues
+	const leagueWhere =
+		user && user.role !== "owner" && user.organizationId
+			? and(eq(leagues.city, city), eq(leagues.organizationId, user.organizationId))
+			: eq(leagues.city, city);
 
-  // Get league IDs for the city (scoped to user if organizer)
-  const cityLeagues = await db
-    .select({ id: leagues.id })
-    .from(leagues)
-    .where(leagueWhere);
+	// Get league IDs for the city (scoped to user if organizer)
+	const cityLeagues = await db.select({ id: leagues.id }).from(leagues).where(leagueWhere);
 
-  const leagueIds = cityLeagues.map((l) => l.id);
+	const leagueIds = cityLeagues.map((l) => l.id);
 
-  if (leagueIds.length === 0) {
-    return apiSuccessPaginated([], buildMeta(0, params));
-  }
+	if (leagueIds.length === 0) {
+		return apiSuccessPaginated([], buildMeta(0, params));
+	}
 
-  // Get distinct player IDs registered in those leagues
-  const registered = await db
-    .selectDistinct({ playerId: playerRegistrations.playerId })
-    .from(playerRegistrations)
-    .where(inArray(playerRegistrations.leagueId, leagueIds));
+	// Get distinct player IDs registered in those leagues
+	const registered = await db
+		.selectDistinct({ playerId: playerRegistrations.playerId })
+		.from(playerRegistrations)
+		.where(inArray(playerRegistrations.leagueId, leagueIds));
 
-  const playerIds = registered.map((r) => r.playerId);
+	const playerIds = registered.map((r) => r.playerId);
 
-  if (playerIds.length === 0) {
-    return apiSuccessPaginated([], buildMeta(0, params));
-  }
+	if (playerIds.length === 0) {
+		return apiSuccessPaginated([], buildMeta(0, params));
+	}
 
-  const searchWhere = q
-    ? or(ilike(players.fullName, `%${q}%`), ilike(players.alias, `%${q}%`))
-    : undefined;
+	const searchWhere = q
+		? or(ilike(players.fullName, `%${q}%`), ilike(players.alias, `%${q}%`))
+		: undefined;
 
-  const where = and(
-    inArray(players.id, playerIds),
-    searchWhere,
-  );
+	const where = and(inArray(players.id, playerIds), searchWhere);
 
-  const [totalRow, rows] = await Promise.all([
-    db.select({ count: count() }).from(players).where(where),
-    db.query.players.findMany({
-      where,
-      orderBy: [desc(players.createdAt)],
-      limit:  params.limit,
-      offset: toOffset(params),
-    }),
-  ]);
+	const [totalRow, rows] = await Promise.all([
+		db.select({ count: count() }).from(players).where(where),
+		db.query.players.findMany({
+			where,
+			orderBy: [desc(players.createdAt)],
+			limit: params.limit,
+			offset: toOffset(params),
+		}),
+	]);
 
-  const meta = buildMeta(totalRow[0].count, params);
-  return apiSuccessPaginated(rows, meta);
+	const meta = buildMeta(totalRow[0].count, params);
+	return apiSuccessPaginated(rows, meta);
 }
 
 // POST /api/players
 export async function POST(request: Request) {
-  const body   = await request.json().catch(() => null);
-  const parsed = CreatePlayerSchema.safeParse(body);
-  if (!parsed.success) return apiError(parsed.error.message);
+	const body = await request.json().catch(() => null);
+	const parsed = CreatePlayerSchema.safeParse(body);
+	if (!parsed.success) return apiError(parsed.error.message);
 
-  const [player] = await db
-    .insert(players)
-    .values({
-      fullName: parsed.data.fullName,
-      alias:    parsed.data.alias    ?? null,
-      phone:    parsed.data.phone    ?? null,
-      photoUrl: parsed.data.photoUrl ?? null,
-    })
-    .returning();
+	const [player] = await db
+		.insert(players)
+		.values({
+			fullName: parsed.data.fullName,
+			alias: parsed.data.alias ?? null,
+			phone: parsed.data.phone ?? null,
+			photoUrl: parsed.data.photoUrl ?? null,
+		})
+		.returning();
 
-  return apiSuccess(player, 201);
+	return apiSuccess(player, 201);
 }

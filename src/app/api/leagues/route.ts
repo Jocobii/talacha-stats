@@ -56,9 +56,7 @@ export async function POST(request: Request) {
 			: (session.organizationId ?? null);
 
 	// Auto-generar slug desde nombre + día si no viene explícito
-	const slug =
-		parsed.data.slug ??
-		generateSlug(`${parsed.data.name} ${parsed.data.dayOfWeek}`);
+	const slug = parsed.data.slug ?? generateSlug(`${parsed.data.name} ${parsed.data.dayOfWeek}`);
 
 	const [league] = await db
 		.insert(leagues)

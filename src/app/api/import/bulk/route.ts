@@ -64,10 +64,7 @@ export async function POST(request: Request) {
 			);
 		}
 	} catch (e) {
-		return apiError(
-			e instanceof ParseError ? e.message : "No se pudo procesar el archivo",
-			400,
-		);
+		return apiError(e instanceof ParseError ? e.message : "No se pudo procesar el archivo", 400);
 	}
 
 	return apiError("action debe ser 'preview' o 'confirm'", 400);
@@ -77,9 +74,7 @@ export async function POST(request: Request) {
 // Helpers de parseo de form-data
 // ---------------------------------------------------------------------------
 
-function parseMapping(
-	formData: FormData,
-): MappedImportOptions | undefined | Response {
+function parseMapping(formData: FormData): MappedImportOptions | undefined | Response {
 	const raw = formData.get("mapping") as string | null;
 	if (!raw) return undefined;
 	let parsed: unknown;
@@ -93,9 +88,7 @@ function parseMapping(
 	return r.data;
 }
 
-function parseResolutions(
-	formData: FormData,
-): Record<string, string> | Response {
+function parseResolutions(formData: FormData): Record<string, string> | Response {
 	const raw = formData.get("resolutions") as string | null;
 	if (!raw) return {};
 	let parsed: unknown;
@@ -113,10 +106,7 @@ function parseResolutions(
  * Filtra las filas que el usuario excluyó en la vista previa.
  * Las keys tienen formato "g:{index}:{nombre}" o "s:{index}:{nombre}".
  */
-function applyExcludeRows<T extends { rows: unknown[] }>(
-	parsed: T,
-	formData: FormData,
-): T {
+function applyExcludeRows<T extends { rows: unknown[] }>(parsed: T, formData: FormData): T {
 	const raw = formData.get("exclude_rows") as string | null;
 	if (!raw) return parsed;
 	let keys: unknown;

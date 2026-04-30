@@ -21,12 +21,12 @@ El importador es el corazón del producto. Antes de construir el motor de detecc
 
 ### Archivos actuales (a migrar)
 
-| Archivo | Líneas | Responsabilidades mezcladas |
-|---|---|---|
-| `src/lib/excel-import-bulk.ts` | 774 | Parseo Excel + fuzzy matching + preview + confirm + snapshots |
-| `src/lib/excel-import.ts` | 363 | Parseo evento-partido + matching + confirm (flujo evento por evento) |
-| `src/app/api/import/bulk/route.ts` | 122 | Validación Zod + **lógica de exclude_rows** + delegación |
-| `src/app/api/import/route.ts` | 58 | Validación + delegación |
+| Archivo                            | Líneas | Responsabilidades mezcladas                                          |
+| ---------------------------------- | ------ | -------------------------------------------------------------------- |
+| `src/lib/excel-import-bulk.ts`     | 774    | Parseo Excel + fuzzy matching + preview + confirm + snapshots        |
+| `src/lib/excel-import.ts`          | 363    | Parseo evento-partido + matching + confirm (flujo evento por evento) |
+| `src/app/api/import/bulk/route.ts` | 122    | Validación Zod + **lógica de exclude_rows** + delegación             |
+| `src/app/api/import/route.ts`      | 58     | Validación + delegación                                              |
 
 ### Estructura objetivo (Feature-Sliced Design)
 
@@ -53,20 +53,21 @@ src/features/import-excel/
 ```typescript
 // Input
 type ParserInput = {
-  buffer: Buffer;
-  options?: MappedImportOptions; // si viene de template guardado
+	buffer: Buffer;
+	options?: MappedImportOptions; // si viene de template guardado
 };
 
 // Output
 type ParsedBulkImport =
-  | { type: "goleadores"; rows: GoleadoresRow[]; jornada?: number }
-  | { type: "standings"; rows: StandingsRow[]; jornada?: number };
+	| { type: "goleadores"; rows: GoleadoresRow[]; jornada?: number }
+	| { type: "standings"; rows: StandingsRow[]; jornada?: number };
 
 // Funciones exportadas
-export function parseBulkBuffer(input: ParserInput): Promise<ParsedBulkImport>
+export function parseBulkBuffer(input: ParserInput): Promise<ParsedBulkImport>;
 ```
 
 **Criterios de aceptación:**
+
 - Retorna `ParsedBulkImport` o lanza `ParseError` tipado (nunca `Error` genérico).
 - Testeable con fixtures de Excel sin DB.
 - Los helpers `str()`, `num()`, `findCol()`, `detectJornada()` son privados a este archivo.
@@ -80,20 +81,20 @@ export function parseBulkBuffer(input: ParserInput): Promise<ParsedBulkImport>
 ```typescript
 // Input
 type ResolverInput = {
-  playerNames: string[];    // nombres únicos del Excel
-  teamNames: string[];      // equipos únicos del Excel
-  leagueId: string;
-  city: string;
+	playerNames: string[]; // nombres únicos del Excel
+	teamNames: string[]; // equipos únicos del Excel
+	leagueId: string;
+	city: string;
 };
 
 // Output
 type ResolverOutput = {
-  playerResolutions: PlayerResolution[];
-  teamMap: Map<string, string | null>; // teamName → teamId | null (nuevo)
+	playerResolutions: PlayerResolution[];
+	teamMap: Map<string, string | null>; // teamName → teamId | null (nuevo)
 };
 
 // Función exportada
-export async function resolveImportEntities(input: ResolverInput): Promise<ResolverOutput>
+export async function resolveImportEntities(input: ResolverInput): Promise<ResolverOutput>;
 ```
 
 **El fix de N+1:**
@@ -122,6 +123,7 @@ ORDER BY query_name, score DESC
 Impacto esperado: de **N queries** a **1 query** para matching, independientemente del tamaño del Excel.
 
 **Criterios de aceptación:**
+
 - Máximo 3 queries para cualquier tamaño de Excel (matching batch, enrich teams, equipos existentes).
 - Lógica dominante (DOMINANT_SCORE_MIN / DOMINANT_GAP_MIN) preservada.
 - Testeable con mocks de DB.
@@ -135,51 +137,52 @@ Impacto esperado: de **N queries** a **1 query** para matching, independientemen
 ```typescript
 // Input
 type AnomalyInput = {
-  rows: GoleadoresRow[];
-  jornada: number;
-  // Historial previo: últimos N snapshots por jugador (cargados por preview.ts)
-  history: Map<string, PlayerSeasonStatsSnapshot[]>; // playerId → snapshots ordenados
-  // Stats de equipos para cross-validation
-  teamGoalTotals: Map<string, number>; // teamId → goles totales en standings
+	rows: GoleadoresRow[];
+	jornada: number;
+	// Historial previo: últimos N snapshots por jugador (cargados por preview.ts)
+	history: Map<string, PlayerSeasonStatsSnapshot[]>; // playerId → snapshots ordenados
+	// Stats de equipos para cross-validation
+	teamGoalTotals: Map<string, number>; // teamId → goles totales en standings
 };
 
 // Output
 type AnomalyLevel = "ok" | "warning" | "critical";
 
 type AnomalyReport = {
-  rawName: string;
-  level: AnomalyLevel;
-  flags: AnomalyFlag[];
+	rawName: string;
+	level: AnomalyLevel;
+	flags: AnomalyFlag[];
 };
 
 type AnomalyFlag = {
-  rule: "monotonicity" | "delta_spike" | "zscore" | "cross_validation" | "goals_per_game";
-  level: AnomalyLevel;
-  message: string;
-  context: {
-    current: number;
-    previous?: number;
-    average?: number;
-    zscore?: number;
-    threshold?: number;
-  };
+	rule: "monotonicity" | "delta_spike" | "zscore" | "cross_validation" | "goals_per_game";
+	level: AnomalyLevel;
+	message: string;
+	context: {
+		current: number;
+		previous?: number;
+		average?: number;
+		zscore?: number;
+		threshold?: number;
+	};
 };
 
 // Función exportada
-export function detectAnomalies(input: AnomalyInput): AnomalyReport[]
+export function detectAnomalies(input: AnomalyInput): AnomalyReport[];
 ```
 
 **Las 5 reglas implementadas:**
 
-| Regla | Trigger warning | Trigger critical |
-|---|---|---|
-| Monotonicidad | — | `delta < 0` (goles bajaron) |
-| Delta spike | `delta ≥ 4` | `delta ≥ 6` |
-| Z-score | `Z ≥ 2.5` (necesita ≥ 3 jornadas de historial) | `Z ≥ 4` |
-| Cross-validation vs standings | `sum_individual > team_total × 1.1` | `sum_individual > team_total × 1.3` |
-| Goles/partido | `ratio > 3.0` | `ratio > 5.0` |
+| Regla                         | Trigger warning                                | Trigger critical                    |
+| ----------------------------- | ---------------------------------------------- | ----------------------------------- |
+| Monotonicidad                 | —                                              | `delta < 0` (goles bajaron)         |
+| Delta spike                   | `delta ≥ 4`                                    | `delta ≥ 6`                         |
+| Z-score                       | `Z ≥ 2.5` (necesita ≥ 3 jornadas de historial) | `Z ≥ 4`                             |
+| Cross-validation vs standings | `sum_individual > team_total × 1.1`            | `sum_individual > team_total × 1.3` |
+| Goles/partido                 | `ratio > 3.0`                                  | `ratio > 5.0`                       |
 
 **Criterios de aceptación:**
+
 - Función pura (sin efectos secundarios, sin DB).
 - 100% testeable con datos mock.
 - Si no hay historial suficiente (< 3 jornadas), las reglas Z-score se omiten silenciosamente.
@@ -192,19 +195,20 @@ export function detectAnomalies(input: AnomalyInput): AnomalyReport[]
 
 ```typescript
 export async function generateBulkPreview(
-  parsed: ParsedBulkImport,
-  leagueId: string,
-): Promise<BulkImportPreview>
+	parsed: ParsedBulkImport,
+	leagueId: string,
+): Promise<BulkImportPreview>;
 
 // BulkImportPreview se extiende con:
 type BulkImportPreview = {
-  // ... campos actuales ...
-  anomalies?: AnomalyReport[]; // nuevo campo
-  hasBlockingAnomalies: boolean; // true si alguna es "critical"
+	// ... campos actuales ...
+	anomalies?: AnomalyReport[]; // nuevo campo
+	hasBlockingAnomalies: boolean; // true si alguna es "critical"
 };
 ```
 
 **Criterios de aceptación:**
+
 - Carga historial de snapshots en **una query batch** (no N queries).
 - Delega parsing a `parser.ts`, matching a `resolver.ts`, anomalías a `anomaly-detector.ts`.
 - No contiene lógica de DB propia salvo la carga de contexto.
@@ -216,16 +220,14 @@ type BulkImportPreview = {
 **Responsabilidad única:** Persistir el resultado de una importación confirmada en una transacción.
 
 ```typescript
-export async function confirmBulkImport(
-  payload: BulkConfirmPayload,
-): Promise<BulkImportResult>
+export async function confirmBulkImport(payload: BulkConfirmPayload): Promise<BulkImportResult>;
 
 // BulkConfirmPayload extiende el actual con:
 type BulkConfirmPayload = {
-  leagueId: string;
-  parsed: ParsedBulkImport;
-  playerResolutions?: Record<string, string>;
-  excludeIndices?: Set<number>; // MOVIDO DESDE route.ts
+	leagueId: string;
+	parsed: ParsedBulkImport;
+	playerResolutions?: Record<string, string>;
+	excludeIndices?: Set<number>; // MOVIDO DESDE route.ts
 };
 ```
 
@@ -255,6 +257,7 @@ await tx.insert(playerSeasonStatsSnapshot).values(allSnapshotRows)
 Impacto esperado: de **~150 queries** (30 jugadores × 5) a **~8 queries** totales.
 
 **Criterios de aceptación:**
+
 - Máximo 10 queries por importación independientemente del número de jugadores.
 - `excludeIndices` manejado aquí, no en el route.
 - Rollback completo si cualquier insert falla.
@@ -285,13 +288,13 @@ Impacto esperado: de **~150 queries** (30 jugadores × 5) a **~8 queries** total
 
 ## Métricas de éxito
 
-| Métrica | Hoy | Objetivo |
-|---|---|---|
-| Queries en preview (30 jugadores) | ~32 (N+1) | ≤ 5 |
-| Queries en confirm (30 jugadores) | ~150 | ≤ 10 |
-| Líneas por archivo | 774 (monolito) | ≤ 150 promedio |
-| Archivos con tests | 0 | ≥ 4 |
-| Anomalías detectadas antes de confirmar | 0 | 5 reglas activas |
+| Métrica                                 | Hoy            | Objetivo         |
+| --------------------------------------- | -------------- | ---------------- |
+| Queries en preview (30 jugadores)       | ~32 (N+1)      | ≤ 5              |
+| Queries en confirm (30 jugadores)       | ~150           | ≤ 10             |
+| Líneas por archivo                      | 774 (monolito) | ≤ 150 promedio   |
+| Archivos con tests                      | 0              | ≥ 4              |
+| Anomalías detectadas antes de confirmar | 0              | 5 reglas activas |
 
 ---
 

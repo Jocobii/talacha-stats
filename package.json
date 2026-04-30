@@ -26,6 +26,7 @@
 		"prepare": "husky"
 	},
 	"dependencies": {
+		"@commitlint/types": "^20.5.0",
 		"@supabase/supabase-js": "^2.103.0",
 		"@types/pg": "^8.20.0",
 		"@vercel/analytics": "^2.0.1",

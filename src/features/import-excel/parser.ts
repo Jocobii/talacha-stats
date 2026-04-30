@@ -10,11 +10,7 @@
  * Todo lo demás es privado a este módulo.
  */
 
-import {
-	readWorkbook,
-	sheetToArrays,
-	type ParsedSheet,
-} from "@/shared/lib/excel";
+import { readWorkbook, sheetToArrays, type ParsedSheet } from "@/shared/lib/excel";
 import { sanitizeName } from "@/shared/lib/normalize";
 
 // ---------------------------------------------------------------------------
@@ -88,9 +84,7 @@ export class ParseError extends Error {
  *
  * @throws ParseError si el archivo no tiene un formato reconocible.
  */
-export async function parseBulkBuffer(
-	input: ParserInput,
-): Promise<ParsedBulkImport> {
+export async function parseBulkBuffer(input: ParserInput): Promise<ParsedBulkImport> {
 	const workbook = await readWorkbook(input.buffer);
 
 	if (input.options) {
@@ -109,8 +103,7 @@ async function parseMapped(
 ): Promise<ParsedBulkImport> {
 	const sheetName = options.sheetName ?? workbook.sheetNames[0];
 	const sheet = workbook.sheets[sheetName];
-	if (!sheet)
-		throw new ParseError(`Hoja "${sheetName}" no encontrada en el archivo.`);
+	if (!sheet) throw new ParseError(`Hoja "${sheetName}" no encontrada en el archivo.`);
 
 	const allRows = sheetToArrays(sheet);
 	const dataRows = allRows
@@ -135,20 +128,11 @@ async function parseMapped(
 				rawName,
 				teamName: sanitizeName(getCell(row, "teamName")),
 				goals: num(getCell(row, "goals")),
-				assists:
-					map.assists !== undefined ? num(getCell(row, "assists")) : undefined,
-				yellowCards:
-					map.yellowCards !== undefined
-						? num(getCell(row, "yellowCards"))
-						: undefined,
-				redCards:
-					map.redCards !== undefined
-						? num(getCell(row, "redCards"))
-						: undefined,
+				assists: map.assists !== undefined ? num(getCell(row, "assists")) : undefined,
+				yellowCards: map.yellowCards !== undefined ? num(getCell(row, "yellowCards")) : undefined,
+				redCards: map.redCards !== undefined ? num(getCell(row, "redCards")) : undefined,
 				matchesPlayed:
-					map.matchesPlayed !== undefined
-						? num(getCell(row, "matchesPlayed"))
-						: undefined,
+					map.matchesPlayed !== undefined ? num(getCell(row, "matchesPlayed")) : undefined,
 			});
 		}
 		return { type: "goleadores", rows, jornada: options.jornada };
@@ -180,9 +164,7 @@ async function parseMapped(
 // Parser automático (auto-detect)
 // ---------------------------------------------------------------------------
 
-function parseAuto(
-	workbook: Awaited<ReturnType<typeof readWorkbook>>,
-): ParsedBulkImport {
+function parseAuto(workbook: Awaited<ReturnType<typeof readWorkbook>>): ParsedBulkImport {
 	for (const sheetName of workbook.sheetNames) {
 		const sheet = workbook.sheets[sheetName];
 		if (sheet.rows.length === 0) continue;
@@ -216,12 +198,7 @@ function tryParseGoleadores(
 	if (!sample) return null;
 
 	const keys = Object.keys(sample);
-	const nameCol = findCol(keys, [
-		"nombre de jugador",
-		"nombre",
-		"jugador",
-		"player",
-	]);
+	const nameCol = findCol(keys, ["nombre de jugador", "nombre", "jugador", "player"]);
 	const goalsCol = findCol(keys, ["goles", "goals", "gls"]);
 	if (!nameCol || !goalsCol) return null;
 
@@ -269,29 +246,10 @@ function tryParseStandings(
 
 	const playedCol = findCol(keys, ["jj", "pj", "jugados", "played", "gp"]);
 	const winsCol = findCol(keys, ["jg", "ganados", "wins", "won", "w", "g"]);
-	const drawsCol = findCol(keys, [
-		"je",
-		"empatados",
-		"draws",
-		"drawn",
-		"d",
-		"e",
-	]);
-	const lossesCol = findCol(keys, [
-		"jp",
-		"perdidos",
-		"losses",
-		"lost",
-		"l",
-		"p",
-	]);
+	const drawsCol = findCol(keys, ["je", "empatados", "draws", "drawn", "d", "e"]);
+	const lossesCol = findCol(keys, ["jp", "perdidos", "losses", "lost", "l", "p"]);
 	const gfCol = findCol(keys, ["gf", "goles a favor", "goals for", "for"]);
-	const gcCol = findCol(keys, [
-		"gc",
-		"goles en contra",
-		"goals against",
-		"against",
-	]);
+	const gcCol = findCol(keys, ["gc", "goles en contra", "goals against", "against"]);
 
 	const result: StandingsRow[] = [];
 	let pos = 1;
@@ -324,22 +282,24 @@ function tryParseStandings(
 // ---------------------------------------------------------------------------
 
 const ZONE_LABELS = new Set(["liguilla", "copa", "recopa"]);
-const STANDINGS_SKIP = new Set([
-	"equipo",
-	"team",
-	"liguilla",
-	"copa",
-	"recopa",
-	"zona",
-]);
+const STANDINGS_SKIP = new Set(["equipo", "team", "liguilla", "copa", "recopa", "zona"]);
 
 // Palabras clave que indican que una fila ES la cabecera de la tabla
 const KNOWN_HEADER_WORDS = [
-	"jugador", "player", "nombre",
-	"equipo", "team", "club",
-	"goles", "goals", "gls",
-	"pts", "puntos", "points",
-	"asistencias", "assists",
+	"jugador",
+	"player",
+	"nombre",
+	"equipo",
+	"team",
+	"club",
+	"goles",
+	"goals",
+	"gls",
+	"pts",
+	"puntos",
+	"points",
+	"asistencias",
+	"assists",
 ];
 
 /**
@@ -363,10 +323,7 @@ function findHeaderRowIndex(sheet: ParsedSheet): number {
  * Versión de sheetToObjects que permite elegir qué fila usar como encabezados.
  * Equivalente a sheetToObjects de shared/lib/excel pero con offset configurable.
  */
-function sheetToObjectsFrom(
-	sheet: ParsedSheet,
-	headerRow: number,
-): Record<string, string>[] {
+function sheetToObjectsFrom(sheet: ParsedSheet, headerRow: number): Record<string, string>[] {
 	if (sheet.rows.length <= headerRow) return [];
 	const headers = sheet.rows[headerRow].map((h) => h.trim());
 	const out: Record<string, string>[] = [];
@@ -412,10 +369,7 @@ function findCol(keys: string[], candidates: string[]): string | undefined {
 	return undefined;
 }
 
-function detectJornada(
-	sheetName: string,
-	sheet: ParsedSheet,
-): number | undefined {
+function detectJornada(sheetName: string, sheet: ParsedSheet): number | undefined {
 	const matchName = sheetName.match(/jornada\s+(\d+)/i);
 	if (matchName) return parseInt(matchName[1], 10);
 
@@ -437,9 +391,7 @@ function detectZone(row: Record<string, string>): string | null {
 }
 
 function hasAnyValue(row: Record<string, string>): boolean {
-	return Object.values(row).some(
-		(v) => v !== "" && v !== null && v !== undefined,
-	);
+	return Object.values(row).some((v) => v !== "" && v !== null && v !== undefined);
 }
 
 function str(v: unknown): string {

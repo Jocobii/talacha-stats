@@ -24,9 +24,7 @@ export const organizations = pgTable(
 		slug: text("slug").notNull().unique(), // URL-friendly: "novofut", "casablanca-fc"
 		logoUrl: text("logo_url"),
 		city: text("city").notNull().default("Tijuana"),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [index("organizations_slug_idx").on(t.slug)],
 );
@@ -51,9 +49,7 @@ export const users = pgTable(
 		organizationId: uuid("organization_id").references(() => organizations.id, {
 			onDelete: "set null",
 		}),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
 		index("users_email_idx").on(t.email),
@@ -73,9 +69,7 @@ export const players = pgTable("players", {
 	alias: text("alias"), // apodo: "El Chino", "Chucky"
 	phone: text("phone"),
 	photoUrl: text("photo_url"),
-	createdAt: timestamp("created_at", { withTimezone: true })
-		.defaultNow()
-		.notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ---------------------------------------------------------------------------
@@ -93,9 +87,7 @@ export const leagues = pgTable("leagues", {
 		onDelete: "set null",
 	}),
 	status: text("status").notNull().default("active"), // "active" | "finished"
-	createdAt: timestamp("created_at", { withTimezone: true })
-		.defaultNow()
-		.notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ---------------------------------------------------------------------------
@@ -110,9 +102,7 @@ export const teams = pgTable(
 			.notNull()
 			.references(() => leagues.id, { onDelete: "cascade" }),
 		color: text("color"),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [index("teams_league_idx").on(t.leagueId)],
 );
@@ -135,9 +125,7 @@ export const playerRegistrations = pgTable(
 			.notNull()
 			.references(() => leagues.id, { onDelete: "cascade" }),
 		jerseyNumber: integer("jersey_number"),
-		registeredAt: timestamp("registered_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
+		registeredAt: timestamp("registered_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
 		unique("unique_player_per_league").on(t.playerId, t.leagueId),
@@ -169,9 +157,7 @@ export const matches = pgTable(
 		homeScore: integer("home_score").notNull().default(0),
 		awayScore: integer("away_score").notNull().default(0),
 		notes: text("notes"),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
 		index("matches_league_idx").on(t.leagueId),
@@ -199,9 +185,7 @@ export const matchEvents = pgTable(
 			.references(() => teams.id),
 		eventType: text("event_type").notNull(), // goal | assist | yellow_card | red_card | own_goal | mvp
 		minute: integer("minute"),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
 		index("events_match_idx").on(t.matchId),
@@ -248,23 +232,20 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
 	events: many(matchEvents),
 }));
 
-export const playerRegistrationsRelations = relations(
-	playerRegistrations,
-	({ one }) => ({
-		player: one(players, {
-			fields: [playerRegistrations.playerId],
-			references: [players.id],
-		}),
-		team: one(teams, {
-			fields: [playerRegistrations.teamId],
-			references: [teams.id],
-		}),
-		league: one(leagues, {
-			fields: [playerRegistrations.leagueId],
-			references: [leagues.id],
-		}),
+export const playerRegistrationsRelations = relations(playerRegistrations, ({ one }) => ({
+	player: one(players, {
+		fields: [playerRegistrations.playerId],
+		references: [players.id],
 	}),
-);
+	team: one(teams, {
+		fields: [playerRegistrations.teamId],
+		references: [teams.id],
+	}),
+	league: one(leagues, {
+		fields: [playerRegistrations.leagueId],
+		references: [leagues.id],
+	}),
+}));
 
 export const matchesRelations = relations(matches, ({ one, many }) => ({
 	league: one(leagues, {
@@ -338,9 +319,7 @@ export const playerSeasonStats = pgTable(
 		yellowCards: integer("yellow_cards").notNull().default(0),
 		redCards: integer("red_cards").notNull().default(0),
 		jornada: integer("jornada"), // última jornada importada
-		updatedAt: timestamp("updated_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
 		unique("unique_player_season").on(t.playerId, t.leagueId),
@@ -372,9 +351,7 @@ export const teamStandingsSnapshot = pgTable(
 		goalsAgainst: integer("goals_against").notNull().default(0),
 		points: integer("points").notNull().default(0),
 		zone: text("zone"), // LIGUILLA | COPA | RECOPA | null
-		updatedAt: timestamp("updated_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
 		unique("unique_team_jornada").on(t.teamId, t.leagueId, t.jornada),
@@ -384,43 +361,36 @@ export const teamStandingsSnapshot = pgTable(
 );
 
 // Relations para las nuevas tablas
-export const playerSeasonStatsRelations = relations(
-	playerSeasonStats,
-	({ one }) => ({
-		player: one(players, {
-			fields: [playerSeasonStats.playerId],
-			references: [players.id],
-		}),
-		league: one(leagues, {
-			fields: [playerSeasonStats.leagueId],
-			references: [leagues.id],
-		}),
-		team: one(teams, {
-			fields: [playerSeasonStats.teamId],
-			references: [teams.id],
-		}),
+export const playerSeasonStatsRelations = relations(playerSeasonStats, ({ one }) => ({
+	player: one(players, {
+		fields: [playerSeasonStats.playerId],
+		references: [players.id],
 	}),
-);
+	league: one(leagues, {
+		fields: [playerSeasonStats.leagueId],
+		references: [leagues.id],
+	}),
+	team: one(teams, {
+		fields: [playerSeasonStats.teamId],
+		references: [teams.id],
+	}),
+}));
 
-export const teamStandingsSnapshotRelations = relations(
-	teamStandingsSnapshot,
-	({ one }) => ({
-		team: one(teams, {
-			fields: [teamStandingsSnapshot.teamId],
-			references: [teams.id],
-		}),
-		league: one(leagues, {
-			fields: [teamStandingsSnapshot.leagueId],
-			references: [leagues.id],
-		}),
+export const teamStandingsSnapshotRelations = relations(teamStandingsSnapshot, ({ one }) => ({
+	team: one(teams, {
+		fields: [teamStandingsSnapshot.teamId],
+		references: [teams.id],
 	}),
-);
+	league: one(leagues, {
+		fields: [teamStandingsSnapshot.leagueId],
+		references: [leagues.id],
+	}),
+}));
 
 export type PlayerSeasonStats = typeof playerSeasonStats.$inferSelect;
 export type NewPlayerSeasonStats = typeof playerSeasonStats.$inferInsert;
 export type TeamStandingsSnapshot = typeof teamStandingsSnapshot.$inferSelect;
-export type NewTeamStandingsSnapshot =
-	typeof teamStandingsSnapshot.$inferInsert;
+export type NewTeamStandingsSnapshot = typeof teamStandingsSnapshot.$inferInsert;
 
 // ---------------------------------------------------------------------------
 // IMPORT_TEMPLATES — Plantillas de mapeo de columnas para importación Excel
@@ -432,9 +402,7 @@ export const importTemplates = pgTable("import_templates", {
 	type: text("type").notNull(), // "goleadores" | "standings"
 	headerRow: integer("header_row").notNull().default(0), // índice de fila con encabezados (0-based)
 	columnMap: text("column_map").notNull(), // JSON: { rawName: "B", goals: "D", ... }
-	createdAt: timestamp("created_at", { withTimezone: true })
-		.defaultNow()
-		.notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type ImportTemplate = typeof importTemplates.$inferSelect;
@@ -490,16 +458,10 @@ export const playerSeasonStatsSnapshot = pgTable(
 		yellowCards: integer("yellow_cards").notNull().default(0),
 		redCards: integer("red_cards").notNull().default(0),
 		matchesPlayed: integer("matches_played").notNull().default(0),
-		importedAt: timestamp("imported_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
+		importedAt: timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
-		unique("unique_player_league_jornada_snap").on(
-			t.playerId,
-			t.leagueId,
-			t.jornada,
-		),
+		unique("unique_player_league_jornada_snap").on(t.playerId, t.leagueId, t.jornada),
 		index("psss_player_idx").on(t.playerId),
 		index("psss_league_idx").on(t.leagueId),
 		index("psss_jornada_idx").on(t.jornada),
@@ -524,10 +486,8 @@ export const playerSeasonStatsSnapshotRelations = relations(
 	}),
 );
 
-export type PlayerSeasonStatsSnapshot =
-	typeof playerSeasonStatsSnapshot.$inferSelect;
-export type NewPlayerSeasonStatsSnapshot =
-	typeof playerSeasonStatsSnapshot.$inferInsert;
+export type PlayerSeasonStatsSnapshot = typeof playerSeasonStatsSnapshot.$inferSelect;
+export type NewPlayerSeasonStatsSnapshot = typeof playerSeasonStatsSnapshot.$inferInsert;
 
 // ---------------------------------------------------------------------------
 // PAGE_VIEWS — Contador de visitas únicas a las páginas públicas
@@ -539,9 +499,7 @@ export const pageViews = pgTable(
 		id: uuid("id").primaryKey().defaultRandom(),
 		visitorId: uuid("visitor_id").notNull(),
 		page: text("page").notNull(), // pathname: "/", "/jugadores", "/jugador/[id]", "/analisis"
-		visitedAt: timestamp("visited_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
+		visitedAt: timestamp("visited_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
 		index("pv_visitor_idx").on(t.visitorId),
@@ -572,9 +530,7 @@ export const importAuditLog = pgTable(
 		rowsCreated: integer("rows_created").notNull().default(0),
 		anomalySummary: jsonb("anomaly_summary"), // AnomalyReport[] serializado
 		warnings: text("warnings").array(),
-		importedAt: timestamp("imported_at", { withTimezone: true })
-			.defaultNow()
-			.notNull(),
+		importedAt: timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
 		index("ial_league_idx").on(t.leagueId),

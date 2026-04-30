@@ -7,10 +7,7 @@ import { apiError } from "@/types";
 import { LoginSchema } from "@/entities/user";
 import { getUserByEmail, verifyPassword } from "@/entities/user";
 import { buildSessionCookie } from "@/shared/lib/session";
-import {
-	buildCityCookieHeader,
-	ACTIVE_CITY_COOKIE,
-} from "@/shared/lib/active-city";
+import { buildCityCookieHeader, ACTIVE_CITY_COOKIE } from "@/shared/lib/active-city";
 import { DEFAULT_CITY } from "@/shared/lib/cities";
 
 export async function POST(request: Request) {
@@ -37,8 +34,7 @@ export async function POST(request: Request) {
 		?.match(new RegExp(`${ACTIVE_CITY_COOKIE}=([^;]+)`))?.[1];
 
 	const setCookies = [sessionCookie];
-	if (!existingCity)
-		setCookies.push(buildCityCookieHeader(DEFAULT_CITY, isProduction));
+	if (!existingCity) setCookies.push(buildCityCookieHeader(DEFAULT_CITY, isProduction));
 
 	const from = (body as { from?: string }).from;
 	const redirectTo = from?.startsWith("/admin") ? from : "/admin";

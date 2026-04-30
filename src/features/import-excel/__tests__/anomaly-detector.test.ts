@@ -301,9 +301,7 @@ describe("Regla 4 — Cross-validation vs standings", () => {
 		});
 
 		const reports = detectAnomalies(input);
-		expect(
-			reports.every((r) => !r.flags.some((f) => f.rule === "cross_validation")),
-		).toBe(true);
+		expect(reports.every((r) => !r.flags.some((f) => f.rule === "cross_validation"))).toBe(true);
 	});
 
 	it("ok cuando el equipo no tiene standings importados", () => {
@@ -328,7 +326,9 @@ describe("Regla 4 — Cross-validation vs standings", () => {
 		const reports = detectAnomalies(input);
 		// Ambos players del mismo equipo deberían recibir el flag
 		expect(
-			reports.some((r) => r.flags.some((f) => f.rule === "cross_validation" && f.level === "critical")),
+			reports.some((r) =>
+				r.flags.some((f) => f.rule === "cross_validation" && f.level === "critical"),
+			),
 		).toBe(true);
 	});
 });

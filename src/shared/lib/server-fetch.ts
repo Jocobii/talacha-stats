@@ -13,21 +13,18 @@
  */
 import { cookies } from "next/headers";
 
-export async function serverFetch(
-  url: string | URL,
-  init: RequestInit = {},
-): Promise<Response> {
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join("; ");
+export async function serverFetch(url: string | URL, init: RequestInit = {}): Promise<Response> {
+	const cookieStore = await cookies();
+	const cookieHeader = cookieStore
+		.getAll()
+		.map((c) => `${c.name}=${c.value}`)
+		.join("; ");
 
-  return fetch(url, {
-    ...init,
-    headers: {
-      ...(init.headers ?? {}),
-      Cookie: cookieHeader,
-    },
-  });
+	return fetch(url, {
+		...init,
+		headers: {
+			...(init.headers ?? {}),
+			Cookie: cookieHeader,
+		},
+	});
 }
