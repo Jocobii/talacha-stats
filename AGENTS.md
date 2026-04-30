@@ -27,6 +27,29 @@ El flujo de datos central es: **Excel semanal → importación bulk → stats di
 
 ---
 
+## 1.5 Posicionamiento del producto — leer antes de proponer features
+
+**TalachaStats es la capa de identidad digital y contenido para ligas locales de fútbol amateur.** No somos software de gestión de ligas. No construimos sorteos, calendario, pagos, arbitraje ni cancha — eso lo resuelve el organizador con WhatsApp y Excel.
+
+Lo que sí construimos, en capas:
+
+1. **Identidad de la liga** — página pública con branding, perfiles de jugador, tabla, goleadores.
+2. **Generación automática de contenido** semanal post-importación (imágenes para WhatsApp/Facebook, píldoras del narrador, carruseles). **Esta es la cuña estratégica actual.**
+3. **Pre-partido del narrador** — UI dedicada para el narrador del Facebook Live.
+4. **Ecosistema** — comparativos entre ligas, vitrina de jugadores libres, sponsors. Solo cuando haya 20+ ligas activas.
+
+**Heurística antes de implementar cualquier feature:**
+
+1. ¿Refuerza el ego del jugador o del organizador?
+2. ¿Refuerza el viral loop (jugador presume → otros jugadores presionan a sus organizadores)?
+3. ¿Es contenido/identidad/análisis, o es operación? Si es operación, posponer.
+4. ¿Lo tiene resuelto WhatsApp+Excel hoy? Si sí, no es prioridad.
+5. ¿Hay 10 ligas pidiéndolo? Si no, no construir aún.
+
+**Documento completo:** `docs/PRODUCT-STRATEGY.md`. Si una decisión técnica afecta el posicionamiento, leer ese documento primero.
+
+---
+
 ## 2. Stack — versiones exactas
 
 No asumas versiones de tus datos de entrenamiento. Las versiones reales son:
@@ -329,6 +352,8 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 - **Liga ≠ equipo**. Siempre filtrar por `league_id` cuando trabajes con equipos
 - **Stats tienen dos fuentes**. `player_season_stats` (Excel, prioridad) y `match_events` (fallback)
 - **Snapshots son acumulados**. Para goles en jornada 5: `J5.goals − J4.goals`
-- **El narrador es un usuario clave**. `/admin/analisis` y `/api/narrator` son features críticas usadas en vivo
+- **El narrador es un usuario clave** y nuestro evangelizador interno. Si lo enamoramos, defiende TalachaStats con el organizador. `/admin/analisis` y `/api/narrator` son features críticas usadas en vivo
+- **El organizador es la puerta, el jugador es el motor**. El viral loop empieza por el jugador presumiendo sus stats; el organizador adopta porque sus jugadores presionan. Ver `docs/PRODUCT-STRATEGY.md`
+- **El "corte semanal" (lun/mar) es el evento clave** — toda la generación de contenido (Capa 2) se dispara después de la importación bulk
 - **Ciudades están predefinidas** en `shared/lib/cities.ts`. No hardcodees ciudades
 - **`jornada` es un integer de negocio**, no una fecha — representa la ronda de la liga
