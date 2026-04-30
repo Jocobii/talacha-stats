@@ -48,9 +48,12 @@ function sqlHash(tag: string): string {
 }
 
 async function ensureMigrationsTable() {
+	// Shape must match what drizzle-orm's migrator expects (id, hash, created_at).
+	// Dropping `id` causes `select id, hash, created_at …` in migrate() to fail.
 	await pool.query(`
 		CREATE SCHEMA IF NOT EXISTS drizzle;
 		CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
+			id         SERIAL PRIMARY KEY,
 			hash       TEXT   NOT NULL,
 			created_at BIGINT
 		);
