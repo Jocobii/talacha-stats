@@ -26,6 +26,7 @@ export default function NewLeagueForm({
   const router = useRouter();
   const [form, setForm] = useState({
     name: "",
+    category: "",
     dayOfWeek: "lunes",
     season: "",
     organizationId: defaultOrganizationId ?? (organizations[0]?.id ?? ""),
@@ -51,6 +52,7 @@ export default function NewLeagueForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name:           form.name,
+          category:       form.category || undefined,
           dayOfWeek:      form.dayOfWeek,
           season:         form.season,
           organizationId: form.organizationId,
@@ -95,6 +97,22 @@ export default function NewLeagueForm({
             </select>
           </div>
         )}
+
+        {/* Categoría */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Categoría
+          </label>
+          <input
+            value={form.category}
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
+            placeholder="Libre, Libre Femenil, Mixto, 2015-2016…"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Opcional. Solo si el torneo tiene múltiples categorías.
+          </p>
+        </div>
 
         {/* Nombre */}
         <div>
