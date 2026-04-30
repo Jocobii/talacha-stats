@@ -4,7 +4,7 @@ import TrackVisit from "@/shared/ui/TrackVisit";
 import NavigationProgress from "@/shared/ui/NavigationProgress";
 import { Analytics } from "@vercel/analytics/next"
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
