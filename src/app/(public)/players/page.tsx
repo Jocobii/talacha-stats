@@ -32,7 +32,6 @@ function PlayersContent() {
 		setLoading(false);
 	}, []);
 
-	 
 	useEffect(() => {
 		search("", city);
 	}, [search, city]);

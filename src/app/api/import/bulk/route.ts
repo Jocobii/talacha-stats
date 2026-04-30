@@ -17,6 +17,7 @@ import {
 	ParseError,
 	type MappedImportOptions,
 } from "@/features/import-excel";
+import { generateJornadaPills } from "@/features/post-import-content";
 import { apiSuccess, apiError } from "@/types";
 import { z } from "zod";
 
@@ -55,13 +56,28 @@ export async function POST(request: Request) {
 			parsed = applyExcludeRows(parsed, formData);
 			const resolutions = parseResolutions(formData);
 			if (resolutions instanceof Response) return resolutions;
-			return apiSuccess(
-				await confirmImport({
-					leagueId,
-					parsed,
-					playerResolutions: resolutions,
-				}),
-			);
+
+			const result = await confirmImport({
+				leagueId,
+				parsed,
+				playerResolutions: resolutions,
+			});
+
+			// ── Generar contenido post-importación ──────────────────────────────
+			// Solo cuando hay jornada definida (standings o goleadores con jornada).
+			// Las píldoras se generan en background — no bloquean la respuesta.
+			const jornada = parsed.jornada ?? null;
+			const importType = parsed.type; // "goleadores" | "standings"
+			const content =
+				jornada != null
+					? {
+							jornada,
+							pills: await generateJornadaPills(leagueId, jornada),
+							imageUrl: `/api/content/jornada-image?leagueId=${leagueId}&jornada=${jornada}&type=${importType}`,
+						}
+					: null;
+
+			return apiSuccess({ ...result, content });
 		}
 	} catch (e) {
 		return apiError(e instanceof ParseError ? e.message : "No se pudo procesar el archivo", 400);

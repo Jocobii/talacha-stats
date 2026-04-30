@@ -114,7 +114,18 @@ export default function ImportPage() {
 	const [preview, setPreview] = useState<BulkPreview | null>(null);
 	const [excludedRows, setExcludedRows] = useState<Set<string>>(new Set());
 	const [resolutions, setResolutions] = useState<Record<string, string>>({});
-	const [result, setResult] = useState<{ upserted: number; created: number } | null>(null);
+	type ImportResult = {
+		upserted: number;
+		created: number;
+		warnings: string[];
+		content: {
+			jornada: number;
+			pills: { type: string; headline: string; detail: string; priority: number }[];
+			imageUrl: string;
+		} | null;
+	};
+	const [result, setResult] = useState<ImportResult | null>(null);
+	const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 
@@ -667,10 +678,11 @@ export default function ImportPage() {
 								<div className="space-y-3">
 									{/* Resumen */}
 									<div
-										className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border ${critical.length > 0
-											? "bg-red-50 border-red-200 text-red-800"
-											: "bg-amber-50 border-amber-200 text-amber-800"
-											}`}
+										className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border ${
+											critical.length > 0
+												? "bg-red-50 border-red-200 text-red-800"
+												: "bg-amber-50 border-amber-200 text-amber-800"
+										}`}
 									>
 										<span>{critical.length > 0 ? "🚨" : "⚠️"}</span>
 										<span>
@@ -805,10 +817,11 @@ export default function ImportPage() {
 													{pm.candidates.map((c) => (
 														<label
 															key={c.id}
-															className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${selected === c.id
-																? "border-green-400 bg-green-50"
-																: "border-gray-200 bg-white hover:border-green-200"
-																}`}
+															className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+																selected === c.id
+																	? "border-green-400 bg-green-50"
+																	: "border-gray-200 bg-white hover:border-green-200"
+															}`}
 														>
 															<input
 																type="radio"
@@ -852,10 +865,11 @@ export default function ImportPage() {
 
 													{/* Opción: crear nuevo */}
 													<label
-														className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${selected === "NEW"
-															? "border-blue-300 bg-blue-50"
-															: "border-gray-200 bg-white hover:border-blue-200"
-															}`}
+														className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+															selected === "NEW"
+																? "border-blue-300 bg-blue-50"
+																: "border-gray-200 bg-white hover:border-blue-200"
+														}`}
 													>
 														<input
 															type="radio"
@@ -1056,8 +1070,8 @@ export default function ImportPage() {
 						const pendingCount =
 							preview?.type === "goleadores"
 								? (preview.playerResolutions?.filter(
-									(p) => !p.found && p.candidates.length > 0 && !resolutions[p.rawName],
-								).length ?? 0)
+										(p) => !p.found && p.candidates.length > 0 && !resolutions[p.rawName],
+									).length ?? 0)
 								: 0;
 						return (
 							<div className="flex flex-col gap-3">
@@ -1091,27 +1105,108 @@ export default function ImportPage() {
 				</div>
 			)}
 
-			{/* ── PASO 4: Listo ── */}
+			{/* ── PASO 4: Resumen de jornada ── */}
 			{step === "done" && result && (
-				<div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
-					<p className="text-4xl mb-3">✅</p>
-					<h2 className="font-bold text-green-800 text-xl mb-4">Importación completada</h2>
-					<div className="flex justify-center gap-8 mb-6">
-						<div>
-							<p className="text-3xl font-black text-green-700">{result.upserted}</p>
-							<p className="text-sm text-gray-500">registros actualizados</p>
-						</div>
-						<div>
-							<p className="text-3xl font-black text-blue-600">{result.created}</p>
-							<p className="text-sm text-gray-500">creados nuevos</p>
+				<div className="space-y-4">
+					{/* Cabecera de éxito */}
+					<div className="bg-green-50 border border-green-200 rounded-xl p-6">
+						<div className="flex items-center justify-between flex-wrap gap-4">
+							<div className="flex items-center gap-3">
+								<span className="text-2xl">✅</span>
+								<div>
+									<h2 className="font-bold text-green-800 text-lg">
+										Importación completada
+										{result.content ? ` · Jornada ${result.content.jornada}` : ""}
+									</h2>
+									<p className="text-sm text-green-700">
+										{result.upserted} registros actualizados
+										{result.created > 0 ? ` · ${result.created} nuevos` : ""}
+									</p>
+								</div>
+							</div>
+							<button
+								onClick={reset}
+								className="bg-green-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-green-700"
+							>
+								Nueva importación
+							</button>
 						</div>
 					</div>
-					<button
-						onClick={reset}
-						className="bg-green-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700"
-					>
-						Nueva importación
-					</button>
+
+					{/* Contenido de jornada */}
+					{result.content && (
+						<>
+							{/* Imagen descargable */}
+							<div className="bg-white border border-gray-200 rounded-xl p-5">
+								<div className="flex items-center justify-between flex-wrap gap-3">
+									<div>
+										<h3 className="font-semibold text-gray-800 text-sm">Imagen de jornada</h3>
+										<p className="text-xs text-gray-500 mt-0.5">
+											1080×1080 · Lista para WhatsApp y Facebook
+										</p>
+									</div>
+									<a
+										href={result.content.imageUrl}
+										download
+										className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors"
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="16"
+											height="16"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+										>
+											<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+											<polyline points="7 10 12 15 17 10" />
+											<line x1="12" y1="15" x2="12" y2="3" />
+										</svg>
+										Descargar imagen
+									</a>
+								</div>
+							</div>
+
+							{/* Píldoras */}
+							{result.content.pills.length > 0 && (
+								<div className="bg-white border border-gray-200 rounded-xl p-5">
+									<h3 className="font-semibold text-gray-800 text-sm mb-3">
+										Highlights de la jornada
+										<span className="text-xs font-normal text-gray-400 ml-2">Toca para copiar</span>
+									</h3>
+									<div className="space-y-2">
+										{result.content.pills.map((pill, i) => (
+											<button
+												key={i}
+												onClick={() => {
+													navigator.clipboard
+														.writeText(`${pill.headline} — ${pill.detail}`)
+														.then(() => {
+															setCopiedIdx(i);
+															setTimeout(() => setCopiedIdx(null), 1800);
+														});
+												}}
+												className="w-full text-left flex items-start justify-between gap-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-3 transition-colors"
+											>
+												<div className="min-w-0">
+													<p className="text-sm font-semibold text-gray-800 leading-snug">
+														{pill.headline}
+													</p>
+													<p className="text-xs text-gray-500 mt-0.5 leading-snug">{pill.detail}</p>
+												</div>
+												<span className="shrink-0 text-xs font-medium text-gray-400 mt-0.5">
+													{copiedIdx === i ? "✓ Copiado" : "📋"}
+												</span>
+											</button>
+										))}
+									</div>
+								</div>
+							)}
+						</>
+					)}
 				</div>
 			)}
 		</div>
