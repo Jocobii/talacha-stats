@@ -12,11 +12,12 @@ import {
   buildTickerItems,
   buildNarrativeLine,
 } from "@/features/org-hub";
-import OrgHeroHeader        from "./OrgHeroHeader";
-import OrgStatsStrip        from "./OrgStatsStrip";
-import OrgTicker            from "./OrgTicker";
-import LeagueStoryCarousel  from "./LeagueStoryCarousel";
-import LeagueNarrativeCard  from "./LeagueNarrativeCard";
+import OrgHeroHeader       from "./OrgHeroHeader";
+import OrgStatsStrip       from "./OrgStatsStrip";
+import OrgTicker           from "./OrgTicker";
+import LeagueStoryCarousel from "./LeagueStoryCarousel";
+import LeagueNarrativeCard from "./LeagueNarrativeCard";
+import ShareButton         from "@/shared/ui/ShareButton";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -24,9 +25,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const org = await getPublicOrganization(slug);
   if (!org) return { title: "Organización no encontrada" };
+
+  const totalTeams = org.leagues.reduce((acc, l) => acc + l.teams.length, 0);
+  const description = `Hub de ${org.name} en TalachaStats. ${org.leagues.length} liga${org.leagues.length !== 1 ? "s" : ""} activa${org.leagues.length !== 1 ? "s" : ""} en ${org.city}.`;
+
+  const ogParams = new URLSearchParams({
+    title: org.name,
+    sub:   `${org.city} · ${org.leagues.length} liga${org.leagues.length !== 1 ? "s" : ""}`,
+    s1l:   "Ligas",   s1v: String(org.leagues.length),
+    s2l:   "Equipos", s2v: String(totalTeams),
+  });
+  const ogImageUrl = `/api/og?${ogParams.toString()}`;
+
   return {
     title: `${org.name} — TalachaStats`,
-    description: `Hub de ${org.name} en TalachaStats. ${org.leagues.length} liga${org.leagues.length !== 1 ? "s" : ""} activa${org.leagues.length !== 1 ? "s" : ""} en ${org.city}.`,
+    description,
+    openGraph: {
+      title:       `${org.name} — TalachaStats`,
+      description,
+      images:      [{ url: ogImageUrl, width: 1200, height: 630, alt: org.name }],
+      type:        "website",
+    },
+    twitter: {
+      card:        "summary_large_image",
+      title:       `${org.name} — TalachaStats`,
+      description,
+      images:      [ogImageUrl],
+    },
   };
 }
 
@@ -65,13 +90,16 @@ export default async function OrgPublicPage({ params }: Props) {
           }}
         />
         <div className="relative z-10 max-w-lg mx-auto">
-          <Link
-            href="/ligas"
-            className="inline-flex items-center gap-1.5 text-ink-3 hover:text-ink text-sm transition mb-5"
-          >
-            <ArrowLeft size={16} strokeWidth={2} />
-            Ligas
-          </Link>
+          <div className="flex items-center justify-between mb-5">
+            <Link
+              href="/ligas"
+              className="inline-flex items-center gap-1.5 text-ink-3 hover:text-ink text-sm transition"
+            >
+              <ArrowLeft size={16} strokeWidth={2} />
+              Ligas
+            </Link>
+            <ShareButton title={org.name} variant="icon" />
+          </div>
 
           <OrgHeroHeader
             name={org.name}
