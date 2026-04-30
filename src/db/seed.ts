@@ -52,35 +52,142 @@ const RESET = process.argv.includes("--reset");
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const FIRST_NAMES = [
-	"Carlos", "Roberto", "Luis", "Miguel", "Andrés", "Daniel", "Fernando",
-	"Javier", "Alejandro", "Sergio", "Pablo", "Hugo", "Eduardo", "Iván",
-	"Ricardo", "César", "Manuel", "Óscar", "Diego", "Marcos", "Tomás",
-	"Jorge", "Raúl", "Adrián", "Bruno", "Emilio", "Francisco", "Gerardo",
-	"Héctor", "Joel", "Kevin", "Lucas", "Mario", "Nicolás", "Octavio",
-	"Patricio", "Rodrigo", "Saúl", "Ulises", "Víctor", "Xavier", "Yael",
-	"Ángel", "Benjamín", "Cristian", "Damián", "Elías", "Fabián", "Gael",
+	"Carlos",
+	"Roberto",
+	"Luis",
+	"Miguel",
+	"Andrés",
+	"Daniel",
+	"Fernando",
+	"Javier",
+	"Alejandro",
+	"Sergio",
+	"Pablo",
+	"Hugo",
+	"Eduardo",
+	"Iván",
+	"Ricardo",
+	"César",
+	"Manuel",
+	"Óscar",
+	"Diego",
+	"Marcos",
+	"Tomás",
+	"Jorge",
+	"Raúl",
+	"Adrián",
+	"Bruno",
+	"Emilio",
+	"Francisco",
+	"Gerardo",
+	"Héctor",
+	"Joel",
+	"Kevin",
+	"Lucas",
+	"Mario",
+	"Nicolás",
+	"Octavio",
+	"Patricio",
+	"Rodrigo",
+	"Saúl",
+	"Ulises",
+	"Víctor",
+	"Xavier",
+	"Yael",
+	"Ángel",
+	"Benjamín",
+	"Cristian",
+	"Damián",
+	"Elías",
+	"Fabián",
+	"Gael",
 	"Ismael",
 ] as const;
 
 const LAST_NAMES = [
-	"Hernández", "Mendez", "Austin", "García", "Torres", "López", "Ramírez",
-	"Castillo", "Morales", "Vargas", "Núñez", "Rivera", "Domínguez", "Salinas",
-	"Cárdenas", "Ortega", "Aguilar", "Ibarra", "Reyes", "Soto", "Acosta",
-	"Padilla", "Zúñiga", "Mendoza", "Cruz", "Olvera", "Fuentes", "Vega",
-	"Lara", "Sánchez", "Ruiz", "Jiménez", "Rodríguez", "Pérez", "Martínez",
-	"Díaz", "Romero", "Flores", "Gómez", "Herrera", "Castro", "Ortiz",
-	"Silva", "Ríos", "Espinoza", "Cervantes", "Esparza", "Vázquez", "Carrillo",
+	"Hernández",
+	"Mendez",
+	"Austin",
+	"García",
+	"Torres",
+	"López",
+	"Ramírez",
+	"Castillo",
+	"Morales",
+	"Vargas",
+	"Núñez",
+	"Rivera",
+	"Domínguez",
+	"Salinas",
+	"Cárdenas",
+	"Ortega",
+	"Aguilar",
+	"Ibarra",
+	"Reyes",
+	"Soto",
+	"Acosta",
+	"Padilla",
+	"Zúñiga",
+	"Mendoza",
+	"Cruz",
+	"Olvera",
+	"Fuentes",
+	"Vega",
+	"Lara",
+	"Sánchez",
+	"Ruiz",
+	"Jiménez",
+	"Rodríguez",
+	"Pérez",
+	"Martínez",
+	"Díaz",
+	"Romero",
+	"Flores",
+	"Gómez",
+	"Herrera",
+	"Castro",
+	"Ortiz",
+	"Silva",
+	"Ríos",
+	"Espinoza",
+	"Cervantes",
+	"Esparza",
+	"Vázquez",
+	"Carrillo",
 	"Aguirre",
 ] as const;
 
 const TEAM_NAMES = [
-	"Cobras FC", "Águilas Doradas", "Pumas TJ", "Halcones", "Lobos Grises",
-	"Tigres del Norte", "Caimanes", "Diablos Rojos", "Coyotes", "Toros Salvajes",
-	"Gallos Negros", "Panteras", "Tiburones Blancos", "Leones de Oro",
-	"Zorros del Pacífico", "Búhos", "Real Frontera", "Atlético Tijuana",
-	"Deportivo Otay", "Internacional", "Bravos del Cerro", "Halcones Imperial",
-	"Estudiantes FC", "Real Madrid TJ", "Borregos del Valle", "Cabras Locas",
-	"Pingüinos del Norte", "Águilas Imperial", "Pumas Mexicali", "Cementeros",
+	"Cobras FC",
+	"Águilas Doradas",
+	"Pumas TJ",
+	"Halcones",
+	"Lobos Grises",
+	"Tigres del Norte",
+	"Caimanes",
+	"Diablos Rojos",
+	"Coyotes",
+	"Toros Salvajes",
+	"Gallos Negros",
+	"Panteras",
+	"Tiburones Blancos",
+	"Leones de Oro",
+	"Zorros del Pacífico",
+	"Búhos",
+	"Real Frontera",
+	"Atlético Tijuana",
+	"Deportivo Otay",
+	"Internacional",
+	"Bravos del Cerro",
+	"Halcones Imperial",
+	"Estudiantes FC",
+	"Real Madrid TJ",
+	"Borregos del Valle",
+	"Cabras Locas",
+	"Pingüinos del Norte",
+	"Águilas Imperial",
+	"Pumas Mexicali",
+	"Cementeros",
 ] as const;
 
 const LEAGUE_DEFS: Array<{
@@ -91,14 +198,70 @@ const LEAGUE_DEFS: Array<{
 	adminIdx: number;
 	status: "active" | "finished";
 }> = [
-	{ name: "Liga Lunes",     dayOfWeek: "lunes",     season: "Apertura 2026", city: "Tijuana",  adminIdx: 1, status: "active"   },
-	{ name: "Liga Martes",    dayOfWeek: "martes",    season: "Apertura 2026", city: "Tijuana",  adminIdx: 1, status: "active"   },
-	{ name: "Liga Miércoles", dayOfWeek: "miercoles", season: "Apertura 2026", city: "Tijuana",  adminIdx: 2, status: "active"   },
-	{ name: "Liga Jueves",    dayOfWeek: "jueves",    season: "Apertura 2026", city: "Tijuana",  adminIdx: 2, status: "active"   },
-	{ name: "Liga Verano",    dayOfWeek: "viernes",   season: "Verano 2026",   city: "Tijuana",  adminIdx: 3, status: "active"   },
-	{ name: "Liga Mexicali",  dayOfWeek: "domingo",   season: "Apertura 2026", city: "Mexicali", adminIdx: 4, status: "active"   },
-	{ name: "Liga Lunes",     dayOfWeek: "lunes",     season: "Apertura 2025", city: "Tijuana",  adminIdx: 0, status: "finished" },
-	{ name: "Liga Verano",    dayOfWeek: "viernes",   season: "Verano 2025",   city: "Tijuana",  adminIdx: 3, status: "finished" },
+	{
+		name: "Liga Lunes",
+		dayOfWeek: "lunes",
+		season: "Apertura 2026",
+		city: "Tijuana",
+		adminIdx: 1,
+		status: "active",
+	},
+	{
+		name: "Liga Martes",
+		dayOfWeek: "martes",
+		season: "Apertura 2026",
+		city: "Tijuana",
+		adminIdx: 1,
+		status: "active",
+	},
+	{
+		name: "Liga Miércoles",
+		dayOfWeek: "miercoles",
+		season: "Apertura 2026",
+		city: "Tijuana",
+		adminIdx: 2,
+		status: "active",
+	},
+	{
+		name: "Liga Jueves",
+		dayOfWeek: "jueves",
+		season: "Apertura 2026",
+		city: "Tijuana",
+		adminIdx: 2,
+		status: "active",
+	},
+	{
+		name: "Liga Verano",
+		dayOfWeek: "viernes",
+		season: "Verano 2026",
+		city: "Tijuana",
+		adminIdx: 3,
+		status: "active",
+	},
+	{
+		name: "Liga Mexicali",
+		dayOfWeek: "domingo",
+		season: "Apertura 2026",
+		city: "Mexicali",
+		adminIdx: 4,
+		status: "active",
+	},
+	{
+		name: "Liga Lunes",
+		dayOfWeek: "lunes",
+		season: "Apertura 2025",
+		city: "Tijuana",
+		adminIdx: 0,
+		status: "finished",
+	},
+	{
+		name: "Liga Verano",
+		dayOfWeek: "viernes",
+		season: "Verano 2025",
+		city: "Tijuana",
+		adminIdx: 3,
+		status: "finished",
+	},
 ];
 
 const TOTAL_PLAYERS = 200;
@@ -124,7 +287,7 @@ function detShuffle(n: number, seed: number): number[] {
 	const arr = Array.from({ length: n }, (_, i) => i);
 	let r = (seed * 9301 + 49297) >>> 0;
 	for (let i = n - 1; i > 0; i--) {
-		r = ((r * 1664525) + 1013904223) >>> 0;
+		r = (r * 1664525 + 1013904223) >>> 0;
 		const j = r % (i + 1);
 		[arr[i], arr[j]] = [arr[j], arr[i]];
 	}
@@ -187,11 +350,19 @@ async function run(): Promise<void> {
 	// ── Users ────────────────────────────────────────────────────────────────
 	const passwordHash = await hashPassword("admin1234");
 	const userDefs = [
-		{ email: "owner@talacha.local",    name: "Roberto Owner",     role: "owner"     },
-		{ email: "andres@talacha.local",   name: "Andrés Cárdenas",   role: "organizer" },
-		{ email: "patricia@talacha.local", name: "Patricia Mendoza",  role: "organizer" },
-		{ email: "manuel@talacha.local",   name: "Manuel Ibarra",     role: "organizer" },
-		{ email: "lucia@talacha.local",    name: "Lucía Ortega",      role: "organizer" },
+		{ email: "owner@talacha.local", name: "Roberto Owner", role: "owner" },
+		{
+			email: "andres@talacha.local",
+			name: "Andrés Cárdenas",
+			role: "organizer",
+		},
+		{
+			email: "patricia@talacha.local",
+			name: "Patricia Mendoza",
+			role: "organizer",
+		},
+		{ email: "manuel@talacha.local", name: "Manuel Ibarra", role: "organizer" },
+		{ email: "lucia@talacha.local", name: "Lucía Ortega", role: "organizer" },
 	];
 	const users = await db
 		.insert(schema.users)
@@ -213,8 +384,12 @@ async function run(): Promise<void> {
 			})),
 		)
 		.returning();
-	const activeLeagues = leagues.filter((_, i) => LEAGUE_DEFS[i].status === "active");
-	const finishedLeagues = leagues.filter((_, i) => LEAGUE_DEFS[i].status === "finished");
+	const activeLeagues = leagues.filter(
+		(_, i) => LEAGUE_DEFS[i].status === "active",
+	);
+	const finishedLeagues = leagues.filter(
+		(_, i) => LEAGUE_DEFS[i].status === "finished",
+	);
 	console.log(
 		`✓ leagues:          ${leagues.length}  (${activeLeagues.length} activas, ${finishedLeagues.length} finalizadas, 2 ciudades)`,
 	);
@@ -247,14 +422,18 @@ async function run(): Promise<void> {
 	const playerRows: schema.NewPlayer[] = [];
 	for (let i = 0; i < TOTAL_PLAYERS; i++) {
 		const first = FIRST_NAMES[i % FIRST_NAMES.length];
-		const last = LAST_NAMES[Math.floor(i / FIRST_NAMES.length) % LAST_NAMES.length];
+		const last =
+			LAST_NAMES[Math.floor(i / FIRST_NAMES.length) % LAST_NAMES.length];
 		const fullName = `${first} ${last}`;
 		playerRows.push({
 			fullName,
 			alias: i % 5 === 0 ? aliasFor(fullName) : null,
 		});
 	}
-	const players = await db.insert(schema.players).values(playerRows).returning();
+	const players = await db
+		.insert(schema.players)
+		.values(playerRows)
+		.returning();
 	console.log(`✓ players:          ${players.length}`);
 
 	// ── Registrations + season stats ─────────────────────────────────────────
@@ -285,10 +464,10 @@ async function run(): Promise<void> {
 				playerId: players[playerIdx].id,
 				leagueId: league.id,
 				teamId: team.id,
-				goals:        det(playerIdx + li * 7,  26, 1),
-				assists:      det(playerIdx + li * 11, 12, 2),
-				yellowCards:  det(playerIdx + li * 3,   5, 3),
-				redCards:     det(playerIdx + li * 5,  12, 4) === 0 ? 1 : 0,
+				goals: det(playerIdx + li * 7, 26, 1),
+				assists: det(playerIdx + li * 11, 12, 2),
+				yellowCards: det(playerIdx + li * 3, 5, 3),
+				redCards: det(playerIdx + li * 5, 12, 4) === 0 ? 1 : 0,
 				matchesPlayed: 6 + det(playerIdx + li, 9, 5),
 				jornada: LEAGUE_DEFS[li].status === "finished" ? 18 : 12,
 			});
@@ -296,14 +475,18 @@ async function run(): Promise<void> {
 	}
 	await db.insert(schema.playerRegistrations).values(registrationRows);
 	await db.insert(schema.playerSeasonStats).values(statRows);
-	console.log(`✓ registrations:    ${registrationRows.length}  (cross-liga via shuffles)`);
+	console.log(
+		`✓ registrations:    ${registrationRows.length}  (cross-liga via shuffles)`,
+	);
 	console.log(`✓ season stats:     ${statRows.length}`);
 
 	// ── Snapshot history (Liga Lunes Apertura 2026 only) ─────────────────────
 	// 3 jornadas × top 12 scorers → progression curve for the chart pages.
 	const ligaLunes = leagues[0];
 	const lunesStats = statRows.filter((s) => s.leagueId === ligaLunes.id);
-	const sortedByGoals = [...lunesStats].sort((a, b) => b.goals - a.goals).slice(0, 12);
+	const sortedByGoals = [...lunesStats]
+		.sort((a, b) => (b?.goals ?? 0) - (a.goals ?? 0))
+		.slice(0, 12);
 	const snapshotRows: schema.NewPlayerSeasonStatsSnapshot[] = [];
 	for (const j of [5, 10, 15]) {
 		for (const s of sortedByGoals) {
@@ -313,41 +496,47 @@ async function run(): Promise<void> {
 				leagueId: s.leagueId,
 				teamId: s.teamId,
 				jornada: j,
-				goals:        Math.round(s.goals * factor),
-				assists:      Math.round((s.assists ?? 0) * factor),
-				yellowCards:  Math.round((s.yellowCards ?? 0) * factor),
-				redCards:     Math.round((s.redCards ?? 0) * factor),
+				goals: Math.round(s?.goals ?? 0 * factor),
+				assists: Math.round((s.assists ?? 0) * factor),
+				yellowCards: Math.round((s.yellowCards ?? 0) * factor),
+				redCards: Math.round((s.redCards ?? 0) * factor),
 				matchesPlayed: Math.round((s.matchesPlayed ?? 0) * factor),
 			});
 		}
 	}
 	await db.insert(schema.playerSeasonStatsSnapshot).values(snapshotRows);
-	console.log(`✓ snapshots:        ${snapshotRows.length}  (3 jornadas × top 12 of Liga Lunes)`);
+	console.log(
+		`✓ snapshots:        ${snapshotRows.length}  (3 jornadas × top 12 of Liga Lunes)`,
+	);
 
 	// ── Standings snapshots (Liga Lunes top 10 at jornada 12) ────────────────
 	const lunesTeams = teamsByLeague.get(ligaLunes.id)!;
-	const standingRows: schema.NewTeamStandingsSnapshot[] = lunesTeams.map((t, i) => {
-		const wins = 2 + det(i, 8, 41);
-		const draws = det(i, 4, 42);
-		const losses = 12 - wins - draws;
-		const goalsFor = wins * 3 + draws + det(i, 12, 43);
-		const goalsAgainst = losses * 2 + draws + det(i, 8, 44);
-		return {
-			teamId: t.id,
-			leagueId: ligaLunes.id,
-			jornada: 12,
-			played: 12,
-			wins,
-			draws,
-			losses,
-			goalsFor,
-			goalsAgainst,
-			points: wins * 3 + draws,
-			zone: i < 4 ? "LIGUILLA" : i >= 8 ? "DESCENSO" : null,
-		};
-	});
+	const standingRows: schema.NewTeamStandingsSnapshot[] = lunesTeams.map(
+		(t, i) => {
+			const wins = 2 + det(i, 8, 41);
+			const draws = det(i, 4, 42);
+			const losses = 12 - wins - draws;
+			const goalsFor = wins * 3 + draws + det(i, 12, 43);
+			const goalsAgainst = losses * 2 + draws + det(i, 8, 44);
+			return {
+				teamId: t.id,
+				leagueId: ligaLunes.id,
+				jornada: 12,
+				played: 12,
+				wins,
+				draws,
+				losses,
+				goalsFor,
+				goalsAgainst,
+				points: wins * 3 + draws,
+				zone: i < 4 ? "LIGUILLA" : i >= 8 ? "DESCENSO" : null,
+			};
+		},
+	);
 	await db.insert(schema.teamStandingsSnapshot).values(standingRows);
-	console.log(`✓ team standings:   ${standingRows.length}  (jornada 12 of Liga Lunes)`);
+	console.log(
+		`✓ team standings:   ${standingRows.length}  (jornada 12 of Liga Lunes)`,
+	);
 
 	// ── Matches + match events (active leagues only) ─────────────────────────
 	// 5 matches per active league × 6 = 30 matches. Each completed match
@@ -388,7 +577,9 @@ async function run(): Promise<void> {
 		}
 	}
 	const matches = await db.insert(schema.matches).values(matchRows).returning();
-	console.log(`✓ matches:          ${matches.length}  (completed, across 6 active leagues)`);
+	console.log(
+		`✓ matches:          ${matches.length}  (completed, across 6 active leagues)`,
+	);
 
 	// Events: pick scorers from registered players of the league for that team.
 	const regsByLeagueTeam = new Map<string, schema.NewPlayerRegistration[]>();
@@ -401,8 +592,10 @@ async function run(): Promise<void> {
 	const eventRows: schema.NewMatchEvent[] = [];
 	for (let mi = 0; mi < matches.length; mi++) {
 		const m = matches[mi];
-		const homeRoster = regsByLeagueTeam.get(`${m.leagueId}:${m.homeTeamId}`) ?? [];
-		const awayRoster = regsByLeagueTeam.get(`${m.leagueId}:${m.awayTeamId}`) ?? [];
+		const homeRoster =
+			regsByLeagueTeam.get(`${m.leagueId}:${m.homeTeamId}`) ?? [];
+		const awayRoster =
+			regsByLeagueTeam.get(`${m.leagueId}:${m.awayTeamId}`) ?? [];
 		// Goals
 		for (let g = 0; g < m.homeScore && homeRoster.length > 0; g++) {
 			const r = homeRoster[det(mi * 13 + g, homeRoster.length, 7)];
@@ -449,7 +642,9 @@ async function run(): Promise<void> {
 	if (eventRows.length > 0) {
 		await db.insert(schema.matchEvents).values(eventRows);
 	}
-	console.log(`✓ match events:     ${eventRows.length}  (goals · yellows · reds)`);
+	console.log(
+		`✓ match events:     ${eventRows.length}  (goals · yellows · reds)`,
+	);
 
 	console.log("──────────────────────────────────────────");
 	console.log("✅  Seed completo. Dataset MVP cubre:");
