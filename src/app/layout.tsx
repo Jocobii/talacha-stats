@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import TrackVisit from "@/shared/ui/TrackVisit";
 import NavigationProgress from "@/shared/ui/NavigationProgress";
+import { Analytics } from "@vercel/analytics/next"
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full antialiased">
         <NavigationProgress />
         <TrackVisit />
+        <Analytics />
         {children}
       </body>
     </html>
