@@ -19,9 +19,36 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const result = await getPublicLeague(slug, leagueSlug);
   if (!result) return { title: "Liga no encontrada" };
   const { org, league } = result;
+
+  const title = `${titleCase(league.name)} — ${titleCase(org.name)}`;
+  const description = `Tabla de posiciones, goleadores y estadísticas de ${titleCase(league.name)}. Temporada ${league.season}.`;
+
+  // Next.js deduplica esta llamada con la del page — sin costo extra
+  const { standings, jornada } = await getLatestStandings(league.id);
+
+  const ogParams = new URLSearchParams({
+    title: league.name,
+    sub: `${titleCase(org.name)} · ${league.season}`,
+    s1l: "Equipos", s1v: String(standings.length),
+    ...(jornada ? { s2l: "Jornada", s2v: `J${jornada}` } : {}),
+  });
+  const ogImageUrl = `/api/og?${ogParams.toString()}`;
+
   return {
-    title: `${titleCase(league.name)} — ${titleCase(org.name)} · TalachaStats`,
-    description: `Tabla de posiciones, goleadores y estadísticas de ${titleCase(league.name)}. Temporada ${league.season}.`,
+    title: `${title} · TalachaStats`,
+    description,
+    openGraph: {
+      title: `${title} · TalachaStats`,
+      description,
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: league.name }],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} · TalachaStats`,
+      description,
+      images: [ogImageUrl],
+    },
   };
 }
 
@@ -76,7 +103,7 @@ export default async function LeaguePublicPage({ params }: Props) {
                 )}
               </p>
             </div>
-            <ShareLeagueButton leagueName={league.name} />
+            <ShareLeagueButton title={league.name} />
           </div>
         </div>
       </header>
