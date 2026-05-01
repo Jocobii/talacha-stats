@@ -155,10 +155,10 @@ export default function OrganizerSection() {
 							}}
 						>
 							<Link
-								href="/about#organizadores"
+								href="/register"
 								className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dim text-pitch font-bold px-6 py-3.5 rounded-xl text-sm transition font-body"
 							>
-								Registra tu liga
+								Registra tu liga gratis
 								<ChevronRight size={16} strokeWidth={2} />
 							</Link>
 						</div>
