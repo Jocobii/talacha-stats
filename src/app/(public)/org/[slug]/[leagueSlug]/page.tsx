@@ -11,6 +11,7 @@ import {
 import { titleCase } from "@/shared/lib/normalize";
 import ShareLeagueButton from "./ShareLeagueButton";
 import ScorerCard, { type ScorerData } from "./ScorerCard";
+import TrialWarning from "./TrialWarning";
 
 type Props = { params: Promise<{ slug: string; leagueSlug: string }> };
 
@@ -111,7 +112,7 @@ export default async function LeaguePublicPage({ params }: Props) {
 					</div>
 				</div>
 			</header>
-
+			{org.status === "trial" && <TrialWarning org={org} />}
 			{/* ── Contenido ── */}
 			<div className="flex-1 bg-surface rounded-t-3xl px-4 pt-5 pb-16">
 				<div className="max-w-lg mx-auto space-y-6">
@@ -142,9 +143,8 @@ export default async function LeaguePublicPage({ params }: Props) {
 									return (
 										<div
 											key={row.id}
-											className={`grid grid-cols-[2rem_1fr_2rem_2rem_2rem_2rem_2.5rem] gap-1 px-3 py-2.5 border-b border-line last:border-0 ${
-												isTop3 ? "bg-brand/4" : ""
-											}`}
+											className={`grid grid-cols-[2rem_1fr_2rem_2rem_2rem_2rem_2.5rem] gap-1 px-3 py-2.5 border-b border-line last:border-0 ${isTop3 ? "bg-brand/4" : ""
+												}`}
 										>
 											{/* Pos */}
 											<div className="flex items-center justify-center">

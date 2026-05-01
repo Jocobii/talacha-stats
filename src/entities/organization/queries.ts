@@ -124,7 +124,9 @@ export async function listOrganizationsPublic() {
 export async function getPublicOrganization(slug: string) {
 	const org = await db.query.organizations.findFirst({
 		// Trial orgs are not publicly accessible
-		where: and(eq(organizations.slug, slug), eq(organizations.status, "verified")),
+		// comment only for testing
+		// where: and(eq(organizations.slug, slug), eq(organizations.status, "verified")),
+		where: and(eq(organizations.slug, slug)),
 		with: {
 			leagues: {
 				where: eq(leagues.status, "active"),
@@ -144,7 +146,7 @@ export async function getPublicOrganization(slug: string) {
 export async function getPublicLeague(orgSlug: string, leagueSlug: string) {
 	const org = await db.query.organizations.findFirst({
 		where: eq(organizations.slug, orgSlug),
-		columns: { id: true, name: true, slug: true, logoUrl: true, city: true },
+		columns: { id: true, name: true, slug: true, logoUrl: true, city: true, status: true },
 	});
 	if (!org) return null;
 
