@@ -89,6 +89,8 @@ function toPublic(u: typeof users.$inferSelect): UserPublic {
 		name: u.name,
 		role: u.role as UserPublic["role"],
 		active: u.active,
+		emailVerified: u.emailVerified,
+		organizationId: u.organizationId ?? null,
 		createdAt: u.createdAt,
 	};
 }

@@ -1,5 +1,12 @@
-export type { UserPublic, UserRole, CreateUserInput, UpdateUserInput, LoginInput } from "./model";
-export { CreateUserSchema, UpdateUserSchema, LoginSchema } from "./model";
+export type {
+	UserPublic,
+	UserRole,
+	CreateUserInput,
+	UpdateUserInput,
+	LoginInput,
+	RegisterInput,
+} from "./model";
+export { CreateUserSchema, UpdateUserSchema, LoginSchema, RegisterSchema } from "./model";
 export {
 	getUserById,
 	getUserByEmail,
