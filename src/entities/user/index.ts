@@ -1,15 +1,9 @@
-export type {
-	UserPublic,
-	UserRole,
-	CreateUserInput,
-	UpdateUserInput,
-	LoginInput,
-	RegisterInput,
-} from "./model";
-export { CreateUserSchema, UpdateUserSchema, LoginSchema, RegisterSchema } from "./model";
 export {
-	getUserById,
 	getUserByEmail,
+	getUserById,
+	getUserByVerificationToken,
+	registerUser,
+	markEmailVerified,
 	listUsers,
 	createUser,
 	updateUser,
@@ -17,3 +11,12 @@ export {
 	hashPassword,
 	verifyPassword,
 } from "./queries";
+
+export {
+	LoginSchema,
+	RegisterSchema,
+	CreateUserSchema,
+	UpdateUserSchema,
+} from "./model";
+
+export type { UserPublic, RegisterInput, UserRole, CreateUserInput, UpdateUserInput, LoginInput } from "./model";

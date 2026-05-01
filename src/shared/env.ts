@@ -49,7 +49,7 @@ const EnvSchema = z.object({
 
 	// Email transaccional via Resend
 	RESEND_API_KEY: z.string().optional(), // requerida en produccion
-	EMAIL_FROM: z.string().optional(),     // ej: "TalachaStats <noreply@tudominio.com>"
+	EMAIL_FROM: z.string().optional(), // ej: "TalachaStats <noreply@tudominio.com>"
 });
 
 export type Env = z.infer<typeof EnvSchema>;

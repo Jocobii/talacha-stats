@@ -12,7 +12,7 @@ const BRAND_GREEN = "#16a34a";
 const BRAND_DARK = "#111827";
 
 function baseLayout(content: string): string {
-  return `<!DOCTYPE html>
+	return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -65,12 +65,12 @@ function baseLayout(content: string): string {
 // ----------------------------------------------------------------------------
 
 export type VerificationEmailParams = {
-  name: string;
-  verificationUrl: string;
+	name: string;
+	verificationUrl: string;
 };
 
 export function verificationEmailHtml({ name, verificationUrl }: VerificationEmailParams): string {
-  const content = `
+	const content = `
     <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:${BRAND_DARK};">
       Verifica tu correo
     </h2>
@@ -107,7 +107,7 @@ export function verificationEmailHtml({ name, verificationUrl }: VerificationEma
     </p>
   `;
 
-  return baseLayout(content);
+	return baseLayout(content);
 }
 
 // ----------------------------------------------------------------------------
@@ -115,13 +115,17 @@ export function verificationEmailHtml({ name, verificationUrl }: VerificationEma
 // ----------------------------------------------------------------------------
 
 export type VerifiedOrgEmailParams = {
-  name: string;
-  orgName: string;
-  dashboardUrl: string;
+	name: string;
+	orgName: string;
+	dashboardUrl: string;
 };
 
-export function verifiedOrgEmailHtml({ name, orgName, dashboardUrl }: VerifiedOrgEmailParams): string {
-  const content = `
+export function verifiedOrgEmailHtml({
+	name,
+	orgName,
+	dashboardUrl,
+}: VerifiedOrgEmailParams): string {
+	const content = `
     <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:${BRAND_DARK};">
       &#127881; Tu liga fue verificada
     </h2>
@@ -150,5 +154,5 @@ export function verifiedOrgEmailHtml({ name, orgName, dashboardUrl }: VerifiedOr
     </p>
   `;
 
-  return baseLayout(content);
+	return baseLayout(content);
 }
