@@ -100,9 +100,7 @@ type SimilarityRow = {
  * Resuelve jugadores y equipos contra la DB en batch.
  * Máximo 4 queries independientemente del tamaño del input.
  */
-export async function resolveImportEntities(
-	input: ResolverInput,
-): Promise<ResolverOutput> {
+export async function resolveImportEntities(input: ResolverInput): Promise<ResolverOutput> {
 	const { playerNames, teamNames, leagueId, city } = input;
 
 	const [playerResolutions, teamMap] = await Promise.all([
@@ -117,10 +115,7 @@ export async function resolveImportEntities(
 // Resolución de jugadores — batch fuzzy matching
 // ---------------------------------------------------------------------------
 
-async function resolvePlayersBatch(
-	names: string[],
-	city: string,
-): Promise<PlayerResolution[]> {
+async function resolvePlayersBatch(names: string[], city: string): Promise<PlayerResolution[]> {
 	if (names.length === 0) return [];
 
 	// ── Query 1: city-scoped batch similarity ─────────────────────────────────
@@ -191,16 +186,11 @@ async function resolvePlayersBatch(
 	// Combinar: city tiene prioridad, global como fallback
 	const allMatchesByName = new Map<string, SimilarityRow[]>();
 	for (const name of names) {
-		allMatchesByName.set(
-			name,
-			cityByName.get(name) ?? globalByName.get(name) ?? [],
-		);
+		allMatchesByName.set(name, cityByName.get(name) ?? globalByName.get(name) ?? []);
 	}
 
 	// ── Query 3: enrich con equipos activos (batch por IDs) ───────────────────
-	const allCandidateIds = [
-		...new Set([...allMatchesByName.values()].flat().map((r) => r.id)),
-	];
+	const allCandidateIds = [...new Set([...allMatchesByName.values()].flat().map((r) => r.id))];
 	const enrichedCandidates = await enrichWithActiveTeams(allCandidateIds);
 	const candidateMap = new Map(enrichedCandidates.map((c) => [c.id, c]));
 
@@ -229,9 +219,7 @@ async function resolveTeamsBatch(
 	teamNames: string[],
 	leagueId: string,
 ): Promise<Map<string, string | null>> {
-	const teamMap = new Map<string, string | null>(
-		teamNames.map((n) => [n, null]),
-	);
+	const teamMap = new Map<string, string | null>(teamNames.map((n) => [n, null]));
 
 	if (teamNames.length === 0) return teamMap;
 
@@ -275,9 +263,7 @@ async function resolveTeamsBatch(
 // Enrich con equipos activos — batch por IDs (Query 3)
 // ---------------------------------------------------------------------------
 
-async function enrichWithActiveTeams(
-	playerIds: string[],
-): Promise<PlayerCandidate[]> {
+async function enrichWithActiveTeams(playerIds: string[]): Promise<PlayerCandidate[]> {
 	if (playerIds.length === 0) return [];
 
 	const rows = await db
@@ -289,12 +275,7 @@ async function enrichWithActiveTeams(
 		.from(playerRegistrations)
 		.innerJoin(teams, eq(teams.id, playerRegistrations.teamId))
 		.innerJoin(leagues, eq(leagues.id, playerRegistrations.leagueId))
-		.where(
-			and(
-				inArray(playerRegistrations.playerId, playerIds),
-				eq(leagues.status, "active"),
-			),
-		)
+		.where(and(inArray(playerRegistrations.playerId, playerIds), eq(leagues.status, "active")))
 		.orderBy(desc(leagues.createdAt));
 
 	// Agrupar por playerId

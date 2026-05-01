@@ -35,9 +35,9 @@ export function generateSlug(name: string): string {
 		.toLowerCase()
 		.normalize("NFD")
 		.replace(/[̀-ͯ]/g, "") // quitar acentos
-		.replace(/[^a-z0-9\s-]/g, "")   // solo alfanuméricos y espacios
+		.replace(/[^a-z0-9\s-]/g, "") // solo alfanuméricos y espacios
 		.trim()
-		.replace(/\s+/g, "-")            // espacios → guión
-		.replace(/-+/g, "-")             // guiones dobles → uno
-		.replace(/^-|-$/g, "");          // sin guiones al inicio/fin
+		.replace(/\s+/g, "-") // espacios → guión
+		.replace(/-+/g, "-") // guiones dobles → uno
+		.replace(/^-|-$/g, ""); // sin guiones al inicio/fin
 }

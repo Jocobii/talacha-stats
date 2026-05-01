@@ -35,12 +35,7 @@ import {
 	teamStandingsSnapshot,
 } from "@/db";
 import { sanitizeName } from "@/shared/lib/normalize";
-import type {
-	ParsedBulkImport,
-	GoleadoresRow,
-	StandingsRow,
-	BulkImportType,
-} from "./parser";
+import type { ParsedBulkImport, GoleadoresRow, StandingsRow, BulkImportType } from "./parser";
 
 /** Tipo del `tx` que recibe el callback de db.transaction — derivado sin imports de drizzle. */
 type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -77,9 +72,7 @@ export type ConfirmResult = {
  * Persiste los datos de una importacion confirmada dentro de una transaccion.
  * Numero de queries constante independientemente del tamano del Excel.
  */
-export async function confirmImport(
-	input: ConfirmInput,
-): Promise<ConfirmResult> {
+export async function confirmImport(input: ConfirmInput): Promise<ConfirmResult> {
 	const { leagueId, parsed, playerResolutions = {} } = input;
 
 	if (parsed.type === "goleadores") {
@@ -91,11 +84,7 @@ export async function confirmImport(
 		);
 	}
 
-	return confirmStandings(
-		parsed.rows as StandingsRow[],
-		parsed.jornada ?? 1,
-		leagueId,
-	);
+	return confirmStandings(parsed.rows as StandingsRow[], parsed.jornada ?? 1, leagueId);
 }
 
 // ---------------------------------------------------------------------------
@@ -112,24 +101,17 @@ async function confirmGoleadores(
 	let created = 0;
 
 	// Pre-load: equipos existentes en la liga
-	const uniqueTeamNames = [
-		...new Set(rows.map((r) => sanitizeName(r.teamName)).filter(Boolean)),
-	];
+	const uniqueTeamNames = [...new Set(rows.map((r) => sanitizeName(r.teamName)).filter(Boolean))];
 
 	const existingTeams: { id: string; name: string }[] =
 		uniqueTeamNames.length > 0
 			? await db.query.teams.findMany({
-					where: and(
-						eq(teams.leagueId, leagueId),
-						inArray(teams.name, uniqueTeamNames),
-					),
+					where: and(eq(teams.leagueId, leagueId), inArray(teams.name, uniqueTeamNames)),
 					columns: { id: true, name: true },
 				})
 			: [];
 
-	const teamNameToId = new Map<string, string>(
-		existingTeams.map((t) => [t.name, t.id]),
-	);
+	const teamNameToId = new Map<string, string>(existingTeams.map((t) => [t.name, t.id]));
 
 	await db.transaction(async (tx: DbTx) => {
 		// Paso 1: Crear nuevos jugadores en batch
@@ -139,18 +121,13 @@ async function confirmGoleadores(
 		});
 
 		const rawNameToPlayerId = new Map<string, string>(
-			Object.entries(playerResolutions).filter(([, v]) => v && v !== "NEW") as [
-				string,
-				string,
-			][],
+			Object.entries(playerResolutions).filter(([, v]) => v && v !== "NEW") as [string, string][],
 		);
 
 		if (newPlayerRows.length > 0) {
 			const inserted = await tx
 				.insert(players)
-				.values(
-					newPlayerRows.map((r) => ({ fullName: sanitizeName(r.rawName) })),
-				)
+				.values(newPlayerRows.map((r) => ({ fullName: sanitizeName(r.rawName) })))
 				.returning({ id: players.id, fullName: players.fullName });
 
 			for (let i = 0; i < newPlayerRows.length; i++) {
@@ -160,9 +137,7 @@ async function confirmGoleadores(
 		}
 
 		// Paso 2: Crear nuevos equipos en batch
-		const missingTeamNames = uniqueTeamNames.filter(
-			(n) => !teamNameToId.has(n),
-		);
+		const missingTeamNames = uniqueTeamNames.filter((n) => !teamNameToId.has(n));
 
 		if (missingTeamNames.length > 0) {
 			const insertedTeams = await tx
@@ -180,9 +155,7 @@ async function confirmGoleadores(
 		const registrationValues = rows
 			.map((r) => {
 				const playerId = rawNameToPlayerId.get(r.rawName);
-				const teamId = r.teamName
-					? teamNameToId.get(sanitizeName(r.teamName))
-					: undefined;
+				const teamId = r.teamName ? teamNameToId.get(sanitizeName(r.teamName)) : undefined;
 				if (!playerId || !teamId) return null;
 				return { playerId, teamId, leagueId };
 			})
@@ -196,10 +169,7 @@ async function confirmGoleadores(
 		const regValuesDeduped = [...regMap.values()];
 
 		if (regValuesDeduped.length > 0) {
-			await tx
-				.insert(playerRegistrations)
-				.values(regValuesDeduped)
-				.onConflictDoNothing();
+			await tx.insert(playerRegistrations).values(regValuesDeduped).onConflictDoNothing();
 		}
 
 		// Paso 4: Upsert player_season_stats en batch
@@ -207,14 +177,10 @@ async function confirmGoleadores(
 			.map((r) => {
 				const playerId = rawNameToPlayerId.get(r.rawName);
 				if (!playerId) {
-					warnings.push(
-						`No se encontro playerId para "${r.rawName}" - fila omitida.`,
-					);
+					warnings.push(`No se encontro playerId para "${r.rawName}" - fila omitida.`);
 					return null;
 				}
-				const teamId = r.teamName
-					? (teamNameToId.get(sanitizeName(r.teamName)) ?? null)
-					: null;
+				const teamId = r.teamName ? (teamNameToId.get(sanitizeName(r.teamName)) ?? null) : null;
 				return {
 					playerId,
 					leagueId,
@@ -232,7 +198,7 @@ async function confirmGoleadores(
 
 		// Dedup por (playerId, leagueId) — mismo jugador dos veces en el Excel
 		// Se conserva la última ocurrencia (orden del Excel)
-		const statsMap = new Map<string, typeof statsValuesRaw[0]>();
+		const statsMap = new Map<string, (typeof statsValuesRaw)[0]>();
 		for (const s of statsValuesRaw) {
 			statsMap.set(`${s.playerId}:${s.leagueId}`, s);
 		}
@@ -273,7 +239,7 @@ async function confirmGoleadores(
 			}));
 
 			// Dedup por (playerId, leagueId, jornada)
-			const snapMap = new Map<string, typeof snapshotValuesRaw[0]>();
+			const snapMap = new Map<string, (typeof snapshotValuesRaw)[0]>();
 			for (const s of snapshotValuesRaw) {
 				snapMap.set(`${s.playerId}:${s.leagueId}:${s.jornada}`, s);
 			}
@@ -323,30 +289,21 @@ async function confirmStandings(
 	let created = 0;
 
 	// Pre-load: equipos existentes en la liga
-	const uniqueTeamNames = [
-		...new Set(rows.map((r) => sanitizeName(r.teamName)).filter(Boolean)),
-	];
+	const uniqueTeamNames = [...new Set(rows.map((r) => sanitizeName(r.teamName)).filter(Boolean))];
 
 	const existingTeams: { id: string; name: string }[] =
 		uniqueTeamNames.length > 0
 			? await db.query.teams.findMany({
-					where: and(
-						eq(teams.leagueId, leagueId),
-						inArray(teams.name, uniqueTeamNames),
-					),
+					where: and(eq(teams.leagueId, leagueId), inArray(teams.name, uniqueTeamNames)),
 					columns: { id: true, name: true },
 				})
 			: [];
 
-	const teamNameToId = new Map<string, string>(
-		existingTeams.map((t) => [t.name, t.id]),
-	);
+	const teamNameToId = new Map<string, string>(existingTeams.map((t) => [t.name, t.id]));
 
 	await db.transaction(async (tx: DbTx) => {
 		// Paso 1: Crear nuevos equipos en batch
-		const missingTeamNames = uniqueTeamNames.filter(
-			(n) => !teamNameToId.has(n),
-		);
+		const missingTeamNames = uniqueTeamNames.filter((n) => !teamNameToId.has(n));
 
 		if (missingTeamNames.length > 0) {
 			const inserted = await tx

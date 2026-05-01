@@ -21,24 +21,13 @@
  */
 
 import { and, desc, eq, inArray } from "drizzle-orm";
-import {
-	db,
-	leagues,
-	playerSeasonStatsSnapshot,
-	teamStandingsSnapshot,
-	teams,
-} from "@/db";
+import { db, leagues, playerSeasonStatsSnapshot, teamStandingsSnapshot, teams } from "@/db";
 import { parseBulkBuffer } from "./parser";
 import { resolveImportEntities } from "./resolver";
 import { detectAnomalies } from "./anomaly-detector";
 import type { AnomalyReport, HistoricalSnapshot } from "./anomaly-detector";
 import type { PlayerResolution } from "./resolver";
-import type {
-	BulkImportType,
-	GoleadoresRow,
-	StandingsRow,
-	MappedImportOptions,
-} from "./parser";
+import type { BulkImportType, GoleadoresRow, StandingsRow, MappedImportOptions } from "./parser";
 
 // ---------------------------------------------------------------------------
 // Tipos públicos
@@ -81,9 +70,7 @@ export type PreviewResult = {
  * Genera la vista previa de una importación Excel.
  * Batch-friendly: número de queries a la DB es constante (no crece con el Excel).
  */
-export async function generatePreview(
-	input: PreviewInput,
-): Promise<PreviewResult> {
+export async function generatePreview(input: PreviewInput): Promise<PreviewResult> {
 	const { buffer, leagueId, options } = input;
 
 	// ── Paso 1: Parsear el Excel ─────────────────────────────────────────────
@@ -98,11 +85,7 @@ export async function generatePreview(
 
 	// ── Flujo Standings ───────────────────────────────────────────────────────
 	if (parsed.type === "standings") {
-		return buildStandingsPreview(
-			parsed.rows as StandingsRow[],
-			parsed.jornada,
-			leagueId,
-		);
+		return buildStandingsPreview(parsed.rows as StandingsRow[], parsed.jornada, leagueId);
 	}
 
 	// ── Flujo Goleadores ──────────────────────────────────────────────────────
@@ -149,12 +132,8 @@ export async function generatePreview(
 	const warnings = buildWarnings(playerResolutions, anomalyReports);
 
 	// ── Paso 8: Resumen ───────────────────────────────────────────────────────
-	const criticalCount = anomalyReports.filter(
-		(r) => r.level === "critical",
-	).length;
-	const warningCount = anomalyReports.filter(
-		(r) => r.level === "warning",
-	).length;
+	const criticalCount = anomalyReports.filter((r) => r.level === "critical").length;
+	const warningCount = anomalyReports.filter((r) => r.level === "warning").length;
 	const totalGoals = rows.reduce((sum, r) => sum + r.goals, 0);
 
 	return {
@@ -188,10 +167,7 @@ async function buildStandingsPreview(
 	const existingTeams =
 		teamNames.length > 0
 			? await db.query.teams.findMany({
-					where: and(
-						eq(teams.leagueId, leagueId),
-						inArray(teams.name, teamNames),
-					),
+					where: and(eq(teams.leagueId, leagueId), inArray(teams.name, teamNames)),
 					columns: { name: true },
 				})
 			: [];
@@ -201,9 +177,7 @@ async function buildStandingsPreview(
 
 	for (const row of rows) {
 		if (row.teamName && !existingSet.has(row.teamName)) {
-			warnings.push(
-				`"${row.teamName}" no existe en la liga — se creará automáticamente.`,
-			);
+			warnings.push(`"${row.teamName}" no existe en la liga — se creará automáticamente.`);
 		}
 	}
 
@@ -245,10 +219,7 @@ async function loadHistoricalSnapshots(
 				eq(playerSeasonStatsSnapshot.leagueId, leagueId),
 			),
 		)
-		.orderBy(
-			playerSeasonStatsSnapshot.playerId,
-			playerSeasonStatsSnapshot.jornada,
-		);
+		.orderBy(playerSeasonStatsSnapshot.playerId, playerSeasonStatsSnapshot.jornada);
 
 	const result = new Map<string, HistoricalSnapshot[]>();
 
@@ -331,10 +302,7 @@ async function loadTeamGoalTotals(
 // Construcción de warnings
 // ---------------------------------------------------------------------------
 
-function buildWarnings(
-	resolutions: PlayerResolution[],
-	anomalyReports: AnomalyReport[],
-): string[] {
+function buildWarnings(resolutions: PlayerResolution[], anomalyReports: AnomalyReport[]): string[] {
 	const warnings: string[] = [];
 
 	// Warnings de resolución de jugadores
@@ -345,9 +313,7 @@ function buildWarnings(
 					`"${res.rawName}" tiene ${res.candidates.length} coincidencias — seleccionar manualmente.`,
 				);
 			} else if (res.candidates.length === 0) {
-				warnings.push(
-					`"${res.rawName}" no existe — se creará como jugador nuevo.`,
-				);
+				warnings.push(`"${res.rawName}" no existe — se creará como jugador nuevo.`);
 			}
 		}
 	}

@@ -3,6 +3,7 @@
 Copia y pega cada bloque como un issue en https://github.com/users/Jocobii/projects/2
 
 **Labels a crear antes de empezar:**
+
 - `refactor` (color: #e4e669)
 - `feature` (color: #0075ca)
 - `schema` (color: #d4edda)
@@ -13,6 +14,7 @@ Copia y pega cada bloque como un issue en https://github.com/users/Jocobii/proje
 - `performance` (color: #e99695)
 
 **Milestones a crear:**
+
 - `v1 — Refactor Import` (sin fecha límite por ahora)
 - `v1 — Integridad de Datos`
 
@@ -22,7 +24,7 @@ Copia y pega cada bloque como un issue en https://github.com/users/Jocobii/proje
 
 **Labels:** `epic`, `refactor`  
 **Milestone:** v1 — Refactor Import  
-**Assignees:** —  
+**Assignees:** —
 
 ---
 
@@ -73,7 +75,7 @@ Ver [`docs/REFACTOR-IMPORT.md`](./REFACTOR-IMPORT.md) para contratos completos d
 **Labels:** `refactor`, `tests`  
 **Milestone:** v1 — Refactor Import  
 **Assignees:** —  
-**Bloqueado por:** #1  
+**Bloqueado por:** #1
 
 ---
 
@@ -84,6 +86,7 @@ Extraer toda la lógica de lectura y normalización del Excel de `excel-import-b
 ### Alcance exacto (qué se mueve)
 
 Mover de `excel-import-bulk.ts` a `parser.ts`:
+
 - `parseBulkExcel(buffer)` → renombrar a `parseBulkBuffer({ buffer, options? })`
 - `parseBulkExcelMapped(buffer, options)` → integrar en `parseBulkBuffer`
 - `tryParseGoleadores(rows, jornada)` → función privada del módulo
@@ -104,11 +107,11 @@ Mover de `excel-import-bulk.ts` a `parser.ts`:
 // src/features/import-excel/parser.ts
 
 export type ParserInput = {
-  buffer: Buffer;
-  options?: MappedImportOptions;
+	buffer: Buffer;
+	options?: MappedImportOptions;
 };
 
-export async function parseBulkBuffer(input: ParserInput): Promise<ParsedBulkImport>
+export async function parseBulkBuffer(input: ParserInput): Promise<ParsedBulkImport>;
 ```
 
 ### Tests requeridos
@@ -136,7 +139,7 @@ Crear `src/features/import-excel/__tests__/parser.test.ts` con fixtures de archi
 **Labels:** `refactor`, `performance`  
 **Milestone:** v1 — Refactor Import  
 **Assignees:** —  
-**Bloqueado por:** #2  
+**Bloqueado por:** #2
 
 ---
 
@@ -182,18 +185,18 @@ ORDER BY query_name, score DESC
 // src/features/import-excel/resolver.ts
 
 export type ResolverInput = {
-  playerNames: string[];
-  teamNames: string[];
-  leagueId: string;
-  city: string;
+	playerNames: string[];
+	teamNames: string[];
+	leagueId: string;
+	city: string;
 };
 
 export type ResolverOutput = {
-  playerResolutions: PlayerResolution[];
-  teamMap: Map<string, string | null>; // nombre normalizado → teamId existente | null
+	playerResolutions: PlayerResolution[];
+	teamMap: Map<string, string | null>; // nombre normalizado → teamId existente | null
 };
 
-export async function resolveImportEntities(input: ResolverInput): Promise<ResolverOutput>
+export async function resolveImportEntities(input: ResolverInput): Promise<ResolverOutput>;
 ```
 
 ### Queries permitidas (máximo 3 total)
@@ -216,7 +219,7 @@ export async function resolveImportEntities(input: ResolverInput): Promise<Resol
 **Labels:** `refactor`, `feature`, `tests`  
 **Milestone:** v1 — Integridad de Datos  
 **Assignees:** —  
-**Bloqueado por:** #1  
+**Bloqueado por:** #1
 
 ---
 
@@ -228,10 +231,12 @@ Crear `src/features/import-excel/anomaly-detector.ts`. Este módulo es una **fun
 
 **Regla 1 — Monotonicidad**
 Los goles acumulados nunca pueden bajar entre jornadas.
+
 - Critical: `delta < 0`
 
 **Regla 2 — Delta spike**
 Goles atribuidos en una sola jornada fuera de rango para fútbol amateur.
+
 - Warning: `delta >= 4`
 - Critical: `delta >= 6`
 
@@ -239,16 +244,19 @@ Goles atribuidos en una sola jornada fuera de rango para fútbol amateur.
 Comparar el delta de esta jornada contra el historial personal del jugador.
 Fórmula: `Z = (delta_actual − media_histórica) / desviación_estándar`
 Requiere mínimo 3 jornadas de historial. Si no hay suficiente, se omite silenciosamente.
+
 - Warning: `Z >= 2.5`
 - Critical: `Z >= 4.0`
 
 **Regla 4 — Cross-validation vs standings**
 La suma de goles individuales de un equipo no puede superar los goles a favor del equipo en la tabla de posiciones.
+
 - Warning: `sum_individual > team_total × 1.1`
 - Critical: `sum_individual > team_total × 1.3`
 
 **Regla 5 — Ratio goles/partidos**
 `ratio = goals / matchesPlayed` (solo si `matchesPlayed > 0`)
+
 - Warning: `ratio > 3.0`
 - Critical: `ratio > 5.0`
 
@@ -260,34 +268,34 @@ La suma de goles individuales de un equipo no puede superar los goles a favor de
 export type AnomalyLevel = "ok" | "warning" | "critical";
 
 export type AnomalyFlag = {
-  rule: "monotonicity" | "delta_spike" | "zscore" | "cross_validation" | "goals_per_game";
-  level: AnomalyLevel;
-  message: string;         // descripción legible para el admin
-  context: {
-    current: number;
-    previous?: number;
-    average?: number;
-    zscore?: number;
-    threshold?: number;
-  };
+	rule: "monotonicity" | "delta_spike" | "zscore" | "cross_validation" | "goals_per_game";
+	level: AnomalyLevel;
+	message: string; // descripción legible para el admin
+	context: {
+		current: number;
+		previous?: number;
+		average?: number;
+		zscore?: number;
+		threshold?: number;
+	};
 };
 
 export type AnomalyReport = {
-  rawName: string;
-  level: AnomalyLevel;    // el nivel más alto de sus flags
-  flags: AnomalyFlag[];
+	rawName: string;
+	level: AnomalyLevel; // el nivel más alto de sus flags
+	flags: AnomalyFlag[];
 };
 
 export type AnomalyInput = {
-  rows: GoleadoresRow[];
-  jornada: number;
-  history: Map<string, PlayerSeasonStatsSnapshot[]>; // playerId → snapshots ordenados asc
-  playerIdMap: Map<string, string>;                  // rawName → playerId
-  teamGoalTotals: Map<string, number>;               // teamId → goles_a_favor de standings
-  teamIdMap: Map<string, string>;                    // rawName equipo → teamId
+	rows: GoleadoresRow[];
+	jornada: number;
+	history: Map<string, PlayerSeasonStatsSnapshot[]>; // playerId → snapshots ordenados asc
+	playerIdMap: Map<string, string>; // rawName → playerId
+	teamGoalTotals: Map<string, number>; // teamId → goles_a_favor de standings
+	teamIdMap: Map<string, string>; // rawName equipo → teamId
 };
 
-export function detectAnomalies(input: AnomalyInput): AnomalyReport[]
+export function detectAnomalies(input: AnomalyInput): AnomalyReport[];
 ```
 
 ### Tests requeridos
@@ -316,7 +324,7 @@ Crear `src/features/import-excel/__tests__/anomaly-detector.test.ts`:
 **Labels:** `refactor`  
 **Milestone:** v1 — Refactor Import  
 **Assignees:** —  
-**Bloqueado por:** #2, #3, #4  
+**Bloqueado por:** #2, #3, #4
 
 ---
 
@@ -328,20 +336,20 @@ Crear `src/features/import-excel/preview.ts` que orqueste los tres módulos ante
 
 ```typescript
 export async function generateBulkPreview(
-  parsed: ParsedBulkImport,
-  leagueId: string,
-): Promise<BulkImportPreview>
+	parsed: ParsedBulkImport,
+	leagueId: string,
+): Promise<BulkImportPreview>;
 
 // BulkImportPreview extendido:
 type BulkImportPreview = {
-  type: BulkImportType;
-  jornada?: number;
-  rows: GoleadoresRow[] | StandingsRow[];
-  playerResolutions?: PlayerResolution[];
-  warnings: string[];
-  summary: { players?: number; teams?: number; totalGoals?: number };
-  anomalies?: AnomalyReport[];         // NUEVO
-  hasBlockingAnomalies: boolean;       // NUEVO — true si alguna es "critical"
+	type: BulkImportType;
+	jornada?: number;
+	rows: GoleadoresRow[] | StandingsRow[];
+	playerResolutions?: PlayerResolution[];
+	warnings: string[];
+	summary: { players?: number; teams?: number; totalGoals?: number };
+	anomalies?: AnomalyReport[]; // NUEVO
+	hasBlockingAnomalies: boolean; // NUEVO — true si alguna es "critical"
 };
 ```
 
@@ -365,7 +373,7 @@ type BulkImportPreview = {
 **Labels:** `refactor`, `performance`  
 **Milestone:** v1 — Refactor Import  
 **Assignees:** —  
-**Bloqueado por:** #5  
+**Bloqueado por:** #5
 
 ---
 
@@ -400,10 +408,10 @@ La lógica de `exclude_rows` (parseo de keys "g:{index}:{nombre}", filtrado de r
 
 ```typescript
 export type BulkConfirmPayload = {
-  leagueId: string;
-  parsed: ParsedBulkImport;
-  playerResolutions?: Record<string, string>;
-  excludeIndices?: Set<number>;  // MOVIDO DESDE route.ts
+	leagueId: string;
+	parsed: ParsedBulkImport;
+	playerResolutions?: Record<string, string>;
+	excludeIndices?: Set<number>; // MOVIDO DESDE route.ts
 };
 ```
 
@@ -453,7 +461,7 @@ El archivo no debe superar **40 líneas**. La lógica de `exclude_rows` ya estar
 **Labels:** `refactor`  
 **Milestone:** v1 — Refactor Import  
 **Assignees:** —  
-**Bloqueado por:** #7  
+**Bloqueado por:** #7
 
 ---
 
@@ -530,7 +538,7 @@ Agregar la tabla `importAuditLog` con los mismos campos en `src/db/schema.ts`.
 **Labels:** `ui`, `feature`  
 **Milestone:** v1 — Integridad de Datos  
 **Assignees:** —  
-**Bloqueado por:** #5  
+**Bloqueado por:** #5
 
 ---
 
@@ -541,6 +549,7 @@ La respuesta del preview ya incluirá `anomalies: AnomalyReport[]`. Mostrar esa 
 ### Diseño sugerido
 
 Para cada jugador en la lista de resoluciones, agregar un indicador de nivel:
+
 - Sin anomalía → sin badge
 - Warning → badge amarillo con ícono de alerta y tooltip con el mensaje
 - Critical → badge rojo, la fila resaltada, y el texto del flag expandido (no solo tooltip)

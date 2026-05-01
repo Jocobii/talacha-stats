@@ -8,7 +8,7 @@ import {
 	teams,
 	players,
 } from "@/db/schema";
-import { eq, asc, desc, and, sql, inArray } from "drizzle-orm";
+import { eq, asc, desc, and, sql, inArray, isNotNull } from "drizzle-orm";
 import type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
 
 // ---------------------------------------------------------------------------
@@ -104,6 +104,8 @@ export async function getLeaguesByOrganization(organizationId: string) {
  */
 export async function listOrganizationsPublic() {
 	return db.query.organizations.findMany({
+		// Only verified orgs appear in public directory
+		where: eq(organizations.status, "verified"),
 		orderBy: [asc(organizations.name)],
 		with: {
 			leagues: {
@@ -121,7 +123,8 @@ export async function listOrganizationsPublic() {
  */
 export async function getPublicOrganization(slug: string) {
 	const org = await db.query.organizations.findFirst({
-		where: eq(organizations.slug, slug),
+		// Trial orgs are not publicly accessible
+		where: and(eq(organizations.slug, slug), eq(organizations.status, "verified")),
 		with: {
 			leagues: {
 				where: eq(leagues.status, "active"),
@@ -146,10 +149,7 @@ export async function getPublicLeague(orgSlug: string, leagueSlug: string) {
 	if (!org) return null;
 
 	const league = await db.query.leagues.findFirst({
-		where: and(
-			eq(leagues.organizationId, org.id),
-			eq(leagues.slug, leagueSlug),
-		),
+		where: and(eq(leagues.organizationId, org.id), eq(leagues.slug, leagueSlug)),
 		with: { teams: true },
 	});
 	if (!league) return null;
@@ -178,9 +178,7 @@ export async function getLatestStandings(leagueId: string) {
 		with: { team: { columns: { id: true, name: true } } },
 		orderBy: [
 			desc(teamStandingsSnapshot.points),
-			desc(
-				sql`${teamStandingsSnapshot.goalsFor} - ${teamStandingsSnapshot.goalsAgainst}`,
-			),
+			desc(sql`${teamStandingsSnapshot.goalsFor} - ${teamStandingsSnapshot.goalsAgainst}`),
 			desc(teamStandingsSnapshot.goalsFor),
 		],
 	});
@@ -194,13 +192,13 @@ export async function getLatestStandings(leagueId: string) {
 export async function getLatestTopScorers(leagueId: string, limit = 10) {
 	return db
 		.select({
-			playerId:      playerSeasonStats.playerId,
-			fullName:      players.fullName,
-			alias:         players.alias,
-			goals:         playerSeasonStats.goals,
-			assists:       playerSeasonStats.assists,
+			playerId: playerSeasonStats.playerId,
+			fullName: players.fullName,
+			alias: players.alias,
+			goals: playerSeasonStats.goals,
+			assists: playerSeasonStats.assists,
 			matchesPlayed: playerSeasonStats.matchesPlayed,
-			teamName:      teams.name,
+			teamName: teams.name,
 		})
 		.from(playerSeasonStats)
 		.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
@@ -300,23 +298,27 @@ export type LeagueShowcaseItem = {
  * Devuelve las ligas activas de una ciudad con datos de resumen para la
  * vitrina de la homepage: número de equipos, jugadores y goleador actual.
  */
-export async function getLeaguesShowcase(
-	city: string,
-	limit = 6,
-): Promise<LeagueShowcaseItem[]> {
+export async function getLeaguesShowcase(city: string, limit = 6): Promise<LeagueShowcaseItem[]> {
 	const activeLeagues = await db.query.leagues.findMany({
 		where: and(eq(leagues.city, city), eq(leagues.status, "active")),
 		with: {
-			teams:        { columns: { id: true } },
-			organization: { columns: { slug: true } },
+			teams: { columns: { id: true } },
+			// Include org status so we can filter out trial orgs below
+			organization: { columns: { slug: true, status: true } },
 		},
 		orderBy: [desc(leagues.createdAt)],
-		limit,
+		// Fetch extra to account for trial org filtering
+		limit: limit * 3,
 	});
 
-	if (activeLeagues.length === 0) return [];
+	// Only show leagues from verified organizations in public cross-org views
+	const verifiedLeagues = activeLeagues
+		.filter((l) => l.organization?.status === "verified")
+		.slice(0, limit);
 
-	const leagueIds = activeLeagues.map((l) => l.id);
+	if (verifiedLeagues.length === 0) return [];
+
+	const leagueIds = verifiedLeagues.map((l) => l.id);
 
 	// Conteo de jugadores y datos de goleadores en paralelo
 	const [playerCounts, scorerRows] = await Promise.all([
@@ -339,16 +341,11 @@ export async function getLeaguesShowcase(
 			.from(playerSeasonStats)
 			.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
 			.where(inArray(playerSeasonStats.leagueId, leagueIds))
-			.orderBy(
-				desc(playerSeasonStats.goals),
-				desc(playerSeasonStats.assists),
-			),
+			.orderBy(desc(playerSeasonStats.goals), desc(playerSeasonStats.assists)),
 	]);
 
 	// Construir mapas para O(1) lookup
-	const playerCountMap = new Map(
-		playerCounts.map((r) => [r.leagueId, Number(r.count)]),
-	);
+	const playerCountMap = new Map(playerCounts.map((r) => [r.leagueId, Number(r.count)]));
 
 	// Top scorer por liga: primer row encontrado por leagueId (ya vienen ordenados)
 	const topScorerMap = new Map<string, (typeof scorerRows)[0]>();
@@ -358,7 +355,7 @@ export async function getLeaguesShowcase(
 		}
 	}
 
-	return activeLeagues.map((league) => {
+	return verifiedLeagues.map((league) => {
 		const scorer = topScorerMap.get(league.id) ?? null;
 		return {
 			id: league.id,
@@ -370,7 +367,7 @@ export async function getLeaguesShowcase(
 			topScorer: scorer
 				? { fullName: scorer.fullName, alias: scorer.alias, goals: scorer.goals }
 				: null,
-			orgSlug:    league.organization?.slug ?? null,
+			orgSlug: league.organization?.slug ?? null,
 			leagueSlug: league.slug ?? null,
 		};
 	});
@@ -395,9 +392,7 @@ export type OrgHubStats = {
  * Retorna el líder de tabla, top goleador y última jornada de una liga.
  * Usado en las cards del hub de organización.
  */
-export async function getLeagueSnapshot(
-	leagueId: string,
-): Promise<LeagueSnapshot> {
+export async function getLeagueSnapshot(leagueId: string): Promise<LeagueSnapshot> {
 	const jornadaRows = await db
 		.select({ max: sql<number>`max(${teamStandingsSnapshot.jornada})` })
 		.from(teamStandingsSnapshot)
@@ -431,9 +426,7 @@ export async function getLeagueSnapshot(
 
 	return {
 		lastJornada,
-		leader: leaderRow
-			? { teamName: leaderRow.team.name, points: leaderRow.points }
-			: null,
+		leader: leaderRow ? { teamName: leaderRow.team.name, points: leaderRow.points } : null,
 		topScorer: scorerRows[0]
 			? {
 					fullName: scorerRows[0].fullName,
@@ -473,5 +466,79 @@ export async function getOrgHubStats(orgId: string): Promise<OrgHubStats> {
 	return {
 		totalGoals: Number(goalsResult[0]?.total ?? 0),
 		lastJornada: jornadaResult[0]?.max ?? null,
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Verificaciones pendientes — panel del owner
+// ---------------------------------------------------------------------------
+
+export type PendingVerification = {
+	id: string;
+	name: string;
+	slug: string;
+	city: string;
+	verificationRequestedAt: Date;
+	organizer: { name: string; email: string } | null;
+};
+
+/**
+ * Returns organizations in trial mode that have requested verification.
+ * Used in /admin/verifications (owner-only panel).
+ */
+export async function listPendingVerifications(): Promise<PendingVerification[]> {
+	const orgs = await db.query.organizations.findMany({
+		where: and(eq(organizations.status, "trial"), isNotNull(organizations.verificationRequestedAt)),
+		orderBy: [asc(organizations.verificationRequestedAt)],
+	});
+
+	if (orgs.length === 0) return [];
+
+	const orgIds = orgs.map((o) => o.id);
+
+	// Get the first organizer user for each org (to show contact info)
+	const organizers = await db.query.users.findMany({
+		where: and(inArray(users.organizationId, orgIds), eq(users.role, "organizer")),
+		columns: { organizationId: true, name: true, email: true },
+	});
+
+	const organizerMap = new Map(organizers.map((u) => [u.organizationId, u]));
+
+	return orgs.map((org) => ({
+		id: org.id,
+		name: org.name,
+		slug: org.slug,
+		city: org.city,
+		verificationRequestedAt: org.verificationRequestedAt!,
+		organizer: organizerMap.get(org.id) ?? null,
+	}));
+}
+
+/**
+ * Marks an organization as verified.
+ * Returns the updated org and the organizer's email for sending confirmation.
+ */
+export async function approveOrganization(orgId: string): Promise<{
+	org: typeof organizations.$inferSelect;
+	organizerEmail: string | null;
+	organizerName: string | null;
+} | null> {
+	const [updated] = await db
+		.update(organizations)
+		.set({ status: "verified", verificationRequestedAt: null })
+		.where(eq(organizations.id, orgId))
+		.returning();
+
+	if (!updated) return null;
+
+	const organizer = await db.query.users.findFirst({
+		where: and(eq(users.organizationId, orgId), eq(users.role, "organizer")),
+		columns: { email: true, name: true },
+	});
+
+	return {
+		org: updated,
+		organizerEmail: organizer?.email ?? null,
+		organizerName: organizer?.name ?? null,
 	};
 }

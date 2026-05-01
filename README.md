@@ -15,10 +15,11 @@
 6. [Setup local](#6-setup-local)
 7. [Variables de entorno](#7-variables-de-entorno)
 8. [Comandos disponibles](#8-comandos-disponibles)
-9. [Seguridad](#9-seguridad)
-10. [Convenciones de código](#10-convenciones-de-código)
-11. [Guía para agregar una feature](#11-guía-para-agregar-una-feature)
-12. [Estado de migración arquitectónica](#12-estado-de-migración-arquitectónica)
+9. [Tests](#9-tests)
+10. [Seguridad](#10-seguridad)
+11. [Convenciones de código](#11-convenciones-de-código)
+12. [Guía para agregar una feature](#12-guía-para-agregar-una-feature)
+13. [Estado de migración arquitectónica](#13-estado-de-migración-arquitectónica)
 
 ---
 
@@ -148,7 +149,6 @@ src/
 │       ├── LeagueSelect.tsx
 │       ├── CityFilter.tsx
 │       ├── Pagination.tsx
-│       ├── NavigationProgress.tsx
 │       └── TrackVisit.tsx
 │
 ├── db/
@@ -316,7 +316,65 @@ pnpm db:migrate:run   # Corre src/db/migrate.ts (producción)
 
 ---
 
-## 9. Seguridad
+## 9. Tests
+
+### Unit & integración — Vitest
+
+```bash
+pnpm test                # corre vitest en watch mode
+```
+
+Specs en `src/**/__tests__/*.test.ts`. Cobertura apuntada a `src/features/**`.
+
+### End-to-end — Playwright
+
+```bash
+pnpm test:e2e            # headless, auto-arranca el dev server
+pnpm test:e2e:ui         # modo interactivo
+pnpm test:e2e:report     # abre el último reporte HTML
+```
+
+Specs en `e2e/*.spec.ts`. Solo Chromium por ahora — cross-browser queda diferido a posterior. Requiere `.env.local` con `DATABASE_URL` para que arranque el dev server.
+
+### Convención obligatoria: enfoque BDD (GIVEN / WHEN / THEN)
+
+Los tests e2e siguen un enfoque **Behavior-Driven Development (BDD)**: cada spec describe un comportamiento del sistema desde el punto de vista del usuario, no la implementación interna. No usamos un framework BDD completo (Cucumber, parser de `.feature`) — sólo el patrón estructural, lo que mantiene los tests legibles para no-developers sin la sobrecarga de step files.
+
+La estructura es **anidamiento de `describe`**, no comentarios inline:
+
+- **`test.describe("Given …")`** — el estado del que parte el escenario
+- **`test.describe("When …")`** — la acción del usuario bajo prueba (una sola, focalizada)
+- **`test("Then …")`** — un assertion específico sobre el resultado. **Cada `Then` es un test independiente** — un mismo `When` puede tener varios `Then` hermanos, y cuando uno falla apunta exactamente a la expectativa rota.
+
+Setup compartido entre `Then` siblings va en `beforeEach` del `describe` correspondiente — el `Given` setup en el `beforeEach` del describe externo, el `When` action en el `beforeEach` del interno.
+
+```typescript
+test.describe("Given a visitor on the public homepage", () => {
+	test.beforeEach(async ({ page }) => {
+		await page.goto("/");
+	});
+
+	test.describe("When they click the 'Ranking' link in the public nav", () => {
+		test.beforeEach(async ({ page }) => {
+			await page.getByRole("link", { name: "Ranking" }).click();
+		});
+
+		test("Then the URL becomes /ranking", async ({ page }) => {
+			await expect(page).toHaveURL(/\/ranking(\?|$)/);
+		});
+
+		test("Then the page heading shows 'Ranking'", async ({ page }) => {
+			await expect(page.getByRole("heading", { level: 1, name: "Ranking" })).toBeVisible();
+		});
+	});
+});
+```
+
+Cuando un escenario tiene un único assertion que cubre todo el comportamiento (smoke checks, healthchecks), un `Then` que combina varias expectativas relacionadas también es válido — solo no abusar para esconder múltiples comportamientos en un test gigante.
+
+---
+
+## 10. Seguridad
 
 ### Escaneo de vulnerabilidades con Trivy
 
@@ -389,7 +447,7 @@ Agregar una entrada sin comentario es equivalente a parchear un bug sin entender
 
 ---
 
-## 10. Convenciones de código
+## 11. Convenciones de código
 
 ### Naming
 
@@ -436,7 +494,7 @@ Antes de insertar en DB → `sanitizeName()`. Para mostrar en UI → `titleCase(
 
 ---
 
-## 11. Guía para agregar una feature
+## 12. Guía para agregar una feature
 
 1. **Modelo** — `entities/[nombre]/model.ts` — tipos + schema Zod
 2. **Queries** — `entities/[nombre]/queries.ts` — acceso a DB con tipos explícitos
@@ -458,7 +516,7 @@ POST   /api/[recurso]/[accion]   → acción especial (/merge, /confirm)
 
 ---
 
-## 12. Estado de migración arquitectónica
+## 13. Estado de migración arquitectónica
 
 El proyecto está en migración de `lib/` plana hacia FSD completo. La migración ocurre archivo por archivo cuando se toca cada módulo — no hay refactor masivo planeado.
 

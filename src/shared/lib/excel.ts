@@ -14,10 +14,7 @@ export async function readWorkbook(buffer: Buffer): Promise<ParsedWorkbook> {
 	const wb = new ExcelJS.Workbook();
 	// ExcelJS acepta ArrayBuffer/Uint8Array; pasar el buffer.buffer del Buffer Node.
 	await wb.xlsx.load(
-		buffer.buffer.slice(
-			buffer.byteOffset,
-			buffer.byteOffset + buffer.byteLength,
-		) as ArrayBuffer,
+		buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer,
 	);
 
 	const sheetNames: string[] = [];

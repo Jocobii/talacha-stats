@@ -10,8 +10,17 @@
 !.yarn/releases
 !.yarn/versions
 
+# claude
+.claude
+.agents
+
 # testing
 /coverage
+
+# playwright
+/playwright-report/
+/test-results/
+/playwright/.cache/
 
 # next.js
 /.next/

@@ -1,8 +1,4 @@
-export {
-	CreateOrganizationSchema,
-	UpdateOrganizationSchema,
-	generateSlug,
-} from "./model";
+export { CreateOrganizationSchema, UpdateOrganizationSchema, generateSlug } from "./model";
 
 export type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
 
@@ -26,6 +22,9 @@ export {
 	getLeagueSnapshot,
 	getOrgHubStats,
 	getLeaguesShowcase,
+	// Verificaciones
+	listPendingVerifications,
+	approveOrganization,
 	// Escritura
 	createOrganization,
 	updateOrganization,
@@ -33,4 +32,9 @@ export {
 	setUserOrganization,
 } from "./queries";
 
-export type { LeagueSnapshot, OrgHubStats, LeagueShowcaseItem } from "./queries";
+export type {
+	LeagueSnapshot,
+	OrgHubStats,
+	LeagueShowcaseItem,
+	PendingVerification,
+} from "./queries";

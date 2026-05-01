@@ -17,9 +17,14 @@ export async function GET(request: Request) {
 		const rows = await db.query.leagues.findMany({
 			where: and(eq(leagues.city, city), eq(leagues.status, "active")),
 			orderBy: [desc(leagues.createdAt)],
-			with: { teams: true },
+			with: {
+				teams: true,
+				organization: { columns: { status: true } },
+			},
 		});
-		return apiSuccess(rows);
+		// Exclude leagues from trial organizations
+		const verified = rows.filter((l) => !l.organization || l.organization.status === "verified");
+		return apiSuccess(verified);
 	}
 
 	const rows = await db.query.leagues.findMany({
@@ -56,15 +61,14 @@ export async function POST(request: Request) {
 			: (session.organizationId ?? null);
 
 	// Auto-generar slug desde nombre + día si no viene explícito
-	const slug =
-		parsed.data.slug ??
-		generateSlug(`${parsed.data.name} ${parsed.data.dayOfWeek}`);
+	const slug = parsed.data.slug ?? generateSlug(`${parsed.data.name} ${parsed.data.dayOfWeek}`);
 
 	const [league] = await db
 		.insert(leagues)
 		.values({
 			name: parsed.data.name,
 			slug,
+			category: parsed.data.category ?? null,
 			dayOfWeek: parsed.data.dayOfWeek,
 			season: parsed.data.season,
 			city,

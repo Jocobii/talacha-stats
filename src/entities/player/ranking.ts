@@ -4,8 +4,16 @@
  * Sin asistencias — no se registran en ligas amateur.
  */
 
-import { eq, desc, sql, and, or, ilike, inArray } from "drizzle-orm";
-import { db, players, playerSeasonStats, playerSeasonStatsSnapshot, leagues, teams } from "@/db";
+import { eq, desc, sql, and, or, ilike, inArray, isNull } from "drizzle-orm";
+import {
+	db,
+	players,
+	playerSeasonStats,
+	playerSeasonStatsSnapshot,
+	leagues,
+	teams,
+	organizations,
+} from "@/db";
 import {
 	type PaginationParams,
 	paginateArray,
@@ -24,9 +32,9 @@ export type RankingEntry = {
 	leaguesCount: number;
 	topLeague: string;
 	topTeam: string;
-	cities?: string[];       // populated for global scope
+	cities?: string[]; // populated for global scope
 	positionDelta: number | null; // +N subió, -N bajó, 0 igual, null = sin historial
-	isNew: boolean;               // apareció en esta jornada, no en la anterior
+	isNew: boolean; // apareció en esta jornada, no en la anterior
 };
 
 export type JornadaHero = {
@@ -70,7 +78,7 @@ export type PlayerSearchResult = {
 // Position of a player across three scopes.
 export type PlayerPositions = {
 	league: { rank: number; total: number; goals: number } | null;
-	city:   { rank: number; total: number; goals: number; cityName: string } | null;
+	city: { rank: number; total: number; goals: number; cityName: string } | null;
 	global: { rank: number; total: number; goals: number };
 };
 
@@ -96,8 +104,7 @@ function buildRankingEntry(
 		alias,
 		totalGoals,
 		totalMatches,
-		goalsPerMatch:
-			totalMatches > 0 ? Math.round((totalGoals / totalMatches) * 100) / 100 : 0,
+		goalsPerMatch: totalMatches > 0 ? Math.round((totalGoals / totalMatches) * 100) / 100 : 0,
 		leaguesCount: leagueList.length,
 		topLeague: best.leagueName,
 		topTeam: best.teamName,
@@ -110,8 +117,7 @@ function buildRankingEntry(
 function sortRanking(ranking: RankingEntry[]): RankingEntry[] {
 	return ranking.sort((a, b) => {
 		if (b.totalGoals !== a.totalGoals) return b.totalGoals - a.totalGoals;
-		if (b.goalsPerMatch !== a.goalsPerMatch)
-			return b.goalsPerMatch - a.goalsPerMatch;
+		if (b.goalsPerMatch !== a.goalsPerMatch) return b.goalsPerMatch - a.goalsPerMatch;
 		return a.fullName.localeCompare(b.fullName);
 	});
 }
@@ -127,7 +133,7 @@ async function getPrevGoalsByLeague(
 	const jornadaRows = await db
 		.select({
 			leagueId: playerSeasonStatsSnapshot.leagueId,
-			jornada:  playerSeasonStatsSnapshot.jornada,
+			jornada: playerSeasonStatsSnapshot.jornada,
 		})
 		.from(playerSeasonStatsSnapshot)
 		.where(inArray(playerSeasonStatsSnapshot.leagueId, leagueIds))
@@ -154,7 +160,7 @@ async function getPrevGoalsByLeague(
 		const rows = await db
 			.select({
 				playerId: playerSeasonStatsSnapshot.playerId,
-				goals:    playerSeasonStatsSnapshot.goals,
+				goals: playerSeasonStatsSnapshot.goals,
 			})
 			.from(playerSeasonStatsSnapshot)
 			.where(
@@ -174,35 +180,29 @@ async function getPrevGoalsByLeague(
 
 // Calcula positionDelta comparando ranking actual vs ranking previo.
 // prevTotals: Map<playerId, totalGoals en jornada anterior>
-function computeDeltas(
-	currentRanking: RankingEntry[],
-	prevTotals: Map<string, number>,
-): void {
+function computeDeltas(currentRanking: RankingEntry[], prevTotals: Map<string, number>): void {
 	if (prevTotals.size === 0) return;
 
 	// Ordenar jugadores previos por goles para asignar posiciones
-	const prevSorted = [...prevTotals.entries()]
-		.sort((a, b) => b[1] - a[1]);
-	const prevRankMap = new Map<string, number>(
-		prevSorted.map(([id], idx) => [id, idx + 1]),
-	);
+	const prevSorted = [...prevTotals.entries()].sort((a, b) => b[1] - a[1]);
+	const prevRankMap = new Map<string, number>(prevSorted.map(([id], idx) => [id, idx + 1]));
 
 	currentRanking.forEach((entry, idx) => {
 		const currentPos = idx + 1;
-		const prevPos    = prevRankMap.get(entry.playerId);
+		const prevPos = prevRankMap.get(entry.playerId);
 
 		if (prevPos === undefined) {
-			entry.isNew          = true;
-			entry.positionDelta  = null;
+			entry.isNew = true;
+			entry.positionDelta = null;
 		} else {
 			entry.positionDelta = prevPos - currentPos; // positivo = subió
-			entry.isNew         = false;
+			entry.isNew = false;
 		}
 	});
 }
 
 const EMPTY_PAGINATION = (total: number) =>
-	({ total, page: 1, limit: total, totalPages: 1, hasNext: false, hasPrev: false } as const);
+	({ total, page: 1, limit: total, totalPages: 1, hasNext: false, hasPrev: false }) as const;
 
 // ── Ranking por ciudad ────────────────────────────────────────────────────────
 
@@ -212,41 +212,59 @@ export async function getCityRanking(
 ): Promise<PaginatedResult<RankingEntry>> {
 	const rows = await db
 		.select({
-			playerId:   playerSeasonStats.playerId,
-			fullName:   players.fullName,
-			alias:      players.alias,
-			goals:      playerSeasonStats.goals,
-			matches:    playerSeasonStats.matchesPlayed,
-			leagueId:   playerSeasonStats.leagueId,
+			playerId: playerSeasonStats.playerId,
+			fullName: players.fullName,
+			alias: players.alias,
+			goals: playerSeasonStats.goals,
+			matches: playerSeasonStats.matchesPlayed,
+			leagueId: playerSeasonStats.leagueId,
 			leagueName: leagues.name,
-			teamId:     playerSeasonStats.teamId,
-			teamName:   teams.name,
+			teamId: playerSeasonStats.teamId,
+			teamName: teams.name,
 		})
 		.from(playerSeasonStats)
 		.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
 		.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
 		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-		.where(and(eq(leagues.city, city), sql`${playerSeasonStats.goals} > 0`));
+		.leftJoin(organizations, eq(leagues.organizationId, organizations.id))
+		.where(
+			and(
+				eq(leagues.city, city),
+				sql`${playerSeasonStats.goals} > 0`,
+				// Exclude leagues from trial organizations
+				or(isNull(leagues.organizationId), eq(organizations.status, "verified")),
+			),
+		);
 
 	type Acc = {
-		playerId: string; fullName: string; alias: string | null;
-		totalGoals: number; totalMatches: number; leagues: LeagueAcc[];
+		playerId: string;
+		fullName: string;
+		alias: string | null;
+		totalGoals: number;
+		totalMatches: number;
+		leagues: LeagueAcc[];
 	};
 
 	const map = new Map<string, Acc>();
 	for (const row of rows) {
 		if (!map.has(row.playerId)) {
 			map.set(row.playerId, {
-				playerId: row.playerId, fullName: row.fullName, alias: row.alias,
-				totalGoals: 0, totalMatches: 0, leagues: [],
+				playerId: row.playerId,
+				fullName: row.fullName,
+				alias: row.alias,
+				totalGoals: 0,
+				totalMatches: 0,
+				leagues: [],
 			});
 		}
 		const entry = map.get(row.playerId)!;
-		entry.totalGoals  += row.goals;
+		entry.totalGoals += row.goals;
 		entry.totalMatches += row.matches;
 		entry.leagues.push({
-			leagueId: row.leagueId, leagueName: row.leagueName,
-			teamName: row.teamName ?? "—", goals: row.goals,
+			leagueId: row.leagueId,
+			leagueName: row.leagueName,
+			teamName: row.teamName ?? "—",
+			goals: row.goals,
 		});
 	}
 
@@ -257,9 +275,9 @@ export async function getCityRanking(
 	);
 
 	// Deltas vs jornada anterior (agrega goles previos de todas las ligas de la ciudad)
-	const leagueIds    = [...new Set(rows.map((r) => r.leagueId))];
+	const leagueIds = [...new Set(rows.map((r) => r.leagueId))];
 	const prevByLeague = await getPrevGoalsByLeague(leagueIds);
-	const prevTotals   = new Map<string, number>();
+	const prevTotals = new Map<string, number>();
 	for (const playerMap of prevByLeague.values()) {
 		for (const [pid, goals] of playerMap) {
 			prevTotals.set(pid, (prevTotals.get(pid) ?? 0) + goals);
@@ -279,18 +297,18 @@ export async function getLeagueRanking(
 ): Promise<PaginatedResult<RankingEntry>> {
 	const rows = await db
 		.select({
-			playerId:   playerSeasonStats.playerId,
-			fullName:   players.fullName,
-			alias:      players.alias,
-			goals:      playerSeasonStats.goals,
-			matches:    playerSeasonStats.matchesPlayed,
+			playerId: playerSeasonStats.playerId,
+			fullName: players.fullName,
+			alias: players.alias,
+			goals: playerSeasonStats.goals,
+			matches: playerSeasonStats.matchesPlayed,
 			leagueName: leagues.name,
-			teamName:   teams.name,
+			teamName: teams.name,
 		})
 		.from(playerSeasonStats)
-		.innerJoin(players,  eq(playerSeasonStats.playerId,  players.id))
-		.innerJoin(leagues,  eq(playerSeasonStats.leagueId,  leagues.id))
-		.leftJoin( teams,    eq(playerSeasonStats.teamId,    teams.id))
+		.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
+		.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
+		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
 		.where(and(eq(playerSeasonStats.leagueId, leagueId), sql`${playerSeasonStats.goals} > 0`))
 		.orderBy(desc(playerSeasonStats.goals));
 
@@ -302,7 +320,7 @@ export async function getLeagueRanking(
 
 	// Deltas vs jornada anterior
 	const prevByLeague = await getPrevGoalsByLeague([leagueId]);
-	const prevTotals   = new Map<string, number>();
+	const prevTotals = new Map<string, number>();
 	for (const [pid, goals] of prevByLeague.get(leagueId) ?? []) {
 		prevTotals.set(pid, goals);
 	}
@@ -319,56 +337,82 @@ export async function getGlobalRanking(
 ): Promise<PaginatedResult<RankingEntry>> {
 	const rows = await db
 		.select({
-			playerId:   playerSeasonStats.playerId,
-			fullName:   players.fullName,
-			alias:      players.alias,
-			goals:      playerSeasonStats.goals,
-			matches:    playerSeasonStats.matchesPlayed,
-			leagueId:   playerSeasonStats.leagueId,
+			playerId: playerSeasonStats.playerId,
+			fullName: players.fullName,
+			alias: players.alias,
+			goals: playerSeasonStats.goals,
+			matches: playerSeasonStats.matchesPlayed,
+			leagueId: playerSeasonStats.leagueId,
 			leagueName: leagues.name,
-			teamName:   teams.name,
-			city:       leagues.city,
+			teamName: teams.name,
+			city: leagues.city,
 		})
 		.from(playerSeasonStats)
 		.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
 		.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
-		.leftJoin( teams,   eq(playerSeasonStats.teamId,   teams.id))
-		.where(sql`${playerSeasonStats.goals} > 0`);
+		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
+		.leftJoin(organizations, eq(leagues.organizationId, organizations.id))
+		.where(
+			and(
+				sql`${playerSeasonStats.goals} > 0`,
+				// Exclude leagues from trial organizations
+				or(isNull(leagues.organizationId), eq(organizations.status, "verified")),
+			),
+		);
 
 	type Acc = {
-		playerId: string; fullName: string; alias: string | null;
-		totalGoals: number; totalMatches: number;
-		leagues: LeagueAcc[]; cities: string[];
+		playerId: string;
+		fullName: string;
+		alias: string | null;
+		totalGoals: number;
+		totalMatches: number;
+		leagues: LeagueAcc[];
+		cities: string[];
 	};
 
 	const map = new Map<string, Acc>();
 	for (const row of rows) {
 		if (!map.has(row.playerId)) {
 			map.set(row.playerId, {
-				playerId: row.playerId, fullName: row.fullName, alias: row.alias,
-				totalGoals: 0, totalMatches: 0, leagues: [], cities: [],
+				playerId: row.playerId,
+				fullName: row.fullName,
+				alias: row.alias,
+				totalGoals: 0,
+				totalMatches: 0,
+				leagues: [],
+				cities: [],
 			});
 		}
 		const e = map.get(row.playerId)!;
-		e.totalGoals   += row.goals;
+		e.totalGoals += row.goals;
 		e.totalMatches += row.matches;
 		if (!e.cities.includes(row.city)) e.cities.push(row.city);
 		e.leagues.push({
-			leagueId: row.leagueId, leagueName: row.leagueName,
-			teamName: row.teamName ?? "—", goals: row.goals,
+			leagueId: row.leagueId,
+			leagueName: row.leagueName,
+			teamName: row.teamName ?? "—",
+			goals: row.goals,
 		});
 	}
 
 	const ranking = sortRanking(
 		[...map.values()].map((a) =>
-			buildRankingEntry(a.playerId, a.fullName, a.alias, a.totalGoals, a.totalMatches, a.leagues, a.cities),
+			buildRankingEntry(
+				a.playerId,
+				a.fullName,
+				a.alias,
+				a.totalGoals,
+				a.totalMatches,
+				a.leagues,
+				a.cities,
+			),
 		),
 	);
 
 	// Deltas vs jornada anterior (todas las ligas del sistema)
-	const leagueIds    = [...new Set(rows.map((r) => r.leagueId))];
+	const leagueIds = [...new Set(rows.map((r) => r.leagueId))];
 	const prevByLeague = await getPrevGoalsByLeague(leagueIds);
-	const prevTotals   = new Map<string, number>();
+	const prevTotals = new Map<string, number>();
 	for (const playerMap of prevByLeague.values()) {
 		for (const [pid, goals] of playerMap) {
 			prevTotals.set(pid, (prevTotals.get(pid) ?? 0) + goals);
@@ -388,49 +432,47 @@ export async function searchPlayersForDisambiguation(q: string): Promise<PlayerS
 
 	const rows = await db
 		.select({
-			playerId:   players.id,
-			fullName:   players.fullName,
-			alias:      players.alias,
-			goals:      playerSeasonStats.goals,
-			leagueId:   leagues.id,
+			playerId: players.id,
+			fullName: players.fullName,
+			alias: players.alias,
+			goals: playerSeasonStats.goals,
+			leagueId: leagues.id,
 			leagueName: leagues.name,
-			season:     leagues.season,
-			city:       leagues.city,
-			teamName:   teams.name,
+			season: leagues.season,
+			city: leagues.city,
+			teamName: teams.name,
 		})
 		.from(players)
 		.innerJoin(playerSeasonStats, eq(playerSeasonStats.playerId, players.id))
-		.innerJoin(leagues,           eq(playerSeasonStats.leagueId, leagues.id))
-		.leftJoin( teams,             eq(playerSeasonStats.teamId,   teams.id))
-		.where(or(
-			ilike(players.fullName, `%${q}%`),
-			ilike(players.alias,    `%${q}%`),
-		))
+		.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
+		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
+		.where(or(ilike(players.fullName, `%${q}%`), ilike(players.alias, `%${q}%`)))
 		.limit(50);
 
 	const map = new Map<string, PlayerSearchResult>();
 	for (const row of rows) {
 		if (!map.has(row.playerId)) {
 			map.set(row.playerId, {
-				playerId: row.playerId, fullName: row.fullName,
-				alias: row.alias, totalGoals: 0, participations: [],
+				playerId: row.playerId,
+				fullName: row.fullName,
+				alias: row.alias,
+				totalGoals: 0,
+				participations: [],
 			});
 		}
 		const e = map.get(row.playerId)!;
 		e.totalGoals += row.goals;
 		e.participations.push({
-			leagueId:   row.leagueId,
+			leagueId: row.leagueId,
 			leagueName: row.leagueName,
-			teamName:   row.teamName ?? "—",
-			city:       row.city,
-			season:     row.season,
-			goals:      row.goals,
+			teamName: row.teamName ?? "—",
+			city: row.city,
+			season: row.season,
+			goals: row.goals,
 		});
 	}
 
-	return [...map.values()]
-		.sort((a, b) => b.totalGoals - a.totalGoals)
-		.slice(0, 8);
+	return [...map.values()].sort((a, b) => b.totalGoals - a.totalGoals).slice(0, 8);
 }
 
 // ── Posición de un jugador en los tres scopes ─────────────────────────────────
@@ -439,7 +481,6 @@ export async function getPlayerPositions(
 	playerId: string,
 	opts: { leagueId?: string; city?: string },
 ): Promise<PlayerPositions> {
-
 	// --- Scope Liga ---
 	let league: PlayerPositions["league"] = null;
 	if (opts.leagueId) {
@@ -467,14 +508,14 @@ export async function getPlayerPositions(
 		const totals = new Map<string, number>();
 		for (const r of cityRows) totals.set(r.playerId, (totals.get(r.playerId) ?? 0) + r.goals);
 
-		const sorted  = [...totals.entries()].filter(([, g]) => g > 0).sort((a, b) => b[1] - a[1]);
+		const sorted = [...totals.entries()].filter(([, g]) => g > 0).sort((a, b) => b[1] - a[1]);
 		const myGoals = totals.get(playerId) ?? 0;
-		const idx     = sorted.findIndex(([id]) => id === playerId);
+		const idx = sorted.findIndex(([id]) => id === playerId);
 
 		city = {
-			rank:     idx >= 0 ? idx + 1 : sorted.length + 1,
-			total:    sorted.length,
-			goals:    myGoals,
+			rank: idx >= 0 ? idx + 1 : sorted.length + 1,
+			total: sorted.length,
+			goals: myGoals,
 			cityName: opts.city,
 		};
 	}
@@ -485,14 +526,17 @@ export async function getPlayerPositions(
 		.from(playerSeasonStats);
 
 	const globalTotals = new Map<string, number>();
-	for (const r of globalRows) globalTotals.set(r.playerId, (globalTotals.get(r.playerId) ?? 0) + r.goals);
+	for (const r of globalRows)
+		globalTotals.set(r.playerId, (globalTotals.get(r.playerId) ?? 0) + r.goals);
 
-	const globalSorted  = [...globalTotals.entries()].filter(([, g]) => g > 0).sort((a, b) => b[1] - a[1]);
+	const globalSorted = [...globalTotals.entries()]
+		.filter(([, g]) => g > 0)
+		.sort((a, b) => b[1] - a[1]);
 	const myGlobalGoals = globalTotals.get(playerId) ?? 0;
-	const globalIdx     = globalSorted.findIndex(([id]) => id === playerId);
+	const globalIdx = globalSorted.findIndex(([id]) => id === playerId);
 
 	const global = {
-		rank:  globalIdx >= 0 ? globalIdx + 1 : globalSorted.length + 1,
+		rank: globalIdx >= 0 ? globalIdx + 1 : globalSorted.length + 1,
 		total: globalSorted.length,
 		goals: myGlobalGoals,
 	};
@@ -522,42 +566,44 @@ export async function getJornadaHonor(city: string): Promise<JornadaLeague[]> {
 
 		const topRows = await db
 			.select({
-				playerId:     playerSeasonStats.playerId,
-				fullName:     players.fullName,
-				alias:        players.alias,
-				goals:        playerSeasonStats.goals,
+				playerId: playerSeasonStats.playerId,
+				fullName: players.fullName,
+				alias: players.alias,
+				goals: playerSeasonStats.goals,
 				matchesPlayed: playerSeasonStats.matchesPlayed,
-				teamName:     teams.name,
+				teamName: teams.name,
 			})
 			.from(playerSeasonStats)
 			.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
-			.leftJoin( teams,   eq(playerSeasonStats.teamId,   teams.id))
-			.where(and(
-				eq(playerSeasonStats.leagueId, league.id),
-				eq(playerSeasonStats.jornada,  jornada),
-				sql`${playerSeasonStats.goals} > 0`,
-			))
+			.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
+			.where(
+				and(
+					eq(playerSeasonStats.leagueId, league.id),
+					eq(playerSeasonStats.jornada, jornada),
+					sql`${playerSeasonStats.goals} > 0`,
+				),
+			)
 			.orderBy(desc(playerSeasonStats.goals))
 			.limit(3);
 
 		if (topRows.length === 0) continue;
 
 		results.push({
-			leagueId:   league.id,
+			leagueId: league.id,
 			leagueName: league.name,
-			season:     league.season,
-			dayOfWeek:  league.dayOfWeek,
+			season: league.season,
+			dayOfWeek: league.dayOfWeek,
 			jornada,
 			heroes: topRows.map((r) => ({
-				playerId:    r.playerId,
-				fullName:    r.fullName,
-				alias:       r.alias,
-				goals:       r.goals,
+				playerId: r.playerId,
+				fullName: r.fullName,
+				alias: r.alias,
+				goals: r.goals,
 				matchesPlayed: r.matchesPlayed,
-				goalsPerMatch: r.matchesPlayed > 0
-					? Math.round((r.goals / r.matchesPlayed) * 100) / 100 : 0,
+				goalsPerMatch:
+					r.matchesPlayed > 0 ? Math.round((r.goals / r.matchesPlayed) * 100) / 100 : 0,
 				leagueName: league.name,
-				teamName:   r.teamName ?? "—",
+				teamName: r.teamName ?? "—",
 				jornada,
 			})),
 		});
@@ -572,8 +618,13 @@ export async function getJornadaHonor(city: string): Promise<JornadaLeague[]> {
 export async function getCityLeagues(
 	city: string,
 ): Promise<{ id: string; name: string; dayOfWeek: string; season: string }[]> {
-	return db.query.leagues.findMany({
+	const rows = await db.query.leagues.findMany({
 		where: eq(leagues.city, city),
 		columns: { id: true, name: true, dayOfWeek: true, season: true },
+		with: { organization: { columns: { status: true } } },
 	});
+	// Only show leagues from verified orgs (or legacy leagues without an org)
+	return rows
+		.filter((l) => !l.organization || l.organization.status === "verified")
+		.map(({ organization: _org, ...l }) => l);
 }

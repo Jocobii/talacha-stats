@@ -240,17 +240,12 @@ async function buildTeamAnalysis(
 
 	const topScorer = roster.find((p) => p.goals > 0) ?? null;
 	const topAssist =
-		[...roster]
-			.sort((a, b) => b.assists - a.assists)
-			.find((p) => p.assists > 0) ?? null;
+		[...roster].sort((a, b) => b.assists - a.assists).find((p) => p.assists > 0) ?? null;
 	const topContributor = roster[0] ?? null; // ya ordenado por contribuciones
 
 	const cardRisk = roster
 		.filter((p) => p.yellowCards >= 2 || p.redCards > 0)
-		.sort(
-			(a, b) =>
-				b.yellowCards + b.redCards * 3 - (a.yellowCards + a.redCards * 3),
-		)
+		.sort((a, b) => b.yellowCards + b.redCards * 3 - (a.yellowCards + a.redCards * 3))
 		.map((p) => ({
 			player: p.fullName,
 			alias: p.alias,
@@ -271,9 +266,7 @@ async function buildTeamAnalysis(
 		goalsAgainst: record.goalsAgainst,
 		goalDiff: record.goalsFor - record.goalsAgainst,
 		avgGoalsFor:
-			record.record.played > 0
-				? Math.round((record.goalsFor / record.record.played) * 10) / 10
-				: 0,
+			record.record.played > 0 ? Math.round((record.goalsFor / record.record.played) * 10) / 10 : 0,
 		avgGoalsAgainst:
 			record.record.played > 0
 				? Math.round((record.goalsAgainst / record.record.played) * 10) / 10
@@ -363,10 +356,7 @@ async function getTeamRoster(
 	completedMatches: Awaited<ReturnType<typeof db.query.matches.findMany>>,
 ): Promise<RosterPlayer[]> {
 	const regs = await db.query.playerRegistrations.findMany({
-		where: and(
-			eq(playerRegistrations.teamId, teamId),
-			eq(playerRegistrations.leagueId, leagueId),
-		),
+		where: and(eq(playerRegistrations.teamId, teamId), eq(playerRegistrations.leagueId, leagueId)),
 		with: { player: true },
 	});
 
@@ -416,17 +406,10 @@ async function getTeamRoster(
 						count: sql<number>`count(*)::int`,
 					})
 					.from(matchEvents)
-					.where(
-						and(
-							eq(matchEvents.playerId, pid),
-							inArray(matchEvents.matchId, matchIds),
-						),
-					)
+					.where(and(eq(matchEvents.playerId, pid), inArray(matchEvents.matchId, matchIds)))
 					.groupBy(matchEvents.eventType);
 
-				const counts = Object.fromEntries(
-					events.map((e) => [e.eventType, e.count]),
-				);
+				const counts = Object.fromEntries(events.map((e) => [e.eventType, e.count]));
 				goals = counts["goal"] ?? 0;
 				assists = counts["assist"] ?? 0;
 				yellowCards = counts["yellow_card"] ?? 0;
@@ -435,18 +418,12 @@ async function getTeamRoster(
 				const played = await db
 					.selectDistinct({ matchId: matchEvents.matchId })
 					.from(matchEvents)
-					.where(
-						and(
-							eq(matchEvents.playerId, pid),
-							inArray(matchEvents.matchId, matchIds),
-						),
-					);
+					.where(and(eq(matchEvents.playerId, pid), inArray(matchEvents.matchId, matchIds)));
 				matchesPlayed = played.length;
 			}
 		}
 
-		const gpm =
-			matchesPlayed > 0 ? Math.round((goals / matchesPlayed) * 100) / 100 : 0;
+		const gpm = matchesPlayed > 0 ? Math.round((goals / matchesPlayed) * 100) / 100 : 0;
 
 		roster.push({
 			playerId: pid,
@@ -465,8 +442,7 @@ async function getTeamRoster(
 
 	// Ordenar: más contribuciones → más goles → nombre
 	return roster.sort((a, b) => {
-		if (b.contributions !== a.contributions)
-			return b.contributions - a.contributions;
+		if (b.contributions !== a.contributions) return b.contributions - a.contributions;
 		if (b.goals !== a.goals) return b.goals - a.goals;
 		return a.fullName.localeCompare(b.fullName);
 	});
@@ -508,10 +484,7 @@ function calcStreak(
 	return count >= 2 ? { type: current, count } : null;
 }
 
-async function getTeamPosition(
-	teamId: string,
-	leagueId: string,
-): Promise<number | null> {
+async function getTeamPosition(teamId: string, leagueId: string): Promise<number | null> {
 	// Traer todos los snapshots de la liga en la jornada más reciente
 	const latestJornada = await db
 		.select({ maxJornada: sql<number>`max(jornada)::int` })
@@ -553,8 +526,7 @@ function calcWinProbability(a: TeamAnalysis, b: TeamAnalysis): WinProbability {
 	const bStr = bPpg * 0.6 + b.avgGoalsFor * 0.4;
 	const total = aStr + bStr;
 
-	if (total === 0)
-		return { aWinPct: 38, drawPct: 24, bWinPct: 38, method: "sin_datos" };
+	if (total === 0) return { aWinPct: 38, drawPct: 24, bWinPct: 38, method: "sin_datos" };
 
 	let aWinPct = Math.min(72, Math.round((aStr / total) * 72));
 	const balance = Math.abs(aWinPct - 36);
@@ -604,8 +576,7 @@ function buildH2H(
 		const aIsHome = last.homeTeamId === aId;
 		const aGoals = aIsHome ? last.homeScore : last.awayScore;
 		const bGoals = aIsHome ? last.awayScore : last.homeScore;
-		const result =
-			aGoals > bGoals ? "A ganó" : aGoals === bGoals ? "Empate" : "B ganó";
+		const result = aGoals > bGoals ? "A ganó" : aGoals === bGoals ? "Empate" : "B ganó";
 		lastMatch = { date: last.matchDate, aGoals, bGoals, result };
 	}
 
@@ -645,10 +616,8 @@ function buildBullets(
 
 	// Posición en tabla
 	if (a.position !== null || b.position !== null) {
-		const aPos =
-			a.position !== null ? `${aName} va ${ordinal(a.position)}` : null;
-		const bPos =
-			b.position !== null ? `${bName} va ${ordinal(b.position)}` : null;
+		const aPos = a.position !== null ? `${aName} va ${ordinal(a.position)}` : null;
+		const bPos = b.position !== null ? `${bName} va ${ordinal(b.position)}` : null;
 		const posStr = [aPos, bPos].filter(Boolean).join(", ");
 		if (posStr) bullets.push(`🏆 En la tabla: ${posStr}.`);
 	}
@@ -663,12 +632,8 @@ function buildBullets(
 
 	// Racha A
 	if (a.currentStreak && a.currentStreak.count >= 2) {
-		const word = { W: "victorias", D: "empates", L: "derrotas" }[
-			a.currentStreak.type
-		];
-		bullets.push(
-			`🔥 ${aName} lleva ${a.currentStreak.count} ${word} consecutivas.`,
-		);
+		const word = { W: "victorias", D: "empates", L: "derrotas" }[a.currentStreak.type];
+		bullets.push(`🔥 ${aName} lleva ${a.currentStreak.count} ${word} consecutivas.`);
 	}
 
 	// Forma de B
@@ -681,12 +646,8 @@ function buildBullets(
 
 	// Racha B
 	if (b.currentStreak && b.currentStreak.count >= 2) {
-		const word = { W: "victorias", D: "empates", L: "derrotas" }[
-			b.currentStreak.type
-		];
-		bullets.push(
-			`🔥 ${bName} lleva ${b.currentStreak.count} ${word} consecutivas.`,
-		);
+		const word = { W: "victorias", D: "empates", L: "derrotas" }[b.currentStreak.type];
+		bullets.push(`🔥 ${bName} lleva ${b.currentStreak.count} ${word} consecutivas.`);
 	}
 
 	// Goleador de A
@@ -694,9 +655,7 @@ function buildBullets(
 		const name = displayName(a.topScorer);
 		bullets.push(
 			`⚡ Amenaza principal de ${aName}: ${name} con ${a.topScorer.goals} goles` +
-				(a.topScorer.goalsPerMatch > 0
-					? ` (${a.topScorer.goalsPerMatch} por partido)`
-					: "") +
+				(a.topScorer.goalsPerMatch > 0 ? ` (${a.topScorer.goalsPerMatch} por partido)` : "") +
 				".",
 		);
 	}
@@ -706,9 +665,7 @@ function buildBullets(
 		const name = displayName(b.topScorer);
 		bullets.push(
 			`⚡ Amenaza principal de ${bName}: ${name} con ${b.topScorer.goals} goles` +
-				(b.topScorer.goalsPerMatch > 0
-					? ` (${b.topScorer.goalsPerMatch} por partido)`
-					: "") +
+				(b.topScorer.goalsPerMatch > 0 ? ` (${b.topScorer.goalsPerMatch} por partido)` : "") +
 				".",
 		);
 	}
@@ -729,9 +686,7 @@ function buildBullets(
 		bullets.push(
 			`📋 En ${h2h.total} enfrentamiento${h2h.total !== 1 ? "s" : ""} previos: ${leader} ` +
 				`(${h2h.aWins}-${h2h.draws}-${h2h.bWins}).` +
-				(h2h.lastMatch
-					? ` Último: ${h2h.lastMatch.aGoals}-${h2h.lastMatch.bGoals}.`
-					: ""),
+				(h2h.lastMatch ? ` Último: ${h2h.lastMatch.aGoals}-${h2h.lastMatch.bGoals}.` : ""),
 		);
 	}
 
@@ -786,10 +741,8 @@ function buildFunFacts(
 	// Diferencia de goles
 	const aDiff = a.goalDiff;
 	const bDiff = b.goalDiff;
-	if (aDiff > 0)
-		facts.push(`${aName} tiene diferencia de goles positiva: +${aDiff}.`);
-	if (bDiff > 0)
-		facts.push(`${bName} tiene diferencia de goles positiva: +${bDiff}.`);
+	if (aDiff > 0) facts.push(`${aName} tiene diferencia de goles positiva: +${aDiff}.`);
+	if (bDiff > 0) facts.push(`${bName} tiene diferencia de goles positiva: +${bDiff}.`);
 
 	// Jugador más completo (más contribuciones)
 	const allPlayers = [
@@ -807,8 +760,7 @@ function buildFunFacts(
 
 	// Máximo goleador de cada equipo si son diferentes personas
 	if (a.topScorer && b.topScorer && a.topScorer.goals !== b.topScorer.goals) {
-		const moreGoals =
-			a.topScorer.goals > b.topScorer.goals ? a.topScorer : b.topScorer;
+		const moreGoals = a.topScorer.goals > b.topScorer.goals ? a.topScorer : b.topScorer;
 		const moreTeam = a.topScorer.goals > b.topScorer.goals ? aName : bName;
 		facts.push(
 			`El máximo goleador del partido podría ser ${displayName(moreGoals)} de ${moreTeam} con ${moreGoals.goals} goles esta temporada.`,
@@ -1046,10 +998,7 @@ function computeLeagueRanks(
 // Helpers internos
 // ────────────────────────────────────────────────────────────────────────────
 
-function calcDangerRating(
-	goalsPerMatch: number,
-	totalGoals: number,
-): DangerRating {
+function calcDangerRating(goalsPerMatch: number, totalGoals: number): DangerRating {
 	if (goalsPerMatch > 1 || totalGoals >= 8) return "ALTO";
 	if (goalsPerMatch >= 0.5 || totalGoals >= 4) return "MEDIO";
 	return "BAJO";

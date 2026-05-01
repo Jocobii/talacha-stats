@@ -26,9 +26,19 @@
 // Cubre los apellidos y nombres compuestos más comunes en México
 // ---------------------------------------------------------------------------
 const PARTICLES = new Set([
-  "de", "la", "el", "del", "los", "las",
-  "y", "e", "o", "a",
-  "por", "en", "con",
+	"de",
+	"la",
+	"el",
+	"del",
+	"los",
+	"las",
+	"y",
+	"e",
+	"o",
+	"a",
+	"por",
+	"en",
+	"con",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -43,11 +53,11 @@ const PARTICLES = new Set([
 // de usarlo como clave de búsqueda.
 // ---------------------------------------------------------------------------
 export function sanitizeName(raw: string): string {
-  return raw
-    .trim()
-    .replace(/[\t\r\n]+/g, " ")   // tabs / saltos de línea → espacio
-    .replace(/\s{2,}/g, " ")      // múltiples espacios → uno
-    .toLowerCase();
+	return raw
+		.trim()
+		.replace(/[\t\r\n]+/g, " ") // tabs / saltos de línea → espacio
+		.replace(/\s{2,}/g, " ") // múltiples espacios → uno
+		.toLowerCase();
 }
 
 // ---------------------------------------------------------------------------
@@ -61,13 +71,13 @@ export function sanitizeName(raw: string): string {
 // partícula, para cubrir apellidos que empiezan con "De", "Del", etc.
 // ---------------------------------------------------------------------------
 export function titleCase(str: string): string {
-  if (!str) return str;
-  return str
-    .split(" ")
-    .map((word, i) => {
-      if (!word) return word;
-      if (i > 0 && PARTICLES.has(word)) return word;           // partícula en medio → lowercase
-      return word.charAt(0).toUpperCase() + word.slice(1);    // primera letra upper
-    })
-    .join(" ");
+	if (!str) return str;
+	return str
+		.split(" ")
+		.map((word, i) => {
+			if (!word) return word;
+			if (i > 0 && PARTICLES.has(word)) return word; // partícula en medio → lowercase
+			return word.charAt(0).toUpperCase() + word.slice(1); // primera letra upper
+		})
+		.join(" ");
 }

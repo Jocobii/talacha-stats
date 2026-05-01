@@ -22,6 +22,7 @@ export const CreateLeagueSchema = z.object({
 		.max(80)
 		.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 		.optional(),
+	category: z.string().max(80).optional(),
 	dayOfWeek: z.enum(DAYS_OF_WEEK),
 	season: z.string().min(2).max(50),
 	organizationId: z.string().uuid().optional(),

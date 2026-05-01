@@ -1,12 +1,24 @@
-export type { UserPublic, UserRole, CreateUserInput, UpdateUserInput, LoginInput } from "./model";
-export { CreateUserSchema, UpdateUserSchema, LoginSchema } from "./model";
 export {
-  getUserById,
-  getUserByEmail,
-  listUsers,
-  createUser,
-  updateUser,
-  countUsers,
-  hashPassword,
-  verifyPassword,
+	getUserByEmail,
+	getUserById,
+	getUserByVerificationToken,
+	registerUser,
+	markEmailVerified,
+	listUsers,
+	createUser,
+	updateUser,
+	countUsers,
+	hashPassword,
+	verifyPassword,
 } from "./queries";
+
+export { LoginSchema, RegisterSchema, CreateUserSchema, UpdateUserSchema } from "./model";
+
+export type {
+	UserPublic,
+	RegisterInput,
+	UserRole,
+	CreateUserInput,
+	UpdateUserInput,
+	LoginInput,
+} from "./model";

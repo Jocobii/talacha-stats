@@ -5,11 +5,7 @@ import { z } from "zod";
 // Supabase usa dos dominios distintos:
 //   *.supabase.co  → conexión directa (puerto 5432)
 //   *.supabase.com → pooler (puerto 6543)
-const PROD_DB_PATTERNS: RegExp[] = [
-	/supabase\.co\b/,
-	/supabase\.com\b/,
-	/supabase\.io\b/,
-];
+const PROD_DB_PATTERNS: RegExp[] = [/supabase\.co\b/, /supabase\.com\b/, /supabase\.io\b/];
 
 function looksLikeProdDatabase(url: string): boolean {
 	return PROD_DB_PATTERNS.some((pattern) => pattern.test(url));
@@ -37,14 +33,9 @@ const EnvSchema = z.object({
 				"DATABASE_URL debe ser una connection string de PostgreSQL (empieza con postgres://)",
 		}),
 
-	NODE_ENV: z
-		.enum(["development", "production", "test"])
-		.default("development"),
+	NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 
-	NEXT_PUBLIC_BASE_URL: z
-		.string()
-		.url("NEXT_PUBLIC_BASE_URL debe ser una URL válida")
-		.optional(),
+	NEXT_PUBLIC_BASE_URL: z.string().url("NEXT_PUBLIC_BASE_URL debe ser una URL válida").optional(),
 
 	ADMIN_PASSWORD: z
 		.string({ error: "ADMIN_PASSWORD es requerida" })
@@ -55,6 +46,10 @@ const EnvSchema = z.object({
 		.min(16, "ADMIN_SESSION_TOKEN debe tener al menos 16 caracteres"),
 
 	SETUP_SECRET: z.string().optional(),
+
+	// Email transaccional via Resend
+	RESEND_API_KEY: z.string().optional(), // requerida en produccion
+	EMAIL_FROM: z.string().optional(), // ej: "TalachaStats <noreply@tudominio.com>"
 });
 
 export type Env = z.infer<typeof EnvSchema>;
@@ -109,6 +104,5 @@ function validateEnv(): Env {
 	return parsed.data;
 }
 
-// Se ejecuta una sola vez al importar el módulo.
-// Si falla, el proceso crashea con un mensaje claro antes de abrir conexiones.
+// Se ejecuta una sola vez al importar el modulo.
 export const env = validateEnv();

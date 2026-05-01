@@ -21,42 +21,42 @@ const NODE_ENV = process.env.NODE_ENV ?? "development";
 const PROD_DB_PATTERNS = [/supabase\.co\b/, /supabase\.com\b/, /supabase\.io\b/];
 
 function guardFail(msg: string): never {
-  // process.exit no puede ser capturado por nadie — más seguro que throw.
-  console.error(msg);
-  process.exit(1);
+	// process.exit no puede ser capturado por nadie — más seguro que throw.
+	console.error(msg);
+	process.exit(1);
 }
 
 if (!DATABASE_URL) {
-  guardFail(
-    "\n\n" +
-      "╔══════════════════════════════════════════════════════════╗\n" +
-      "║  🚨  DATABASE_URL no está definida                       ║\n" +
-      "╚══════════════════════════════════════════════════════════╝\n\n" +
-      "Crea un archivo .env.local con tu base de datos local:\n\n" +
-      "  DATABASE_URL=postgresql://postgres:password@localhost:5432/talachastats_dev\n\n" +
-      "Revisa .env.local.example para más opciones.\n",
-  );
+	guardFail(
+		"\n\n" +
+			"╔══════════════════════════════════════════════════════════╗\n" +
+			"║  🚨  DATABASE_URL no está definida                       ║\n" +
+			"╚══════════════════════════════════════════════════════════╝\n\n" +
+			"Crea un archivo .env.local con tu base de datos local:\n\n" +
+			"  DATABASE_URL=postgresql://postgres:password@localhost:5432/talachastats_dev\n\n" +
+			"Revisa .env.local.example para más opciones.\n",
+	);
 }
 
 if (NODE_ENV !== "production" && PROD_DB_PATTERNS.some((p) => p.test(DATABASE_URL))) {
-  guardFail(
-    "\n\n" +
-      "╔══════════════════════════════════════════════════════════╗\n" +
-      "║  🚨  PELIGRO: BASE DE DATOS DE PRODUCCIÓN EN DEV         ║\n" +
-      "╚══════════════════════════════════════════════════════════╝\n\n" +
-      "DATABASE_URL apunta a Supabase (producción).\n" +
-      "Usar la BD de producción en desarrollo puede corromper datos reales.\n\n" +
-      "✅  Crea .env.local con una BD local:\n\n" +
-      "  DATABASE_URL=postgresql://postgres:password@localhost:5432/talachastats_dev\n\n" +
-      "Si necesitas conectarte a producción, usa TablePlus/psql directamente.\n\n" +
-      "El servidor NO arrancará hasta que esto esté corregido.\n",
-  );
+	guardFail(
+		"\n\n" +
+			"╔══════════════════════════════════════════════════════════╗\n" +
+			"║  🚨  PELIGRO: BASE DE DATOS DE PRODUCCIÓN EN DEV         ║\n" +
+			"╚══════════════════════════════════════════════════════════╝\n\n" +
+			"DATABASE_URL apunta a Supabase (producción).\n" +
+			"Usar la BD de producción en desarrollo puede corromper datos reales.\n\n" +
+			"✅  Crea .env.local con una BD local:\n\n" +
+			"  DATABASE_URL=postgresql://postgres:password@localhost:5432/talachastats_dev\n\n" +
+			"Si necesitas conectarte a producción, usa TablePlus/psql directamente.\n\n" +
+			"El servidor NO arrancará hasta que esto esté corregido.\n",
+	);
 }
 
 // ── Configuración de Next.js ──────────────────────────────────────────────────
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["pdfkit"],
+	serverExternalPackages: ["pdfkit"],
 };
 
 export default nextConfig;

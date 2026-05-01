@@ -14,9 +14,7 @@ import type {
  * Calcula forma de los equipos, jugadores clave, riesgo de tarjetas
  * y probabilidad de victoria — sin AI, solo matemática sobre datos históricos.
  */
-export async function generateMatchPreview(
-	matchId: string,
-): Promise<MatchPreview | null> {
+export async function generateMatchPreview(matchId: string): Promise<MatchPreview | null> {
 	const match = await db.query.matches.findFirst({
 		where: eq(matches.id, matchId),
 		with: {
@@ -135,8 +133,7 @@ function getTeamForm(
 		points,
 		goalsScored: goalsFor,
 		goalsConceded: goalsAgainst,
-		avgGoalsPerMatch:
-			played > 0 ? Math.round((goalsFor / played) * 10) / 10 : 0,
+		avgGoalsPerMatch: played > 0 ? Math.round((goalsFor / played) * 10) / 10 : 0,
 		last5: results.slice(0, 5) as ("W" | "D" | "L")[],
 	};
 }
@@ -148,10 +145,8 @@ function calculateWinProbability(
 	homeForm: TeamFormStats,
 	awayForm: TeamFormStats,
 ): MatchPreview["winProbability"] {
-	const homePlayed =
-		homeForm.record.wins + homeForm.record.draws + homeForm.record.losses;
-	const awayPlayed =
-		awayForm.record.wins + awayForm.record.draws + awayForm.record.losses;
+	const homePlayed = homeForm.record.wins + homeForm.record.draws + homeForm.record.losses;
+	const awayPlayed = awayForm.record.wins + awayForm.record.draws + awayForm.record.losses;
 
 	// Si no hay partidos jugados, retornar 50/50
 	if (homePlayed === 0 && awayPlayed === 0) {
@@ -208,10 +203,7 @@ async function getTopThreats(
 
 	// Jugadores del equipo en esta liga
 	const roster = await db.query.playerRegistrations.findMany({
-		where: and(
-			eq(playerRegistrations.teamId, teamId),
-			eq(playerRegistrations.leagueId, leagueId),
-		),
+		where: and(eq(playerRegistrations.teamId, teamId), eq(playerRegistrations.leagueId, leagueId)),
 		with: { player: true },
 	});
 
@@ -261,10 +253,7 @@ async function getTopThreats(
 		const matchesPlayedIds = new Set(
 			(
 				await db.query.matchEvents.findMany({
-					where: and(
-						eq(matchEvents.playerId, pid),
-						inArray(matchEvents.matchId, matchIds),
-					),
+					where: and(eq(matchEvents.playerId, pid), inArray(matchEvents.matchId, matchIds)),
 					columns: { matchId: true },
 				})
 			).map((e) => e.matchId),
@@ -275,9 +264,7 @@ async function getTopThreats(
 		const assists = assistEvents.length;
 		const matchesPlayed = matchesPlayedIds.size;
 		const goalsPerMatch =
-			matchesPlayed > 0
-				? Math.round((goalsThisSeason / matchesPlayed) * 100) / 100
-				: 0;
+			matchesPlayed > 0 ? Math.round((goalsThisSeason / matchesPlayed) * 100) / 100 : 0;
 
 		// Solo incluir jugadores con al menos 1 gol o asistencia
 		if (goalsThisSeason === 0 && assists === 0) continue;
@@ -299,17 +286,13 @@ async function getTopThreats(
 		.sort((a, b) => {
 			if (b.goalsLast3Matches !== a.goalsLast3Matches)
 				return b.goalsLast3Matches - a.goalsLast3Matches;
-			if (b.goalsPerMatch !== a.goalsPerMatch)
-				return b.goalsPerMatch - a.goalsPerMatch;
+			if (b.goalsPerMatch !== a.goalsPerMatch) return b.goalsPerMatch - a.goalsPerMatch;
 			return b.goalsThisSeason - a.goalsThisSeason;
 		})
 		.slice(0, 3);
 }
 
-function calcDangerRating(
-	goalsPerMatch: number,
-	goalsLast3: number,
-): DangerRating {
+function calcDangerRating(goalsPerMatch: number, goalsLast3: number): DangerRating {
 	if (goalsPerMatch > 1 || goalsLast3 >= 3) return "ALTO";
 	if (goalsPerMatch >= 0.5) return "MEDIO";
 	return "BAJO";
@@ -327,10 +310,7 @@ async function getCardRisk(
 	if (matchIds.length === 0) return [];
 
 	const roster = await db.query.playerRegistrations.findMany({
-		where: and(
-			eq(playerRegistrations.teamId, teamId),
-			eq(playerRegistrations.leagueId, leagueId),
-		),
+		where: and(eq(playerRegistrations.teamId, teamId), eq(playerRegistrations.leagueId, leagueId)),
 		with: { player: true },
 	});
 
@@ -363,10 +343,8 @@ async function getCardRisk(
 		if (yellowCount < 2 && redCount === 0) continue;
 
 		let note = "";
-		if (yellowCount >= 2)
-			note = `${yellowCount} amarillas — 1 más = suspensión`;
-		if (redCount > 0)
-			note = `${redCount} tarjeta(s) roja — revisar suspensión vigente`;
+		if (yellowCount >= 2) note = `${yellowCount} amarillas — 1 más = suspensión`;
+		if (redCount > 0) note = `${redCount} tarjeta(s) roja — revisar suspensión vigente`;
 
 		risks.push({
 			playerId: pid,
@@ -377,9 +355,7 @@ async function getCardRisk(
 		});
 	}
 
-	return risks.sort(
-		(a, b) => b.yellowCards + b.redCards * 3 - (a.yellowCards + a.redCards * 3),
-	);
+	return risks.sort((a, b) => b.yellowCards + b.redCards * 3 - (a.yellowCards + a.redCards * 3));
 }
 
 // ---------------------------------------------------------------------------
@@ -418,11 +394,7 @@ function getHeadToHead(
 		const homeGoals = isHomeFirst ? last.homeScore : last.awayScore;
 		const awayGoals = isHomeFirst ? last.awayScore : last.homeScore;
 		const winner =
-			homeGoals > awayGoals
-				? "local ganó"
-				: homeGoals === awayGoals
-					? "empate"
-					: "visitante ganó";
+			homeGoals > awayGoals ? "local ganó" : homeGoals === awayGoals ? "empate" : "visitante ganó";
 		lastMatch = {
 			date: last.matchDate,
 			result: `${homeGoals}-${awayGoals} (${winner})`,
@@ -469,19 +441,13 @@ function buildNarratorBullets(ctx: {
 
 	// Favorito
 	if (winProb.method !== "sin_datos") {
-		const favTeam =
-			winProb.homeWinPct > winProb.awayWinPct ? homeTeamName : awayTeamName;
+		const favTeam = winProb.homeWinPct > winProb.awayWinPct ? homeTeamName : awayTeamName;
 		const favPct = Math.max(winProb.homeWinPct, winProb.awayWinPct);
-		bullets.push(
-			`${favTeam} llega como favorito con ${favPct}% de probabilidad de victoria.`,
-		);
+		bullets.push(`${favTeam} llega como favorito con ${favPct}% de probabilidad de victoria.`);
 	}
 
 	// Forma reciente del local
-	if (
-		homeForm.record.wins + homeForm.record.draws + homeForm.record.losses >
-		0
-	) {
+	if (homeForm.record.wins + homeForm.record.draws + homeForm.record.losses > 0) {
 		bullets.push(
 			`${homeTeamName}: ${homeForm.record.wins}V ${homeForm.record.draws}E ${homeForm.record.losses}D — ` +
 				`${homeForm.points} pts — promedio ${homeForm.avgGoalsPerMatch} goles/partido.`,
@@ -489,10 +455,7 @@ function buildNarratorBullets(ctx: {
 	}
 
 	// Forma reciente del visitante
-	if (
-		awayForm.record.wins + awayForm.record.draws + awayForm.record.losses >
-		0
-	) {
+	if (awayForm.record.wins + awayForm.record.draws + awayForm.record.losses > 0) {
 		bullets.push(
 			`${awayTeamName}: ${awayForm.record.wins}V ${awayForm.record.draws}E ${awayForm.record.losses}D — ` +
 				`${awayForm.points} pts — promedio ${awayForm.avgGoalsPerMatch} goles/partido.`,
@@ -500,9 +463,7 @@ function buildNarratorBullets(ctx: {
 	}
 
 	// Amenaza principal del local
-	for (const t of homeThreats
-		.filter((t) => t.dangerRating === "ALTO")
-		.slice(0, 1)) {
+	for (const t of homeThreats.filter((t) => t.dangerRating === "ALTO").slice(0, 1)) {
 		const name = t.alias ? `"${t.alias}"` : t.player;
 		bullets.push(
 			`${name} (${homeTeamName}) viene en racha: ${t.goalsLast3Matches} goles en los últimos 3 partidos — ` +
@@ -511,9 +472,7 @@ function buildNarratorBullets(ctx: {
 	}
 
 	// Amenaza principal del visitante
-	for (const t of awayThreats
-		.filter((t) => t.dangerRating === "ALTO")
-		.slice(0, 1)) {
+	for (const t of awayThreats.filter((t) => t.dangerRating === "ALTO").slice(0, 1)) {
 		const name = t.alias ? `"${t.alias}"` : t.player;
 		bullets.push(
 			`${name} (${awayTeamName}): ${t.goalsThisSeason} goles esta temporada con ${t.goalsPerMatch} por partido.`,

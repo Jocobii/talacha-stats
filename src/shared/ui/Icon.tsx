@@ -63,10 +63,10 @@ import { type ReactNode } from "react";
 
 /** Escala canónica de tamaños */
 export const ICON_SIZE = {
-  xs: 12,   // inline en texto, badges
-  sm: 16,   // botones, acciones compactas
-  md: 20,   // navegación, cards (default)
-  lg: 24,   // features, section headers
+	xs: 12, // inline en texto, badges
+	sm: 16, // botones, acciones compactas
+	md: 20, // navegación, cards (default)
+	lg: 24, // features, section headers
 } as const;
 
 export type IconSize = keyof typeof ICON_SIZE;
@@ -78,31 +78,31 @@ export const ICON_STROKE = 2;
    IconBox — contenedor decorativo para iconos de feature/card
 ───────────────────────────────────────────────────────────────── */
 type IconBoxProps = {
-  children: ReactNode;
-  /** true → fondo verde tenue + borde brand  |  false → fondo surface-2 + borde line */
-  accent?: boolean;
-  /** Tamaño del cuadro. Por defecto "md" (40px) */
-  size?: "sm" | "md" | "lg";
+	children: ReactNode;
+	/** true → fondo verde tenue + borde brand  |  false → fondo surface-2 + borde line */
+	accent?: boolean;
+	/** Tamaño del cuadro. Por defecto "md" (40px) */
+	size?: "sm" | "md" | "lg";
 };
 
 const BOX_SIZE = {
-  sm: "w-8 h-8 rounded-lg",
-  md: "w-10 h-10 rounded-xl",
-  lg: "w-12 h-12 rounded-xl",
+	sm: "w-8 h-8 rounded-lg",
+	md: "w-10 h-10 rounded-xl",
+	lg: "w-12 h-12 rounded-xl",
 } as const;
 
 export function IconBox({ children, accent = false, size = "md" }: IconBoxProps) {
-  return (
-    <div
-      className={[
-        BOX_SIZE[size],
-        "flex items-center justify-center shrink-0",
-        accent
-          ? "bg-brand/10 border border-brand/20 text-brand"
-          : "bg-surface-2 border border-line text-ink-2",
-      ].join(" ")}
-    >
-      {children}
-    </div>
-  );
+	return (
+		<div
+			className={[
+				BOX_SIZE[size],
+				"flex items-center justify-center shrink-0",
+				accent
+					? "bg-brand/10 border border-brand/20 text-brand"
+					: "bg-surface-2 border border-line text-ink-2",
+			].join(" ")}
+		>
+			{children}
+		</div>
+	);
 }
