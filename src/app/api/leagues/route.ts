@@ -23,9 +23,7 @@ export async function GET(request: Request) {
 			},
 		});
 		// Exclude leagues from trial organizations
-		const verified = rows.filter(
-			(l) => !l.organization || l.organization.status === "verified",
-		);
+		const verified = rows.filter((l) => !l.organization || l.organization.status === "verified");
 		return apiSuccess(verified);
 	}
 

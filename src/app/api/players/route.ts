@@ -27,7 +27,7 @@ export async function GET(request: Request) {
 		: and(
 				eq(leagues.city, city),
 				or(isNull(leagues.organizationId), eq(organizations.status, "verified")),
-		  );
+			);
 
 	// Get league IDs for the city (scoped to user if organizer)
 	const cityLeagues = await db

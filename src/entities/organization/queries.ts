@@ -8,7 +8,7 @@ import {
 	teams,
 	players,
 } from "@/db/schema";
-import { eq, asc, desc, and, sql, inArray } from "drizzle-orm";
+import { eq, asc, desc, and, sql, inArray, isNotNull } from "drizzle-orm";
 import type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
 
 // ---------------------------------------------------------------------------
@@ -466,5 +466,79 @@ export async function getOrgHubStats(orgId: string): Promise<OrgHubStats> {
 	return {
 		totalGoals: Number(goalsResult[0]?.total ?? 0),
 		lastJornada: jornadaResult[0]?.max ?? null,
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Verificaciones pendientes — panel del owner
+// ---------------------------------------------------------------------------
+
+export type PendingVerification = {
+	id: string;
+	name: string;
+	slug: string;
+	city: string;
+	verificationRequestedAt: Date;
+	organizer: { name: string; email: string } | null;
+};
+
+/**
+ * Returns organizations in trial mode that have requested verification.
+ * Used in /admin/verifications (owner-only panel).
+ */
+export async function listPendingVerifications(): Promise<PendingVerification[]> {
+	const orgs = await db.query.organizations.findMany({
+		where: and(eq(organizations.status, "trial"), isNotNull(organizations.verificationRequestedAt)),
+		orderBy: [asc(organizations.verificationRequestedAt)],
+	});
+
+	if (orgs.length === 0) return [];
+
+	const orgIds = orgs.map((o) => o.id);
+
+	// Get the first organizer user for each org (to show contact info)
+	const organizers = await db.query.users.findMany({
+		where: and(inArray(users.organizationId, orgIds), eq(users.role, "organizer")),
+		columns: { organizationId: true, name: true, email: true },
+	});
+
+	const organizerMap = new Map(organizers.map((u) => [u.organizationId, u]));
+
+	return orgs.map((org) => ({
+		id: org.id,
+		name: org.name,
+		slug: org.slug,
+		city: org.city,
+		verificationRequestedAt: org.verificationRequestedAt!,
+		organizer: organizerMap.get(org.id) ?? null,
+	}));
+}
+
+/**
+ * Marks an organization as verified.
+ * Returns the updated org and the organizer's email for sending confirmation.
+ */
+export async function approveOrganization(orgId: string): Promise<{
+	org: typeof organizations.$inferSelect;
+	organizerEmail: string | null;
+	organizerName: string | null;
+} | null> {
+	const [updated] = await db
+		.update(organizations)
+		.set({ status: "verified", verificationRequestedAt: null })
+		.where(eq(organizations.id, orgId))
+		.returning();
+
+	if (!updated) return null;
+
+	const organizer = await db.query.users.findFirst({
+		where: and(eq(users.organizationId, orgId), eq(users.role, "organizer")),
+		columns: { email: true, name: true },
+	});
+
+	return {
+		org: updated,
+		organizerEmail: organizer?.email ?? null,
+		organizerName: organizer?.name ?? null,
 	};
 }

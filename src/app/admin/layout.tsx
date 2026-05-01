@@ -71,6 +71,14 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 								👥 Usuarios
 							</Link>
 						)}
+						{user.role === "owner" && (
+							<Link
+								href="/admin/verifications"
+								className="hover:bg-white/10 text-sm px-3 py-1.5 rounded-lg shrink-0 transition"
+							>
+								✅ Verificaciones
+							</Link>
+						)}
 					</div>
 
 					<div className="shrink-0 ml-2 flex items-center gap-3">
