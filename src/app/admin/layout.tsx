@@ -9,9 +9,13 @@ import LogoutButton from "./LogoutButton";
 export default async function AdminLayout({ children }: { children: ReactNode }) {
 	const [activeCity, user] = await Promise.all([getActiveCity(), getSessionUser()]);
 
-	// Segunda línea de defensa — el middleware ya debería haber redirigido,
-	// pero si el token es inválido o el user fue desactivado, redirigimos aquí.
+	// Second line of defense — middleware already checked cookie presence,
+	// but full HMAC verification and DB lookup happen here.
 	if (!user) redirect("/login");
+
+	// Organizers must complete onboarding before accessing the admin panel.
+	// Owners (superadmins) are exempt — they manage all orgs.
+	if (user.role === "organizer" && !user.organizationId) redirect("/onboarding");
 
 	return (
 		<div className="min-h-screen bg-gray-50">
@@ -72,15 +76,14 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 						<CitySwitcher activeCity={activeCity} />
 						<div className="hidden sm:flex items-center gap-2 border-l border-white/20 pl-3">
 							<span className="text-xs text-white/70 truncate max-w-[120px]" title={user.email}>
-								{user.name}
+								{user.email}
 							</span>
-							<LogoutButton />
 						</div>
+						<LogoutButton />
 					</div>
 				</div>
 			</nav>
-
-			<main className="max-w-7xl mx-auto px-3 sm:px-4 py-5 sm:py-8">{children}</main>
+			<main className="max-w-7xl mx-auto px-4 py-6">{children}</main>
 		</div>
 	);
 }

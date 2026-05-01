@@ -3,28 +3,39 @@ import type { NextRequest } from "next/server";
 
 const SESSION_COOKIE = "ts_session";
 
+const PROTECTED_PREFIXES = ["/admin", "/onboarding"];
+const AUTH_PAGES = ["/login", "/register", "/verify-email"];
+
 export function proxy(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 
-	// Solo proteger rutas /admin
-	if (!pathname.startsWith("/admin")) {
-		return NextResponse.next();
+	const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+	const isAuthPage = AUTH_PAGES.some((page) => pathname.startsWith(page));
+
+	const sessionToken = request.cookies.get(SESSION_COOKIE)?.value;
+	const hasSession = Boolean(sessionToken);
+
+	// Redirect unauthenticated users away from protected routes
+	if (isProtected && !hasSession) {
+		const loginUrl = new URL("/login", request.url);
+		loginUrl.searchParams.set("from", pathname);
+		return NextResponse.redirect(loginUrl);
 	}
 
-	const sessionCookie = request.cookies.get(SESSION_COOKIE)?.value;
-
-	// Si existe la cookie de sesión, dejar pasar.
-	// La validación completa del token + DB ocurre en el layout y los API routes.
-	if (sessionCookie) {
-		return NextResponse.next();
+	// Redirect authenticated users away from auth pages
+	if (isAuthPage && hasSession) {
+		return NextResponse.redirect(new URL("/admin", request.url));
 	}
 
-	// Sin cookie → redirigir al login guardando el destino
-	const loginUrl = new URL("/login", request.url);
-	loginUrl.searchParams.set("from", pathname);
-	return NextResponse.redirect(loginUrl);
+	return NextResponse.next();
 }
 
 export const config = {
-	matcher: ["/admin/:path*"],
+	matcher: [
+		"/admin/:path*",
+		"/onboarding/:path*",
+		"/login",
+		"/register",
+		"/verify-email",
+	],
 };
