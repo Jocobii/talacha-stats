@@ -24,6 +24,12 @@ export const organizations = pgTable(
 		slug: text("slug").notNull().unique(), // URL-friendly: "novofut", "casablanca-fc"
 		logoUrl: text("logo_url"),
 		city: text("city").notNull().default("Tijuana"),
+		// "trial" = recién registrada, datos no aparecen en vistas cross-org
+		// "verified" = verificada manualmente, aparece en rankings globales
+		status: text("status").notNull().default("trial"), // "trial" | "verified"
+		verificationRequestedAt: timestamp("verification_requested_at", {
+			withTimezone: true,
+		}),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [index("organizations_slug_idx").on(t.slug)],
@@ -31,6 +37,8 @@ export const organizations = pgTable(
 
 export type Organization = typeof organizations.$inferSelect;
 export type NewOrganization = typeof organizations.$inferInsert;
+export const ORG_STATUSES = ["trial", "verified"] as const;
+export type OrgStatus = (typeof ORG_STATUSES)[number];
 
 // ---------------------------------------------------------------------------
 // USERS — Cuentas de acceso al panel admin
@@ -48,6 +56,12 @@ export const users = pgTable(
 		active: boolean("active").notNull().default(true),
 		organizationId: uuid("organization_id").references(() => organizations.id, {
 			onDelete: "set null",
+		}),
+		// Verificación de email — requerida para acceder al panel
+		emailVerified: boolean("email_verified").notNull().default(false),
+		emailVerificationToken: text("email_verification_token").unique(),
+		emailVerificationExpiresAt: timestamp("email_verification_expires_at", {
+			withTimezone: true,
 		}),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
