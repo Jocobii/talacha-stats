@@ -12,11 +12,13 @@ export {
 	verifyPassword,
 } from "./queries";
 
-export {
-	LoginSchema,
-	RegisterSchema,
-	CreateUserSchema,
-	UpdateUserSchema,
-} from "./model";
+export { LoginSchema, RegisterSchema, CreateUserSchema, UpdateUserSchema } from "./model";
 
-export type { UserPublic, RegisterInput, UserRole, CreateUserInput, UpdateUserInput, LoginInput } from "./model";
+export type {
+	UserPublic,
+	RegisterInput,
+	UserRole,
+	CreateUserInput,
+	UpdateUserInput,
+	LoginInput,
+} from "./model";

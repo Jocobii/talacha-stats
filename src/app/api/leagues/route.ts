@@ -17,9 +17,16 @@ export async function GET(request: Request) {
 		const rows = await db.query.leagues.findMany({
 			where: and(eq(leagues.city, city), eq(leagues.status, "active")),
 			orderBy: [desc(leagues.createdAt)],
-			with: { teams: true },
+			with: {
+				teams: true,
+				organization: { columns: { status: true } },
+			},
 		});
-		return apiSuccess(rows);
+		// Exclude leagues from trial organizations
+		const verified = rows.filter(
+			(l) => !l.organization || l.organization.status === "verified",
+		);
+		return apiSuccess(verified);
 	}
 
 	const rows = await db.query.leagues.findMany({

@@ -104,6 +104,8 @@ export async function getLeaguesByOrganization(organizationId: string) {
  */
 export async function listOrganizationsPublic() {
 	return db.query.organizations.findMany({
+		// Only verified orgs appear in public directory
+		where: eq(organizations.status, "verified"),
 		orderBy: [asc(organizations.name)],
 		with: {
 			leagues: {
@@ -121,7 +123,8 @@ export async function listOrganizationsPublic() {
  */
 export async function getPublicOrganization(slug: string) {
 	const org = await db.query.organizations.findFirst({
-		where: eq(organizations.slug, slug),
+		// Trial orgs are not publicly accessible
+		where: and(eq(organizations.slug, slug), eq(organizations.status, "verified")),
 		with: {
 			leagues: {
 				where: eq(leagues.status, "active"),
@@ -300,15 +303,22 @@ export async function getLeaguesShowcase(city: string, limit = 6): Promise<Leagu
 		where: and(eq(leagues.city, city), eq(leagues.status, "active")),
 		with: {
 			teams: { columns: { id: true } },
-			organization: { columns: { slug: true } },
+			// Include org status so we can filter out trial orgs below
+			organization: { columns: { slug: true, status: true } },
 		},
 		orderBy: [desc(leagues.createdAt)],
-		limit,
+		// Fetch extra to account for trial org filtering
+		limit: limit * 3,
 	});
 
-	if (activeLeagues.length === 0) return [];
+	// Only show leagues from verified organizations in public cross-org views
+	const verifiedLeagues = activeLeagues
+		.filter((l) => l.organization?.status === "verified")
+		.slice(0, limit);
 
-	const leagueIds = activeLeagues.map((l) => l.id);
+	if (verifiedLeagues.length === 0) return [];
+
+	const leagueIds = verifiedLeagues.map((l) => l.id);
 
 	// Conteo de jugadores y datos de goleadores en paralelo
 	const [playerCounts, scorerRows] = await Promise.all([
@@ -345,7 +355,7 @@ export async function getLeaguesShowcase(city: string, limit = 6): Promise<Leagu
 		}
 	}
 
-	return activeLeagues.map((league) => {
+	return verifiedLeagues.map((league) => {
 		const scorer = topScorerMap.get(league.id) ?? null;
 		return {
 			id: league.id,

@@ -5,6 +5,7 @@ import { getActiveCity } from "@/shared/lib/active-city";
 import { getSessionUser } from "@/shared/lib/auth";
 import CitySwitcher from "./CitySwitcher";
 import LogoutButton from "./LogoutButton";
+import TrialBanner from "./TrialBanner";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
 	const [activeCity, user] = await Promise.all([getActiveCity(), getSessionUser()]);
@@ -83,6 +84,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 					</div>
 				</div>
 			</nav>
+			<TrialBanner user={user} />
 			<main className="max-w-7xl mx-auto px-4 py-6">{children}</main>
 		</div>
 	);

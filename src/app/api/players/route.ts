@@ -1,5 +1,5 @@
-import { db, players, leagues, playerRegistrations } from "@/db";
-import { ilike, or, desc, count, and, inArray } from "drizzle-orm";
+import { db, players, leagues, playerRegistrations, organizations } from "@/db";
+import { ilike, or, desc, count, and, inArray, isNull } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import { CreatePlayerSchema, apiSuccess, apiSuccessPaginated, apiError } from "@/types";
 import { parsePaginationParams, buildMeta, toOffset } from "@/shared/lib/pagination";
@@ -17,14 +17,24 @@ export async function GET(request: Request) {
 	const city = await getRequestCity(request);
 	const user = await getSessionUserFromRequest(request);
 
-	// Build the leagues filter: owners see all city leagues, organizers only their org's leagues
-	const leagueWhere =
-		user && user.role !== "owner" && user.organizationId
-			? and(eq(leagues.city, city), eq(leagues.organizationId, user.organizationId))
-			: eq(leagues.city, city);
+	// Build the leagues filter:
+	// - owners see all city leagues
+	// - organizers only their org's leagues
+	// - public: only verified orgs (or legacy leagues with no org)
+	const isOrganizer = user && user.role !== "owner" && user.organizationId;
+	const leagueWhere = isOrganizer
+		? and(eq(leagues.city, city), eq(leagues.organizationId, user.organizationId!))
+		: and(
+				eq(leagues.city, city),
+				or(isNull(leagues.organizationId), eq(organizations.status, "verified")),
+		  );
 
 	// Get league IDs for the city (scoped to user if organizer)
-	const cityLeagues = await db.select({ id: leagues.id }).from(leagues).where(leagueWhere);
+	const cityLeagues = await db
+		.select({ id: leagues.id })
+		.from(leagues)
+		.leftJoin(organizations, eq(leagues.organizationId, organizations.id))
+		.where(leagueWhere);
 
 	const leagueIds = cityLeagues.map((l) => l.id);
 

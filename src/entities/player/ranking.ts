@@ -4,8 +4,8 @@
  * Sin asistencias — no se registran en ligas amateur.
  */
 
-import { eq, desc, sql, and, or, ilike, inArray } from "drizzle-orm";
-import { db, players, playerSeasonStats, playerSeasonStatsSnapshot, leagues, teams } from "@/db";
+import { eq, desc, sql, and, or, ilike, inArray, isNull } from "drizzle-orm";
+import { db, players, playerSeasonStats, playerSeasonStatsSnapshot, leagues, teams, organizations } from "@/db";
 import {
 	type PaginationParams,
 	paginateArray,
@@ -218,7 +218,15 @@ export async function getCityRanking(
 		.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
 		.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
 		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-		.where(and(eq(leagues.city, city), sql`${playerSeasonStats.goals} > 0`));
+		.leftJoin(organizations, eq(leagues.organizationId, organizations.id))
+		.where(
+			and(
+				eq(leagues.city, city),
+				sql`${playerSeasonStats.goals} > 0`,
+				// Exclude leagues from trial organizations
+				or(isNull(leagues.organizationId), eq(organizations.status, "verified")),
+			),
+		);
 
 	type Acc = {
 		playerId: string;
@@ -335,7 +343,14 @@ export async function getGlobalRanking(
 		.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
 		.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
 		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-		.where(sql`${playerSeasonStats.goals} > 0`);
+		.leftJoin(organizations, eq(leagues.organizationId, organizations.id))
+		.where(
+			and(
+				sql`${playerSeasonStats.goals} > 0`,
+				// Exclude leagues from trial organizations
+				or(isNull(leagues.organizationId), eq(organizations.status, "verified")),
+			),
+		);
 
 	type Acc = {
 		playerId: string;
@@ -595,8 +610,13 @@ export async function getJornadaHonor(city: string): Promise<JornadaLeague[]> {
 export async function getCityLeagues(
 	city: string,
 ): Promise<{ id: string; name: string; dayOfWeek: string; season: string }[]> {
-	return db.query.leagues.findMany({
+	const rows = await db.query.leagues.findMany({
 		where: eq(leagues.city, city),
 		columns: { id: true, name: true, dayOfWeek: true, season: true },
+		with: { organization: { columns: { status: true } } },
 	});
+	// Only show leagues from verified orgs (or legacy leagues without an org)
+	return rows
+		.filter((l) => !l.organization || l.organization.status === "verified")
+		.map(({ organization: _org, ...l }) => l);
 }
