@@ -5,6 +5,7 @@ import { getSessionUser } from "@/shared/lib/auth";
 import { listOrganizations } from "@/entities/organization";
 import OrganizationSection from "./OrganizerSection";
 import NewSeasonButton from "./NewSeasonButton";
+import ShareButton from "@/shared/ui/ShareButton";
 
 async function getLeagueData(id: string) {
 	const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
@@ -56,6 +57,11 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 						leagueName={league.name}
 						dayOfWeek={league.dayOfWeek}
 						organizationId={league.organizationId ?? null}
+					/>
+					<ShareButton
+						title={league.name}
+						variant="icon"
+						url={`${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/org/${league.organization?.slug ?? ""}/${league.slug ?? ""}`}
 					/>
 				</div>
 			</div>

@@ -10,6 +10,7 @@ import OrgTicker from "./OrgTicker";
 import LeagueStoryCarousel from "./LeagueStoryCarousel";
 import LeagueNarrativeCard from "./LeagueNarrativeCard";
 import ShareButton from "@/shared/ui/ShareButton";
+import TrialWarning from "./[leagueSlug]/TrialWarning";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -106,7 +107,9 @@ export default async function OrgPublicPage({ params }: Props) {
 					<OrgStatsStrip stats={hubStats} totalTeams={totalTeams} />
 				</div>
 			</header>
-
+			{
+				org.status === "trial" && <TrialWarning org={org} />
+			}
 			{/* ── Ticker B ── */}
 			{tickerItems.length > 0 && <OrgTicker items={tickerItems} />}
 
