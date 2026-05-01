@@ -46,6 +46,10 @@ const EnvSchema = z.object({
 		.min(16, "ADMIN_SESSION_TOKEN debe tener al menos 16 caracteres"),
 
 	SETUP_SECRET: z.string().optional(),
+
+	// Email transaccional via Resend
+	RESEND_API_KEY: z.string().optional(), // requerida en produccion
+	EMAIL_FROM: z.string().optional(),     // ej: "TalachaStats <noreply@tudominio.com>"
 });
 
 export type Env = z.infer<typeof EnvSchema>;
@@ -100,6 +104,5 @@ function validateEnv(): Env {
 	return parsed.data;
 }
 
-// Se ejecuta una sola vez al importar el módulo.
-// Si falla, el proceso crashea con un mensaje claro antes de abrir conexiones.
+// Se ejecuta una sola vez al importar el modulo.
 export const env = validateEnv();
