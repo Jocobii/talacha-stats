@@ -148,6 +148,7 @@ export default function OrganizerSection() {
 
 						{/* CTA */}
 						<div
+							className="flex items-center gap-4 flex-wrap"
 							style={{
 								opacity: visible ? 1 : 0,
 								transform: visible ? "translateY(0)" : "translateY(10px)",
@@ -160,6 +161,12 @@ export default function OrganizerSection() {
 							>
 								Registra tu liga gratis
 								<ChevronRight size={16} strokeWidth={2} />
+							</Link>
+							<Link
+								href="/login"
+								className="text-sm text-ink-3 hover:text-ink transition-colors font-medium"
+							>
+								Ya tengo cuenta →
 							</Link>
 						</div>
 					</div>
