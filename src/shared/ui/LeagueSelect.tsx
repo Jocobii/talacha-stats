@@ -21,7 +21,7 @@ type Props = {
 };
 
 const DEFAULT_CLASS =
-	"w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50";
+	"w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50";
 
 export function LeagueSelect({ value, onChange, city, selectClassName, id }: Props) {
 	const [leagues, setLeagues] = useState<League[]>([]);

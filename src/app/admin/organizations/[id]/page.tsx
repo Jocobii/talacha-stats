@@ -31,22 +31,22 @@ export default async function OrganizationDetailPage({
 	return (
 		<div>
 			<div className="mb-6">
-				<Link href="/admin/organizations" className="text-sm text-gray-500 hover:underline">
+				<Link href="/admin/organizations" className="text-sm text-ink-2 hover:underline">
 					← Organizaciones
 				</Link>
 				<div className="flex items-start gap-4 mt-2">
 					{org.logoUrl ? (
 						<img src={org.logoUrl} alt={org.name} className="w-14 h-14 rounded-xl object-cover" />
 					) : (
-						<div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
-							<span className="text-green-700 font-bold text-2xl">
+						<div className="w-14 h-14 rounded-xl bg-brand/15 flex items-center justify-center flex-shrink-0">
+							<span className="text-brand font-bold text-2xl">
 								{org.name.charAt(0).toUpperCase()}
 							</span>
 						</div>
 					)}
 					<div>
-						<h1 className="text-2xl font-bold text-gray-800">{org.name}</h1>
-						<p className="text-sm text-gray-400">
+						<h1 className="text-2xl font-bold text-ink">{org.name}</h1>
+						<p className="text-sm text-ink-3">
 							{org.city} · /{org.slug}
 						</p>
 					</div>

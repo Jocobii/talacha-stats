@@ -15,7 +15,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 	if (user.role === "organizer" && !user.organizationId) redirect("/onboarding");
 
 	return (
-		<div className="flex h-screen bg-gray-50 overflow-hidden">
+		<div className="flex h-screen bg-pitch overflow-hidden">
 			<AdminSidebar user={user} activeCity={activeCity} />
 
 			{/* Right column: trial banner + scrollable content */}

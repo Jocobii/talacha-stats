@@ -37,16 +37,16 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 	return (
 		<div>
 			<div className="mb-6">
-				<Link href="/admin" className="text-sm text-gray-500 hover:underline">
+				<Link href="/admin" className="text-sm text-ink-2 hover:underline">
 					← Dashboard
 				</Link>
 				<div className="flex items-start justify-between gap-4 mt-1">
 					<div>
-						<h1 className="text-2xl font-bold text-gray-800">{league.name}</h1>
-						<p className="text-gray-500 capitalize">
+						<h1 className="text-2xl font-bold text-ink">{league.name}</h1>
+						<p className="text-ink-2 capitalize">
 							{league.dayOfWeek} — {league.season}
 							{league.organization && (
-								<span className="ml-2 text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+								<span className="ml-2 text-xs bg-surface-2 text-ink-2 px-2 py-0.5 rounded-full">
 									{league.organization.name}
 								</span>
 							)}
@@ -69,10 +69,10 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 				{/* Tabla de posiciones */}
 				<div className="lg:col-span-2">
-					<h2 className="text-lg font-semibold text-gray-700 mb-3">Tabla de posiciones</h2>
-					<div className="bg-white rounded-lg shadow overflow-hidden">
+					<h2 className="text-lg font-semibold text-ink mb-3">Tabla de posiciones</h2>
+					<div className="bg-surface rounded-lg shadow overflow-hidden">
 						<table className="w-full text-sm">
-							<thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+							<thead className="bg-surface-2 text-ink-2 uppercase text-xs">
 								<tr>
 									<th className="px-3 py-2 text-left">#</th>
 									<th className="px-3 py-2 text-left">Equipo</th>
@@ -86,7 +86,7 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 									<th className="px-3 py-2 text-center font-bold">Pts</th>
 								</tr>
 							</thead>
-							<tbody className="divide-y divide-gray-100">
+							<tbody className="divide-y divide-line">
 								{standings.map(
 									(
 										s: {
@@ -103,19 +103,19 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 										},
 										i: number,
 									) => (
-										<tr key={s.teamId} className={i === 0 ? "bg-green-50" : "hover:bg-gray-50"}>
-											<td className="px-3 py-2 text-gray-500">{i + 1}</td>
-											<td className="px-3 py-2 font-medium text-gray-800">{s.teamName}</td>
+										<tr key={s.teamId} className={i === 0 ? "bg-brand/10" : "hover:bg-surface-2"}>
+											<td className="px-3 py-2 text-ink-2">{i + 1}</td>
+											<td className="px-3 py-2 font-medium text-ink">{s.teamName}</td>
 											<td className="px-3 py-2 text-center">{s.played}</td>
-											<td className="px-3 py-2 text-center text-green-600">{s.wins}</td>
-											<td className="px-3 py-2 text-center text-gray-500">{s.draws}</td>
+											<td className="px-3 py-2 text-center text-brand">{s.wins}</td>
+											<td className="px-3 py-2 text-center text-ink-2">{s.draws}</td>
 											<td className="px-3 py-2 text-center text-red-500">{s.losses}</td>
 											<td className="px-3 py-2 text-center">{s.goalsFor}</td>
 											<td className="px-3 py-2 text-center">{s.goalsAgainst}</td>
 											<td className="px-3 py-2 text-center">
 												{s.goalDifference > 0 ? `+${s.goalDifference}` : s.goalDifference}
 											</td>
-											<td className="px-3 py-2 text-center font-bold text-gray-800">{s.points}</td>
+											<td className="px-3 py-2 text-center font-bold text-ink">{s.points}</td>
 										</tr>
 									),
 								)}
@@ -134,8 +134,8 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 					/>
 
 					<div>
-						<h2 className="text-lg font-semibold text-gray-700 mb-3">Top goleadores</h2>
-						<div className="bg-white rounded-lg shadow p-4 space-y-2">
+						<h2 className="text-lg font-semibold text-ink mb-3">Top goleadores</h2>
+						<div className="bg-surface rounded-lg shadow p-4 space-y-2">
 							{topScorers.map(
 								(
 									s: {
@@ -149,30 +149,30 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 								) => (
 									<div key={s.playerId} className="flex items-center justify-between">
 										<div className="flex items-center gap-2">
-											<span className="text-xs text-gray-400 w-4">{i + 1}</span>
+											<span className="text-xs text-ink-3 w-4">{i + 1}</span>
 											<div>
 												<Link
 													href={`/admin/players/${s.playerId}`}
-													className="text-sm font-medium text-gray-800 hover:underline"
+													className="text-sm font-medium text-ink hover:underline"
 												>
 													{s.alias ?? s.fullName}
 												</Link>
-												<p className="text-xs text-gray-400">{s.teamName}</p>
+												<p className="text-xs text-ink-3">{s.teamName}</p>
 											</div>
 										</div>
-										<span className="font-bold text-green-600">{s.goals} ⚽</span>
+										<span className="font-bold text-brand">{s.goals} ⚽</span>
 									</div>
 								),
 							)}
-							{topScorers.length === 0 && <p className="text-sm text-gray-400">Sin datos.</p>}
+							{topScorers.length === 0 && <p className="text-sm text-ink-3">Sin datos.</p>}
 						</div>
 					</div>
 
 					{/* Partidos recientes */}
 					<div>
 						<div className="flex items-center justify-between mb-3">
-							<h2 className="text-lg font-semibold text-gray-700">Partidos</h2>
-							<Link href="#" className="text-sm text-green-600 hover:underline">
+							<h2 className="text-lg font-semibold text-ink">Partidos</h2>
+							<Link href="#" className="text-sm text-brand hover:underline">
 								Ver todos
 							</Link>
 						</div>
@@ -193,17 +193,17 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 										<Link
 											key={m.id}
 											href={`/admin/matches/${m.id}`}
-											className="block bg-white rounded-lg shadow p-3 hover:shadow-md transition"
+											className="block bg-surface rounded-lg shadow p-3 hover:shadow-md transition"
 										>
-											<p className="text-xs text-gray-400 mb-1">
+											<p className="text-xs text-ink-3 mb-1">
 												J{m.matchday ?? "?"} · {m.matchDate}
 												{m.status === "scheduled" && (
-													<span className="ml-2 bg-yellow-100 text-yellow-700 px-1 rounded text-xs">
+													<span className="ml-2 bg-yellow-100 text-yellow-300 px-1 rounded text-xs">
 														Pendiente
 													</span>
 												)}
 											</p>
-											<div className="flex items-center justify-between text-sm font-medium text-gray-800">
+											<div className="flex items-center justify-between text-sm font-medium text-ink">
 												<span className="flex-1">{m.homeTeam.name}</span>
 												<span className="px-3 font-bold">
 													{m.status === "completed" ? `${m.homeScore} - ${m.awayScore}` : "vs"}
@@ -214,7 +214,7 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 									),
 								)}
 							{league.matches?.length === 0 && (
-								<p className="text-sm text-gray-400">Sin partidos.</p>
+								<p className="text-sm text-ink-3">Sin partidos.</p>
 							)}
 						</div>
 					</div>

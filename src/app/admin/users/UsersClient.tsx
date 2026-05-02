@@ -60,33 +60,33 @@ export default function UsersClient({
 	return (
 		<div className="space-y-4">
 			{/* Tabla de usuarios */}
-			<div className="bg-white rounded-xl shadow overflow-hidden">
+			<div className="bg-surface rounded-xl shadow overflow-hidden">
 				<table className="w-full text-sm">
-					<thead className="bg-gray-50 border-b border-gray-100">
+					<thead className="bg-surface-2 border-b border-line">
 						<tr>
-							<th className="text-left px-5 py-3 font-semibold text-gray-600">Nombre</th>
-							<th className="text-left px-5 py-3 font-semibold text-gray-600">Email</th>
-							<th className="text-left px-5 py-3 font-semibold text-gray-600">Rol</th>
-							<th className="text-left px-5 py-3 font-semibold text-gray-600">Estado</th>
+							<th className="text-left px-5 py-3 font-semibold text-ink-2">Nombre</th>
+							<th className="text-left px-5 py-3 font-semibold text-ink-2">Email</th>
+							<th className="text-left px-5 py-3 font-semibold text-ink-2">Rol</th>
+							<th className="text-left px-5 py-3 font-semibold text-ink-2">Estado</th>
 							<th className="px-5 py-3" />
 						</tr>
 					</thead>
-					<tbody className="divide-y divide-gray-50">
+					<tbody className="divide-y divide-line">
 						{users.map((u) => (
 							<tr key={u.id} className={!u.active ? "opacity-50" : ""}>
-								<td className="px-5 py-3 font-medium text-gray-800">
+								<td className="px-5 py-3 font-medium text-ink">
 									{u.name}
 									{u.id === currentUserId && (
-										<span className="ml-2 text-xs text-green-600 font-semibold">(tú)</span>
+										<span className="ml-2 text-xs text-brand font-semibold">(tú)</span>
 									)}
 								</td>
-								<td className="px-5 py-3 text-gray-500">{u.email}</td>
+								<td className="px-5 py-3 text-ink-2">{u.email}</td>
 								<td className="px-5 py-3">
 									<span
 										className={`text-xs font-medium px-2 py-0.5 rounded-full ${
 											u.role === "owner"
 												? "bg-purple-100 text-purple-700"
-												: "bg-green-100 text-green-700"
+												: "bg-brand/15 text-brand"
 										}`}
 									>
 										{ROLE_LABELS[u.role] ?? u.role}
@@ -95,7 +95,7 @@ export default function UsersClient({
 								<td className="px-5 py-3">
 									<span
 										className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-											u.active ? "bg-gray-100 text-gray-600" : "bg-red-100 text-red-600"
+											u.active ? "bg-surface-2 text-ink-2" : "bg-red-100 text-red-600"
 										}`}
 									>
 										{u.active ? "Activo" : "Inactivo"}
@@ -105,7 +105,7 @@ export default function UsersClient({
 									{u.id !== currentUserId && (
 										<button
 											onClick={() => handleToggleActive(u)}
-											className="text-xs text-gray-400 hover:text-gray-700 transition"
+											className="text-xs text-ink-3 hover:text-ink transition"
 										>
 											{u.active ? "Desactivar" : "Activar"}
 										</button>
@@ -115,7 +115,7 @@ export default function UsersClient({
 						))}
 						{users.length === 0 && (
 							<tr>
-								<td colSpan={5} className="px-5 py-10 text-center text-gray-400">
+								<td colSpan={5} className="px-5 py-10 text-center text-ink-3">
 									No hay usuarios registrados.
 								</td>
 							</tr>
@@ -128,39 +128,39 @@ export default function UsersClient({
 			{!showForm ? (
 				<button
 					onClick={() => setShowForm(true)}
-					className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700"
+					className="bg-brand text-pitch px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-dim"
 				>
 					+ Nuevo organizador
 				</button>
 			) : (
-				<form onSubmit={handleCreate} className="bg-white rounded-xl shadow p-6 space-y-4 max-w-md">
-					<h2 className="font-semibold text-gray-800">Nuevo organizador</h2>
+				<form onSubmit={handleCreate} className="bg-surface rounded-xl shadow p-6 space-y-4 max-w-md">
+					<h2 className="font-semibold text-ink">Nuevo organizador</h2>
 
 					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+						<label className="block text-sm font-medium text-ink mb-1">Nombre</label>
 						<input
 							value={form.name}
 							onChange={(e) => setForm({ ...form, name: e.target.value })}
 							placeholder="Carlos Ramírez"
 							required
-							className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+							className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
 						/>
 					</div>
 
 					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+						<label className="block text-sm font-medium text-ink mb-1">Email</label>
 						<input
 							type="email"
 							value={form.email}
 							onChange={(e) => setForm({ ...form, email: e.target.value })}
 							placeholder="carlos@ejemplo.com"
 							required
-							className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+							className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
 						/>
 					</div>
 
 					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">
+						<label className="block text-sm font-medium text-ink mb-1">
 							Contraseña inicial
 						</label>
 						<input
@@ -169,29 +169,29 @@ export default function UsersClient({
 							onChange={(e) => setForm({ ...form, password: e.target.value })}
 							placeholder="Mínimo 8 caracteres"
 							required
-							className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+							className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
 						/>
 					</div>
 
 					<div>
-						<label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+						<label className="block text-sm font-medium text-ink mb-1">Rol</label>
 						<select
 							value={form.role}
 							onChange={(e) => setForm({ ...form, role: e.target.value })}
-							className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+							className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
 						>
 							<option value="organizer">Organizador</option>
 							<option value="owner">Owner (superadmin)</option>
 						</select>
 					</div>
 
-					{error && <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+					{error && <p className="text-red-600 text-sm bg-red-950/40 px-3 py-2 rounded-lg">{error}</p>}
 
 					<div className="flex gap-3">
 						<button
 							type="submit"
 							disabled={saving}
-							className="bg-green-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50"
+							className="bg-brand text-pitch px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-dim disabled:opacity-50"
 						>
 							{saving ? "Creando…" : "Crear"}
 						</button>
@@ -201,7 +201,7 @@ export default function UsersClient({
 								setShowForm(false);
 								setError("");
 							}}
-							className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200"
+							className="bg-surface-2 text-ink px-4 py-2 rounded-lg text-sm hover:bg-surface-2"
 						>
 							Cancelar
 						</button>
