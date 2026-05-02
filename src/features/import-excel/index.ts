@@ -52,3 +52,16 @@ export {
 	type ResultRow,
 	type PlayerMatch,
 } from "./events";
+
+export {
+	getFieldsForType,
+	GOLEADORES_FIELDS,
+	STANDINGS_FIELDS,
+	type ImportStep,
+	type ImportTemplate,
+	type BulkPreviewResult,
+	type ImportResult,
+	type FieldDefinition,
+} from "./model";
+
+export { normalizeCell, guessHeaderRow, autoMapColumns } from "./column-mapper";
