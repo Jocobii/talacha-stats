@@ -155,9 +155,9 @@ function StepBar({ current }: { current: Step }) {
 							<div
 								className={[
 									"w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 transition-all duration-300",
-									isDone ? "bg-green-600 text-white" : "",
-									isActive ? "bg-green-700 text-white shadow-[0_0_0_4px_rgba(22,163,74,0.2)]" : "",
-									!isDone && !isActive ? "bg-gray-200 text-gray-400" : "",
+									isDone ? "bg-brand text-pitch" : "",
+									isActive ? "bg-brand/15 text-white shadow-[0_0_0_4px_rgba(22,163,74,0.2)]" : "",
+									!isDone && !isActive ? "bg-surface-2 text-ink-3" : "",
 								].join(" ")}
 							>
 								{isDone ? "✓" : i + 1}
@@ -166,9 +166,9 @@ function StepBar({ current }: { current: Step }) {
 							<span
 								className={[
 									"text-[13px] whitespace-nowrap",
-									isActive ? "inline font-semibold text-green-700" : "hidden sm:inline",
-									isDone ? "text-green-600" : "",
-									!isDone && !isActive ? "text-gray-400" : "",
+									isActive ? "inline font-semibold text-brand" : "hidden sm:inline",
+									isDone ? "text-brand" : "",
+									!isDone && !isActive ? "text-ink-3" : "",
 								].join(" ")}
 							>
 								{s.label}
@@ -178,7 +178,7 @@ function StepBar({ current }: { current: Step }) {
 							<div
 								className={[
 									"h-0.5 mx-1.5 sm:mx-2 w-3 sm:w-10 shrink-0 transition-colors duration-300",
-									isDone ? "bg-green-400" : "bg-gray-200",
+									isDone ? "bg-brand" : "bg-surface-2",
 								].join(" ")}
 							/>
 						)}
@@ -206,7 +206,7 @@ function PlayerResolutionCard({
 		<div
 			className={[
 				"rounded-2xl border-2 overflow-hidden transition-all duration-200",
-				isResolved ? "border-green-300 bg-green-50" : "border-orange-300 bg-white",
+				isResolved ? "border-brand/30 bg-brand/10" : "border-orange-300 bg-surface",
 			].join(" ")}
 		>
 			{/* Header */}
@@ -219,24 +219,24 @@ function PlayerResolutionCard({
 				<div
 					className={[
 						"w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-lg",
-						isResolved ? "bg-green-100" : "bg-orange-100",
+						isResolved ? "bg-brand/15" : "bg-orange-100",
 					].join(" ")}
 				>
 					{isResolved ? "✅" : "⚠️"}
 				</div>
 				<div className="flex-1 min-w-0">
 					<div className="flex items-baseline gap-2 flex-wrap">
-						<span className="text-base font-extrabold text-gray-900">{pm.rawName}</span>
-						{pm.teamName && <span className="text-xs text-gray-500">{pm.teamName}</span>}
+						<span className="text-base font-extrabold text-ink">{pm.rawName}</span>
+						{pm.teamName && <span className="text-xs text-ink-2">{pm.teamName}</span>}
 					</div>
 					{isResolved && resolution !== "NEW" && chosenCandidate && (
-						<p className="text-xs text-green-700 font-medium mt-0.5">
+						<p className="text-xs text-brand font-medium mt-0.5">
 							→ {chosenCandidate.fullName}
 							{chosenCandidate.alias ? ` "${chosenCandidate.alias}"` : ""}
 						</p>
 					)}
 					{isResolved && resolution === "NEW" && (
-						<p className="text-xs text-blue-700 font-medium mt-0.5">→ Se creará jugador nuevo</p>
+						<p className="text-xs text-blue-300 font-medium mt-0.5">→ Se creará jugador nuevo</p>
 					)}
 					{!isResolved && <p className="text-xs text-orange-700 mt-0.5">¿Cuál es este jugador?</p>}
 				</div>
@@ -244,7 +244,7 @@ function PlayerResolutionCard({
 
 			{/* Candidates */}
 			<div className="px-4 py-3 flex flex-col gap-2">
-				<p className="text-xs font-semibold text-gray-500 mb-1">Elige el jugador correcto:</p>
+				<p className="text-xs font-semibold text-ink-2 mb-1">Elige el jugador correcto:</p>
 
 				{pm.candidates.map((c) => {
 					const selected = resolution === c.id;
@@ -256,25 +256,25 @@ function PlayerResolutionCard({
 							className={[
 								"flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left w-full transition-all duration-150",
 								selected
-									? "border-green-500 bg-green-50"
-									: "border-gray-200 bg-gray-50 hover:border-green-300",
+									? "border-brand bg-brand/10"
+									: "border-line bg-surface-2 hover:border-brand/30",
 							].join(" ")}
 						>
 							{/* Radio */}
 							<div
 								className={[
 									"w-5 h-5 rounded-full shrink-0 border-2 flex items-center justify-center transition-all",
-									selected ? "border-green-600 bg-green-600" : "border-gray-300 bg-white",
+									selected ? "border-green-600 bg-brand" : "border-line bg-surface",
 								].join(" ")}
 							>
-								{selected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+								{selected && <div className="w-1.5 h-1.5 rounded-full bg-surface" />}
 							</div>
 
 							<div className="flex-1 min-w-0">
 								<div className="flex items-center gap-1.5 flex-wrap">
-									<span className="text-sm font-bold text-gray-900">{c.fullName}</span>
+									<span className="text-sm font-bold text-ink">{c.fullName}</span>
 									{c.alias && (
-										<span className="text-xs text-gray-500 italic">&quot;{c.alias}&quot;</span>
+										<span className="text-xs text-ink-2 italic">&quot;{c.alias}&quot;</span>
 									)}
 								</div>
 								{c.teams.length > 0 && (
@@ -282,7 +282,7 @@ function PlayerResolutionCard({
 										{c.teams.map((t, i) => (
 											<span
 												key={i}
-												className="text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full"
+												className="text-[11px] bg-surface-2 text-ink-2 px-2 py-0.5 rounded-full"
 											>
 												{t.teamName} · {t.leagueName}
 											</span>
@@ -291,7 +291,7 @@ function PlayerResolutionCard({
 								)}
 							</div>
 
-							{selected && <span className="text-green-500 text-lg shrink-0">✓</span>}
+							{selected && <span className="text-brand text-lg shrink-0">✓</span>}
 						</button>
 					);
 				})}
@@ -303,22 +303,22 @@ function PlayerResolutionCard({
 					className={[
 						"flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left w-full transition-all duration-150",
 						resolution === "NEW"
-							? "border-blue-400 bg-blue-50"
-							: "border-gray-200 bg-gray-50 hover:border-blue-300",
+							? "border-blue-400 bg-blue-950/40"
+							: "border-line bg-surface-2 hover:border-blue-800/50",
 					].join(" ")}
 				>
 					<div
 						className={[
 							"w-5 h-5 rounded-full shrink-0 border-2 flex items-center justify-center transition-all",
-							resolution === "NEW" ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white",
+							resolution === "NEW" ? "border-blue-600 bg-blue-600" : "border-line bg-surface",
 						].join(" ")}
 					>
-						{resolution === "NEW" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+						{resolution === "NEW" && <div className="w-1.5 h-1.5 rounded-full bg-surface" />}
 					</div>
 					<span
 						className={[
 							"text-sm font-semibold",
-							resolution === "NEW" ? "text-blue-700" : "text-gray-500",
+							resolution === "NEW" ? "text-blue-300" : "text-ink-2",
 						].join(" ")}
 					>
 						+ Es un jugador nuevo — crear perfil
@@ -646,12 +646,12 @@ export default function ImportPage() {
 			{/* Page header */}
 			<div className="mb-5">
 				<h1
-					className="text-2xl font-black text-gray-900 tracking-tight"
+					className="text-2xl font-black text-ink tracking-tight"
 					style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
 				>
 					Importar Jornada
 				</h1>
-				<p className="text-sm text-gray-500 mt-0.5">
+				<p className="text-sm text-ink-2 mt-0.5">
 					Sube tu archivo de Excel y en minutos tus estadísticas estarán publicadas.
 				</p>
 			</div>
@@ -665,10 +665,10 @@ export default function ImportPage() {
 				<div className="flex flex-col gap-5">
 					{/* Template suggestion banner */}
 					{relevantTemplates.length > 0 && (
-						<div className="rounded-2xl border border-green-200 bg-gradient-to-br from-green-50 to-green-100 p-4 flex items-center gap-3">
+						<div className="rounded-2xl border border-brand/20 bg-brand/10 p-4 flex items-center gap-3">
 							<span className="text-2xl shrink-0">💾</span>
 							<div className="flex-1">
-								<p className="text-sm font-semibold text-green-800">
+								<p className="text-sm font-semibold text-brand">
 									¿Usar configuración guardada?
 								</p>
 								<div className="flex gap-2 mt-2 flex-wrap">
@@ -680,8 +680,8 @@ export default function ImportPage() {
 											className={[
 												"px-3 py-1.5 rounded-full text-[13px] font-semibold border-2 transition-all",
 												selectedTemplate === t.id
-													? "bg-green-600 border-green-600 text-white"
-													: "bg-white border-green-300 text-green-800 hover:border-green-500",
+													? "bg-brand border-brand text-pitch"
+													: "bg-surface border-brand/30 text-brand hover:border-brand",
 											].join(" ")}
 										>
 											{t.name}
@@ -691,19 +691,19 @@ export default function ImportPage() {
 								</div>
 							</div>
 							{selectedTemplate && (
-								<span className="shrink-0 text-xs font-semibold text-green-700 bg-white border border-green-200 rounded-lg px-2 py-1">
+								<span className="shrink-0 text-xs font-semibold text-brand bg-surface border border-brand/20 rounded-lg px-2 py-1">
 									Mapeo automático
 								</span>
 							)}
 						</div>
 					)}
 
-					<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col gap-5">
-						<h2 className="text-lg font-bold text-gray-800">Subir archivo de jornada</h2>
+					<div className="bg-surface rounded-2xl shadow-sm border border-line p-6 flex flex-col gap-5">
+						<h2 className="text-lg font-bold text-ink">Subir archivo de jornada</h2>
 
 						{/* Liga */}
 						<div>
-							<label className="block text-sm font-semibold text-gray-700 mb-1.5">
+							<label className="block text-sm font-semibold text-ink mb-1.5">
 								Liga <span className="text-red-500">*</span>
 							</label>
 							<LeagueSelect value={leagueId} onChange={setLeagueId} />
@@ -711,7 +711,7 @@ export default function ImportPage() {
 
 						{/* Tipo de datos */}
 						<div>
-							<label className="block text-sm font-semibold text-gray-700 mb-2">
+							<label className="block text-sm font-semibold text-ink mb-2">
 								Tipo de datos
 							</label>
 							<div className="grid grid-cols-2 gap-3">
@@ -726,16 +726,16 @@ export default function ImportPage() {
 										className={[
 											"py-3.5 px-3 rounded-xl border-2 text-left transition-all",
 											importType === t
-												? "border-green-500 bg-green-50"
-												: "border-gray-200 bg-white hover:border-gray-300",
+												? "border-brand bg-brand/10"
+												: "border-line bg-surface hover:border-line",
 										].join(" ")}
 									>
 										<div
-											className={`text-[15px] font-bold ${importType === t ? "text-green-800" : "text-gray-700"}`}
+											className={`text-[15px] font-bold ${importType === t ? "text-brand" : "text-ink"}`}
 										>
 											{t === "goleadores" ? "⚽  Goleadores" : "📊  Tabla de posiciones"}
 										</div>
-										<div className="text-xs text-gray-500 mt-0.5">
+										<div className="text-xs text-ink-2 mt-0.5">
 											{t === "goleadores"
 												? "Estadísticas de jugadores"
 												: "Clasificación de equipos"}
@@ -747,7 +747,7 @@ export default function ImportPage() {
 
 						{/* Jornada */}
 						<div>
-							<label className="block text-sm font-semibold text-gray-700 mb-2">
+							<label className="block text-sm font-semibold text-ink mb-2">
 								Número de jornada
 								{importType === "goleadores" && (
 									<span className="ml-1.5 text-xs font-normal text-orange-600">* requerida</span>
@@ -757,7 +757,7 @@ export default function ImportPage() {
 								<button
 									type="button"
 									onClick={() => setJornada((j) => String(Math.max(1, (parseInt(j) || 1) - 1)))}
-									className="w-10 h-10 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-xl font-bold text-gray-600 hover:border-gray-300 transition shrink-0"
+									className="w-10 h-10 rounded-xl border border-line bg-surface flex items-center justify-center text-xl font-bold text-ink-2 hover:border-line transition shrink-0"
 								>
 									−
 								</button>
@@ -766,7 +766,7 @@ export default function ImportPage() {
 									min="1"
 									value={jornada}
 									onChange={(e) => setJornada(String(Math.max(1, parseInt(e.target.value) || 1)))}
-									className="w-20 text-center text-3xl font-black text-green-700 border-2 border-green-300 rounded-xl py-1.5 bg-green-50 outline-none focus:border-green-500"
+									className="w-20 text-center text-3xl font-black text-brand border-2 border-brand/30 rounded-xl py-1.5 bg-brand/10 outline-none focus:border-brand"
 									style={
 										{
 											fontFamily: "'Barlow Condensed', sans-serif",
@@ -777,17 +777,17 @@ export default function ImportPage() {
 								<button
 									type="button"
 									onClick={() => setJornada((j) => String((parseInt(j) || 0) + 1))}
-									className="w-10 h-10 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-xl font-bold text-gray-600 hover:border-gray-300 transition shrink-0"
+									className="w-10 h-10 rounded-xl border border-line bg-surface flex items-center justify-center text-xl font-bold text-ink-2 hover:border-line transition shrink-0"
 								>
 									+
 								</button>
-								<span className="text-sm text-gray-400 hidden sm:inline">de la temporada</span>
+								<span className="text-sm text-ink-3 hidden sm:inline">de la temporada</span>
 							</div>
 						</div>
 
 						{/* Drag & Drop */}
 						<div>
-							<label className="block text-sm font-semibold text-gray-700 mb-2">
+							<label className="block text-sm font-semibold text-ink mb-2">
 								Archivo Excel
 							</label>
 							<div
@@ -812,31 +812,31 @@ export default function ImportPage() {
 								className={[
 									"rounded-2xl border-[2.5px] p-7 text-center cursor-pointer transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-green-500",
 									file
-										? "border-green-500 border-solid bg-green-50"
+										? "border-brand border-solid bg-brand/10"
 										: dragOver
-											? "border-green-400 border-dashed bg-green-50"
-											: "border-gray-300 border-dashed hover:border-green-400 hover:bg-gray-50",
+											? "border-brand border-dashed bg-brand/10"
+											: "border-line border-dashed hover:border-brand hover:bg-surface-2",
 								].join(" ")}
 							>
 								{file ? (
 									<div className="flex items-center justify-center gap-3">
 										<span className="text-3xl">📄</span>
 										<div className="text-left">
-											<p className="text-[15px] font-bold text-green-800">{file.name}</p>
-											<p className="text-xs text-gray-500 mt-0.5">
+											<p className="text-[15px] font-bold text-brand">{file.name}</p>
+											<p className="text-xs text-ink-2 mt-0.5">
 												Archivo listo · Toca para cambiar
 											</p>
 										</div>
-										<span className="text-2xl text-green-600 ml-2">✓</span>
+										<span className="text-2xl text-brand ml-2">✓</span>
 									</div>
 								) : (
 									<div>
 										<div className="text-4xl mb-2">📂</div>
-										<p className="text-[15px] font-semibold text-gray-700 mb-1">
+										<p className="text-[15px] font-semibold text-ink mb-1">
 											Arrastra tu archivo aquí
 										</p>
-										<p className="text-sm text-gray-400 mb-3">o haz clic para seleccionar</p>
-										<span className="inline-block bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700">
+										<p className="text-sm text-ink-3 mb-3">o haz clic para seleccionar</p>
+										<span className="inline-block bg-surface-2 border border-line rounded-lg px-3 py-1.5 text-sm text-ink">
 											Seleccionar archivo .xlsx
 										</span>
 									</div>
@@ -856,10 +856,10 @@ export default function ImportPage() {
 								}}
 							/>
 							<div className="flex items-center gap-2 mt-2">
-								<span className="text-xs text-gray-400">¿No tienes el formato correcto?</span>
+								<span className="text-xs text-ink-3">¿No tienes el formato correcto?</span>
 								<a
 									href="/api/import/templates/example"
-									className="text-xs text-blue-600 font-semibold underline"
+									className="text-xs text-blue-300 font-semibold underline"
 									download
 								>
 									Descargar formato de ejemplo
@@ -869,7 +869,7 @@ export default function ImportPage() {
 					</div>
 
 					{error && (
-						<p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-2.5 rounded-xl">
+						<p className="text-red-600 text-sm bg-red-950/40 border border-red-800/50 px-4 py-2.5 rounded-xl">
 							{error}
 						</p>
 					)}
@@ -881,8 +881,8 @@ export default function ImportPage() {
 						className={[
 							"w-full py-4 rounded-2xl text-base font-bold text-white flex items-center justify-center gap-2 transition-all",
 							!loading && file && leagueId
-								? "bg-green-600 hover:bg-green-700 shadow-[0_4px_12px_rgba(22,163,74,0.35)]"
-								: "bg-gray-300 cursor-not-allowed",
+								? "bg-brand hover:bg-brand-dim shadow-[0_4px_12px_rgba(22,163,74,0.35)]"
+								: "bg-line cursor-not-allowed",
 						].join(" ")}
 					>
 						{loading ? (
@@ -906,14 +906,14 @@ export default function ImportPage() {
 				<div className="flex flex-col gap-5">
 					{/* Hoja activa (solo si hay más de una) */}
 					{sheets.length > 1 && (
-						<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-3">
-							<label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+						<div className="bg-surface rounded-2xl shadow-sm border border-line p-4 flex items-center gap-3">
+							<label className="text-sm font-semibold text-ink whitespace-nowrap">
 								Hoja del Excel:
 							</label>
 							<select
 								value={activeSheet}
 								onChange={(e) => handleSheetChange(e.target.value)}
-								className="border border-gray-200 rounded-xl px-3 py-2 text-sm flex-1 bg-white"
+								className="border border-line rounded-xl px-3 py-2 text-sm flex-1 bg-surface-2 text-ink [color-scheme:dark]"
 							>
 								{sheets.map((s) => (
 									<option key={s} value={s}>
@@ -928,21 +928,21 @@ export default function ImportPage() {
 					<div
 						className={[
 							"rounded-2xl border-2 p-4 transition-all",
-							!hasGoodHeaders ? "bg-red-50 border-red-300" : "bg-green-50 border-green-200",
+							!hasGoodHeaders ? "bg-red-950/40 border-red-800/50" : "bg-brand/10 border-brand/20",
 						].join(" ")}
 					>
 						<div className="flex items-start gap-3 mb-3">
 							<span className="text-2xl shrink-0">{!hasGoodHeaders ? "🔍" : "✅"}</span>
 							<div>
 								<p
-									className={`text-[15px] font-bold ${!hasGoodHeaders ? "text-red-800" : "text-green-800"}`}
+									className={`text-[15px] font-bold ${!hasGoodHeaders ? "text-red-400" : "text-brand"}`}
 								>
 									{!hasGoodHeaders
 										? "La fila seleccionada no parece tener encabezados — toca la fila correcta"
 										: `Fila ${headerRow + 1} tiene los encabezados correctos ✓`}
 								</p>
 								<p
-									className={`text-xs mt-0.5 ${!hasGoodHeaders ? "text-red-700" : "text-green-700"}`}
+									className={`text-xs mt-0.5 ${!hasGoodHeaders ? "text-red-400" : "text-brand"}`}
 								>
 									{!hasGoodHeaders
 										? "Los encabezados son los nombres de las columnas (Equipo, JJ, PTS…). Busca la fila que los tenga y tócala."
@@ -952,8 +952,8 @@ export default function ImportPage() {
 						</div>
 
 						{/* Mini Excel preview — rows as clickable buttons */}
-						<div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-							<div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+						<div className="bg-surface rounded-xl border border-line overflow-hidden">
+							<div className="px-3 py-2 bg-surface-2 border-b border-line text-[11px] font-bold text-ink-2 uppercase tracking-wider">
 								Vista de tu archivo — toca la fila correcta
 							</div>
 							{/* Scroll wrapper: allows horizontal scroll on mobile */}
@@ -975,15 +975,15 @@ export default function ImportPage() {
 												setHasMapInteracted(false);
 											}}
 											className={[
-												"w-full min-w-[320px] flex items-center gap-0 text-left border-b border-gray-50 last:border-0 transition-colors",
+												"w-full min-w-[320px] flex items-center gap-0 text-left border-b border-line last:border-0 transition-colors",
 												isSelected
-													? "bg-green-50 border-l-[3px] border-l-green-500"
-													: "hover:bg-blue-50/40 border-l-[3px] border-l-transparent",
+													? "bg-brand/10 border-l-[3px] border-l-green-500"
+													: "hover:bg-blue-950/40/40 border-l-[3px] border-l-transparent",
 											].join(" ")}
 										>
 											{/* Row number */}
 											<div
-												className={`w-9 py-2 text-center text-[11px] font-bold shrink-0 border-r border-gray-100 ${isSelected ? "text-green-700 bg-green-100" : "text-gray-400 bg-gray-50"}`}
+												className={`w-9 py-2 text-center text-[11px] font-bold shrink-0 border-r border-line ${isSelected ? "text-brand bg-brand/15" : "text-ink-3 bg-surface-2"}`}
 											>
 												{isSelected ? "★" : ri + 1}
 											</div>
@@ -992,13 +992,13 @@ export default function ImportPage() {
 												{row.slice(0, 6).map((cell, ci) => (
 													<div
 														key={ci}
-														className={`px-2 py-2 text-[12px] truncate w-24 shrink-0 ${isSelected ? "text-green-800 font-semibold" : looksLikeHeaders ? "text-gray-800 font-semibold" : "text-gray-400"}`}
+														className={`px-2 py-2 text-[12px] truncate w-24 shrink-0 ${isSelected ? "text-brand font-semibold" : looksLikeHeaders ? "text-ink font-semibold" : "text-ink-3"}`}
 													>
 														{cell || "—"}
 													</div>
 												))}
 												{row.length > 6 && (
-													<div className="px-2 py-2 text-[11px] text-gray-400 shrink-0 self-center">
+													<div className="px-2 py-2 text-[11px] text-ink-3 shrink-0 self-center">
 														+{row.length - 6}
 													</div>
 												)}
@@ -1006,11 +1006,11 @@ export default function ImportPage() {
 											{/* Badge */}
 											<div className="ml-auto px-3 shrink-0">
 												{isSelected ? (
-													<span className="text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
+													<span className="text-[11px] bg-brand/15 text-brand px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
 														✓
 													</span>
 												) : looksLikeHeaders ? (
-													<span className="text-[11px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap">
+													<span className="text-[11px] bg-yellow-100 text-yellow-300 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap">
 														↑
 													</span>
 												) : null}
@@ -1027,20 +1027,20 @@ export default function ImportPage() {
 						<div
 							className={[
 								"rounded-2xl border-2 p-4 flex gap-3 items-start transition-all",
-								hasMapInteracted ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-300",
+								hasMapInteracted ? "bg-brand/10 border-brand/20" : "bg-blue-950/40 border-blue-800/50",
 							].join(" ")}
 						>
 							<span className="text-2xl shrink-0">{hasMapInteracted ? "✅" : "👋"}</span>
 							<div className="flex-1 min-w-0">
 								<p
-									className={`text-[14px] font-bold mb-1 ${hasMapInteracted ? "text-green-800" : "text-blue-800"}`}
+									className={`text-[14px] font-bold mb-1 ${hasMapInteracted ? "text-brand" : "text-blue-300"}`}
 								>
 									{hasMapInteracted
 										? `${mappedCount} de ${fields.length} columnas asignadas`
 										: `Detectamos ${mappedCount} columnas — revisa y corrige si algo está mal`}
 								</p>
 								{!hasMapInteracted && (
-									<p className="text-[12px] text-blue-700 mt-1">
+									<p className="text-[12px] text-blue-300 mt-1">
 										① Toca un campo → ② toca su columna → ✅ listo
 									</p>
 								)}
@@ -1054,20 +1054,20 @@ export default function ImportPage() {
 									</p>
 								)}
 								{hasMapInteracted && allReqDone && (
-									<p className="text-xs text-green-700 mt-1">
+									<p className="text-xs text-brand mt-1">
 										Todos los campos obligatorios asignados. ¡Puedes continuar!
 									</p>
 								)}
 							</div>
 							{hasMapInteracted && (
 								<div className="shrink-0 text-center w-12">
-									<div className="h-1.5 bg-gray-200 rounded-full overflow-hidden mb-1">
+									<div className="h-1.5 bg-surface-2 rounded-full overflow-hidden mb-1">
 										<div
-											className="h-full bg-green-500 rounded-full transition-all duration-500"
+											className="h-full bg-brand/100 rounded-full transition-all duration-500"
 											style={{ width: `${(mappedCount / fields.length) * 100}%` }}
 										/>
 									</div>
-									<span className="text-[10px] text-gray-500">
+									<span className="text-[10px] text-ink-2">
 										{mappedCount}/{fields.length}
 									</span>
 								</div>
@@ -1079,9 +1079,9 @@ export default function ImportPage() {
 					{hasGoodHeaders && (
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							{/* Left: Fields */}
-							<div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-								<div className="px-4 py-3 border-b border-gray-100">
-									<h3 className="text-[14px] font-bold text-gray-900">
+							<div className="bg-surface rounded-2xl shadow-sm border border-line overflow-hidden">
+								<div className="px-4 py-3 border-b border-line">
+									<h3 className="text-[14px] font-bold text-ink">
 										{activeMapField
 											? `✏️ Asignando: ${fields.find((f) => f.key === activeMapField)?.label}`
 											: "① Toca un campo para asignarlo"}
@@ -1100,13 +1100,13 @@ export default function ImportPage() {
 												onClick={() => handleMapFieldClick(f.key)}
 												className={[
 													"flex items-center justify-between w-full px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all",
-													isMapped ? "border-green-400 bg-green-50 text-green-800" : "",
+													isMapped ? "border-brand/40 bg-surface-2 text-ink" : "",
 													isActive
-														? "border-blue-400 bg-blue-50 text-blue-800 shadow-[0_0_0_3px_rgba(37,99,235,0.12)]"
+														? "border-blue-400 bg-blue-950/40 text-blue-300 shadow-[0_0_0_3px_rgba(37,99,235,0.12)]"
 														: "",
-													isReqFail ? "border-orange-300 bg-orange-50 text-orange-800" : "",
+													isReqFail ? "border-orange-800/50 bg-orange-950/30 text-orange-300" : "",
 													!isMapped && !isActive && !isReqFail
-														? "border-gray-200 bg-gray-50 text-gray-600 hover:border-blue-300 hover:bg-blue-50/40"
+														? "border-line bg-surface-2 text-ink-2 hover:border-blue-800/50 hover:bg-blue-950/40/40"
 														: "",
 												].join(" ")}
 											>
@@ -1121,12 +1121,12 @@ export default function ImportPage() {
 												</div>
 												<div className="flex items-center gap-1.5 shrink-0 ml-2">
 													{isMapped && (
-														<span className="text-[11px] bg-white/80 px-2 py-0.5 rounded-full font-bold border border-green-200 text-green-700">
+														<span className="text-[11px] bg-brand/15 px-2 py-0.5 rounded-full font-bold border border-brand/30 text-brand">
 															{colName}
 														</span>
 													)}
 													{isActive && !isMapped && (
-														<span className="text-[11px] italic text-blue-600">
+														<span className="text-[11px] italic text-blue-300">
 															→ elige columna
 														</span>
 													)}
@@ -1153,17 +1153,17 @@ export default function ImportPage() {
 							</div>
 
 							{/* Right: Excel columns */}
-							<div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-								<div className="px-4 py-3 border-b border-gray-100">
+							<div className="bg-surface rounded-2xl shadow-sm border border-line overflow-hidden">
+								<div className="px-4 py-3 border-b border-line">
 									<h3
-										className={`text-[14px] font-bold ${activeMapField ? "text-blue-700" : "text-gray-900"}`}
+										className={`text-[14px] font-bold ${activeMapField ? "text-blue-300" : "text-ink"}`}
 									>
 										{activeMapField
 											? `② ¿Cuál columna es "${fields.find((f) => f.key === activeMapField)?.label}"?`
 											: "② Columnas de tu archivo"}
 									</h3>
 									{!activeMapField && (
-										<p className="text-[11px] text-gray-400 mt-0.5">
+										<p className="text-[11px] text-ink-3 mt-0.5">
 											Selecciona un campo a la izquierda primero
 										</p>
 									)}
@@ -1187,11 +1187,11 @@ export default function ImportPage() {
 												onKeyDown={(e) => e.key === "Enter" && handleColClick(idx)}
 												className={[
 													"flex items-center justify-between px-3 py-2 rounded-xl border-2 transition-all",
-													isMapped ? "border-green-400 bg-green-50" : "",
+													isMapped ? "border-brand/40 bg-surface-2" : "",
 													!isMapped && isClickable
-														? "border-blue-300 bg-blue-50 cursor-pointer hover:border-blue-500 hover:shadow-sm"
+														? "border-blue-800/50 bg-blue-950/40 cursor-pointer hover:border-blue-500 hover:shadow-sm"
 														: "",
-													!isMapped && !isClickable ? "border-gray-200 bg-gray-50 opacity-50" : "",
+													!isMapped && !isClickable ? "border-line bg-surface-2 opacity-50" : "",
 												].join(" ")}
 											>
 												<div className="flex items-center gap-2">
@@ -1199,23 +1199,23 @@ export default function ImportPage() {
 														className="text-[12px] font-black min-w-[18px]"
 														style={{
 															fontFamily: "'Barlow Condensed', sans-serif",
-															color: isMapped ? "#15803d" : isClickable ? "#2563eb" : "#9ca3af",
+															color: isMapped ? "var(--color-brand)" : isClickable ? "#60a5fa" : "#555555",
 														}}
 													>
 														{idx + 1}
 													</span>
 													<span
-														className={`text-[14px] font-bold ${isMapped ? "text-green-800" : "text-gray-800"}`}
+														className={`text-[14px] font-bold text-ink`}
 													>
 														{col || "(vacío)"}
 													</span>
 												</div>
 												{isMapped ? (
-													<span className="text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
+													<span className="text-[11px] bg-brand/15 text-brand px-2 py-0.5 rounded-full font-semibold">
 														✓ {assignedLabel}
 													</span>
 												) : isClickable ? (
-													<span className="text-[11px] text-blue-600 font-bold">Seleccionar →</span>
+													<span className="text-[11px] text-blue-300 font-bold">Seleccionar →</span>
 												) : null}
 											</div>
 										);
@@ -1227,12 +1227,12 @@ export default function ImportPage() {
 
 					{/* Save as template */}
 					{hasGoodHeaders && (
-						<div className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
-							<p className="text-[13px] font-semibold text-gray-600 mb-2">
+						<div className="bg-surface-2 border border-line rounded-2xl p-4">
+							<p className="text-[13px] text-white font-semibold text-ink-2 mb-2">
 								💾 Guardar esta configuración para la próxima vez
 							</p>
 							{templateSaved ? (
-								<div className="flex items-center gap-2 text-green-700 text-sm font-semibold">
+								<div className="flex items-center gap-2 text-brand text-sm font-semibold">
 									<span>✅</span> ¡Plantilla guardada!
 								</div>
 							) : (
@@ -1241,7 +1241,7 @@ export default function ImportPage() {
 										value={newTemplateName}
 										onChange={(e) => setNewTemplateName(e.target.value)}
 										placeholder="Ej: Liga Viernes – Posiciones"
-										className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-green-400"
+										className="flex-1 border border-line rounded-xl px-3 py-2 text-sm outline-none focus:border-brand"
 									/>
 									<button
 										type="button"
@@ -1250,8 +1250,8 @@ export default function ImportPage() {
 										className={[
 											"px-4 py-2 rounded-xl text-sm font-semibold text-white transition",
 											newTemplateName.trim()
-												? "bg-gray-800 hover:bg-gray-900"
-												: "bg-gray-300 cursor-not-allowed",
+												? "bg-surface-2 hover:bg-surface"
+												: "bg-line cursor-not-allowed",
 										].join(" ")}
 									>
 										{savingTemplate ? "..." : "Guardar"}
@@ -1262,7 +1262,7 @@ export default function ImportPage() {
 					)}
 
 					{error && (
-						<p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-2.5 rounded-xl">
+						<p className="text-red-600 text-sm bg-red-950/40 border border-red-800/50 px-4 py-2.5 rounded-xl">
 							{error}
 						</p>
 					)}
@@ -1274,7 +1274,7 @@ export default function ImportPage() {
 								setStep("upload");
 								setError("");
 							}}
-							className="bg-white border border-gray-200 text-gray-700 px-5 py-3.5 rounded-2xl text-[15px] font-semibold hover:bg-gray-50 transition"
+							className="bg-surface border border-line text-ink px-5 py-3.5 rounded-2xl text-[15px] font-semibold hover:bg-surface-2 transition"
 						>
 							← Atrás
 						</button>
@@ -1285,8 +1285,8 @@ export default function ImportPage() {
 							className={[
 								"flex-1 py-3.5 rounded-2xl text-[15px] font-bold text-white flex items-center justify-center gap-2 transition-all",
 								allReqDone && hasGoodHeaders && !loading
-									? "bg-green-600 hover:bg-green-700 shadow-[0_4px_12px_rgba(22,163,74,0.35)]"
-									: "bg-gray-300 cursor-not-allowed",
+									? "bg-brand hover:bg-brand-dim shadow-[0_4px_12px_rgba(22,163,74,0.35)]"
+									: "bg-line cursor-not-allowed",
 							].join(" ")}
 						>
 							{loading ? (
@@ -1316,20 +1316,20 @@ export default function ImportPage() {
 							<div
 								className={[
 									"rounded-2xl border p-4 flex items-center gap-4 flex-wrap transition-all duration-300",
-									allResolved ? "bg-green-50 border-green-200" : "bg-orange-50 border-orange-200",
+									allResolved ? "bg-brand/10 border-brand/20" : "bg-orange-50 border-orange-200",
 								].join(" ")}
 							>
 								<span className="text-3xl shrink-0">{allResolved ? "✅" : "⚠️"}</span>
 								<div className="flex-1">
 									<p
-										className={`text-base font-bold ${allResolved ? "text-green-800" : "text-orange-800"}`}
+										className={`text-base font-bold ${allResolved ? "text-brand" : "text-orange-800"}`}
 									>
 										{allResolved
 											? `¡Todo listo! ${preview.summary.players ?? 0} jugadores · ${preview.summary.totalGoals ?? 0} goles — Jornada ${preview.jornada}`
 											: `Identifica ${pendingCount} jugador${pendingCount !== 1 ? "es" : ""} antes de importar`}
 									</p>
 									<p
-										className={`text-xs mt-0.5 ${allResolved ? "text-green-700" : "text-orange-700"}`}
+										className={`text-xs mt-0.5 ${allResolved ? "text-brand" : "text-orange-700"}`}
 									>
 										{allResolved
 											? `Todo el mapeo está completo y listo para guardar.`
@@ -1342,17 +1342,17 @@ export default function ImportPage() {
 										{
 											label: "Jugadores",
 											value: preview.summary.players ?? 0,
-											color: "text-green-700",
+											color: "text-brand",
 										},
 										{
 											label: "Goles",
 											value: preview.summary.totalGoals ?? 0,
-											color: "text-green-700",
+											color: "text-brand",
 										},
 										{
 											label: "Pendientes",
 											value: pendingCount,
-											color: pendingCount > 0 ? "text-orange-700" : "text-gray-400",
+											color: pendingCount > 0 ? "text-orange-700" : "text-ink-3",
 										},
 									].map((s) => (
 										<div key={s.label} className="text-center">
@@ -1362,7 +1362,7 @@ export default function ImportPage() {
 											>
 												{s.value}
 											</div>
-											<div className="text-[10px] text-gray-400 uppercase tracking-wider">
+											<div className="text-[10px] text-ink-3 uppercase tracking-wider">
 												{s.label}
 											</div>
 										</div>
@@ -1382,7 +1382,7 @@ export default function ImportPage() {
 												className={[
 													"flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold border",
 													critical.length > 0
-														? "bg-red-50 border-red-200 text-red-800"
+														? "bg-red-950/40 border-red-800/50 text-red-400"
 														: "bg-amber-50 border-amber-200 text-amber-800",
 												].join(" ")}
 											>
@@ -1399,17 +1399,17 @@ export default function ImportPage() {
 											{critical.map((r) => (
 												<div
 													key={r.rawName}
-													className="bg-red-50 border-2 border-red-300 rounded-2xl p-4"
+													className="bg-red-950/40 border-2 border-red-800/50 rounded-2xl p-4"
 												>
 													<div className="flex items-center gap-2 mb-2">
-														<span className="font-bold text-red-700 text-sm">{r.rawName}</span>
-														<span className="ml-auto text-xs font-bold uppercase tracking-wide bg-red-200 text-red-800 px-2 py-0.5 rounded-full">
+														<span className="font-bold text-red-400 text-sm">{r.rawName}</span>
+														<span className="ml-auto text-xs font-bold uppercase tracking-wide bg-red-200 text-red-400 px-2 py-0.5 rounded-full">
 															Crítico
 														</span>
 													</div>
 													<ul className="space-y-1">
 														{r.flags.map((f, i) => (
-															<li key={i} className="text-xs text-red-700 flex items-start gap-1.5">
+															<li key={i} className="text-xs text-red-400 flex items-start gap-1.5">
 																<span className="shrink-0 mt-0.5">•</span>
 																<span>{f.message}</span>
 															</li>
@@ -1458,12 +1458,12 @@ export default function ImportPage() {
 							{ambiguous.length > 0 && (
 								<div className="flex flex-col gap-3">
 									<div className="flex items-center gap-3">
-										<div className="flex-1 h-px bg-gray-200" />
-										<span className="text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap px-2">
+										<div className="flex-1 h-px bg-surface-2" />
+										<span className="text-xs font-bold text-ink-2 uppercase tracking-wider whitespace-nowrap px-2">
 											{ambiguous.filter((p) => !!resolutions[p.rawName]).length}/{ambiguous.length}{" "}
 											identificados
 										</span>
-										<div className="flex-1 h-px bg-gray-200" />
+										<div className="flex-1 h-px bg-surface-2" />
 									</div>
 									{ambiguous.map((pm) => (
 										<PlayerResolutionCard
@@ -1480,10 +1480,10 @@ export default function ImportPage() {
 
 							{/* New players */}
 							{newPlayers.length > 0 && (
-								<div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+								<div className="bg-blue-950/40 border border-blue-800/50 rounded-2xl p-4">
 									<div className="flex items-center gap-2 mb-3">
 										<span className="text-base">🆕</span>
-										<p className="text-sm font-bold text-blue-800">
+										<p className="text-sm font-bold text-blue-300">
 											{newPlayers.length === 1
 												? "1 jugador nuevo"
 												: `${newPlayers.length} jugadores nuevos`}{" "}
@@ -1494,14 +1494,14 @@ export default function ImportPage() {
 										{newPlayers.map((pm) => (
 											<div
 												key={pm.rawName}
-												className="flex items-center gap-2 bg-white rounded-xl px-3 py-2"
+												className="flex items-center gap-2 bg-surface rounded-xl px-3 py-2"
 											>
 												<span className="text-blue-500 text-sm">•</span>
-												<span className="text-sm font-semibold text-gray-900 flex-1">
+												<span className="text-sm font-semibold text-ink flex-1">
 													{pm.rawName}
 												</span>
 												{pm.teamName && (
-													<span className="text-xs text-gray-500">{pm.teamName}</span>
+													<span className="text-xs text-ink-2">{pm.teamName}</span>
 												)}
 											</div>
 										))}
@@ -1511,28 +1511,28 @@ export default function ImportPage() {
 
 							{/* Confirmed (collapsible) */}
 							{confirmed.length > 0 && (
-								<details className="bg-white border border-gray-200 rounded-2xl overflow-hidden group">
-									<summary className="px-4 py-3 cursor-pointer text-sm font-semibold text-gray-600 select-none list-none flex items-center gap-2">
-										<span className="text-green-500">✅</span>
+								<details className="bg-surface border border-line rounded-2xl overflow-hidden group">
+									<summary className="px-4 py-3 cursor-pointer text-sm font-semibold text-ink-2 select-none list-none flex items-center gap-2">
+										<span className="text-brand">✅</span>
 										{confirmed.length === 1 ? "1 jugador" : `${confirmed.length} jugadores`}{" "}
 										reconocidos automáticamente
-										<span className="ml-auto text-xs text-gray-400 group-open:hidden">
+										<span className="ml-auto text-xs text-ink-3 group-open:hidden">
 											Ver lista ▾
 										</span>
-										<span className="ml-auto text-xs text-gray-400 hidden group-open:inline">
+										<span className="ml-auto text-xs text-ink-3 hidden group-open:inline">
 											Ocultar ▴
 										</span>
 									</summary>
-									<div className="border-t border-gray-100">
+									<div className="border-t border-line">
 										{confirmed.map((pm) => (
 											<div
 												key={pm.rawName}
-												className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-50 last:border-0"
+												className="flex items-center gap-2 px-4 py-2.5 border-b border-line last:border-0"
 											>
-												<span className="text-green-500 text-sm shrink-0">✓</span>
-												<span className="text-sm font-semibold text-gray-800">{pm.rawName}</span>
+												<span className="text-brand text-sm shrink-0">✓</span>
+												<span className="text-sm font-semibold text-ink">{pm.rawName}</span>
 												{pm.playerId && (
-													<span className="text-xs text-gray-400 ml-1">identificado</span>
+													<span className="text-xs text-ink-3 ml-1">identificado</span>
 												)}
 											</div>
 										))}
@@ -1542,9 +1542,9 @@ export default function ImportPage() {
 
 							{/* Blocking message */}
 							{pendingCount > 0 && (
-								<div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex gap-2 items-center">
+								<div className="bg-red-950/40 border border-red-800/50 rounded-xl px-4 py-3 flex gap-2 items-center">
 									<span className="text-lg shrink-0">🚫</span>
-									<p className="text-sm text-red-800 font-medium">
+									<p className="text-sm text-red-400 font-medium">
 										Identifica los {pendingCount} jugador{pendingCount !== 1 ? "es" : ""} marcados
 										con ⚠️ arriba para poder importar.
 									</p>
@@ -1556,35 +1556,35 @@ export default function ImportPage() {
 					{/* ── POSICIONES ── */}
 					{preview.type === "standings" && (
 						<>
-							<div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-4 flex-wrap">
+							<div className="bg-brand/10 border border-brand/20 rounded-2xl p-4 flex items-center gap-4 flex-wrap">
 								<span className="text-3xl">✅</span>
 								<div className="flex-1">
-									<p className="text-base font-bold text-green-800">
+									<p className="text-base font-bold text-brand">
 										¡Todo se ve bien! {(preview.rows as StandingsRow[]).length} equipos para la
 										Jornada {preview.jornada}
 									</p>
-									<p className="text-xs text-green-700 mt-0.5">
+									<p className="text-xs text-brand mt-0.5">
 										{preview.summary.teams} equipos listos para importar.
 									</p>
 								</div>
 								<div className="text-center shrink-0">
 									<div
-										className="text-2xl font-black text-green-700"
+										className="text-2xl font-black text-brand"
 										style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
 									>
 										{preview.summary.teams}
 									</div>
-									<div className="text-[10px] text-gray-400 uppercase tracking-wider">Equipos</div>
+									<div className="text-[10px] text-ink-3 uppercase tracking-wider">Equipos</div>
 								</div>
 							</div>
 
 							{/* Warnings */}
 							{preview.warnings.length > 0 && (
-								<div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
-									<p className="font-semibold text-yellow-800 text-sm mb-2">Avisos</p>
+								<div className="bg-yellow-950/40 border border-yellow-800/50 rounded-2xl p-4">
+									<p className="font-semibold text-yellow-300 text-sm mb-2">Avisos</p>
 									<ul className="space-y-1">
 										{preview.warnings.map((w, i) => (
-											<li key={i} className="text-xs text-yellow-700">
+											<li key={i} className="text-xs text-yellow-300">
 												⚠ {w}
 											</li>
 										))}
@@ -1593,14 +1593,14 @@ export default function ImportPage() {
 							)}
 
 							{/* Table */}
-							<div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-								<div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-									<h3 className="text-sm font-bold text-gray-800">Vista previa de los datos</h3>
+							<div className="bg-surface rounded-2xl shadow-sm border border-line overflow-hidden">
+								<div className="px-4 py-3 border-b border-line flex items-center justify-between">
+									<h3 className="text-sm font-bold text-ink">Vista previa de los datos</h3>
 									{excludedRows.size > 0 && (
 										<button
 											type="button"
 											onClick={() => setExcludedRows(new Set())}
-											className="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1 hover:bg-gray-200 transition"
+											className="text-xs text-ink-2 bg-surface-2 rounded-lg px-3 py-1 hover:bg-surface-2 transition"
 										>
 											Restaurar todos
 										</button>
@@ -1608,45 +1608,45 @@ export default function ImportPage() {
 								</div>
 								<div className="overflow-x-auto">
 									<table className="w-full text-sm">
-										<thead className="bg-gray-50">
+										<thead className="bg-surface-2">
 											<tr>
 												{["#", "Equipo", "JJ", "G", "E", "P", "GF", "GC", "Pts", ""].map((h, i) => (
 													<th
 														key={i}
-														className={`px-3 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap ${i <= 1 ? "text-left" : "text-center"}`}
+														className={`px-3 py-2.5 text-[11px] font-bold text-ink-2 uppercase tracking-wider whitespace-nowrap ${i <= 1 ? "text-left" : "text-center"}`}
 													>
 														{h}
 													</th>
 												))}
 											</tr>
 										</thead>
-										<tbody className="divide-y divide-gray-50">
+										<tbody className="divide-y divide-line">
 											{(preview.rows as StandingsRow[]).map((r, i) => {
 												const key = `s:${i}:${r.teamName}`;
 												const excluded = excludedRows.has(key);
 												return (
 													<tr
 														key={r.teamName}
-														className={`transition-opacity ${excluded ? "opacity-40 bg-red-50" : i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}
+														className={`transition-opacity ${excluded ? "opacity-40 bg-red-950/40" : i % 2 === 0 ? "bg-surface" : "bg-surface-2/50"}`}
 													>
-														<td className="px-3 py-2.5 text-gray-400 text-xs">{r.position}</td>
+														<td className="px-3 py-2.5 text-ink-3 text-xs">{r.position}</td>
 														<td
-															className={`px-3 py-2.5 font-semibold text-gray-900 ${excluded ? "line-through" : ""}`}
+															className={`px-3 py-2.5 font-semibold text-ink ${excluded ? "line-through" : ""}`}
 														>
 															{r.teamName}
 														</td>
-														<td className="px-3 py-2.5 text-center text-gray-600">{r.played}</td>
-														<td className="px-3 py-2.5 text-center font-semibold text-green-600">
+														<td className="px-3 py-2.5 text-center text-ink-2">{r.played}</td>
+														<td className="px-3 py-2.5 text-center font-semibold text-brand">
 															{r.wins}
 														</td>
-														<td className="px-3 py-2.5 text-center text-gray-500">{r.draws}</td>
+														<td className="px-3 py-2.5 text-center text-ink-2">{r.draws}</td>
 														<td className="px-3 py-2.5 text-center text-red-500">{r.losses}</td>
-														<td className="px-3 py-2.5 text-center text-gray-600">{r.goalsFor}</td>
-														<td className="px-3 py-2.5 text-center text-gray-600">
+														<td className="px-3 py-2.5 text-center text-ink-2">{r.goalsFor}</td>
+														<td className="px-3 py-2.5 text-center text-ink-2">
 															{r.goalsAgainst}
 														</td>
 														<td
-															className="px-3 py-2.5 text-center font-black text-green-700 text-base"
+															className="px-3 py-2.5 text-center font-black text-brand text-base"
 															style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
 														>
 															{r.points}
@@ -1662,7 +1662,7 @@ export default function ImportPage() {
 																	})
 																}
 																title={excluded ? "Restaurar" : "Excluir fila"}
-																className="text-gray-300 hover:text-red-500 transition text-base leading-none"
+																className="text-ink-2 hover:text-red-500 transition text-base leading-none"
 															>
 																{excluded ? "↩" : "✕"}
 															</button>
@@ -1676,7 +1676,7 @@ export default function ImportPage() {
 							</div>
 
 							{excludedRows.size > 0 && (
-								<div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-2.5 text-sm text-yellow-800">
+								<div className="bg-yellow-950/40 border border-yellow-800/50 rounded-xl px-4 py-2.5 text-sm text-yellow-300">
 									⚠️ {excludedRows.size} equipo{excludedRows.size !== 1 ? "s" : ""} excluido
 									{excludedRows.size !== 1 ? "s" : ""} — no se importará
 									{excludedRows.size !== 1 ? "n" : ""}.
@@ -1686,7 +1686,7 @@ export default function ImportPage() {
 					)}
 
 					{error && (
-						<p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-2.5 rounded-xl">
+						<p className="text-red-600 text-sm bg-red-950/40 border border-red-800/50 px-4 py-2.5 rounded-xl">
 							{error}
 						</p>
 					)}
@@ -1715,7 +1715,7 @@ export default function ImportPage() {
 											setStep("map");
 											setError("");
 										}}
-										className="bg-white border border-gray-200 text-gray-700 px-5 py-3.5 rounded-2xl text-[15px] font-semibold hover:bg-gray-50 transition"
+										className="bg-surface border border-line text-ink px-5 py-3.5 rounded-2xl text-[15px] font-semibold hover:bg-surface-2 transition"
 									>
 										← Atrás
 									</button>
@@ -1726,8 +1726,8 @@ export default function ImportPage() {
 										className={[
 											"flex-1 py-3.5 rounded-2xl text-[15px] font-bold text-white flex items-center justify-center gap-2 transition-all duration-300",
 											canConfirm && !loading
-												? "bg-green-600 hover:bg-green-700 shadow-[0_4px_12px_rgba(22,163,74,0.35)]"
-												: "bg-gray-300 cursor-not-allowed",
+												? "bg-brand hover:bg-brand-dim shadow-[0_4px_12px_rgba(22,163,74,0.35)]"
+												: "bg-line cursor-not-allowed",
 										].join(" ")}
 									>
 										{loading ? (
@@ -1758,7 +1758,7 @@ export default function ImportPage() {
 			{step === "done" && result && (
 				<div className="flex flex-col gap-5">
 					{/* Big success */}
-					<div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-3xl p-8 text-center">
+					<div className="bg-brand/10 border-2 border-brand/20 rounded-3xl p-8 text-center">
 						<div
 							className="text-5xl mb-3"
 							style={{ animation: "successBounce 0.5s cubic-bezier(0.34,1.56,0.64,1) both" }}
@@ -1766,12 +1766,12 @@ export default function ImportPage() {
 							🎉
 						</div>
 						<h2
-							className="text-2xl font-black text-green-800 mb-1"
+							className="text-2xl font-black text-brand mb-1"
 							style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
 						>
 							¡Importación completada{result.content ? ` · Jornada ${result.content.jornada}` : ""}!
 						</h2>
-						<p className="text-sm text-green-700 mb-6">
+						<p className="text-sm text-brand mb-6">
 							{result.upserted} registros actualizados
 							{result.created > 0 ? ` · ${result.created} nuevos` : ""}
 						</p>
@@ -1783,19 +1783,19 @@ export default function ImportPage() {
 								<div key={s.label} className="text-center">
 									<div className="text-base mb-1">{s.icon}</div>
 									<div
-										className="text-3xl font-black text-green-800"
+										className="text-3xl font-black text-brand"
 										style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
 									>
 										{s.value}
 									</div>
-									<div className="text-xs text-gray-500">{s.label}</div>
+									<div className="text-xs text-ink-2">{s.label}</div>
 								</div>
 							))}
 						</div>
 						<button
 							type="button"
 							onClick={reset}
-							className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-2xl text-sm font-bold shadow-[0_4px_12px_rgba(22,163,74,0.4)] transition"
+							className="bg-brand hover:bg-brand-dim text-pitch px-6 py-3 rounded-2xl text-sm font-bold shadow-[0_4px_12px_rgba(22,163,74,0.4)] transition"
 						>
 							＋ Nueva importación
 						</button>
@@ -1804,18 +1804,18 @@ export default function ImportPage() {
 					{result.content && (
 						<>
 							{/* Download image */}
-							<div className="bg-white border border-gray-200 rounded-2xl p-5 flex items-center gap-4">
+							<div className="bg-surface border border-line rounded-2xl p-5 flex items-center gap-4">
 								<span className="text-3xl shrink-0">🖼️</span>
 								<div className="flex-1">
-									<h3 className="text-sm font-bold text-gray-800">Imagen de jornada lista</h3>
-									<p className="text-xs text-gray-500 mt-0.5">
+									<h3 className="text-sm font-bold text-ink">Imagen de jornada lista</h3>
+									<p className="text-xs text-ink-2 mt-0.5">
 										1080×1080 · Lista para WhatsApp y Facebook
 									</p>
 								</div>
 								<a
 									href={result.content.imageUrl}
 									download
-									className="flex items-center gap-2 bg-gray-900 hover:bg-gray-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shrink-0"
+									className="flex items-center gap-2 bg-surface hover:bg-surface-2 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shrink-0"
 								>
 									↓ Descargar
 								</a>
@@ -1823,9 +1823,9 @@ export default function ImportPage() {
 
 							{/* Pills */}
 							{result.content.pills.length > 0 && (
-								<div className="bg-white border border-gray-200 rounded-2xl p-5">
-									<h3 className="text-sm font-bold text-gray-800 mb-1">Highlights de la jornada</h3>
-									<p className="text-xs text-gray-400 mb-4">
+								<div className="bg-surface border border-line rounded-2xl p-5">
+									<h3 className="text-sm font-bold text-ink mb-1">Highlights de la jornada</h3>
+									<p className="text-xs text-ink-3 mb-4">
 										Toca para copiar y compartir en WhatsApp
 									</p>
 									<div className="flex flex-col gap-2">
@@ -1844,17 +1844,17 @@ export default function ImportPage() {
 												className={[
 													"flex items-start justify-between gap-3 p-3 rounded-xl border text-left transition-all",
 													copiedIdx === i
-														? "bg-green-50 border-green-200"
-														: "bg-gray-50 border-gray-200 hover:bg-gray-100",
+														? "bg-brand/10 border-brand/20"
+														: "bg-surface-2 border-line hover:bg-surface-2",
 												].join(" ")}
 											>
 												<div className="min-w-0">
-													<p className="text-sm font-bold text-gray-800 leading-snug">
+													<p className="text-sm font-bold text-ink leading-snug">
 														{pill.headline}
 													</p>
-													<p className="text-xs text-gray-500 mt-0.5 leading-snug">{pill.detail}</p>
+													<p className="text-xs text-ink-2 mt-0.5 leading-snug">{pill.detail}</p>
 												</div>
-												<span className="shrink-0 text-xs font-semibold text-gray-400 mt-0.5">
+												<span className="shrink-0 text-xs font-semibold text-ink-3 mt-0.5">
 													{copiedIdx === i ? "✓ Copiado" : "📋"}
 												</span>
 											</button>
@@ -1867,11 +1867,11 @@ export default function ImportPage() {
 
 					{/* Warnings */}
 					{result.warnings.length > 0 && (
-						<div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
-							<p className="text-sm font-semibold text-yellow-800 mb-2">Avisos de la importación</p>
+						<div className="bg-yellow-950/40 border border-yellow-800/50 rounded-2xl p-4">
+							<p className="text-sm font-semibold text-yellow-300 mb-2">Avisos de la importación</p>
 							<ul className="space-y-1">
 								{result.warnings.map((w, i) => (
-									<li key={i} className="text-xs text-yellow-700">
+									<li key={i} className="text-xs text-yellow-300">
 										⚠ {w}
 									</li>
 								))}
