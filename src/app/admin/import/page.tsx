@@ -162,10 +162,11 @@ function StepBar({ current }: { current: Step }) {
 							>
 								{isDone ? "✓" : i + 1}
 							</div>
+							{/* Desktop: always show label. Mobile: only show label for active step */}
 							<span
 								className={[
 									"text-[13px] whitespace-nowrap",
-									isActive ? "font-semibold text-green-700" : "",
+									isActive ? "inline font-semibold text-green-700" : "hidden sm:inline",
 									isDone ? "text-green-600" : "",
 									!isDone && !isActive ? "text-gray-400" : "",
 								].join(" ")}
@@ -176,7 +177,7 @@ function StepBar({ current }: { current: Step }) {
 						{i < steps.length - 1 && (
 							<div
 								className={[
-									"h-0.5 w-10 mx-2 shrink-0 transition-colors duration-300",
+									"h-0.5 mx-1.5 sm:mx-2 w-3 sm:w-10 shrink-0 transition-colors duration-300",
 									isDone ? "bg-green-400" : "bg-gray-200",
 								].join(" ")}
 							/>
@@ -641,7 +642,7 @@ export default function ImportPage() {
 
 	// ── Render ───────────────────────────────────────────────────────────
 	return (
-		<div className="max-w-3xl">
+		<div className="max-w-3xl mx-auto">
 			{/* Page header */}
 			<div className="mb-5">
 				<h1
@@ -780,7 +781,7 @@ export default function ImportPage() {
 								>
 									+
 								</button>
-								<span className="text-sm text-gray-400">de la temporada</span>
+								<span className="text-sm text-gray-400 hidden sm:inline">de la temporada</span>
 							</div>
 						</div>
 
@@ -953,68 +954,71 @@ export default function ImportPage() {
 						{/* Mini Excel preview — rows as clickable buttons */}
 						<div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
 							<div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-								Vista de tu archivo — toca la fila con los nombres de columnas
+								Vista de tu archivo — toca la fila correcta
 							</div>
-							{excelPreview.slice(0, 5).map((row, ri) => {
-								const isSelected = ri === headerRow;
-								const looksLikeHeaders = row.some(
-									(c) =>
-										c && isNaN(Number(c)) && c.length > 0 && new Set(row.filter(Boolean)).size > 1,
-								);
-								return (
-									<button
-										key={ri}
-										type="button"
-										onClick={() => {
-											setHeaderRow(ri);
-											setColumnMap(autoMapColumns(row, importType));
-											setActiveMapField(null);
-											setHasMapInteracted(false);
-										}}
-										className={[
-											"w-full flex items-center gap-0 text-left border-b border-gray-50 last:border-0 transition-colors",
-											isSelected
-												? "bg-green-50 border-l-[3px] border-l-green-500"
-												: "hover:bg-blue-50/40 border-l-[3px] border-l-transparent",
-										].join(" ")}
-									>
-										{/* Row number */}
-										<div
-											className={`w-9 py-2 text-center text-[11px] font-bold shrink-0 border-r border-gray-100 ${isSelected ? "text-green-700 bg-green-100" : "text-gray-400 bg-gray-50"}`}
+							{/* Scroll wrapper: allows horizontal scroll on mobile */}
+							<div className="overflow-x-auto">
+								{excelPreview.slice(0, 5).map((row, ri) => {
+									const isSelected = ri === headerRow;
+									const looksLikeHeaders = row.some(
+										(c) =>
+											c && isNaN(Number(c)) && c.length > 0 && new Set(row.filter(Boolean)).size > 1,
+									);
+									return (
+										<button
+											key={ri}
+											type="button"
+											onClick={() => {
+												setHeaderRow(ri);
+												setColumnMap(autoMapColumns(row, importType));
+												setActiveMapField(null);
+												setHasMapInteracted(false);
+											}}
+											className={[
+												"w-full min-w-[320px] flex items-center gap-0 text-left border-b border-gray-50 last:border-0 transition-colors",
+												isSelected
+													? "bg-green-50 border-l-[3px] border-l-green-500"
+													: "hover:bg-blue-50/40 border-l-[3px] border-l-transparent",
+											].join(" ")}
 										>
-											{isSelected ? "★" : ri + 1}
-										</div>
-										{/* Cell previews */}
-										<div className="flex flex-1 overflow-hidden px-1">
-											{row.slice(0, 7).map((cell, ci) => (
-												<div
-													key={ci}
-													className={`px-2 py-2 text-[12px] truncate ${ci === 1 ? "flex-[2]" : "flex-1"} ${isSelected ? "text-green-800 font-semibold" : looksLikeHeaders ? "text-gray-800 font-semibold" : "text-gray-400"}`}
-												>
-													{cell || "—"}
-												</div>
-											))}
-											{row.length > 7 && (
-												<div className="px-2 py-2 text-[11px] text-gray-400 shrink-0">
-													+{row.length - 7}
-												</div>
-											)}
-										</div>
-										{/* Badge */}
-										<div className="px-3 shrink-0">
-											{isSelected ? (
-												<span className="text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
-													✓ Seleccionada
-												</span>
-											) : looksLikeHeaders ? (
-												<span className="text-[11px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap">
-													← Parece encabezado
-												</span>
-											) : null}
-										</div>
-									</button>
-								);
-							})}
+											{/* Row number */}
+											<div
+												className={`w-9 py-2 text-center text-[11px] font-bold shrink-0 border-r border-gray-100 ${isSelected ? "text-green-700 bg-green-100" : "text-gray-400 bg-gray-50"}`}
+											>
+												{isSelected ? "★" : ri + 1}
+											</div>
+											{/* Cell previews — fixed width per cell so they don't squish */}
+											<div className="flex px-1">
+												{row.slice(0, 6).map((cell, ci) => (
+													<div
+														key={ci}
+														className={`px-2 py-2 text-[12px] truncate w-24 shrink-0 ${isSelected ? "text-green-800 font-semibold" : looksLikeHeaders ? "text-gray-800 font-semibold" : "text-gray-400"}`}
+													>
+														{cell || "—"}
+													</div>
+												))}
+												{row.length > 6 && (
+													<div className="px-2 py-2 text-[11px] text-gray-400 shrink-0 self-center">
+														+{row.length - 6}
+													</div>
+												)}
+											</div>
+											{/* Badge */}
+											<div className="ml-auto px-3 shrink-0">
+												{isSelected ? (
+													<span className="text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
+														✓
+													</span>
+												) : looksLikeHeaders ? (
+													<span className="text-[11px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap">
+														↑
+													</span>
+												) : null}
+											</div>
+										</button>
+									);
+								})}
+							</div>
 						</div>
 					</div>
 
@@ -1027,7 +1031,7 @@ export default function ImportPage() {
 							].join(" ")}
 						>
 							<span className="text-2xl shrink-0">{hasMapInteracted ? "✅" : "👋"}</span>
-							<div className="flex-1">
+							<div className="flex-1 min-w-0">
 								<p
 									className={`text-[14px] font-bold mb-1 ${hasMapInteracted ? "text-green-800" : "text-blue-800"}`}
 								>
@@ -1036,24 +1040,9 @@ export default function ImportPage() {
 										: `Detectamos ${mappedCount} columnas — revisa y corrige si algo está mal`}
 								</p>
 								{!hasMapInteracted && (
-									<div className="flex items-center gap-2 flex-wrap">
-										<div className="flex items-center gap-1.5 bg-blue-100 rounded-lg px-2.5 py-1">
-											<span>1️⃣</span>
-											<span className="text-[12px] font-semibold text-blue-800">Toca un campo</span>
-										</div>
-										<span className="text-blue-300 font-bold">→</span>
-										<div className="flex items-center gap-1.5 bg-blue-100 rounded-lg px-2.5 py-1">
-											<span>2️⃣</span>
-											<span className="text-[12px] font-semibold text-blue-800">
-												Toca su columna
-											</span>
-										</div>
-										<span className="text-blue-300 font-bold">→</span>
-										<div className="flex items-center gap-1.5 bg-green-100 rounded-lg px-2.5 py-1">
-											<span>✅</span>
-											<span className="text-[12px] font-semibold text-green-800">¡Listo!</span>
-										</div>
-									</div>
+									<p className="text-[12px] text-blue-700 mt-1">
+										① Toca un campo → ② toca su columna → ✅ listo
+									</p>
 								)}
 								{hasMapInteracted && !allReqDone && (
 									<p className="text-xs text-orange-700 mt-1">
@@ -1088,7 +1077,7 @@ export default function ImportPage() {
 
 					{/* ── Two-panel mapping — only when headers look good ── */}
 					{hasGoodHeaders && (
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							{/* Left: Fields */}
 							<div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 								<div className="px-4 py-3 border-b border-gray-100">
@@ -1348,7 +1337,7 @@ export default function ImportPage() {
 									</p>
 								</div>
 								{/* Mini stats */}
-								<div className="flex gap-4 shrink-0">
+								<div className="flex gap-4 shrink-0 w-full sm:w-auto justify-around sm:justify-start">
 									{[
 										{
 											label: "Jugadores",
