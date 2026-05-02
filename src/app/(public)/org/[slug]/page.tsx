@@ -107,9 +107,7 @@ export default async function OrgPublicPage({ params }: Props) {
 					<OrgStatsStrip stats={hubStats} totalTeams={totalTeams} />
 				</div>
 			</header>
-			{
-				org.status === "trial" && <TrialWarning org={org} />
-			}
+			{org.status === "trial" && <TrialWarning org={org} />}
 			{/* ── Ticker B ── */}
 			{tickerItems.length > 0 && <OrgTicker items={tickerItems} />}
 

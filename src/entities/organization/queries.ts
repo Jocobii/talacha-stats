@@ -541,6 +541,5 @@ export async function approveOrganization(orgId: string): Promise<{
 	return {
 		org: updated,
 		organizerEmail: organizer?.email ?? null,
-		organizerName: organizer?.name ?? null,
 	};
 }
