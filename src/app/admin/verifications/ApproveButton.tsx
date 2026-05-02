@@ -33,7 +33,7 @@ export default function ApproveButton({ orgId, orgName }: { orgId: string; orgNa
 			<button
 				onClick={handleApprove}
 				disabled={loading}
-				className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-lg text-sm transition"
+				className="bg-brand hover:bg-brand-dim disabled:opacity-50 text-pitch font-bold px-4 py-2 rounded-lg text-sm transition"
 			>
 				{loading ? "Verificando..." : "Aprobar"}
 			</button>

@@ -38,8 +38,8 @@ export default async function PlayersPage({
 		<div>
 			<div className="flex items-center justify-between mb-6">
 				<div>
-					<h1 className="text-2xl font-bold text-gray-800">Jugadores</h1>
-					<p className="text-sm text-gray-400 mt-0.5">
+					<h1 className="text-2xl font-bold text-ink">Jugadores</h1>
+					<p className="text-sm text-ink-3 mt-0.5">
 						{city}
 						{meta ? ` · ${meta.total} jugadores` : ""}
 						{meta && meta.totalPages > 1 && ` · pág. ${meta.page}/${meta.totalPages}`}
@@ -47,7 +47,7 @@ export default async function PlayersPage({
 				</div>
 				<Link
 					href="/admin/players/new"
-					className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700"
+					className="bg-brand text-pitch px-4 py-2 rounded-lg text-sm hover:bg-brand-dim"
 				>
 					+ Nuevo jugador
 				</Link>
@@ -69,13 +69,13 @@ export default async function PlayersPage({
 			</div>
 
 			{players.length === 0 ? (
-				<p className="text-gray-500 py-8 text-center text-sm">
+				<p className="text-ink-2 py-8 text-center text-sm">
 					No se encontraron jugadores en {city}.
 				</p>
 			) : (
-				<div className="bg-white rounded-lg shadow overflow-hidden">
+				<div className="bg-surface rounded-lg shadow overflow-hidden">
 					<table className="w-full text-sm">
-						<thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+						<thead className="bg-surface-2 text-ink-2 uppercase text-xs">
 							<tr>
 								<th className="px-4 py-3 text-left">Nombre</th>
 								<th className="px-4 py-3 text-left">Apodo</th>
@@ -83,23 +83,23 @@ export default async function PlayersPage({
 								<th className="px-4 py-3 text-left">Acciones</th>
 							</tr>
 						</thead>
-						<tbody className="divide-y divide-gray-100">
+						<tbody className="divide-y divide-line">
 							{players.map((p) => (
-								<tr key={p.id} className="hover:bg-gray-50">
-									<td className="px-4 py-3 font-medium text-gray-800">{p.fullName}</td>
-									<td className="px-4 py-3 text-gray-500">{p.alias ?? "—"}</td>
-									<td className="px-4 py-3 text-gray-500">{p.phone ?? "—"}</td>
+								<tr key={p.id} className="hover:bg-surface-2">
+									<td className="px-4 py-3 font-medium text-ink">{p.fullName}</td>
+									<td className="px-4 py-3 text-ink-2">{p.alias ?? "—"}</td>
+									<td className="px-4 py-3 text-ink-2">{p.phone ?? "—"}</td>
 									<td className="px-4 py-3 flex items-center gap-3">
 										<Link
 											href={`/admin/players/${p.id}`}
-											className="text-green-600 hover:underline text-sm"
+											className="text-brand hover:underline text-sm"
 										>
 											Ver stats
 										</Link>
 										<Link
 											href={`/player/${p.id}`}
 											target="_blank"
-											className="text-gray-400 hover:text-gray-700 text-sm"
+											className="text-ink-3 hover:text-ink text-sm"
 										>
 											Perfil ↗
 										</Link>

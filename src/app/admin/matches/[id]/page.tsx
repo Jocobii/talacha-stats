@@ -34,30 +34,30 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
 			<div className="mb-6">
 				<Link
 					href={`/admin/leagues/${match.league.id}`}
-					className="text-sm text-gray-500 hover:underline"
+					className="text-sm text-ink-2 hover:underline"
 				>
 					← {match.league.name}
 				</Link>
 				<div className="flex items-center justify-between mt-2">
-					<h1 className="text-xl font-bold text-gray-800">
+					<h1 className="text-xl font-bold text-ink">
 						{match.homeTeam.name} vs {match.awayTeam.name}
 					</h1>
 					<div className="flex gap-2">
 						<Link
 							href={`/admin/matches/${id}/preview`}
-							className="bg-yellow-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-yellow-600"
+							className="bg-yellow-950/400 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-yellow-600"
 						>
 							📋 Vista Narrador
 						</Link>
 					</div>
 				</div>
-				<p className="text-gray-500 text-sm">
+				<p className="text-ink-2 text-sm">
 					J{match.matchday ?? "?"} · {match.matchDate}
 				</p>
 			</div>
 
 			{/* Marcador */}
-			<div className="bg-green-700 text-white rounded-xl p-6 text-center mb-6">
+			<div className="bg-brand/15 text-brand rounded-xl p-6 text-center mb-6">
 				<div className="flex items-center justify-center gap-8">
 					<div className="flex-1 text-right">
 						<p className="font-bold text-lg">{match.homeTeam.name}</p>
@@ -81,7 +81,7 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
 			<div className="mt-6">
 				<Link
 					href={`/admin/matches/${id}/preview`}
-					className="inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg hover:bg-yellow-100 transition"
+					className="inline-flex items-center gap-2 bg-yellow-950/40 border border-yellow-200 text-yellow-300 px-4 py-3 rounded-lg hover:bg-yellow-100 transition"
 				>
 					<span className="text-lg">📋</span>
 					<div>
@@ -107,19 +107,19 @@ function EventList({
 	}[];
 }) {
 	return (
-		<div className="bg-white rounded-lg shadow p-4">
-			<h3 className="font-semibold text-gray-700 mb-3">{title}</h3>
+		<div className="bg-surface rounded-lg shadow p-4">
+			<h3 className="font-semibold text-ink mb-3">{title}</h3>
 			{events.length === 0 ? (
-				<p className="text-sm text-gray-400">Sin eventos.</p>
+				<p className="text-sm text-ink-3">Sin eventos.</p>
 			) : (
 				<ul className="space-y-2">
 					{events.map((e) => (
 						<li key={e.id} className="flex items-center gap-2 text-sm">
 							<span>{EVENT_LABELS[e.eventType] ?? e.eventType}</span>
-							<span className="font-medium text-gray-800">
+							<span className="font-medium text-ink">
 								{e.player.alias ?? e.player.fullName}
 							</span>
-							{e.minute && <span className="text-gray-400 text-xs">{e.minute}&apos;</span>}
+							{e.minute && <span className="text-ink-3 text-xs">{e.minute}&apos;</span>}
 						</li>
 					))}
 				</ul>

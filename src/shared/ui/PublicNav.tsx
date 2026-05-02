@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, Building2, Users, CalendarDays, BarChart3, Info } from "lucide-react";
+import { Home, Trophy, Building2, Users, CalendarDays, BarChart3, Info, Settings } from "lucide-react";
 
 const NAV_ITEMS = [
 	{ href: "/", label: "Inicio", Icon: Home },
@@ -12,6 +12,17 @@ const NAV_ITEMS = [
 	{ href: "/matchday", label: "Jornada", Icon: CalendarDays },
 	{ href: "/analysis", label: "Análisis", Icon: BarChart3 },
 	{ href: "/about", label: "Nosotros", Icon: Info },
+] as const;
+
+// Items para el bottom nav mobile (sin "Nosotros", con acceso admin)
+const MOBILE_NAV_ITEMS = [
+	{ href: "/", label: "Inicio", Icon: Home },
+	{ href: "/ligas", label: "Ligas", Icon: Building2 },
+	{ href: "/ranking", label: "Ranking", Icon: Trophy },
+	{ href: "/players", label: "Jugadores", Icon: Users },
+	{ href: "/matchday", label: "Jornada", Icon: CalendarDays },
+	{ href: "/analysis", label: "Análisis", Icon: BarChart3 },
+	{ href: "/login", label: "Admin", Icon: Settings },
 ] as const;
 
 export default function PublicNav() {
@@ -39,11 +50,10 @@ export default function PublicNav() {
 							<Link
 								key={href}
 								href={href}
-								className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-									active
+								className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${active
 										? "bg-surface-2 text-brand"
 										: "text-ink-2 hover:bg-surface-2 hover:text-ink"
-								}`}
+									}`}
 							>
 								<Icon size={20} strokeWidth={2} />
 								{label}
@@ -51,26 +61,40 @@ export default function PublicNav() {
 						);
 					})}
 				</nav>
+
+				{/* ── Acceso organizadores ── */}
+				<div className="px-3 pb-4 border-t border-line pt-3 shrink-0">
+					<Link
+						href="/login"
+						className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-ink-3 hover:text-ink hover:bg-surface-2 transition-colors"
+					>
+						<Settings size={14} strokeWidth={2} className="shrink-0" />
+						Administrar mi liga
+					</Link>
+				</div>
 			</aside>
 
 			{/* ── Mobile: bottom nav ── */}
 			<nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-line">
 				<div className="flex items-stretch">
-					{NAV_ITEMS.map(({ href, label, Icon }) => {
+					{MOBILE_NAV_ITEMS.map(({ href, label, Icon }) => {
 						const active = isActive(href);
+						const isAdmin = href === "/login";
 						return (
 							<Link
 								key={href}
 								href={href}
-								className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-colors ${
-									active ? "text-brand" : "text-ink-3 hover:text-ink-2"
-								}`}
-							>
-								<Icon size={20} strokeWidth={2} />
-								<span
-									className={`text-[10px] font-semibold uppercase tracking-wide leading-none ${
-										active ? "text-brand" : "text-ink-3"
+								className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-colors ${isAdmin
+										? "text-ink-3 border-l border-line hover:text-ink-2"
+										: active
+											? "text-brand"
+											: "text-ink-3 hover:text-ink-2"
 									}`}
+							>
+								<Icon size={isAdmin ? 16 : 20} strokeWidth={2} />
+								<span
+									className={`text-[10px] font-semibold uppercase tracking-wide leading-none ${isAdmin ? "text-ink-3" : active ? "text-brand" : "text-ink-3"
+										}`}
 								>
 									{label}
 								</span>

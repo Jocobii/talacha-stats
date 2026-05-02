@@ -164,23 +164,23 @@ export default function TeamsPage() {
 	return (
 		<div className="max-w-3xl space-y-6">
 			<div>
-				<h1 className="text-2xl font-bold text-gray-900">Gestionar equipos</h1>
-				<p className="text-sm text-gray-500 mt-1">
+				<h1 className="text-2xl font-bold text-ink">Gestionar equipos</h1>
+				<p className="text-sm text-ink-2 mt-1">
 					Detecta y fusiona equipos duplicados. Todos los datos (partidos, stats, posiciones) se
 					reasignan automáticamente.
 				</p>
 			</div>
 
 			{/* Selector de liga */}
-			<div className="bg-white rounded-xl shadow p-5">
-				<label className="block text-sm font-medium text-gray-700 mb-1">Liga</label>
+			<div className="bg-surface rounded-xl shadow p-5">
+				<label className="block text-sm font-medium text-ink mb-1">Liga</label>
 				{leagues.length === 0 ? (
 					<p className="text-sm text-yellow-600">No hay ligas registradas.</p>
 				) : (
 					<select
 						value={leagueId}
 						onChange={(e) => handleLeagueChange(e.target.value)}
-						className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:outline-none"
+						className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand focus:outline-none"
 					>
 						<option value="">— Seleccionar liga —</option>
 						{leagues.map((l) => (
@@ -194,9 +194,9 @@ export default function TeamsPage() {
 
 			{/* Instrucciones */}
 			{teams.length > 0 && (
-				<div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800 space-y-1">
+				<div className="bg-blue-950/40 border border-blue-800/50 rounded-xl px-4 py-3 text-sm text-blue-300 space-y-1">
 					<p className="font-semibold">Cómo fusionar duplicados:</p>
-					<ol className="list-decimal list-inside space-y-0.5 text-blue-700">
+					<ol className="list-decimal list-inside space-y-0.5 text-blue-300">
 						<li>
 							Haz clic en <strong>Conservar</strong> en el equipo que quieres mantener.
 						</li>
@@ -212,31 +212,31 @@ export default function TeamsPage() {
 
 			{/* Mensajes */}
 			{error && (
-				<p className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2.5 rounded-xl">
+				<p className="bg-red-950/40 border border-red-800/50 text-red-400 text-sm px-4 py-2.5 rounded-xl">
 					{error}
 				</p>
 			)}
 			{success && (
-				<p className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-2.5 rounded-xl">
+				<p className="bg-brand/10 border border-brand/20 text-brand text-sm px-4 py-2.5 rounded-xl">
 					{success}
 				</p>
 			)}
 
 			{/* Lista de equipos */}
-			{loading && <p className="text-sm text-gray-400">Cargando equipos…</p>}
+			{loading && <p className="text-sm text-ink-3">Cargando equipos…</p>}
 
 			{teams.length > 0 && (
 				<>
 					{/* Grupos de duplicados detectados */}
 					{duplicateGroups.length > 0 && (
-						<div className="bg-yellow-50 border border-yellow-300 rounded-xl p-4">
-							<p className="text-sm font-semibold text-yellow-800 mb-2">
+						<div className="bg-yellow-950/40 border border-yellow-800/50 rounded-xl p-4">
+							<p className="text-sm font-semibold text-yellow-300 mb-2">
 								⚠ Se detectaron {duplicateGroups.length} grupo
 								{duplicateGroups.length !== 1 ? "s" : ""} de posibles duplicados
 							</p>
 							<div className="space-y-1">
 								{duplicateGroups.map((group, i) => (
-									<p key={i} className="text-xs text-yellow-700">
+									<p key={i} className="text-xs text-yellow-300">
 										Grupo {i + 1}: {group.map((t) => t.name).join(" · ")}
 									</p>
 								))}
@@ -245,9 +245,9 @@ export default function TeamsPage() {
 					)}
 
 					{/* Tabla de equipos */}
-					<div className="bg-white rounded-xl shadow overflow-hidden">
-						<div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-							<p className="text-sm font-medium text-gray-700">
+					<div className="bg-surface rounded-xl shadow overflow-hidden">
+						<div className="px-4 py-3 border-b border-line flex items-center justify-between">
+							<p className="text-sm font-medium text-ink">
 								{teams.length} equipos en esta liga
 							</p>
 							{canMerge && (
@@ -261,13 +261,13 @@ export default function TeamsPage() {
 						</div>
 
 						<table className="w-full text-sm">
-							<thead className="bg-gray-50 text-xs uppercase text-gray-500">
+							<thead className="bg-surface-2 text-xs uppercase text-ink-2">
 								<tr>
 									<th className="px-4 py-2 text-left">Equipo</th>
 									<th className="px-4 py-2 text-center w-28">Acción</th>
 								</tr>
 							</thead>
-							<tbody className="divide-y divide-gray-100">
+							<tbody className="divide-y divide-line">
 								{teams.map((team) => {
 									const isDuplicate = duplicateIds.has(team.id);
 									const isKeep = keepId === team.id;
@@ -278,24 +278,24 @@ export default function TeamsPage() {
 											key={team.id}
 											className={
 												isKeep
-													? "bg-green-50"
+													? "bg-brand/10"
 													: isSelected
-														? "bg-red-50"
+														? "bg-red-950/40"
 														: isDuplicate
-															? "bg-yellow-50"
-															: "hover:bg-gray-50"
+															? "bg-yellow-950/40"
+															: "hover:bg-surface-2"
 											}
 										>
 											<td className="px-4 py-2.5">
 												<div className="flex items-center gap-2">
 													{isDuplicate && !isKeep && !isSelected && (
 														<span
-															className="w-2 h-2 rounded-full bg-yellow-400 shrink-0"
+															className="w-2 h-2 rounded-full bg-yellow-500 shrink-0"
 															title="Posible duplicado"
 														/>
 													)}
 													{isKeep && (
-														<span className="text-green-600 text-xs font-bold shrink-0">
+														<span className="text-brand text-xs font-bold shrink-0">
 															✓ CONSERVAR
 														</span>
 													)}
@@ -305,7 +305,7 @@ export default function TeamsPage() {
 														</span>
 													)}
 													<span
-														className={`font-medium ${isKeep ? "text-green-700" : isSelected ? "text-red-600 line-through" : "text-gray-800"}`}
+														className={`font-medium ${isKeep ? "text-brand" : isSelected ? "text-red-600 line-through" : "text-ink"}`}
 													>
 														{team.name}
 													</span>
@@ -317,7 +317,7 @@ export default function TeamsPage() {
 														<button
 															onClick={() => handleSetKeep(team.id)}
 															className={`text-xs px-2.5 py-1 rounded-lg border transition font-medium
-                                ${isSelected ? "opacity-40 cursor-not-allowed" : "border-green-300 text-green-700 hover:bg-green-50"}`}
+                                ${isSelected ? "opacity-40 cursor-not-allowed" : "border-brand/30 text-brand hover:bg-brand/10"}`}
 															disabled={isSelected}
 														>
 															Conservar
@@ -326,7 +326,7 @@ export default function TeamsPage() {
 													{!isSelected && !isKeep && (
 														<button
 															onClick={() => toggleSelect(team.id)}
-															className="text-xs px-2.5 py-1 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 font-medium transition"
+															className="text-xs px-2.5 py-1 rounded-lg border border-red-300 text-red-600 hover:bg-red-950/40 font-medium transition"
 														>
 															Eliminar
 														</button>
@@ -334,7 +334,7 @@ export default function TeamsPage() {
 													{isSelected && (
 														<button
 															onClick={() => toggleSelect(team.id)}
-															className="text-xs px-2.5 py-1 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50"
+															className="text-xs px-2.5 py-1 rounded-lg border border-line text-ink-2 hover:bg-surface-2"
 														>
 															Desmarcar
 														</button>
@@ -342,7 +342,7 @@ export default function TeamsPage() {
 													{isKeep && (
 														<button
 															onClick={() => setKeepId("")}
-															className="text-xs px-2.5 py-1 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50"
+															className="text-xs px-2.5 py-1 rounded-lg border border-line text-ink-2 hover:bg-surface-2"
 														>
 															Desmarcar
 														</button>
@@ -361,16 +361,16 @@ export default function TeamsPage() {
 			{/* Modal de confirmación */}
 			{confirmOpen && keepTeam && (
 				<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-					<div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-						<h2 className="font-bold text-gray-900 text-lg">Confirmar fusión</h2>
+					<div className="bg-surface rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+						<h2 className="font-bold text-ink text-lg">Confirmar fusión</h2>
 
-						<div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
-							<p className="text-green-700 font-semibold">Se conservará:</p>
-							<p className="text-green-800 font-bold mt-0.5">📌 {keepTeam.name}</p>
+						<div className="bg-brand/10 border border-brand/20 rounded-lg p-3 text-sm">
+							<p className="text-brand font-semibold">Se conservará:</p>
+							<p className="text-brand font-bold mt-0.5">📌 {keepTeam.name}</p>
 						</div>
 
-						<div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
-							<p className="text-red-700 font-semibold">Se eliminarán:</p>
+						<div className="bg-red-950/40 border border-red-800/50 rounded-lg p-3 text-sm">
+							<p className="text-red-400 font-semibold">Se eliminarán:</p>
 							<ul className="mt-0.5 space-y-0.5">
 								{[...selected].map((id) => {
 									const t = teams.find((x) => x.id === id);
@@ -383,7 +383,7 @@ export default function TeamsPage() {
 							</ul>
 						</div>
 
-						<p className="text-xs text-gray-500">
+						<p className="text-xs text-ink-2">
 							Todos los partidos, eventos, estadísticas y registros de jugadores de los equipos
 							eliminados se reasignarán automáticamente a <strong>{keepTeam.name}</strong>. Esta
 							acción no se puede deshacer.
@@ -392,7 +392,7 @@ export default function TeamsPage() {
 						<div className="flex gap-3 pt-1">
 							<button
 								onClick={() => setConfirmOpen(false)}
-								className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg text-sm hover:bg-gray-200 font-medium"
+								className="flex-1 bg-surface-2 text-ink py-2.5 rounded-lg text-sm hover:bg-surface-2 font-medium"
 							>
 								Cancelar
 							</button>

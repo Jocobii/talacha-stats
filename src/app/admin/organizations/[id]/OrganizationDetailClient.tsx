@@ -66,21 +66,21 @@ export default function OrganizationDetailClient({
 			{/* Ligas */}
 			<div className="lg:col-span-2">
 				<div className="flex items-center justify-between mb-3">
-					<h2 className="text-lg font-semibold text-gray-700">Ligas</h2>
+					<h2 className="text-lg font-semibold text-ink">Ligas</h2>
 					<Link
 						href={`/admin/leagues/new`}
-						className="text-sm text-green-600 hover:underline font-medium"
+						className="text-sm text-brand hover:underline font-medium"
 					>
 						+ Nueva liga
 					</Link>
 				</div>
 
 				{org.leagues.length === 0 ? (
-					<div className="bg-white rounded-xl shadow p-8 text-center">
-						<p className="text-gray-400 text-sm">Esta organización aún no tiene ligas.</p>
+					<div className="bg-surface rounded-xl shadow p-8 text-center">
+						<p className="text-ink-3 text-sm">Esta organización aún no tiene ligas.</p>
 						<Link
 							href="/admin/leagues/new"
-							className="text-green-600 text-sm hover:underline mt-2 block"
+							className="text-brand text-sm hover:underline mt-2 block"
 						>
 							Crear primera liga →
 						</Link>
@@ -91,11 +91,11 @@ export default function OrganizationDetailClient({
 							<Link
 								key={league.id}
 								href={`/admin/leagues/${league.id}`}
-								className="flex items-center justify-between bg-white rounded-lg shadow px-4 py-3 hover:shadow-md transition"
+								className="flex items-center justify-between bg-surface rounded-lg shadow px-4 py-3 hover:shadow-md transition"
 							>
 								<div>
-									<p className="font-medium text-gray-800 text-sm">{league.name}</p>
-									<p className="text-xs text-gray-400">
+									<p className="font-medium text-ink text-sm">{league.name}</p>
+									<p className="text-xs text-ink-3">
 										{DAY_LABELS[league.dayOfWeek] ?? league.dayOfWeek} · {league.season}
 									</p>
 								</div>
@@ -103,13 +103,13 @@ export default function OrganizationDetailClient({
 									<span
 										className={`text-xs px-2 py-0.5 rounded-full font-medium ${
 											league.status === "active"
-												? "bg-green-100 text-green-700"
-												: "bg-gray-100 text-gray-500"
+												? "bg-brand/15 text-brand"
+												: "bg-surface-2 text-ink-2"
 										}`}
 									>
 										{league.status === "active" ? "Activa" : "Finalizada"}
 									</span>
-									<span className="text-gray-300 text-xs">→</span>
+									<span className="text-ink-2 text-xs">→</span>
 								</div>
 							</Link>
 						))}
@@ -119,17 +119,17 @@ export default function OrganizationDetailClient({
 
 			{/* Miembros */}
 			<div>
-				<h2 className="text-lg font-semibold text-gray-700 mb-3">Miembros</h2>
-				<div className="bg-white rounded-xl shadow p-4 space-y-4">
+				<h2 className="text-lg font-semibold text-ink mb-3">Miembros</h2>
+				<div className="bg-surface rounded-xl shadow p-4 space-y-4">
 					{org.members.length === 0 ? (
-						<p className="text-sm text-gray-400">Sin miembros asignados.</p>
+						<p className="text-sm text-ink-3">Sin miembros asignados.</p>
 					) : (
 						<div className="space-y-2">
 							{org.members.map((m) => (
 								<div key={m.id} className="flex items-center justify-between gap-2">
 									<div className="min-w-0">
-										<p className="text-sm font-medium text-gray-800 truncate">{m.name}</p>
-										<p className="text-xs text-gray-400 truncate">{m.email}</p>
+										<p className="text-sm font-medium text-ink truncate">{m.name}</p>
+										<p className="text-xs text-ink-3 truncate">{m.email}</p>
 									</div>
 									{isOwner && (
 										<button
@@ -146,13 +146,13 @@ export default function OrganizationDetailClient({
 					)}
 
 					{isOwner && availableUsers.length > 0 && (
-						<div className="border-t border-gray-100 pt-3">
-							<p className="text-xs font-medium text-gray-600 mb-2">Agregar miembro</p>
+						<div className="border-t border-line pt-3">
+							<p className="text-xs font-medium text-ink-2 mb-2">Agregar miembro</p>
 							<div className="flex gap-2">
 								<select
 									value={selectedUser}
 									onChange={(e) => setSelectedUser(e.target.value)}
-									className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-green-500"
+									className="flex-1 border border-line rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand"
 								>
 									<option value="">— Seleccionar —</option>
 									{availableUsers.map((u) => (
@@ -166,7 +166,7 @@ export default function OrganizationDetailClient({
 										if (selectedUser) handleMemberAction(selectedUser, "add");
 									}}
 									disabled={!selectedUser || memberLoading !== null}
-									className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 disabled:opacity-50"
+									className="bg-brand text-pitch px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-brand-dim disabled:opacity-50"
 								>
 									Agregar
 								</button>

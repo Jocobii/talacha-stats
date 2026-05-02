@@ -143,8 +143,9 @@ export default async function LeaguePublicPage({ params }: Props) {
 									return (
 										<div
 											key={row.id}
-											className={`grid grid-cols-[2rem_1fr_2rem_2rem_2rem_2rem_2.5rem] gap-1 px-3 py-2.5 border-b border-line last:border-0 ${isTop3 ? "bg-brand/4" : ""
-												}`}
+											className={`grid grid-cols-[2rem_1fr_2rem_2rem_2rem_2rem_2.5rem] gap-1 px-3 py-2.5 border-b border-line last:border-0 ${
+												isTop3 ? "bg-brand/4" : ""
+											}`}
 										>
 											{/* Pos */}
 											<div className="flex items-center justify-center">

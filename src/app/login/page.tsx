@@ -36,19 +36,21 @@ function LoginForm() {
 	}
 
 	return (
-		<div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+		<div className="min-h-screen bg-pitch flex items-center justify-center px-4">
 			<div className="w-full max-w-sm space-y-8">
 				{/* Logo */}
 				<div className="text-center">
-					<p className="text-4xl mb-3">⚽</p>
-					<h1 className="text-2xl font-black text-white">TalachaStats</h1>
-					<p className="text-gray-400 text-sm mt-1">Panel de administración</p>
+					<img src="/logo-icon.svg" alt="TalachaStats" className="w-10 h-10 mx-auto mb-3" />
+					<h1 className="font-display text-3xl font-black text-ink uppercase tracking-tight">
+						Talacha<span className="text-brand">Stats</span>
+					</h1>
+					<p className="text-ink-2 text-sm mt-1">Panel de administración</p>
 				</div>
 
 				{/* Form */}
-				<form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl p-6 space-y-4">
+				<form onSubmit={handleSubmit} className="bg-surface border border-line rounded-2xl p-6 space-y-4">
 					<div>
-						<label className="block text-sm font-medium text-gray-300 mb-2">
+						<label className="block text-sm font-medium text-ink-2 mb-2">
 							Correo electrónico
 						</label>
 						<input
@@ -58,24 +60,24 @@ function LoginForm() {
 							placeholder="organizador@ejemplo.com"
 							autoFocus
 							required
-							className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+							className="w-full bg-surface-2 border border-line text-ink placeholder-ink-3 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
 						/>
 					</div>
 
 					<div>
-						<label className="block text-sm font-medium text-gray-300 mb-2">Contraseña</label>
+						<label className="block text-sm font-medium text-ink-2 mb-2">Contraseña</label>
 						<input
 							type="password"
 							value={form.password}
 							onChange={(e) => setForm({ ...form, password: e.target.value })}
 							placeholder="••••••••"
 							required
-							className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+							className="w-full bg-surface-2 border border-line text-ink placeholder-ink-3 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
 						/>
 					</div>
 
 					{error && (
-						<p className="text-red-400 text-sm bg-red-950 border border-red-800 rounded-lg px-3 py-2">
+						<p className="text-red-400 text-sm bg-red-950/40 border border-red-800/60 rounded-xl px-3 py-2">
 							{error}
 						</p>
 					)}
@@ -83,15 +85,15 @@ function LoginForm() {
 					<button
 						type="submit"
 						disabled={loading || !form.email || !form.password}
-						className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition text-sm"
+						className="w-full bg-brand hover:bg-brand-dim disabled:opacity-40 text-pitch font-bold py-3 rounded-xl transition text-sm"
 					>
 						{loading ? "Verificando…" : "Entrar"}
 					</button>
 				</form>
 
-				<p className="text-center text-xs text-gray-500">
+				<p className="text-center text-xs text-ink-3">
 					No tienes cuenta?{" "}
-					<a href="/register" className="text-green-500 hover:text-green-400 font-medium">
+					<a href="/register" className="text-brand hover:text-brand-dim font-medium transition-colors">
 						Registrate gratis
 					</a>
 				</p>

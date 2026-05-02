@@ -49,7 +49,7 @@ export default function CitySwitcher({ activeCity }: Props) {
 					setOpen((v) => !v);
 					setQuery("");
 				}}
-				className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition"
+				className="flex items-center gap-1.5 bg-surface/10 hover:bg-surface/20 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition"
 				aria-expanded={open}
 				aria-haspopup="listbox"
 			>
@@ -63,13 +63,13 @@ export default function CitySwitcher({ activeCity }: Props) {
 			</button>
 
 			{open && (
-				<div className="absolute right-0 top-full mt-1.5 w-60 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+				<div className="absolute right-0 top-full mt-1.5 w-60 bg-surface border border-line rounded-xl shadow-2xl z-50 overflow-hidden">
 					{/* Search */}
-					<div className="p-2 border-b border-gray-700">
+					<div className="p-2 border-b border-line">
 						<div className="relative">
 							<Search
 								size={12}
-								className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+								className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-2 pointer-events-none"
 							/>
 							<input
 								autoFocus
@@ -77,7 +77,7 @@ export default function CitySwitcher({ activeCity }: Props) {
 								value={query}
 								onChange={(e) => setQuery(e.target.value)}
 								placeholder="Buscar ciudad…"
-								className="w-full bg-gray-800 text-white text-sm placeholder-gray-500 rounded-lg pl-7 pr-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-500"
+								className="w-full bg-surface-2 text-white text-sm placeholder-gray-500 rounded-lg pl-7 pr-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand"
 							/>
 						</div>
 					</div>
@@ -89,7 +89,7 @@ export default function CitySwitcher({ activeCity }: Props) {
 						className="max-h-64 overflow-y-auto py-1"
 					>
 						{filtered.length === 0 ? (
-							<li className="px-3 py-2 text-sm text-gray-500 text-center">Sin resultados</li>
+							<li className="px-3 py-2 text-sm text-ink-2 text-center">Sin resultados</li>
 						) : (
 							filtered.map((city) => (
 								<li key={city} role="option" aria-selected={city === activeCity}>
@@ -98,8 +98,8 @@ export default function CitySwitcher({ activeCity }: Props) {
 										className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left transition
                       ${
 												city === activeCity
-													? "bg-green-900/50 text-green-400"
-													: "text-gray-200 hover:bg-gray-800"
+													? "bg-brand/15 text-brand"
+													: "text-ink hover:bg-surface-2"
 											}`}
 									>
 										{city}

@@ -21,21 +21,21 @@ export default async function MatchPreviewPage({ params }: { params: Promise<{ i
 		<div className="max-w-4xl mx-auto">
 			<div className="mb-6 flex items-center justify-between">
 				<div>
-					<Link href={`/admin/matches/${id}`} className="text-sm text-gray-500 hover:underline">
+					<Link href={`/admin/matches/${id}`} className="text-sm text-ink-2 hover:underline">
 						← Volver al partido
 					</Link>
-					<h1 className="text-2xl font-bold text-gray-800 mt-1">Vista Narrador</h1>
-					<p className="text-gray-500 text-sm">
+					<h1 className="text-2xl font-bold text-ink mt-1">Vista Narrador</h1>
+					<p className="text-ink-2 text-sm">
 						{match.homeTeam} vs {match.awayTeam} · J{match.matchday ?? "?"} · {match.date}
 					</p>
 				</div>
-				<span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-3 py-1 rounded-full">
+				<span className="bg-yellow-950/60 text-yellow-300 text-xs font-semibold px-3 py-1 rounded-full">
 					PRE-PARTIDO
 				</span>
 			</div>
 
 			{/* Bullets para el narrador */}
-			<div className="bg-gray-900 text-green-300 rounded-xl p-5 mb-6 font-mono text-sm">
+			<div className="bg-surface text-brand rounded-xl p-5 mb-6 font-mono text-sm">
 				<p className="text-green-500 text-xs uppercase tracking-widest mb-3">
 					📢 Frases para el narrador
 				</p>
@@ -50,23 +50,23 @@ export default async function MatchPreviewPage({ params }: { params: Promise<{ i
 			</div>
 
 			{/* Probabilidades */}
-			<div className="bg-white rounded-xl shadow p-5 mb-6">
-				<h2 className="font-semibold text-gray-700 mb-4">Probabilidad de victoria</h2>
+			<div className="bg-surface rounded-xl shadow p-5 mb-6">
+				<h2 className="font-semibold text-ink mb-4">Probabilidad de victoria</h2>
 				<div className="flex items-center gap-4">
 					<div className="text-center w-28">
-						<p className="text-3xl font-black text-green-600">{winProbability.homeWinPct}%</p>
-						<p className="text-xs text-gray-500 mt-1 truncate">{match.homeTeam}</p>
+						<p className="text-3xl font-black text-brand">{winProbability.homeWinPct}%</p>
+						<p className="text-xs text-ink-2 mt-1 truncate">{match.homeTeam}</p>
 					</div>
 					<div className="flex-1">
 						<div className="flex h-4 rounded-full overflow-hidden">
 							<div
-								className="bg-green-500 transition-all"
+								className="bg-brand/100 transition-all"
 								style={{ width: `${winProbability.homeWinPct}%` }}
 							/>
-							<div className="bg-gray-300" style={{ width: `${winProbability.drawPct}%` }} />
+							<div className="bg-line" style={{ width: `${winProbability.drawPct}%` }} />
 							<div className="bg-blue-400" style={{ width: `${winProbability.awayWinPct}%` }} />
 						</div>
-						<div className="flex justify-between text-xs text-gray-400 mt-1">
+						<div className="flex justify-between text-xs text-ink-3 mt-1">
 							<span>Local</span>
 							<span>Empate {winProbability.drawPct}%</span>
 							<span>Visitante</span>
@@ -74,7 +74,7 @@ export default async function MatchPreviewPage({ params }: { params: Promise<{ i
 					</div>
 					<div className="text-center w-28">
 						<p className="text-3xl font-black text-blue-500">{winProbability.awayWinPct}%</p>
-						<p className="text-xs text-gray-500 mt-1 truncate">{match.awayTeam}</p>
+						<p className="text-xs text-ink-2 mt-1 truncate">{match.awayTeam}</p>
 					</div>
 				</div>
 			</div>
@@ -114,33 +114,33 @@ function TeamFormCard({
 	form: TeamFormStats;
 	color: "green" | "blue";
 }) {
-	const accent = color === "green" ? "text-green-600" : "text-blue-600";
+	const accent = color === "green" ? "text-brand" : "text-blue-600";
 	const resultColor = (r: "W" | "D" | "L") =>
-		r === "W" ? "bg-green-500" : r === "D" ? "bg-gray-400" : "bg-red-500";
+		r === "W" ? "bg-brand/100" : r === "D" ? "bg-ink-3" : "bg-red-950/400";
 
 	return (
-		<div className="bg-white rounded-xl shadow p-5">
+		<div className="bg-surface rounded-xl shadow p-5">
 			<h3 className={`font-bold text-base mb-3 ${accent}`}>{title}</h3>
 			<div className="grid grid-cols-4 gap-2 text-center text-sm mb-4">
 				<div>
 					<p className="font-bold text-xl">{form.record.wins}</p>
-					<p className="text-gray-400 text-xs">Victorias</p>
+					<p className="text-ink-3 text-xs">Victorias</p>
 				</div>
 				<div>
 					<p className="font-bold text-xl">{form.record.draws}</p>
-					<p className="text-gray-400 text-xs">Empates</p>
+					<p className="text-ink-3 text-xs">Empates</p>
 				</div>
 				<div>
 					<p className="font-bold text-xl">{form.record.losses}</p>
-					<p className="text-gray-400 text-xs">Derrotas</p>
+					<p className="text-ink-3 text-xs">Derrotas</p>
 				</div>
 				<div>
 					<p className={`font-bold text-xl ${accent}`}>{form.points}</p>
-					<p className="text-gray-400 text-xs">Puntos</p>
+					<p className="text-ink-3 text-xs">Puntos</p>
 				</div>
 			</div>
 			<div className="flex items-center gap-2">
-				<span className="text-xs text-gray-400">Prom. goles:</span>
+				<span className="text-xs text-ink-3">Prom. goles:</span>
 				<span className="font-semibold">{form.avgGoalsPerMatch}</span>
 				<div className="flex gap-1 ml-auto">
 					{form.last5.map((r, i) => (
@@ -160,29 +160,29 @@ function TeamFormCard({
 function ThreatsCard({ title, threats }: { title: string; threats: TopThreat[] }) {
 	const dangerColor = (r: string) =>
 		r === "ALTO"
-			? "bg-red-100 text-red-700"
+			? "bg-red-100 text-red-400"
 			: r === "MEDIO"
-				? "bg-yellow-100 text-yellow-700"
-				: "bg-gray-100 text-gray-600";
+				? "bg-yellow-100 text-yellow-300"
+				: "bg-surface-2 text-ink-2";
 
 	return (
-		<div className="bg-white rounded-xl shadow p-5">
-			<h3 className="font-semibold text-gray-700 mb-3">{title}</h3>
+		<div className="bg-surface rounded-xl shadow p-5">
+			<h3 className="font-semibold text-ink mb-3">{title}</h3>
 			{threats.length === 0 ? (
-				<p className="text-sm text-gray-400">Sin datos suficientes.</p>
+				<p className="text-sm text-ink-3">Sin datos suficientes.</p>
 			) : (
 				<ul className="space-y-3">
 					{threats.map((t) => (
 						<li key={t.playerId} className="flex items-start justify-between gap-2">
 							<div>
-								<p className="font-medium text-gray-800 text-sm">
+								<p className="font-medium text-ink text-sm">
 									{t.alias ? `"${t.alias}"` : t.player}
 								</p>
-								<p className="text-xs text-gray-400">
+								<p className="text-xs text-ink-3">
 									{t.goalsThisSeason} goles · {t.assists} asist · {t.goalsPerMatch}/partido
 								</p>
 								{t.goalsLast3Matches > 0 && (
-									<p className="text-xs text-green-600">
+									<p className="text-xs text-brand">
 										{t.goalsLast3Matches} goles en últimos 3 partidos
 									</p>
 								)}
@@ -217,16 +217,16 @@ function CardRiskCard({
 	];
 
 	return (
-		<div className="bg-white rounded-xl shadow p-5">
-			<h3 className="font-semibold text-gray-700 mb-3">🟨 Riesgo de tarjeta</h3>
+		<div className="bg-surface rounded-xl shadow p-5">
+			<h3 className="font-semibold text-ink mb-3">🟨 Riesgo de tarjeta</h3>
 			{allRisks.length === 0 ? (
-				<p className="text-sm text-gray-400">Ningún jugador en riesgo de suspensión.</p>
+				<p className="text-sm text-ink-3">Ningún jugador en riesgo de suspensión.</p>
 			) : (
 				<ul className="space-y-2">
 					{allRisks.map((r) => (
 						<li key={r.playerId} className="text-sm">
-							<p className="font-medium text-gray-800">
-								{r.player} <span className="text-gray-400 text-xs">({r.team})</span>
+							<p className="font-medium text-ink">
+								{r.player} <span className="text-ink-3 text-xs">({r.team})</span>
 							</p>
 							<p className="text-xs text-yellow-600">{r.note}</p>
 						</li>
@@ -247,28 +247,28 @@ function H2HCard({
 	h2h: MatchPreview["headToHead"];
 }) {
 	return (
-		<div className="bg-white rounded-xl shadow p-5">
-			<h3 className="font-semibold text-gray-700 mb-3">🔁 Cara a cara</h3>
+		<div className="bg-surface rounded-xl shadow p-5">
+			<h3 className="font-semibold text-ink mb-3">🔁 Cara a cara</h3>
 			{h2h.totalMatches === 0 ? (
-				<p className="text-sm text-gray-400">Sin enfrentamientos previos.</p>
+				<p className="text-sm text-ink-3">Sin enfrentamientos previos.</p>
 			) : (
 				<>
 					<div className="flex justify-around text-center mb-3">
 						<div>
-							<p className="text-2xl font-bold text-green-600">{h2h.homeWins}</p>
-							<p className="text-xs text-gray-400 truncate max-w-[80px]">{homeTeam}</p>
+							<p className="text-2xl font-bold text-brand">{h2h.homeWins}</p>
+							<p className="text-xs text-ink-3 truncate max-w-[80px]">{homeTeam}</p>
 						</div>
 						<div>
-							<p className="text-2xl font-bold text-gray-400">{h2h.draws}</p>
-							<p className="text-xs text-gray-400">Empates</p>
+							<p className="text-2xl font-bold text-ink-3">{h2h.draws}</p>
+							<p className="text-xs text-ink-3">Empates</p>
 						</div>
 						<div>
 							<p className="text-2xl font-bold text-blue-500">{h2h.awayWins}</p>
-							<p className="text-xs text-gray-400 truncate max-w-[80px]">{awayTeam}</p>
+							<p className="text-xs text-ink-3 truncate max-w-[80px]">{awayTeam}</p>
 						</div>
 					</div>
 					{h2h.lastMatch && (
-						<p className="text-xs text-gray-400 text-center border-t pt-2">
+						<p className="text-xs text-ink-3 text-center border-t pt-2">
 							Último: {h2h.lastMatch.result} · {h2h.lastMatch.date}
 						</p>
 					)}
