@@ -5,8 +5,12 @@
  * devolver resoluciones de jugadores y equipos consultando la DB en batch.
  *
  * Estrategia de queries (máximo 4, independiente del tamaño del Excel):
- *   1. Batch similarity scoped a ciudad  (unnest — todos los nombres juntos)
- *   2. Batch similarity global fallback  (unnest — solo los no resueltos en #1)
+ *   1. Batch similarity intra-org  (unnest — todos los nombres juntos)
+ *      Scoped a organization_id: solo jugadores registrados en ligas de la misma org.
+ *   2. Cross-org detection (log-only)  (unnest — nombres sin resultado en #1)
+ *      HOTFIX Historia 01: detecta colisiones cross-org pero NUNCA devuelve candidatos.
+ *      Los nombres que llegan aquí se crean como jugadores nuevos.
+ *      TODO Historia 03: convertir en sugerencia L4 controlada via feature flag.
  *   3. Enrich candidatos con equipos activos  (inArray — todos los IDs juntos)
  *   4. Equipos existentes en la liga  (findMany — una query)
  *
@@ -68,7 +72,12 @@ export type ResolverInput = {
 	/** Nombres únicos de equipos tal como vienen del Excel (ya sanitizados) */
 	teamNames: string[];
 	leagueId: string;
-	city: string;
+	/**
+	 * ID de la organización dueña de la liga.
+	 * Usado para acotar el matching a jugadores intra-org (Historia 01 hotfix).
+	 * Reemplaza el anterior campo `city` que permitía match cross-org.
+	 */
+	organizationId: string;
 };
 
 export type ResolverOutput = {
@@ -101,10 +110,10 @@ type SimilarityRow = {
  * Máximo 4 queries independientemente del tamaño del input.
  */
 export async function resolveImportEntities(input: ResolverInput): Promise<ResolverOutput> {
-	const { playerNames, teamNames, leagueId, city } = input;
+	const { playerNames, teamNames, leagueId, organizationId } = input;
 
 	const [playerResolutions, teamMap] = await Promise.all([
-		resolvePlayersBatch(playerNames, city),
+		resolvePlayersBatch(playerNames, organizationId),
 		resolveTeamsBatch(teamNames, leagueId),
 	]);
 
@@ -115,14 +124,18 @@ export async function resolveImportEntities(input: ResolverInput): Promise<Resol
 // Resolución de jugadores — batch fuzzy matching
 // ---------------------------------------------------------------------------
 
-async function resolvePlayersBatch(names: string[], city: string): Promise<PlayerResolution[]> {
+async function resolvePlayersBatch(
+	names: string[],
+	organizationId: string,
+): Promise<PlayerResolution[]> {
 	if (names.length === 0) return [];
 
-	// ── Query 1: city-scoped batch similarity ─────────────────────────────────
-	// Resuelve todos los nombres en una sola query usando unnest.
+	// ── Query 1: intra-org batch similarity ──────────────────────────────────
+	// Scoped a organization_id: solo jugadores registrados en ligas de ESTA org.
+	// Cubre intra-league e intra-org cross-league (mismo dueño, distintas ligas).
 	// Drizzle no soporta unnest como función de tabla — usamos db.execute(sql``)
 	// que es el patrón aprobado en CLAUDE.md para operaciones no soportadas.
-	const cityRows = await db.execute<SimilarityRow>(sql`
+	const intraOrgRows = await db.execute<SimilarityRow>(sql`
     SELECT DISTINCT ON (query_name, p.id)
       query_name,
       p.id,
@@ -145,22 +158,26 @@ async function resolvePlayersBatch(names: string[], city: string): Promise<Playe
       FROM player_registrations pr
       JOIN leagues l ON l.id = pr.league_id
       WHERE pr.player_id = p.id
-        AND l.city = ${city}
+        AND l.organization_id = ${organizationId}
     )
     ORDER BY query_name, p.id, score DESC
   `);
 
-	// Agrupar resultados de city por query_name
-	const cityByName = groupByQueryName(cityRows.rows);
+	// Agrupar resultados intra-org por query_name
+	const intraOrgByName = groupByQueryName(intraOrgRows.rows);
 
-	// Identificar nombres sin resultado en city → necesitan fallback global
-	const unresolvedNames = names.filter((n) => !cityByName.has(n));
+	// Identificar nombres sin resultado intra-org
+	const unresolvedNames = names.filter((n) => !intraOrgByName.has(n));
 
-	// ── Query 2: global fallback (solo para nombres no resueltos en ciudad) ───
-	let globalByName = new Map<string, SimilarityRow[]>();
-
+	// ── Query 2: cross-org detection (log-only, NUNCA auto-merge) ─────────────
+	// HOTFIX Historia 01: detecta jugadores con nombre similar en OTRAS orgs.
+	// Los resultados solo se usan para logging — no se devuelven como candidatos.
+	// Esto evita la contaminación cross-org mientras se diseña la solución
+	// definitiva (Historia 02 + 03, matching L4 con feature flag).
+	//
+	// TODO Historia 03: convertir este bloque en sugerencia L4 controlada.
 	if (unresolvedNames.length > 0) {
-		const globalRows = await db.execute<SimilarityRow>(sql`
+		const crossOrgRows = await db.execute<SimilarityRow>(sql`
       SELECT
         query_name,
         p.id,
@@ -173,20 +190,41 @@ async function resolvePlayersBatch(names: string[], city: string): Promise<Playe
       FROM unnest(${sql.raw(`ARRAY[${unresolvedNames.map((n) => `'${escapeSql(n)}'`).join(", ")}]::text[]`)}
       ) AS query_name
       CROSS JOIN players p
-      WHERE
+      WHERE (
         similarity(f_unaccent(p.full_name), f_unaccent(query_name)) > ${SIMILARITY_THRESHOLD}
         OR (p.alias IS NOT NULL
             AND similarity(f_unaccent(p.alias), f_unaccent(query_name)) > ${SIMILARITY_THRESHOLD})
+      )
+      AND EXISTS (
+        SELECT 1
+        FROM player_registrations pr
+        JOIN leagues l ON l.id = pr.league_id
+        WHERE pr.player_id = p.id
+          AND l.organization_id != ${organizationId}
+      )
       ORDER BY query_name, score DESC
     `);
 
-		globalByName = groupByQueryName(globalRows.rows);
+		const crossOrgByName = groupByQueryName(crossOrgRows.rows);
+		for (const [name, matches] of crossOrgByName) {
+			if (matches.length > 0) {
+				// Log de colisión cross-org — input para Historia 03
+				console.error(
+					`[import/cross-org-collision] org=${organizationId} name="${name}" ` +
+						`matches player(s) in another org: ` +
+						matches.map((m) => `"${m.full_name}" (id=${m.id})`).join(", ") +
+						` — NOT merged (org isolation enforced by hotfix Historia 01).`,
+				);
+			}
+		}
+		// crossOrgByName se descarta: los nombres sin match intra-org
+		// se crearán como jugadores nuevos en confirmImport.
 	}
 
-	// Combinar: city tiene prioridad, global como fallback
+	// Solo los resultados intra-org llegan a la resolución final
 	const allMatchesByName = new Map<string, SimilarityRow[]>();
 	for (const name of names) {
-		allMatchesByName.set(name, cityByName.get(name) ?? globalByName.get(name) ?? []);
+		allMatchesByName.set(name, intraOrgByName.get(name) ?? []);
 	}
 
 	// ── Query 3: enrich con equipos activos (batch por IDs) ───────────────────

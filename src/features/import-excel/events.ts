@@ -102,12 +102,13 @@ export async function generateEventPreview(input: EventPreviewInput): Promise<Ev
 	// Parsear Excel
 	const parsed = await parseEventBuffer(buffer);
 
-	// Obtener ciudad de la liga para el scope del matching
+	// Obtener organizationId de la liga para el scope del matching intra-org
+	// HOTFIX Historia 01: el resolver ahora filtra por org, no por ciudad.
 	const league = await db.query.leagues.findFirst({
 		where: eq(leagues.id, leagueId),
-		columns: { city: true },
+		columns: { organizationId: true },
 	});
-	const city = league?.city ?? "";
+	const organizationId = league?.organizationId ?? "";
 
 	// Nombres unicos de jugadores y equipos
 	const playerNames = [...new Set(parsed.events.map((e) => e.jugador).filter(Boolean))];
@@ -126,7 +127,7 @@ export async function generateEventPreview(input: EventPreviewInput): Promise<Ev
 		playerNames,
 		teamNames,
 		leagueId,
-		city,
+		organizationId,
 	});
 
 	// Mapear a PlayerMatch (formato legacy que espera la UI)

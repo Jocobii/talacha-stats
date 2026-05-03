@@ -76,12 +76,15 @@ export async function generatePreview(input: PreviewInput): Promise<PreviewResul
 	// ── Paso 1: Parsear el Excel ─────────────────────────────────────────────
 	const parsed = await parseBulkBuffer({ buffer, options });
 
-	// ── Paso 2: Obtener ciudad de la liga (necesaria para resolver jugadores) ─
+	// ── Paso 2: Obtener organizationId de la liga (scope del matching intra-org) ─
+	// HOTFIX Historia 01: el resolver ahora filtra por org, no por ciudad.
+	// organizationId null (liga legacy sin org) → string vacío → comportamiento
+	// seguro: no se encuentran candidatos intra-org, se crean jugadores nuevos.
 	const league = await db.query.leagues.findFirst({
 		where: eq(leagues.id, leagueId),
-		columns: { city: true },
+		columns: { organizationId: true },
 	});
-	const city = league?.city ?? "";
+	const organizationId = league?.organizationId ?? "";
 
 	// ── Flujo Standings ───────────────────────────────────────────────────────
 	if (parsed.type === "standings") {
@@ -100,7 +103,7 @@ export async function generatePreview(input: PreviewInput): Promise<PreviewResul
 		playerNames,
 		teamNames,
 		leagueId,
-		city,
+		organizationId,
 	});
 
 	// ── Paso 4: Cargar snapshots históricos en batch (1 query) ───────────────
