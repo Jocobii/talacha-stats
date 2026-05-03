@@ -191,10 +191,7 @@ async function main(): Promise<void> {
 						.update(matchEvents)
 						.set({ playerProfileId: profileId })
 						.where(
-							and(
-								eq(matchEvents.legacyPlayerId, playerId),
-								isNull(matchEvents.playerProfileId),
-							),
+							and(eq(matchEvents.legacyPlayerId, playerId), isNull(matchEvents.playerProfileId)),
 						);
 					stats.eventsLinked += evResult.rowCount ?? 0;
 				});

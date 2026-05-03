@@ -33,10 +33,7 @@ export function AnomalyPanel({ anomalyReports }: Props) {
 			</div>
 
 			{critical.map((r) => (
-				<div
-					key={r.rawName}
-					className="bg-red-950/40 border-2 border-red-800/50 rounded-2xl p-4"
-				>
+				<div key={r.rawName} className="bg-red-950/40 border-2 border-red-800/50 rounded-2xl p-4">
 					<div className="flex items-center gap-2 mb-2">
 						<span className="font-bold text-red-400 text-sm">{r.rawName}</span>
 						<span className="ml-auto text-xs font-bold uppercase tracking-wide bg-red-200 text-red-400 px-2 py-0.5 rounded-full">
@@ -60,7 +57,9 @@ export function AnomalyPanel({ anomalyReports }: Props) {
 						<span>⚠️</span>
 						{warned.length === 1 ? "1 aviso" : `${warned.length} avisos`} — puede ser normal
 						<span className="ml-auto text-xs text-amber-600 group-open:hidden">Ver ▼</span>
-						<span className="ml-auto text-xs text-amber-600 hidden group-open:inline">Ocultar ▲</span>
+						<span className="ml-auto text-xs text-amber-600 hidden group-open:inline">
+							Ocultar ▲
+						</span>
 					</summary>
 					<div className="px-4 pb-4 pt-2 border-t border-amber-200 space-y-3">
 						{warned.map((r) => (

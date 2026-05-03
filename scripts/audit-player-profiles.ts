@@ -99,7 +99,9 @@ async function main(): Promise<void> {
 	} else {
 		console.log(`   ${sharedNames.length} nombre(s) aparecen en más de una org (primeros 10):`);
 		for (const s of sharedNames.slice(0, 10)) {
-			console.log(`   • "${s.normalizedName}" en ${s.profileCount} perfiles: ${s.orgs.join(" | ")}`);
+			console.log(
+				`   • "${s.normalizedName}" en ${s.profileCount} perfiles: ${s.orgs.join(" | ")}`,
+			);
 		}
 	}
 

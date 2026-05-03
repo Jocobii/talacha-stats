@@ -9,13 +9,7 @@ type Props = {
 };
 
 export function ResultStepV2({ result, jornada, onReset }: Props) {
-	const {
-		createdProfiles,
-		updatedProfiles,
-		claimsProposed,
-		claimsAutoVerified,
-		errors,
-	} = result;
+	const { createdProfiles, updatedProfiles, claimsProposed, claimsAutoVerified, errors } = result;
 
 	const blocks = [
 		{
@@ -78,10 +72,7 @@ export function ResultStepV2({ result, jornada, onReset }: Props) {
 				{blocks.map((b) => (
 					<div
 						key={b.label}
-						className={[
-							"rounded-xl border p-4 flex flex-col gap-1",
-							b.color,
-						].join(" ")}
+						className={["rounded-xl border p-4 flex flex-col gap-1", b.color].join(" ")}
 					>
 						<div className="flex items-center gap-2">
 							<span className="text-xl">{b.icon}</span>
@@ -112,10 +103,9 @@ export function ResultStepV2({ result, jornada, onReset }: Props) {
 			{/* Claims explanation */}
 			{claimsProposed > 0 && (
 				<div className="rounded-xl bg-orange-50 border border-orange-100 px-4 py-3 text-xs text-orange-800 leading-relaxed">
-					<span className="font-semibold">¿Qué pasa con las propuestas?</span>{" "}
-					Cuando la otra organización también proponga el mismo jugador, o cuando
-					el jugador reclame su perfil, la vinculación se verificará
-					automáticamente.
+					<span className="font-semibold">¿Qué pasa con las propuestas?</span> Cuando la otra
+					organización también proponga el mismo jugador, o cuando el jugador reclame su perfil, la
+					vinculación se verificará automáticamente.
 				</div>
 			)}
 

@@ -1,9 +1,6 @@
 "use client";
 
-import type {
-	MatchOutcome,
-	ImportDecision,
-} from "../../types";
+import type { MatchOutcome, ImportDecision } from "../../types";
 import { DoubtCard } from "../components/DoubtCard";
 
 type DoubtOutcome = Extract<MatchOutcome, { kind: "intra_org_doubt" }>;
@@ -17,17 +14,8 @@ type Props = {
 	onBack: () => void;
 };
 
-export function DoubtsStep({
-	doubts,
-	decisions,
-	onDecide,
-	allDone,
-	onContinue,
-	onBack,
-}: Props) {
-	const resolvedCount = doubts.filter(
-		(d) => !!decisions[d.row.fingerprint],
-	).length;
+export function DoubtsStep({ doubts, decisions, onDecide, allDone, onContinue, onBack }: Props) {
+	const resolvedCount = doubts.filter((d) => !!decisions[d.row.fingerprint]).length;
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -39,8 +27,8 @@ export function DoubtsStep({
 						{doubts.length} jugador{doubts.length > 1 ? "es requieren" : " requiere"} revisión
 					</p>
 					<p className="text-xs text-orange-700 mt-0.5">
-						Encontramos nombres similares en tu organización. Elige si es el
-						mismo jugador o uno nuevo.
+						Encontramos nombres similares en tu organización. Elige si es el mismo jugador o uno
+						nuevo.
 					</p>
 				</div>
 				<span className="shrink-0 text-sm font-bold text-orange-700">
@@ -89,9 +77,7 @@ export function DoubtsStep({
 							: "bg-line text-ink-3 cursor-not-allowed",
 					].join(" ")}
 				>
-					{allDone
-						? "Continuar →"
-						: `Faltan ${doubts.length - resolvedCount} por decidir`}
+					{allDone ? "Continuar →" : `Faltan ${doubts.length - resolvedCount} por decidir`}
 				</button>
 			</div>
 		</div>

@@ -40,9 +40,7 @@ function V2StepBar({ current }: { current: V2StepId }) {
 								className={[
 									"w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 transition-all duration-300",
 									isDone ? "bg-brand text-pitch" : "",
-									isActive
-										? "bg-brand/15 text-white shadow-[0_0_0_4px_rgba(22,163,74,0.2)]"
-										: "",
+									isActive ? "bg-brand/15 text-white shadow-[0_0_0_4px_rgba(22,163,74,0.2)]" : "",
 									!isDone && !isActive ? "bg-surface-2 text-ink-3" : "",
 								].join(" ")}
 							>
@@ -137,11 +135,7 @@ export function ImportWizardV2() {
 					decisions={state.decisions}
 					onDecide={handlers.setDecision}
 					onContinue={() => handlers.navigate("confirm")}
-					onBack={() =>
-						handlers.navigate(
-							derived.hasDoubts ? "doubts" : "preview",
-						)
-					}
+					onBack={() => handlers.navigate(derived.hasDoubts ? "doubts" : "preview")}
 				/>
 			)}
 
@@ -154,11 +148,7 @@ export function ImportWizardV2() {
 					onConfirm={handlers.handleConfirm}
 					onBack={() =>
 						handlers.navigate(
-							derived.hasSuggestions
-								? "suggestions"
-								: derived.hasDoubts
-									? "doubts"
-									: "preview",
+							derived.hasSuggestions ? "suggestions" : derived.hasDoubts ? "doubts" : "preview",
 						)
 					}
 				/>

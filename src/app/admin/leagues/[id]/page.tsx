@@ -213,9 +213,7 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 										</Link>
 									),
 								)}
-							{league.matches?.length === 0 && (
-								<p className="text-sm text-ink-3">Sin partidos.</p>
-							)}
+							{league.matches?.length === 0 && <p className="text-sm text-ink-3">Sin partidos.</p>}
 						</div>
 					</div>
 				</div>

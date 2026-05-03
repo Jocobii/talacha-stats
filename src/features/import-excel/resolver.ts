@@ -306,22 +306,24 @@ async function enrichWithActiveTeams(playerIds: string[]): Promise<PlayerCandida
 
 	const rows = await db
 		.select({
-			playerId: playerRegistrations.playerId,
+			playerId: playerRegistrations.legacyPlayerId,
 			teamName: teams.name,
 			leagueName: leagues.name,
 		})
 		.from(playerRegistrations)
 		.innerJoin(teams, eq(teams.id, playerRegistrations.teamId))
 		.innerJoin(leagues, eq(leagues.id, playerRegistrations.leagueId))
-		.where(and(inArray(playerRegistrations.playerId, playerIds), eq(leagues.status, "active")))
+		.where(
+			and(inArray(playerRegistrations.legacyPlayerId, playerIds), eq(leagues.status, "active")),
+		)
 		.orderBy(desc(leagues.createdAt));
 
 	// Agrupar por playerId
 	const teamsByPlayer = new Map<string, CandidateTeam[]>();
 	for (const row of rows) {
-		const list = teamsByPlayer.get(row.playerId) ?? [];
+		const list = teamsByPlayer.get(row.playerId!) ?? [];
 		list.push({ teamName: row.teamName, leagueName: row.leagueName });
-		teamsByPlayer.set(row.playerId, list);
+		teamsByPlayer.set(row.playerId!, list);
 	}
 
 	return playerIds.map((id) => ({
@@ -408,5 +410,5 @@ function groupByQueryName(rows: SimilarityRow[]): Map<string, SimilarityRow[]> {
  * único lugar donde se construye SQL con valores de usuario.
  */
 function escapeSql(value: string): string {
-	return value.replace(/'/g, "''").replace(/\\/g, "\\\\");
+	return value.replace(/'/g, "''").replace(/\\/g, '\\\\');
 }

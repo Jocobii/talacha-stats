@@ -17,8 +17,8 @@ export default function ImportsPage() {
 					Importar Goleadores
 				</h1>
 				<p className="text-sm text-ink-2 mt-0.5">
-					Sube el Excel de la jornada. Resolveremos automaticamente quienes
-					son los mismos jugadores de semanas anteriores.
+					Sube el Excel de la jornada. Resolveremos automaticamente quienes son los mismos jugadores
+					de semanas anteriores.
 				</p>
 			</div>
 

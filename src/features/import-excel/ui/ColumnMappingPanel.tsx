@@ -135,9 +135,7 @@ export function ColumnsPanel({
 			</div>
 			<div className="p-3 flex flex-col gap-1.5">
 				{headerCols.map((col, idx) => {
-					const assignedKey = Object.entries(columnMap).find(
-						([, v]) => v === String(idx),
-					)?.[0];
+					const assignedKey = Object.entries(columnMap).find(([, v]) => v === String(idx))?.[0];
 					const assignedLabel = assignedKey
 						? fields.find((f) => f.key === assignedKey)?.label
 						: null;
@@ -165,11 +163,7 @@ export function ColumnsPanel({
 									className="text-[12px] font-black min-w-[18px]"
 									style={{
 										fontFamily: "'Barlow Condensed', sans-serif",
-										color: isMapped
-											? "var(--color-brand)"
-											: isClickable
-												? "#60a5fa"
-												: "#555555",
+										color: isMapped ? "var(--color-brand)" : isClickable ? "#60a5fa" : "#555555",
 									}}
 								>
 									{idx + 1}

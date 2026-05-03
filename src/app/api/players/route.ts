@@ -44,11 +44,11 @@ export async function GET(request: Request) {
 
 	// Get distinct player IDs registered in those leagues
 	const registered = await db
-		.selectDistinct({ playerId: playerRegistrations.playerId })
+		.selectDistinct({ playerId: playerRegistrations.legacyPlayerId })
 		.from(playerRegistrations)
 		.where(inArray(playerRegistrations.leagueId, leagueIds));
 
-	const playerIds = registered.map((r) => r.playerId);
+	const playerIds = registered.map((r) => r.playerId).filter((id): id is string => id !== null);
 
 	if (playerIds.length === 0) {
 		return apiSuccessPaginated([], buildMeta(0, params));

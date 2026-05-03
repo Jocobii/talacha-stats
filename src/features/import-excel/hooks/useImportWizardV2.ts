@@ -13,13 +13,7 @@ import type {
 // Types
 // ---------------------------------------------------------------------------
 
-export type WizardStep =
-	| "upload"
-	| "preview"
-	| "doubts"
-	| "suggestions"
-	| "confirm"
-	| "result";
+export type WizardStep = "upload" | "preview" | "doubts" | "suggestions" | "confirm" | "result";
 
 interface WizardState {
 	step: WizardStep;
@@ -57,9 +51,7 @@ const INITIAL: WizardState = {
  *  - cross_org_suggestion → create_new by default (user can override)
  *  - intra_org_doubt → left empty (user MUST decide)
  */
-function buildAutoDecisions(
-	preview: ImportPreviewResult,
-): Record<string, ImportDecision> {
+function buildAutoDecisions(preview: ImportPreviewResult): Record<string, ImportDecision> {
 	const decisions: Record<string, ImportDecision> = {};
 	for (const outcome of preview.outcomes) {
 		const rowId = outcome.row.fingerprint;
@@ -91,8 +83,7 @@ function nextStepAfterPreview(preview: ImportPreviewResult): WizardStep {
 }
 
 function nextStepAfterDoubts(preview: ImportPreviewResult): WizardStep {
-	if (preview.outcomes.some((o) => o.kind === "cross_org_suggestion"))
-		return "suggestions";
+	if (preview.outcomes.some((o) => o.kind === "cross_org_suggestion")) return "suggestions";
 	return "confirm";
 }
 
@@ -119,16 +110,13 @@ export function useImportWizardV2() {
 	const outcomes = state.preview?.outcomes ?? [];
 
 	const doubts = outcomes.filter(
-		(o): o is Extract<MatchOutcome, { kind: "intra_org_doubt" }> =>
-			o.kind === "intra_org_doubt",
+		(o): o is Extract<MatchOutcome, { kind: "intra_org_doubt" }> => o.kind === "intra_org_doubt",
 	);
 	const suggestions = outcomes.filter(
 		(o): o is Extract<MatchOutcome, { kind: "cross_org_suggestion" }> =>
 			o.kind === "cross_org_suggestion",
 	);
-	const unresolvedDoubts = doubts.filter(
-		(d) => !state.decisions[d.row.fingerprint],
-	);
+	const unresolvedDoubts = doubts.filter((d) => !state.decisions[d.row.fingerprint]);
 	const allDoubtsDone = unresolvedDoubts.length === 0;
 
 	// ── Handlers ────────────────────────────────────────────────────────────
@@ -146,9 +134,12 @@ export function useImportWizardV2() {
 				method: "POST",
 				body: fd,
 			});
-			const json = (await res.json()) as { ok: boolean; data?: ImportPreviewResult; error?: string };
-			if (!json.ok || !json.data)
-				throw new Error(json.error ?? "Error al procesar el archivo");
+			const json = (await res.json()) as {
+				ok: boolean;
+				data?: ImportPreviewResult;
+				error?: string;
+			};
+			if (!json.ok || !json.data) throw new Error(json.error ?? "Error al procesar el archivo");
 
 			const preview = json.data;
 			const decisions = buildAutoDecisions(preview);
@@ -217,7 +208,11 @@ export function useImportWizardV2() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(body),
 			});
-			const json = (await res.json()) as { ok: boolean; data?: ConfirmImportResult; error?: string };
+			const json = (await res.json()) as {
+				ok: boolean;
+				data?: ConfirmImportResult;
+				error?: string;
+			};
 			if (!json.ok || !json.data)
 				throw new Error(json.error ?? "Error al confirmar la importación");
 
@@ -250,12 +245,9 @@ export function useImportWizardV2() {
 			hasSuggestions: suggestions.length > 0,
 		},
 		handlers: {
-			setLeagueId: (id: string) =>
-				setState((prev) => ({ ...prev, leagueId: id })),
-			setJornada: (j: string) =>
-				setState((prev) => ({ ...prev, jornada: j })),
-			setFile: (f: File | null) =>
-				setState((prev) => ({ ...prev, file: f })),
+			setLeagueId: (id: string) => setState((prev) => ({ ...prev, leagueId: id })),
+			setJornada: (j: string) => setState((prev) => ({ ...prev, jornada: j })),
+			setFile: (f: File | null) => setState((prev) => ({ ...prev, file: f })),
 			handlePreview,
 			setDecision,
 			goFromPreview,

@@ -58,11 +58,7 @@ const COLUMN_PATTERNS: Record<BulkImportType, Record<string, string[]>> = {
  * el comportamiento de normalización de forma independiente.
  */
 export function normalizeCell(s: string): string {
-	return s
-		.toUpperCase()
-		.normalize("NFD")
-		.replace(/[̀-ͯ]/g, "")
-		.trim();
+	return s.toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
 }
 
 /**
@@ -115,8 +111,7 @@ export function autoMapColumns(headerCols: string[], type: BulkImportType): Colu
 
 			const exactMatch = normalizedKeywords.some((k) => k === cell);
 			const partialMatch =
-				!exactMatch &&
-				normalizedKeywords.some((k) => cell.includes(k) || k.includes(cell));
+				!exactMatch && normalizedKeywords.some((k) => cell.includes(k) || k.includes(cell));
 
 			if (exactMatch || partialMatch) {
 				map[field] = String(ci);

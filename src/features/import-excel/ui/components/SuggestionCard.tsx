@@ -1,10 +1,6 @@
 "use client";
 
-import type {
-	GlobalCandidate,
-	ParsedRow,
-	ImportDecision,
-} from "../../types";
+import type { GlobalCandidate, ParsedRow, ImportDecision } from "../../types";
 import { CandidateButton } from "./CandidateButton";
 
 type Props = {
@@ -17,8 +13,7 @@ type Props = {
 export function SuggestionCard({ row, candidates, decision, onDecide }: Props) {
 	const rowId = row.fingerprint;
 
-	const activePlayerId =
-		decision?.kind === "propose_claim" ? decision.playerId : null;
+	const activePlayerId = decision?.kind === "propose_claim" ? decision.playerId : null;
 	const isCreateNew = !decision || decision.kind === "create_new";
 
 	return (
@@ -29,9 +24,7 @@ export function SuggestionCard({ row, candidates, decision, onDecide }: Props) {
 					🌐
 				</div>
 				<div className="flex-1 min-w-0">
-					<p className="font-extrabold text-ink text-base leading-tight">
-						{row.rawFullName}
-					</p>
+					<p className="font-extrabold text-ink text-base leading-tight">{row.rawFullName}</p>
 					<p className="text-xs text-ink-2 mt-0.5">
 						{row.team}
 						{row.jerseyNumber != null ? ` · #${row.jerseyNumber}` : ""}
@@ -43,10 +36,11 @@ export function SuggestionCard({ row, candidates, decision, onDecide }: Props) {
 			<div className="p-3 flex flex-col gap-2">
 				{/* Explainer — safety-first copy */}
 				<div className="rounded-xl bg-blue-50 border border-blue-100 px-3 py-2 text-xs text-blue-800 leading-relaxed">
-					<span className="font-semibold">¿Este jugador ya está en otra liga de la plataforma?</span>{" "}
-					Si es la misma persona real, puedes proponer vincularlo. La propuesta
-					queda pendiente hasta que la otra organización también confirme, o el
-					jugador reclame su perfil.
+					<span className="font-semibold">
+						¿Este jugador ya está en otra liga de la plataforma?
+					</span>{" "}
+					Si es la misma persona real, puedes proponer vincularlo. La propuesta queda pendiente
+					hasta que la otra organización también confirme, o el jugador reclame su perfil.
 				</div>
 
 				<p className="text-xs font-semibold text-ink-3 uppercase tracking-wide px-1 mb-1">
@@ -70,8 +64,8 @@ export function SuggestionCard({ row, candidates, decision, onDecide }: Props) {
 						<span className="flex flex-col gap-0.5">
 							<span className="font-bold text-ink">{c.canonicalName}</span>
 							<span className="text-xs text-ink-3">
-								Registrado en {c.appearancesCount}{" "}
-								{c.appearancesCount === 1 ? "liga" : "ligas"} de la plataforma
+								Registrado en {c.appearancesCount} {c.appearancesCount === 1 ? "liga" : "ligas"} de
+								la plataforma
 							</span>
 						</span>
 					</CandidateButton>

@@ -39,11 +39,9 @@ export function UploadStep({
 }: Props) {
 	const relevantTemplates = templates.filter((t) => t.type === importType);
 
-	const decrementJornada = () =>
-		onJornadaChange(String(Math.max(1, (parseInt(jornada) || 1) - 1)));
+	const decrementJornada = () => onJornadaChange(String(Math.max(1, (parseInt(jornada) || 1) - 1)));
 
-	const incrementJornada = () =>
-		onJornadaChange(String((parseInt(jornada) || 0) + 1));
+	const incrementJornada = () => onJornadaChange(String((parseInt(jornada) || 0) + 1));
 
 	return (
 		<div className="flex flex-col gap-5">
@@ -107,7 +105,9 @@ export function UploadStep({
 										: "border-line bg-surface hover:border-line",
 								].join(" ")}
 							>
-								<div className={`text-[15px] font-bold ${importType === t ? "text-brand" : "text-ink"}`}>
+								<div
+									className={`text-[15px] font-bold ${importType === t ? "text-brand" : "text-ink"}`}
+								>
 									{t === "goleadores" ? "⚽  Goleadores" : "📊  Tabla de posiciones"}
 								</div>
 								<div className="text-xs text-ink-2 mt-0.5">
@@ -138,9 +138,7 @@ export function UploadStep({
 							type="number"
 							min="1"
 							value={jornada}
-							onChange={(e) =>
-								onJornadaChange(String(Math.max(1, parseInt(e.target.value) || 1)))
-							}
+							onChange={(e) => onJornadaChange(String(Math.max(1, parseInt(e.target.value) || 1)))}
 							className="w-20 text-center text-3xl font-black text-brand border-2 border-brand/30 rounded-xl py-1.5 bg-brand/10 outline-none focus:border-brand"
 							style={
 								{

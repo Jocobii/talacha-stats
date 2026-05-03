@@ -143,9 +143,8 @@ export default async function LeaguePublicPage({ params }: Props) {
 									return (
 										<div
 											key={row.id}
-											className={`grid grid-cols-[2rem_1fr_2rem_2rem_2rem_2rem_2.5rem] gap-1 px-3 py-2.5 border-b border-line last:border-0 ${
-												isTop3 ? "bg-brand/4" : ""
-											}`}
+											className={`grid grid-cols-[2rem_1fr_2rem_2rem_2rem_2rem_2.5rem] gap-1 px-3 py-2.5 border-b border-line last:border-0 ${isTop3 ? "bg-brand/4" : ""
+												}`}
 										>
 											{/* Pos */}
 											<div className="flex items-center justify-center">
@@ -202,8 +201,8 @@ export default async function LeaguePublicPage({ params }: Props) {
 							<EmptyState text="Aún no hay estadísticas de goleadores." />
 						) : (
 							<div className="space-y-1.5">
-								{scorers.map((scorer: ScorerData, idx: number) => (
-									<ScorerCard key={scorer.playerId} scorer={scorer} rank={idx + 1} />
+								{scorers.map((scorer, idx) => (
+									<ScorerCard key={scorer.playerId ?? idx} scorer={scorer} rank={idx + 1} />
 								))}
 							</div>
 						)}

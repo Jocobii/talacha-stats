@@ -57,13 +57,12 @@ export async function POST(request: Request) {
 		const result = await generateImportPreview({
 			buffer,
 			leagueId: league_id,
-			organizationId: league.organizationId,
+			organizationId: league.organizationId!,
 			jornada,
 		});
 		return apiSuccess(result);
 	} catch (e) {
-		const message =
-			e instanceof Error ? e.message : "No se pudo procesar el archivo";
+		const message = e instanceof Error ? e.message : "No se pudo procesar el archivo";
 		return apiError(message, 400);
 	}
 }

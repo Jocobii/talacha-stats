@@ -194,7 +194,7 @@ export async function getLatestStandings(leagueId: string) {
 export async function getLatestTopScorers(leagueId: string, limit = 10) {
 	return db
 		.select({
-			playerId: playerSeasonStats.playerId,
+			playerId: playerSeasonStats.legacyPlayerId,
 			fullName: players.fullName,
 			alias: players.alias,
 			goals: playerSeasonStats.goals,
@@ -203,7 +203,7 @@ export async function getLatestTopScorers(leagueId: string, limit = 10) {
 			teamName: teams.name,
 		})
 		.from(playerSeasonStats)
-		.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
+		.innerJoin(players, eq(playerSeasonStats.legacyPlayerId, players.id))
 		.innerJoin(teams, eq(playerSeasonStats.teamId, teams.id))
 		.where(eq(playerSeasonStats.leagueId, leagueId))
 		.orderBy(desc(playerSeasonStats.goals), desc(playerSeasonStats.assists))
@@ -341,7 +341,7 @@ export async function getLeaguesShowcase(city: string, limit = 6): Promise<Leagu
 				goals: playerSeasonStats.goals,
 			})
 			.from(playerSeasonStats)
-			.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
+			.innerJoin(players, eq(playerSeasonStats.legacyPlayerId, players.id))
 			.where(inArray(playerSeasonStats.leagueId, leagueIds))
 			.orderBy(desc(playerSeasonStats.goals), desc(playerSeasonStats.assists)),
 	]);
@@ -420,7 +420,7 @@ export async function getLeagueSnapshot(leagueId: string): Promise<LeagueSnapsho
 				goals: playerSeasonStats.goals,
 			})
 			.from(playerSeasonStats)
-			.innerJoin(players, eq(playerSeasonStats.playerId, players.id))
+			.innerJoin(players, eq(playerSeasonStats.legacyPlayerId, players.id))
 			.where(eq(playerSeasonStats.leagueId, leagueId))
 			.orderBy(desc(playerSeasonStats.goals))
 			.limit(1),

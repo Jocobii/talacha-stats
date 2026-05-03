@@ -98,23 +98,24 @@ export function titleCase(str: string): string {
 // Invariante: normalizePlayerName(x) === normalizePlayerName(sanitizeName(x))
 // para cualquier string x. Es idempotente.
 // ---------------------------------------------------------------------------
-const GENERATIONAL_SUFFIXES =
-	/\s+\b(jr\.?|sr\.?|ii|iii|iv|v|hijo|hija)\b\.?$/i;
+const GENERATIONAL_SUFFIXES = /\s+\b(jr\.?|sr\.?|ii|iii|iv|v|hijo|hija)\b\.?$/i;
 
 export function normalizePlayerName(input: string): string {
-	return input
-		.trim()
-		.toLowerCase()
-		// Colapsa espacios múltiples
-		.replace(/\s{2,}/g, " ")
-		// Elimina tabs/newlines
-		.replace(/[\t\r\n]+/g, " ")
-		// Quita sufijos generacionales (al final del string)
-		.replace(GENERATIONAL_SUFFIXES, "")
-		// Normaliza acentos: descompone en NFD y elimina diacríticos (U+0300-U+036F)
-		.normalize("NFD")
-		.replace(/[̀-ͯ]/g, "")
-		.trim();
+	return (
+		input
+			.trim()
+			.toLowerCase()
+			// Colapsa espacios múltiples
+			.replace(/\s{2,}/g, " ")
+			// Elimina tabs/newlines
+			.replace(/[\t\r\n]+/g, " ")
+			// Quita sufijos generacionales (al final del string)
+			.replace(GENERATIONAL_SUFFIXES, "")
+			// Normaliza acentos: descompone en NFD y elimina diacríticos (U+0300-U+036F)
+			.normalize("NFD")
+			.replace(/[̀-ͯ]/g, "")
+			.trim()
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -127,11 +128,8 @@ export function normalizePlayerName(input: string): string {
 // El dorsal es opcional — muchos imports legacy no lo tienen. Cuando no se
 // provee, el fingerprint es solo el nombre normalizado.
 // ---------------------------------------------------------------------------
-export function fingerprintPlayer(
-	fullName: string,
-	jersey?: string | number | null,
-): string {
+export function fingerprintPlayer(fullName: string, jersey?: string | number | null): string {
 	const base = normalizePlayerName(fullName);
-	if (jersey == null || jersey === "" ) return base;
+	if (jersey == null || jersey === "") return base;
 	return `${base}::${String(jersey).trim()}`;
 }

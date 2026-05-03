@@ -45,11 +45,7 @@ export { generateImportPreview } from "./preview";
 export { confirmImport, type ConfirmInput, type ConfirmResult } from "./confirm";
 
 // New layer-based pipeline (Historia 03)
-export {
-	confirmImportDecisions,
-	type ConfirmImportInput,
-	type ConfirmImportResult,
-} from "./confirm";
+export { confirmImportDecisions } from "./confirm";
 
 export {
 	generateEventPreview,

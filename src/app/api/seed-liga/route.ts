@@ -338,7 +338,7 @@ export async function POST(request: Request) {
 
 			await tx.insert(playerRegistrations).values(
 				inserted.map((p, i) => ({
-					playerId: p.id,
+					legacyPlayerId: p.id,
 					teamId: team.id,
 					leagueId: league.id,
 					jerseyNumber: playerData[i].jerseyNumber,
@@ -360,7 +360,7 @@ export async function POST(request: Request) {
 					totalGoals: sql<number>`COALESCE(SUM(${playerSeasonStats.goals}), 0)`,
 				})
 				.from(players)
-				.leftJoin(playerSeasonStats, eq(players.id, playerSeasonStats.playerId))
+				.leftJoin(playerSeasonStats, eq(players.id, playerSeasonStats.legacyPlayerId))
 				.where(notInArray(players.id, allNewPlayerIds))
 				.groupBy(players.id)
 				.orderBy(desc(sql`COALESCE(SUM(${playerSeasonStats.goals}), 0)`))
@@ -375,7 +375,7 @@ export async function POST(request: Request) {
 					const inserted = await tx
 						.insert(playerRegistrations)
 						.values({
-							playerId: crossId,
+							legacyPlayerId: crossId,
 							teamId: targetTeam.id,
 							leagueId: league.id,
 							jerseyNumber: rnd(2, 99),
@@ -462,7 +462,7 @@ export async function POST(request: Request) {
 
 		// 7. Stats de goleadores — distribuir goles del equipo entre sus jugadores
 		const allStats: {
-			playerId: string;
+			legacyPlayerId: string;
 			leagueId: string;
 			teamId: string;
 			matchesPlayed: number;
@@ -487,7 +487,7 @@ export async function POST(request: Request) {
 
 			orderedIds.forEach((playerId, i) => {
 				allStats.push({
-					playerId,
+					legacyPlayerId: playerId,
 					leagueId: league.id,
 					teamId,
 					matchesPlayed: Math.max(1, played - rnd(0, Math.floor(played * 0.2))),
@@ -534,7 +534,7 @@ export async function POST(request: Request) {
 				...standings[team.id],
 			})),
 			topScorerGoals: topGoals,
-			topScorerId: topScorer?.playerId ?? null,
+			topScorerId: topScorer?.legacyPlayerId ?? null,
 			totalGoalsLeague: allStats.reduce((s, p) => s + p.goals, 0),
 		};
 	});

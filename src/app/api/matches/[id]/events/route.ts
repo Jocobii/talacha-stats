@@ -8,7 +8,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
 	const events = await db.query.matchEvents.findMany({
 		where: eq(matchEvents.matchId, id),
-		with: { player: true, team: true },
+		with: { legacyPlayer: true, team: true },
 		orderBy: (e, { asc }) => [asc(e.minute), asc(e.createdAt)],
 	});
 
@@ -31,7 +31,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 		.insert(matchEvents)
 		.values({
 			matchId: id,
-			playerId: parsed.data.playerId,
+			legacyPlayerId: parsed.data.playerId,
 			teamId: parsed.data.teamId,
 			eventType: parsed.data.eventType,
 			minute: parsed.data.minute ?? null,

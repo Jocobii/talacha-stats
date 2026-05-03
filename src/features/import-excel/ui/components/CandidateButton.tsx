@@ -60,9 +60,7 @@ export function CandidateButton({
 						selected ? "border-current bg-current" : "border-ink-3",
 					].join(" ")}
 				>
-					{selected && (
-						<span className="w-1.5 h-1.5 rounded-full bg-white block" />
-					)}
+					{selected && <span className="w-1.5 h-1.5 rounded-full bg-white block" />}
 				</span>
 				<span className="flex-1">{children}</span>
 			</span>

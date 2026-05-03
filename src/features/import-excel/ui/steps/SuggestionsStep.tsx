@@ -1,9 +1,6 @@
 "use client";
 
-import type {
-	MatchOutcome,
-	ImportDecision,
-} from "../../types";
+import type { MatchOutcome, ImportDecision } from "../../types";
 import { SuggestionCard } from "../components/SuggestionCard";
 
 type SuggestionOutcome = Extract<MatchOutcome, { kind: "cross_org_suggestion" }>;
@@ -16,13 +13,7 @@ type Props = {
 	onBack: () => void;
 };
 
-export function SuggestionsStep({
-	suggestions,
-	decisions,
-	onDecide,
-	onContinue,
-	onBack,
-}: Props) {
+export function SuggestionsStep({ suggestions, decisions, onDecide, onContinue, onBack }: Props) {
 	const claimCount = suggestions.filter(
 		(s) => decisions[s.row.fingerprint]?.kind === "propose_claim",
 	).length;
@@ -33,13 +24,10 @@ export function SuggestionsStep({
 			<div className="bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 flex items-start gap-3">
 				<span className="text-2xl shrink-0 mt-0.5">🌐</span>
 				<div className="flex-1">
-					<p className="font-bold text-blue-800 text-sm">
-						Posibles coincidencias en otras ligas
-					</p>
+					<p className="font-bold text-blue-800 text-sm">Posibles coincidencias en otras ligas</p>
 					<p className="text-xs text-blue-700 mt-0.5 leading-relaxed">
-						Estos jugadores tienen nombres muy parecidos a jugadores ya
-						registrados en la plataforma. Puedes proponer vincularlos o ignorar
-						la sugerencia — este paso es opcional.
+						Estos jugadores tienen nombres muy parecidos a jugadores ya registrados en la
+						plataforma. Puedes proponer vincularlos o ignorar la sugerencia — este paso es opcional.
 					</p>
 				</div>
 			</div>
@@ -59,9 +47,11 @@ export function SuggestionsStep({
 
 			{claimCount > 0 && (
 				<div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 text-xs text-blue-800 leading-relaxed">
-					<span className="font-semibold">{claimCount} propuesta{claimCount > 1 ? "s" : ""} de vinculación.</span>{" "}
-					Se activarán cuando la otra organización también confirme, o el jugador
-					reclame su perfil desde la app.
+					<span className="font-semibold">
+						{claimCount} propuesta{claimCount > 1 ? "s" : ""} de vinculación.
+					</span>{" "}
+					Se activarán cuando la otra organización también confirme, o el jugador reclame su perfil
+					desde la app.
 				</div>
 			)}
 

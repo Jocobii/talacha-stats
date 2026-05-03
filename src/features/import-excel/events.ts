@@ -303,10 +303,10 @@ export async function confirmEventImport(input: EventConfirmInput): Promise<Even
 		}
 
 		// Paso 4: Insertar registrations + eventos en batch
-		const registrationValues: { playerId: string; teamId: string; leagueId: string }[] = [];
+		const registrationValues: { legacyPlayerId: string; teamId: string; leagueId: string }[] = [];
 		const eventValues: {
 			matchId: string;
-			playerId: string;
+			legacyPlayerId: string;
 			teamId: string;
 			eventType: string;
 			minute: number | null;
@@ -331,12 +331,12 @@ export async function confirmEventImport(input: EventConfirmInput): Promise<Even
 			}
 
 			if (teamId) {
-				registrationValues.push({ playerId, teamId, leagueId });
+				registrationValues.push({ legacyPlayerId: playerId, teamId, leagueId });
 			}
 
-			eventValues.push({
-				matchId,
-				playerId,
+				eventValues.push({
+					matchId,
+					legacyPlayerId: playerId,
 				teamId: teamId ?? homeTeamId ?? awayTeamId ?? "",
 				eventType: normalizeTipo(event.tipo),
 				minute: event.minuto ?? null,

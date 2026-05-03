@@ -41,7 +41,7 @@ export async function getPlayerProfile(playerId: string): Promise<PlayerView | n
 
 	// 2. Todas las ligas en las que está registrado (con liga y equipo)
 	const registrations = await db.query.playerRegistrations.findMany({
-		where: eq(playerRegistrations.playerId, playerId),
+		where: eq(playerRegistrations.legacyPlayerId, playerId),
 		with: { league: true, team: true },
 	});
 
@@ -59,7 +59,7 @@ export async function getPlayerProfile(playerId: string): Promise<PlayerView | n
 
 	// 3. Todas las season_stats de este jugador (una sola query)
 	const allSeasonStats = await db.query.playerSeasonStats.findMany({
-		where: eq(playerSeasonStats.playerId, playerId),
+		where: eq(playerSeasonStats.legacyPlayerId, playerId),
 	});
 	const seasonStatsMap = new Map(allSeasonStats.map((s) => [s.leagueId, s]));
 
@@ -220,7 +220,7 @@ async function fetchMatchEventsFallback(
 		.innerJoin(matches, eq(matchEvents.matchId, matches.id))
 		.where(
 			and(
-				eq(matchEvents.playerId, playerId),
+				eq(matchEvents.legacyPlayerId, playerId),
 				eq(matches.status, "completed"),
 				inArray(matches.leagueId, leagueIds),
 			),
@@ -237,7 +237,7 @@ async function fetchMatchEventsFallback(
 		.innerJoin(matches, eq(matchEvents.matchId, matches.id))
 		.where(
 			and(
-				eq(matchEvents.playerId, playerId),
+				eq(matchEvents.legacyPlayerId, playerId),
 				eq(matches.status, "completed"),
 				inArray(matches.leagueId, leagueIds),
 			),
@@ -347,7 +347,7 @@ export async function getPlayerEgoStats(playerId: string): Promise<PlayerEgoStat
 		.from(playerSeasonStats)
 		.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
 		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-		.where(eq(playerSeasonStats.playerId, playerId));
+		.where(eq(playerSeasonStats.legacyPlayerId, playerId));
 
 	const [streak, hatTricks, mvpCount] = await Promise.all([
 		fetchGoalStreak(playerId),
@@ -471,7 +471,7 @@ async function fetchMvpCount(playerId: string): Promise<number> {
 	const rows = await db
 		.select({ count: sql<number>`count(*)::int` })
 		.from(matchEvents)
-		.where(and(eq(matchEvents.playerId, playerId), eq(matchEvents.eventType, "mvp")));
+		.where(and(eq(matchEvents.legacyPlayerId, playerId), eq(matchEvents.eventType, "mvp")));
 	return rows[0]?.count ?? 0;
 }
 
@@ -561,4 +561,71 @@ function emptyEgoStats(): PlayerEgoStats {
 		teamGoalShares: [],
 		badges: [],
 	};
+}
+
+// ---------------------------------------------------------------------------
+// Historia 05 — Queries sobre la vista player_global_stats
+// ---------------------------------------------------------------------------
+
+import { playerGlobalStats } from "@/db/schema";
+import type { PlayerGlobalStats } from "./model";
+
+/**
+ * Retorna las estadísticas globales verificadas de un jugador.
+ * Devuelve null si el jugador no tiene profiles con claim_status='verified'.
+ */
+export async function getPlayerGlobalStats(playerId: string): Promise<PlayerGlobalStats | null> {
+	const rows = await db
+		.select()
+		.from(playerGlobalStats)
+		.where(eq(playerGlobalStats.playerId, playerId))
+		.limit(1);
+
+	if (rows.length === 0) return null;
+	const r = rows[0];
+	return {
+		playerId: r.playerId,
+		fullName: r.fullName,
+		alias: r.alias ?? null,
+		organizationsCount: r.organizationsCount,
+		leaguesCount: r.leaguesCount,
+		totalGoals: r.totalGoals,
+		totalAssists: r.totalAssists,
+		totalMatchesPlayed: r.totalMatchesPlayed,
+		totalYellowCards: r.totalYellowCards,
+		totalRedCards: r.totalRedCards,
+		lastUpdatedAt: r.lastUpdatedAt,
+	};
+}
+
+/**
+ * Lista los jugadores con más goles verificados en toda la plataforma.
+ * Excluye jugadores sin ningun partido jugado (minMatches guard).
+ */
+export async function listTopScorers(opts: {
+	limit?: number;
+	minMatches?: number;
+}): Promise<PlayerGlobalStats[]> {
+	const { limit = 20, minMatches = 1 } = opts;
+
+	const rows = await db
+		.select()
+		.from(playerGlobalStats)
+		.where(sql`${playerGlobalStats.totalMatchesPlayed} >= ${minMatches}`)
+		.orderBy(desc(playerGlobalStats.totalGoals), desc(playerGlobalStats.totalMatchesPlayed))
+		.limit(limit);
+
+	return rows.map((r) => ({
+		playerId: r.playerId,
+		fullName: r.fullName,
+		alias: r.alias ?? null,
+		organizationsCount: r.organizationsCount,
+		leaguesCount: r.leaguesCount,
+		totalGoals: r.totalGoals,
+		totalAssists: r.totalAssists,
+		totalMatchesPlayed: r.totalMatchesPlayed,
+		totalYellowCards: r.totalYellowCards,
+		totalRedCards: r.totalRedCards,
+		lastUpdatedAt: r.lastUpdatedAt,
+	}));
 }

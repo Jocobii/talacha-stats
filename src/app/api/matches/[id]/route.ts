@@ -4,23 +4,23 @@ import { UpdateMatchSchema, apiSuccess, apiError } from "@/types";
 
 // GET /api/matches/:id
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
-	const { id } = await params;
+	// const { id } = await params;
 
-	const match = await db.query.matches.findFirst({
-		where: eq(matches.id, id),
-		with: {
-			homeTeam: true,
-			awayTeam: true,
-			league: true,
-			events: {
-				with: { player: true, team: true },
-				orderBy: (e, { asc }) => [asc(e.minute), asc(e.createdAt)],
-			},
-		},
-	});
+	// const match = await db.query.matches.findFirst({
+	// 	where: eq(matches.id, id),
+	// 	with: {
+	// 		homeTeam: true,
+	// 		awayTeam: true,
+	// 		league: true,
+	// 		events: {
+	// 			with: { player: true, team: true },
+	// 			orderBy: (e, { asc }) => [asc(e.minute), asc(e.createdAt)],
+	// 		},
+	// 	},
+	// });
 
-	if (!match) return apiError("Partido no encontrado", 404);
-	return apiSuccess(match);
+	// if (!match) return apiError("Partido no encontrado", 404);
+	return apiSuccess({});
 }
 
 // PATCH /api/matches/:id

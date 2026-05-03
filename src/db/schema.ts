@@ -1,5 +1,6 @@
 import {
 	pgTable,
+	pgView,
 	uuid,
 	text,
 	integer,
@@ -123,10 +124,7 @@ export const playerProfiles = pgTable(
 		claimedPlayerId: uuid("claimed_player_id").references(() => players.id, {
 			onDelete: "set null",
 		}),
-		claimStatus: text("claim_status")
-			.notNull()
-			.default("unclaimed")
-			.$type<ClaimStatus>(),
+		claimStatus: text("claim_status").notNull().default("unclaimed").$type<ClaimStatus>(),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
@@ -310,7 +308,6 @@ export const playerProfilesRelations = relations(playerProfiles, ({ one, many })
 	seasonStats: many(playerSeasonStats),
 	events: many(matchEvents),
 }));
-
 
 export const usersRelations = relations(users, ({ one }) => ({
 	organization: one(organizations, {
@@ -702,3 +699,46 @@ export const DAYS_OF_WEEK = [
 	"domingo",
 ] as const;
 export type DayOfWeek = (typeof DAYS_OF_WEEK)[number];
+
+// ---------------------------------------------------------------------------
+// PLAYER_GLOBAL_STATS — Vista agregada cross-org (Historia 05)
+//
+// Agrega estadísticas de un jugador a través de todos sus player_profiles
+// con claim_status = 'verified'. Profiles unclaimed / proposed / rejected
+// quedan EXCLUIDOS — garantía de privacidad cross-org.
+//
+// Vista REGULAR (no materializada) para MVP.
+// Deuda técnica: migrar a MATERIALIZED VIEW si el costo de query sube.
+// ---------------------------------------------------------------------------
+export const playerGlobalStats = pgView("player_global_stats").as((qb) =>
+	qb
+		.select({
+			playerId: players.id,
+			fullName: players.fullName,
+			alias: players.alias,
+			organizationsCount: drizzleSql<number>`COUNT(DISTINCT ${playerProfiles.organizationId})::int`,
+			leaguesCount: drizzleSql<number>`COUNT(DISTINCT ${playerRegistrations.leagueId})::int`,
+			totalGoals: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.goals}), 0)::int`,
+			totalAssists: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.assists}), 0)::int`,
+			totalMatchesPlayed: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.matchesPlayed}), 0)::int`,
+			totalYellowCards: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.yellowCards}), 0)::int`,
+			totalRedCards: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.redCards}), 0)::int`,
+			lastUpdatedAt: drizzleSql<Date | null>`MAX(${playerSeasonStats.updatedAt})`,
+		})
+		.from(players)
+		.innerJoin(
+			playerProfiles,
+			drizzleSql`${playerProfiles.claimedPlayerId} = ${players.id} AND ${playerProfiles.claimStatus} = 'verified'`,
+		)
+		.leftJoin(
+			playerRegistrations,
+			drizzleSql`${playerRegistrations.playerProfileId} = ${playerProfiles.id}`,
+		)
+		.leftJoin(
+			playerSeasonStats,
+			drizzleSql`${playerSeasonStats.playerProfileId} = ${playerProfiles.id}`,
+		)
+		.groupBy(players.id, players.fullName, players.alias),
+);
+
+export type PlayerGlobalStatsRow = typeof playerGlobalStats.$inferSelect;

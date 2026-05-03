@@ -116,9 +116,7 @@ function EventList({
 					{events.map((e) => (
 						<li key={e.id} className="flex items-center gap-2 text-sm">
 							<span>{EVENT_LABELS[e.eventType] ?? e.eventType}</span>
-							<span className="font-medium text-ink">
-								{e.player.alias ?? e.player.fullName}
-							</span>
+							<span className="font-medium text-ink">{e.player.alias ?? e.player.fullName}</span>
 							{e.minute && <span className="text-ink-3 text-xs">{e.minute}&apos;</span>}
 						</li>
 					))}

@@ -106,11 +106,7 @@ export async function matchRows(rows: ParsedRow[], ctx: MatchContext): Promise<M
 	// ── L2: Exact intra-org cross-league ──────────────────────────────────────
 	const unresolvedAfterL1 = allNames.filter((n) => !l1ByName.has(n));
 	if (unresolvedAfterL1.length > 0) {
-		const l2Results = await queryExactIntraOrg(
-			unresolvedAfterL1,
-			ctx.organizationId,
-			ctx.leagueId,
-		);
+		const l2Results = await queryExactIntraOrg(unresolvedAfterL1, ctx.organizationId, ctx.leagueId);
 
 		for (const result of l2Results) {
 			const rowList = byName.get(result.normalized_name) ?? [];
@@ -238,7 +234,11 @@ export function scoreCandidate(
 	if (rowLastName && candidateLastName && rowLastName === candidateLastName) score += 20;
 
 	// Alias coincide
-	if (candidate.alias && row.alias && normalizePlayerName(candidate.alias) === normalizePlayerName(row.alias)) {
+	if (
+		candidate.alias &&
+		row.alias &&
+		normalizePlayerName(candidate.alias) === normalizePlayerName(row.alias)
+	) {
 		score += 10;
 	}
 
@@ -410,7 +410,12 @@ async function queryFuzzyIntraOrg(names: string[], organizationId: string): Prom
 			leagueName: leagueNames.get(r.profile_id) ?? "",
 			score: scoreCandidate(
 				// mock ParsedRow para scoring — solo usamos los campos necesarios
-				{ normalizedName: r.query_name, alias: undefined, jerseyNumber: undefined, fingerprint: "" } as unknown as ParsedRow,
+				{
+					normalizedName: r.query_name,
+					alias: undefined,
+					jerseyNumber: undefined,
+					fingerprint: "",
+				} as unknown as ParsedRow,
 				{ normalizedName: r.normalized_name, alias: r.alias, fingerprint: r.fingerprint },
 				trigramScore,
 			),
@@ -504,5 +509,5 @@ async function enrichWithLeagueNames(
  * Mismo helper que resolver.ts — solo para arrays literales de PostgreSQL.
  */
 function escapeSql(value: string): string {
-	return value.replace(/'/g, "''").replace(/\\/g, "\\\\");
+	return value.replace(/'/g, "''");
 }

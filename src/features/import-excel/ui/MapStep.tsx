@@ -59,8 +59,13 @@ export function MapStep({
 	loading,
 	error,
 }: Props) {
-	const { activeMapField, hasMapInteracted, handleFieldClick, handleColClick, resetMapInteraction } =
-		useColumnMapping();
+	const {
+		activeMapField,
+		hasMapInteracted,
+		handleFieldClick,
+		handleColClick,
+		resetMapInteraction,
+	} = useColumnMapping();
 
 	const handleColClickWrapper = (colIdx: number) => {
 		const newMap = handleColClick(colIdx, columnMap, fields);
@@ -99,15 +104,15 @@ export function MapStep({
 			<div
 				className={[
 					"rounded-2xl border-2 p-4 transition-all",
-					!hasGoodHeaders
-						? "bg-red-950/40 border-red-800/50"
-						: "bg-brand/10 border-brand/20",
+					!hasGoodHeaders ? "bg-red-950/40 border-red-800/50" : "bg-brand/10 border-brand/20",
 				].join(" ")}
 			>
 				<div className="flex items-start gap-3 mb-3">
 					<span className="text-2xl shrink-0">{!hasGoodHeaders ? "🔍" : "✅"}</span>
 					<div>
-						<p className={`text-[15px] font-bold ${!hasGoodHeaders ? "text-red-400" : "text-brand"}`}>
+						<p
+							className={`text-[15px] font-bold ${!hasGoodHeaders ? "text-red-400" : "text-brand"}`}
+						>
 							{!hasGoodHeaders
 								? "La fila seleccionada no parece tener encabezados — toca la fila correcta"
 								: `Fila ${headerRow + 1} tiene los encabezados correctos ✓`}
@@ -129,10 +134,7 @@ export function MapStep({
 							const isSelected = ri === headerRow;
 							const looksLikeHeaders = row.some(
 								(c) =>
-									c &&
-									isNaN(Number(c)) &&
-									c.length > 0 &&
-									new Set(row.filter(Boolean)).size > 1,
+									c && isNaN(Number(c)) && c.length > 0 && new Set(row.filter(Boolean)).size > 1,
 							);
 							return (
 								<button
@@ -193,9 +195,7 @@ export function MapStep({
 				<div
 					className={[
 						"rounded-2xl border-2 p-4 flex gap-3 items-start transition-all",
-						hasMapInteracted
-							? "bg-brand/10 border-brand/20"
-							: "bg-blue-950/40 border-blue-800/50",
+						hasMapInteracted ? "bg-brand/10 border-brand/20" : "bg-blue-950/40 border-blue-800/50",
 					].join(" ")}
 				>
 					<span className="text-2xl shrink-0">{hasMapInteracted ? "✅" : "👋"}</span>

@@ -8,21 +8,26 @@ import { apiSuccess, apiError } from "@/types";
 // Endpoint de uso único — idempotente (ON CONFLICT DO NOTHING).
 export async function POST() {
 	try {
+		// Only rows with a legacy player link can be backfilled to the snapshot table.
+		// Rows imported via the new pipeline (Historia 03) have legacyPlayerId=null
+		// and are excluded here — they are not part of the snapshot system.
 		const rows = await db
 			.select()
 			.from(playerSeasonStats)
 			.where(not(isNull(playerSeasonStats.jornada)));
 
-		if (rows.length === 0) {
+		const legacyRows = rows.filter((r) => r.legacyPlayerId !== null);
+
+		if (legacyRows.length === 0) {
 			return apiSuccess({ backfilled: 0, message: "No hay filas con jornada registrada." });
 		}
 
 		let backfilled = 0;
-		for (const row of rows) {
+		for (const row of legacyRows) {
 			await db
 				.insert(playerSeasonStatsSnapshot)
 				.values({
-					playerId: row.playerId,
+					playerId: row.legacyPlayerId!,
 					leagueId: row.leagueId,
 					teamId: row.teamId,
 					jornada: row.jornada!,

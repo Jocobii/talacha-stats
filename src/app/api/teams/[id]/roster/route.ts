@@ -11,7 +11,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
 	const roster = await db.query.playerRegistrations.findMany({
 		where: eq(playerRegistrations.teamId, id),
-		with: { player: true },
+		with: { legacyPlayer: true },
 		orderBy: (r, { asc }) => [asc(r.jerseyNumber)],
 	});
 
@@ -36,7 +36,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 		const [registration] = await db
 			.insert(playerRegistrations)
 			.values({
-				playerId: parsed.data.playerId,
+				legacyPlayerId: parsed.data.playerId,
 				teamId: id,
 				leagueId: parsed.data.leagueId,
 				jerseyNumber: parsed.data.jerseyNumber ?? null,

@@ -1,10 +1,6 @@
 "use client";
 
-import type {
-	ProfileCandidate,
-	ParsedRow,
-	ImportDecision,
-} from "../../types";
+import type { ProfileCandidate, ParsedRow, ImportDecision } from "../../types";
 import { CandidateButton } from "./CandidateButton";
 
 type Props = {
@@ -30,8 +26,7 @@ export function DoubtCard({ row, candidates, decision, onDecide }: Props) {
 	const rowId = row.fingerprint;
 	const isResolved = !!decision;
 
-	const activeProfileId =
-		decision?.kind === "link_profile" ? decision.profileId : null;
+	const activeProfileId = decision?.kind === "link_profile" ? decision.profileId : null;
 	const isCreateNew = decision?.kind === "create_new";
 	const isIgnore = decision?.kind === "ignore";
 
@@ -58,9 +53,7 @@ export function DoubtCard({ row, candidates, decision, onDecide }: Props) {
 					{isResolved ? "✓" : "?"}
 				</div>
 				<div className="flex-1 min-w-0">
-					<p className="font-extrabold text-ink text-base leading-tight">
-						{row.rawFullName}
-					</p>
+					<p className="font-extrabold text-ink text-base leading-tight">{row.rawFullName}</p>
 					<p className="text-xs text-ink-2 mt-0.5">
 						{row.team}
 						{row.jerseyNumber != null ? ` · #${row.jerseyNumber}` : ""}
@@ -96,9 +89,7 @@ export function DoubtCard({ row, candidates, decision, onDecide }: Props) {
 						<span className="flex flex-col gap-0.5">
 							<span className="flex items-center gap-2 flex-wrap">
 								<span className="font-bold text-ink">{c.fullName}</span>
-								{c.alias && (
-									<span className="text-ink-2 font-normal">"{c.alias}"</span>
-								)}
+								{c.alias && <span className="text-ink-2 font-normal">"{c.alias}"</span>}
 								<span
 									className={[
 										"text-[11px] font-semibold px-1.5 py-0.5 rounded-full",
@@ -109,9 +100,7 @@ export function DoubtCard({ row, candidates, decision, onDecide }: Props) {
 								</span>
 							</span>
 							<span className="text-xs text-ink-3">{c.leagueName}</span>
-							{c.reason && (
-								<span className="text-[11px] text-ink-3 italic">{c.reason}</span>
-							)}
+							{c.reason && <span className="text-[11px] text-ink-3 italic">{c.reason}</span>}
 						</span>
 					</CandidateButton>
 				))}

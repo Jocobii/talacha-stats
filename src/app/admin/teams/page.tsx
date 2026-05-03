@@ -247,9 +247,7 @@ export default function TeamsPage() {
 					{/* Tabla de equipos */}
 					<div className="bg-surface rounded-xl shadow overflow-hidden">
 						<div className="px-4 py-3 border-b border-line flex items-center justify-between">
-							<p className="text-sm font-medium text-ink">
-								{teams.length} equipos en esta liga
-							</p>
+							<p className="text-sm font-medium text-ink">{teams.length} equipos en esta liga</p>
 							{canMerge && (
 								<button
 									onClick={() => setConfirmOpen(true)}

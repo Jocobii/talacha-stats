@@ -80,17 +80,13 @@ export function DoneStep({ result, copiedIdx, onCopy, onReset }: Props) {
 					{result.content.pills.length > 0 && (
 						<div className="bg-surface border border-line rounded-2xl p-5">
 							<h3 className="text-sm font-bold text-ink mb-1">Highlights de la jornada</h3>
-							<p className="text-xs text-ink-3 mb-4">
-								Toca para copiar y compartir en WhatsApp
-							</p>
+							<p className="text-xs text-ink-3 mb-4">Toca para copiar y compartir en WhatsApp</p>
 							<div className="flex flex-col gap-2">
 								{result.content.pills.map((pill, i) => (
 									<button
 										key={i}
 										type="button"
-										onClick={() =>
-											onCopy(i, `${pill.headline} — ${pill.detail}`)
-										}
+										onClick={() => onCopy(i, `${pill.headline} — ${pill.detail}`)}
 										className={[
 											"flex items-start justify-between gap-3 p-3 rounded-xl border text-left transition-all",
 											copiedIdx === i
@@ -99,9 +95,7 @@ export function DoneStep({ result, copiedIdx, onCopy, onReset }: Props) {
 										].join(" ")}
 									>
 										<div className="min-w-0">
-											<p className="text-sm font-bold text-ink leading-snug">
-												{pill.headline}
-											</p>
+											<p className="text-sm font-bold text-ink leading-snug">{pill.headline}</p>
 											<p className="text-xs text-ink-2 mt-0.5 leading-snug">{pill.detail}</p>
 										</div>
 										<span className="shrink-0 text-xs font-semibold text-ink-3 mt-0.5">

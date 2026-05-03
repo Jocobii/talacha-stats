@@ -357,22 +357,23 @@ async function getTeamRoster(
 ): Promise<RosterPlayer[]> {
 	const regs = await db.query.playerRegistrations.findMany({
 		where: and(eq(playerRegistrations.teamId, teamId), eq(playerRegistrations.leagueId, leagueId)),
-		with: { player: true },
+		with: { legacyPlayer: true },
 	});
 
 	if (regs.length === 0) return [];
 
-	const playerIds = regs.map((r) => r.playerId);
+	const playerIds = regs.map((r) => r.legacyPlayerId).filter((id): id is string => id !== null);
+	if (playerIds.length === 0) return [];
 
 	// Traer todos los season_stats de una sola query
 	const allStats = await db.query.playerSeasonStats.findMany({
 		where: and(
 			eq(playerSeasonStats.leagueId, leagueId),
-			inArray(playerSeasonStats.playerId, playerIds),
+			inArray(playerSeasonStats.legacyPlayerId, playerIds),
 		),
 	});
 
-	const statsMap = new Map(allStats.map((s) => [s.playerId, s]));
+	const statsMap = new Map(allStats.map((s) => [s.legacyPlayerId, s]));
 
 	// Si hay season_stats para al menos la mitad del plantel, usar ese método
 	const useSeasonStats = allStats.length > 0;
@@ -380,8 +381,9 @@ async function getTeamRoster(
 	const roster: RosterPlayer[] = [];
 
 	for (const reg of regs) {
-		const pid = reg.playerId;
-		const player = reg.player;
+		const pid = reg.legacyPlayerId;
+		if (!pid) continue; // nuevo pipeline — sin legacyPlayerId
+		const player = reg.legacyPlayer;
 
 		let goals = 0,
 			assists = 0,
@@ -406,7 +408,7 @@ async function getTeamRoster(
 						count: sql<number>`count(*)::int`,
 					})
 					.from(matchEvents)
-					.where(and(eq(matchEvents.playerId, pid), inArray(matchEvents.matchId, matchIds)))
+					.where(and(eq(matchEvents.legacyPlayerId, pid), inArray(matchEvents.matchId, matchIds)))
 					.groupBy(matchEvents.eventType);
 
 				const counts = Object.fromEntries(events.map((e) => [e.eventType, e.count]));
@@ -418,7 +420,7 @@ async function getTeamRoster(
 				const played = await db
 					.selectDistinct({ matchId: matchEvents.matchId })
 					.from(matchEvents)
-					.where(and(eq(matchEvents.playerId, pid), inArray(matchEvents.matchId, matchIds)));
+					.where(and(eq(matchEvents.legacyPlayerId, pid), inArray(matchEvents.matchId, matchIds)));
 				matchesPlayed = played.length;
 			}
 		}
@@ -426,9 +428,9 @@ async function getTeamRoster(
 		const gpm = matchesPlayed > 0 ? Math.round((goals / matchesPlayed) * 100) / 100 : 0;
 
 		roster.push({
-			playerId: pid,
-			fullName: player.fullName,
-			alias: player.alias,
+			playerId: pid!,
+			fullName: player?.fullName ?? "",
+			alias: player?.alias ?? "",
 			goals,
 			assists,
 			contributions: goals + assists,

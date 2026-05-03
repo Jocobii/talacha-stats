@@ -6,5 +6,11 @@ export type {
 	PlayerTeamGoalShare,
 	PlayerBadge,
 	PlayerEgoStats,
+	PlayerGlobalStats,
 } from "./model";
-export { getPlayerProfile, getPlayerEgoStats } from "./queries";
+export {
+	getPlayerProfile,
+	getPlayerEgoStats,
+	getPlayerGlobalStats,
+	listTopScorers,
+} from "./queries";

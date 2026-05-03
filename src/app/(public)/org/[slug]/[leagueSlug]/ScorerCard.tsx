@@ -3,7 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { titleCase } from "@/shared/lib/normalize";
 
 export type ScorerData = {
-	playerId: string;
+	playerId: string | null;
 	fullName: string;
 	alias: string | null;
 	goals: number;
@@ -16,8 +16,8 @@ type Props = { scorer: ScorerData; rank: number };
 
 /**
  * Tarjeta de goleador clickable que lleva al perfil público del jugador.
- * Muestra nombre, equipo, goles, asistencias y ratio goles/partido.
- * Responsabilidad única: renderizar los datos de un scorer + navegar a su perfil.
+ * Si no hay playerId (stats del nuevo pipeline sin claim verificado) se
+ * muestra sin enlace.
  */
 export default function ScorerCard({ scorer, rank }: Props) {
 	const isTop3 = rank <= 3;
@@ -29,11 +29,8 @@ export default function ScorerCard({ scorer, rank }: Props) {
 	const goalsPerGame =
 		scorer.matchesPlayed > 0 ? (scorer.goals / scorer.matchesPlayed).toFixed(1) : null;
 
-	return (
-		<Link
-			href={`/player/${scorer.playerId}`}
-			className="flex items-center gap-3 bg-surface-2 border border-line rounded-2xl px-4 py-3 hover:border-brand/40 transition-colors group"
-		>
+	const inner = (
+		<>
 			{/* Posición */}
 			{isTop3 ? (
 				<div className="w-7 h-7 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
@@ -79,11 +76,26 @@ export default function ScorerCard({ scorer, rank }: Props) {
 				</p>
 			</div>
 
-			<ChevronRight
-				size={14}
-				strokeWidth={2}
-				className="text-ink-3 group-hover:text-brand transition-colors shrink-0"
-			/>
-		</Link>
+			{scorer.playerId && (
+				<ChevronRight
+					size={14}
+					strokeWidth={2}
+					className="text-ink-3 group-hover:text-brand transition-colors shrink-0"
+				/>
+			)}
+		</>
 	);
+
+	const className =
+		"flex items-center gap-3 bg-surface-2 border border-line rounded-2xl px-4 py-3 transition-colors group";
+
+	if (scorer.playerId) {
+		return (
+			<Link href={`/player/${scorer.playerId}`} className={className + " hover:border-brand/40"}>
+				{inner}
+			</Link>
+		);
+	}
+
+	return <div className={className}>{inner}</div>;
 }

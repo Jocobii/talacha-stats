@@ -43,9 +43,7 @@ const ParsedRowSchema = z.object({
 
 const ConfirmBodySchema = z.object({
 	leagueId: z.string().uuid("leagueId debe ser un UUID válido"),
-	decisions: z
-		.array(ImportDecisionSchema)
-		.min(1, "Se requiere al menos una decisión"),
+	decisions: z.array(ImportDecisionSchema).min(1, "Se requiere al menos una decisión"),
 	rowsById: z.record(z.string(), ParsedRowSchema),
 	jornada: z.number().int().positive().optional(),
 });
@@ -64,10 +62,7 @@ export async function POST(request: Request) {
 
 	const parsed = ConfirmBodySchema.safeParse(body);
 	if (!parsed.success) {
-		return apiError(
-			"Cuerpo inválido: " + parsed.error.issues[0].message,
-			400,
-		);
+		return apiError("Cuerpo inválido: " + parsed.error.issues[0].message, 400);
 	}
 
 	const { leagueId, decisions, rowsById, jornada } = parsed.data;
@@ -80,25 +75,18 @@ export async function POST(request: Request) {
 	if (!league) return apiError("Liga no encontrada", 404);
 
 	// Build the Map<rowId, ParsedRow> from the plain object the client sent
-	const rowsByIdMap = new Map<string, ParsedRow>(
-		Object.entries(rowsById) as [string, ParsedRow][],
-	);
+	const rowsByIdMap = new Map<string, ParsedRow>(Object.entries(rowsById) as [string, ParsedRow][]);
 
 	// Validate that every decision references a known rowId
-	const unknownIds = decisions
-		.map((d) => d.rowId)
-		.filter((id) => !rowsByIdMap.has(id));
+	const unknownIds = decisions.map((d) => d.rowId).filter((id) => !rowsByIdMap.has(id));
 	if (unknownIds.length > 0) {
-		return apiError(
-			`rowId desconocido(s) en decisions: ${unknownIds.slice(0, 3).join(", ")}`,
-			400,
-		);
+		return apiError(`rowId desconocido(s) en decisions: ${unknownIds.slice(0, 3).join(", ")}`, 400);
 	}
 
 	try {
 		const result = await confirmImportDecisions({
 			leagueId,
-			organizationId: league.organizationId,
+			organizationId: league.organizationId!,
 			autoResolved: [], // auto-resolved rows are already persisted by the preview caller; client sends explicit decisions only
 			decisions,
 			rowsById: rowsByIdMap,
@@ -107,8 +95,7 @@ export async function POST(request: Request) {
 
 		return apiSuccess(result);
 	} catch (e) {
-		const message =
-			e instanceof Error ? e.message : "Error al confirmar la importación";
+		const message = e instanceof Error ? e.message : "Error al confirmar la importación";
 		return apiError(message, 500);
 	}
 }
