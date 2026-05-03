@@ -20,7 +20,7 @@ import {
 	teams,
 } from "@/db";
 import type {
-	PlayerProfile,
+	PlayerView,
 	PlayerLeagueStats,
 	PlayerGlobalProfile,
 	PlayerEgoStats,
@@ -32,7 +32,7 @@ import { getPlayerPositions } from "./ranking";
 
 // ── Función principal ─────────────────────────────────────────────────────────
 
-export async function getPlayerProfile(playerId: string): Promise<PlayerProfile | null> {
+export async function getPlayerProfile(playerId: string): Promise<PlayerView | null> {
 	// 1. Datos básicos del jugador
 	const player = await db.query.players.findFirst({
 		where: eq(players.id, playerId),

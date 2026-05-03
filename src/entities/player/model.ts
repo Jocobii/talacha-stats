@@ -76,7 +76,7 @@ export type PlayerEgoStats = {
 };
 
 // Perfil completo del jugador
-export type PlayerProfile = {
+export type PlayerView = {
 	id: string;
 	fullName: string;
 	alias: string | null;

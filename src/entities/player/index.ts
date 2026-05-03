@@ -1,5 +1,5 @@
 export type {
-	PlayerProfile,
+	PlayerView,
 	PlayerLeagueStats,
 	PlayerGlobalProfile,
 	PlayerPositions,
