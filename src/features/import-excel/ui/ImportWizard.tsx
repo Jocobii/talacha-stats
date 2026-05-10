@@ -15,8 +15,12 @@ import { DoneStep } from "./DoneStep";
  *
  * Props: ninguna — el wizard es autónomo.
  */
-export function ImportWizard() {
-	const { state, derived, handlers } = useImportWizard();
+type ImportWizardProps = {
+	initialImportType?: "goleadores" | "standings";
+};
+
+export function ImportWizard({ initialImportType }: ImportWizardProps = {}) {
+	const { state, derived, handlers } = useImportWizard({ initialImportType });
 	const { step, loading, error } = state;
 
 	const handleCopyPill = (idx: number, text: string) => {
@@ -36,6 +40,7 @@ export function ImportWizard() {
 					onLeagueChange={handlers.setLeagueId}
 					importType={state.importType}
 					onImportTypeChange={handlers.setImportType}
+					hideTypeSelector={!!initialImportType}
 					jornada={state.jornada}
 					onJornadaChange={handlers.setJornada}
 					file={state.file}

@@ -138,7 +138,7 @@ const NAV: NavItem[] = [
 	{ href: "/admin/leagues", label: "Ligas", icon: Icons.trophy },
 	{ href: "/admin/teams", label: "Equipos", icon: Icons.shield },
 	{ href: "/admin/players", label: "Jugadores", icon: Icons.person },
-	{ href: "/admin/import", label: "Importar", icon: Icons.upload },
+	{ href: "/admin/imports", label: "Importar", icon: Icons.upload },
 	{ href: "/admin/analisis", label: "Analisis", icon: Icons.chart },
 	{ href: "/admin/users", label: "Usuarios", icon: Icons.users, ownerOnly: true },
 	{

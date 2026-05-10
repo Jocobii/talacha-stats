@@ -126,4 +126,66 @@ export async function POST(request: Request) {
 
 // ---------------------------------------------------------------------------
 // Helpers de parseo de form-data
-// ------------------
+// ---------------------------------------------------------------------------
+
+/**
+ * Intenta inferir el tipo de importación del campo "type" del form-data
+ * cuando no hay mapping explícito.
+ */
+function detectTypeFromFormData(formData: FormData): "goleadores" | "standings" {
+	const raw = formData.get("type") as string | null;
+	return raw === "standings" ? "standings" : "goleadores";
+}
+
+function parseMapping(formData: FormData): MappedImportOptions | undefined | Response {
+	const raw = formData.get("mapping") as string | null;
+	if (!raw) return undefined;
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return apiError("JSON de mapping inválido", 400);
+	}
+	const r = MappedOptionsSchema.safeParse(parsed);
+	if (!r.success) return apiError("Mapping inválido: " + r.error.message, 400);
+	return r.data;
+}
+
+function parseResolutions(formData: FormData): Record<string, string> | Response {
+	const raw = formData.get("resolutions") as string | null;
+	if (!raw) return {};
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return apiError("JSON de resoluciones inválido", 400);
+	}
+	const r = z.record(z.string(), z.string()).safeParse(parsed);
+	if (!r.success) return apiError("Formato de resoluciones inválido", 400);
+	return r.data;
+}
+
+/**
+ * Filtra las filas que el usuario excluyó en la vista previa.
+ * Las keys tienen formato "g:{index}:{nombre}" o "s:{index}:{nombre}".
+ */
+function applyExcludeRows<T extends { rows: unknown[] }>(parsed: T, formData: FormData): T {
+	const raw = formData.get("exclude_rows") as string | null;
+	if (!raw) return parsed;
+	let keys: unknown;
+	try {
+		keys = JSON.parse(raw);
+	} catch {
+		return parsed;
+	}
+	if (!Array.isArray(keys) || keys.length === 0) return parsed;
+	const excluded = new Set(
+		keys
+			.map((k: unknown) => {
+				const parts = String(k).split(":");
+				return parts.length >= 2 ? parseInt(parts[1], 10) : -1;
+			})
+			.filter((n) => n >= 0),
+	);
+	return { ...parsed, rows: parsed.rows.filter((_, i) => !excluded.has(i)) };
+}

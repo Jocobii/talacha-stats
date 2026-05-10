@@ -16,6 +16,7 @@ type Props = {
 	templates: ImportTemplate[];
 	selectedTemplate: string;
 	onTemplateApply: (id: string) => void;
+	hideTypeSelector?: boolean;
 	onSubmit: () => void;
 	loading: boolean;
 	error: string;
@@ -33,6 +34,7 @@ export function UploadStep({
 	templates,
 	selectedTemplate,
 	onTemplateApply,
+	hideTypeSelector = false,
 	onSubmit,
 	loading,
 	error,
@@ -89,7 +91,8 @@ export function UploadStep({
 					<LeagueSelect value={leagueId} onChange={onLeagueChange} />
 				</div>
 
-				{/* Import type */}
+				{/* Import type — hidden when locked via tab */}
+				{!hideTypeSelector && (
 				<div>
 					<label className="block text-sm font-semibold text-ink mb-2">Tipo de datos</label>
 					<div className="grid grid-cols-2 gap-3">
@@ -117,6 +120,7 @@ export function UploadStep({
 						))}
 					</div>
 				</div>
+				)}
 
 				{/* Jornada */}
 				<div>

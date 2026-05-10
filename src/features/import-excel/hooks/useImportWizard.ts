@@ -332,8 +332,11 @@ export type UseImportWizardReturn = {
 	};
 };
 
-export function useImportWizard(): UseImportWizardReturn {
-	const [state, dispatch] = useReducer(wizardReducer, INITIAL_STATE);
+export function useImportWizard(opts?: { initialImportType?: "goleadores" | "standings" }): UseImportWizardReturn {
+	const [state, dispatch] = useReducer(wizardReducer, {
+		...INITIAL_STATE,
+		importType: opts?.initialImportType ?? "goleadores",
+	});
 
 	// ── API helpers ──────────────────────────────────────────────────────────
 
@@ -418,7 +421,11 @@ export function useImportWizard(): UseImportWizardReturn {
 
 	const reset = useCallback(() => {
 		dispatch({ type: "RESET" });
-	}, []);
+		if (opts?.initialImportType) {
+			dispatch({ type: "SET_IMPORT_TYPE", importType: opts.initialImportType });
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [opts?.initialImportType]);
 
 	// ── Async handlers ───────────────────────────────────────────────────────
 
