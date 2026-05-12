@@ -334,9 +334,9 @@ export async function confirmEventImport(input: EventConfirmInput): Promise<Even
 				registrationValues.push({ legacyPlayerId: playerId, teamId, leagueId });
 			}
 
-				eventValues.push({
-					matchId,
-					legacyPlayerId: playerId,
+			eventValues.push({
+				matchId,
+				legacyPlayerId: playerId,
 				teamId: teamId ?? homeTeamId ?? awayTeamId ?? "",
 				eventType: normalizeTipo(event.tipo),
 				minute: event.minuto ?? null,

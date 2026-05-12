@@ -410,5 +410,5 @@ function groupByQueryName(rows: SimilarityRow[]): Map<string, SimilarityRow[]> {
  * único lugar donde se construye SQL con valores de usuario.
  */
 function escapeSql(value: string): string {
-	return value.replace(/'/g, "''").replace(/\\/g, '\\\\');
+	return value.replace(/'/g, "''").replace(/\\/g, "\\\\");
 }

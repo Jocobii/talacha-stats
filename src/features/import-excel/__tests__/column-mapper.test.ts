@@ -133,7 +133,16 @@ describe("autoMapColumns (standings)", () => {
 	});
 
 	it("mapea variantes en español", () => {
-		const headers = ["Club", "Partidos Jugados", "Ganados", "Empates", "Perdidos", "GF", "GC", "Puntos"];
+		const headers = [
+			"Club",
+			"Partidos Jugados",
+			"Ganados",
+			"Empates",
+			"Perdidos",
+			"GF",
+			"GC",
+			"Puntos",
+		];
 		const map = autoMapColumns(headers, "standings");
 		expect(map.teamName).toBe("0");
 		expect(map.played).toBe("1");

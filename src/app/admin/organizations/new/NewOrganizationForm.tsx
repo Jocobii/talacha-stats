@@ -130,7 +130,9 @@ export default function NewOrganizationForm() {
 					<p className="text-xs text-ink-3 mt-1">Opcional. Puedes agregarlo después.</p>
 				</div>
 
-				{error && <p className="text-red-600 text-sm bg-red-950/40 px-3 py-2 rounded-lg">{error}</p>}
+				{error && (
+					<p className="text-red-600 text-sm bg-red-950/40 px-3 py-2 rounded-lg">{error}</p>
+				)}
 
 				<div className="flex gap-3 pt-1">
 					<button

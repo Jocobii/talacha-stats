@@ -60,7 +60,7 @@ export function MappingPanels({
 	const [connectors, setConnectors] = useState<Connector[]>([]);
 
 	// Recalcula las líneas solo cuando cambia el mapeo o el activeMapField
-	 
+
 	useLayoutEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;

@@ -105,7 +105,9 @@ export function GoleadoresPreview({
 					<div className="flex items-center gap-2 mb-3">
 						<span className="text-base">🆕</span>
 						<p className="text-sm font-bold text-blue-300">
-							{newPlayers.length === 1 ? "1 jugador nuevo" : `${newPlayers.length} jugadores nuevos`}{" "}
+							{newPlayers.length === 1
+								? "1 jugador nuevo"
+								: `${newPlayers.length} jugadores nuevos`}{" "}
 							— se crearán automáticamente
 						</p>
 					</div>

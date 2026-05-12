@@ -133,7 +133,10 @@ export default function UsersClient({
 					+ Nuevo organizador
 				</button>
 			) : (
-				<form onSubmit={handleCreate} className="bg-surface rounded-xl shadow p-6 space-y-4 max-w-md">
+				<form
+					onSubmit={handleCreate}
+					className="bg-surface rounded-xl shadow p-6 space-y-4 max-w-md"
+				>
 					<h2 className="font-semibold text-ink">Nuevo organizador</h2>
 
 					<div>
@@ -160,9 +163,7 @@ export default function UsersClient({
 					</div>
 
 					<div>
-						<label className="block text-sm font-medium text-ink mb-1">
-							Contraseña inicial
-						</label>
+						<label className="block text-sm font-medium text-ink mb-1">Contraseña inicial</label>
 						<input
 							type="password"
 							value={form.password}
@@ -185,7 +186,9 @@ export default function UsersClient({
 						</select>
 					</div>
 
-					{error && <p className="text-red-600 text-sm bg-red-950/40 px-3 py-2 rounded-lg">{error}</p>}
+					{error && (
+						<p className="text-red-600 text-sm bg-red-950/40 px-3 py-2 rounded-lg">{error}</p>
+					)}
 
 					<div className="flex gap-3">
 						<button

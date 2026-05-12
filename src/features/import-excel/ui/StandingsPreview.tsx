@@ -10,7 +10,12 @@ type Props = {
 	onClearExcluded: () => void;
 };
 
-export function StandingsPreview({ preview, excludedRows, onToggleExclude, onClearExcluded }: Props) {
+export function StandingsPreview({
+	preview,
+	excludedRows,
+	onToggleExclude,
+	onClearExcluded,
+}: Props) {
 	const rows = preview.rows as StandingsRow[];
 
 	return (
@@ -89,7 +94,9 @@ export function StandingsPreview({ preview, excludedRows, onToggleExclude, onCle
 										className={`transition-opacity ${excluded ? "opacity-40 bg-red-950/40" : i % 2 === 0 ? "bg-surface" : "bg-surface-2/50"}`}
 									>
 										<td className="px-3 py-2.5 text-ink-3 text-xs">{r.position}</td>
-										<td className={`px-3 py-2.5 font-semibold text-ink ${excluded ? "line-through" : ""}`}>
+										<td
+											className={`px-3 py-2.5 font-semibold text-ink ${excluded ? "line-through" : ""}`}
+										>
 											{r.teamName}
 										</td>
 										<td className="px-3 py-2.5 text-center text-ink-2">{r.played}</td>
