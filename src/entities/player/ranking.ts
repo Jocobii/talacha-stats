@@ -171,7 +171,7 @@ async function getPrevGoalsByLeague(
 			);
 
 		const playerMap = new Map<string, number>();
-		for (const r of rows) playerMap.set(r.playerId, r.goals);
+		for (const r of rows) playerMap.set(r.playerId ?? "", r.goals);
 		result.set(leagueId, playerMap);
 	}
 
