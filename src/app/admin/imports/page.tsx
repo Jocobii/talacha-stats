@@ -1,36 +1,49 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ImportWizardV2 } from "@/features/import-excel/ui/ImportWizardV2";
 import { ImportWizard } from "@/features/import-excel/ui/ImportWizard";
 import NewLeagueBanner from "./NewLeagueBanner";
 
-type Tab = "goleadores" | "standings";
+type Tab = "standings" | "goleadores";
 
-const TABS: { id: Tab; label: string; emoji: string; desc: string }[] = [
+const TABS: { id: Tab; label: string; step: number; desc: string }[] = [
+	{
+		id: "standings",
+		label: "Tabla de posiciones",
+		step: 1,
+		desc: "Empieza aquí. Importa los equipos y sus resultados de la temporada.",
+	},
 	{
 		id: "goleadores",
 		label: "Goleadores",
-		emoji: "⚽",
-		desc: "Estadísticas de jugadores (pipeline L1–L4)",
-	},
-	{
-		id: "standings",
-		label: "Posiciones",
-		emoji: "📊",
-		desc: "Tabla de clasificación de equipos",
+		step: 2,
+		desc: "Segundo paso. Importa las estadísticas de jugadores — los equipos deben existir primero.",
 	},
 ];
 
 /**
  * /admin/imports
  *
- * Página unificada de importación. Dos pestañas:
- *  - Goleadores → ImportWizardV2 (pipeline L1-L4, /api/imports/*)
- *  - Posiciones  → ImportWizard  (motor legacy, /api/import/bulk, type=standings)
+ * Página unificada de importación. Dos pestañas en orden obligatorio:
+ *  1. Posiciones  → ImportWizard  (motor legacy, /api/import/bulk, type=standings)
+ *  2. Goleadores → ImportWizardV2 (pipeline L1-L4, /api/imports/*)
  */
-export default function ImportsPage() {
-	const [activeTab, setActiveTab] = useState<Tab>("goleadores");
+function ImportsPageContent() {
+	const searchParams = useSearchParams();
+	const tabParam = searchParams.get("tab") as Tab | null;
+	const [activeTab, setActiveTab] = useState<Tab>(
+		tabParam === "goleadores" ? "goleadores" : "standings",
+	);
+
+	// Sincronizar si el param cambia (ej: navegación desde DoneStep)
+	useEffect(() => {
+		if (tabParam === "goleadores" || tabParam === "standings") {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
+			setActiveTab(tabParam);
+		}
+	}, [tabParam]);
 
 	return (
 		<div className="max-w-3xl mx-auto">
@@ -43,15 +56,15 @@ export default function ImportsPage() {
 					className="text-2xl font-black text-ink tracking-tight"
 					style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
 				>
-					Importar Jornada
+					Importar datos
 				</h1>
 				<p className="text-sm text-ink-2 mt-0.5">
-					Sube el Excel de la jornada. Elige el tipo de datos a importar.
+					Sigue el orden. Primero la tabla de posiciones, luego los goleadores.
 				</p>
 			</div>
 
-			{/* Tab switcher */}
-			<div className="flex gap-2 mb-6 p-1 bg-surface-2 rounded-2xl">
+			{/* Tab switcher con numeración explícita */}
+			<div className="flex gap-2 mb-2 p-1 bg-surface-2 rounded-2xl">
 				{TABS.map((tab) => (
 					<button
 						key={tab.id}
@@ -64,14 +77,21 @@ export default function ImportsPage() {
 								: "text-ink-2 hover:text-ink",
 						].join(" ")}
 					>
-						<span>{tab.emoji}</span>
+						<span
+							className={[
+								"w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black shrink-0",
+								activeTab === tab.id ? "bg-brand text-pitch" : "bg-surface text-ink-3",
+							].join(" ")}
+						>
+							{tab.step}
+						</span>
 						<span>{tab.label}</span>
 					</button>
 				))}
 			</div>
 
-			{/* Active tab description */}
-			<p className="text-xs text-ink-3 mb-4 -mt-3">{TABS.find((t) => t.id === activeTab)?.desc}</p>
+			{/* Descripción del paso activo */}
+			<p className="text-xs text-ink-3 mb-6 px-1">{TABS.find((t) => t.id === activeTab)?.desc}</p>
 
 			{/* Wizard content — keep both mounted so state survives tab switches */}
 			<div className={activeTab === "goleadores" ? "" : "hidden"}>
@@ -81,5 +101,13 @@ export default function ImportsPage() {
 				<ImportWizard initialImportType="standings" />
 			</div>
 		</div>
+	);
+}
+
+export default function ImportsPage() {
+	return (
+		<Suspense fallback={null}>
+			<ImportsPageContent />
+		</Suspense>
 	);
 }

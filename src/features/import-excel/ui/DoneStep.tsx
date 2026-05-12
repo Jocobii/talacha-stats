@@ -1,15 +1,18 @@
 "use client";
 
+import Link from "next/link";
+import { ArrowRight, Upload } from "lucide-react";
 import type { ImportResult } from "../model";
 
 type Props = {
 	result: ImportResult;
+	leagueId: string;
 	copiedIdx: number | null;
 	onCopy: (idx: number, text: string) => void;
 	onReset: () => void;
 };
 
-export function DoneStep({ result, copiedIdx, onCopy, onReset }: Props) {
+export function DoneStep({ result, leagueId, copiedIdx, onCopy, onReset }: Props) {
 	return (
 		<div className="flex flex-col gap-5">
 			{/* Success hero */}
@@ -54,6 +57,77 @@ export function DoneStep({ result, copiedIdx, onCopy, onReset }: Props) {
 				>
 					＋ Nueva importación
 				</button>
+			</div>
+
+			{/* CTAs: siguiente paso + ver liga */}
+			<div
+				className="rounded-2xl overflow-hidden border border-brand/30"
+				style={{ background: "var(--color-surface)" }}
+			>
+				<div className="px-4 py-3 border-b border-line">
+					<p className="text-[13px] font-bold text-ink">¿Qué sigue?</p>
+				</div>
+				<div className="divide-y divide-line">
+					{/* Paso 2 — acción primaria destacada con animación de pulso */}
+					<Link
+						href={
+							leagueId ? `/admin/imports?leagueId=${leagueId}&tab=goleadores` : "/admin/imports"
+						}
+						className="relative flex items-center justify-between px-4 py-4 group overflow-hidden"
+						style={{ background: "rgba(22,163,74,0.08)" }}
+					>
+						{/* Pulso de fondo que se enciende y apaga */}
+						<span
+							className="absolute inset-0 pointer-events-none"
+							style={{
+								background:
+									"radial-gradient(ellipse at 30% 50%, rgba(22,163,74,0.18) 0%, transparent 70%)",
+								animation: "nextStepGlow 2.4s ease-in-out infinite",
+							}}
+						/>
+						<style>{`
+							@keyframes nextStepGlow {
+								0%, 100% { opacity: 0.2; }
+								50%       { opacity: 1; }
+							}
+						`}</style>
+
+						<div className="relative flex items-center gap-3 min-w-0">
+							<span className="w-7 h-7 rounded-full bg-brand text-pitch text-[12px] font-black flex items-center justify-center shrink-0 shadow-[0_0_8px_rgba(22,163,74,0.5)]">
+								2
+							</span>
+							<div className="min-w-0">
+								<p className="text-sm font-bold text-brand leading-tight">Importar goleadores</p>
+								<p className="text-xs text-brand/60 mt-0.5">
+									Paso 2 — sube las estadísticas de jugadores
+								</p>
+							</div>
+						</div>
+						<Upload
+							size={15}
+							strokeWidth={2.5}
+							className="relative text-brand shrink-0 ml-3 group-hover:translate-x-0.5 transition-transform"
+						/>
+					</Link>
+
+					{/* Ver liga — secundario */}
+					{leagueId && (
+						<Link
+							href={`/admin/leagues/${leagueId}`}
+							className="flex items-center justify-between px-4 py-3.5 hover:bg-surface-2 transition group"
+						>
+							<div>
+								<p className="text-sm font-semibold text-ink">Ver mi liga ahora</p>
+								<p className="text-xs text-ink-3">Revisa cómo quedó la tabla de posiciones</p>
+							</div>
+							<ArrowRight
+								size={14}
+								strokeWidth={2}
+								className="text-ink-3 group-hover:text-brand transition shrink-0"
+							/>
+						</Link>
+					)}
+				</div>
 			</div>
 
 			{result.content && (

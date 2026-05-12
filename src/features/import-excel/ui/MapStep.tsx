@@ -1,6 +1,7 @@
+/* eslint-disable react/no-unescaped-entities */
 "use client";
 
-import { FieldsPanel, ColumnsPanel } from "./ColumnMappingPanel";
+import { MappingPanels } from "./ColumnMappingPanel";
 import { useColumnMapping } from "../hooks/useColumnMapping";
 import { autoMapColumns } from "../column-mapper";
 import type { ColumnMap } from "../parser";
@@ -104,30 +105,34 @@ export function MapStep({
 			<div
 				className={[
 					"rounded-2xl border-2 p-4 transition-all",
-					!hasGoodHeaders ? "bg-red-950/40 border-red-800/50" : "bg-brand/10 border-brand/20",
+					!hasGoodHeaders ? "bg-surface border-line" : "bg-brand/10 border-brand/20",
 				].join(" ")}
 			>
-				<div className="flex items-start gap-3 mb-3">
-					<span className="text-2xl shrink-0">{!hasGoodHeaders ? "🔍" : "✅"}</span>
-					<div>
-						<p
-							className={`text-[15px] font-bold ${!hasGoodHeaders ? "text-red-400" : "text-brand"}`}
-						>
-							{!hasGoodHeaders
-								? "La fila seleccionada no parece tener encabezados — toca la fila correcta"
-								: `Fila ${headerRow + 1} tiene los encabezados correctos ✓`}
-						</p>
-						<p className={`text-xs mt-0.5 ${!hasGoodHeaders ? "text-red-400" : "text-brand"}`}>
-							{!hasGoodHeaders
-								? "Los encabezados son los nombres de las columnas (Equipo, JJ, PTS…). Busca la fila que los tenga y tócala."
-								: `${mappedCount} columnas detectadas automáticamente.`}
-						</p>
-					</div>
+				{/* Instrucción principal */}
+				<div className="mb-3">
+					<p className="text-[15px] font-bold text-ink">
+						{!hasGoodHeaders
+							? "¿Cuál fila tiene los nombres de tus columnas?"
+							: `Fila ${headerRow + 1} seleccionada ✓`}
+					</p>
+					<p className={`text-xs mt-1 ${!hasGoodHeaders ? "text-ink-2" : "text-brand"}`}>
+						{!hasGoodHeaders ? (
+							<>
+								Busca la fila que diga cosas como{" "}
+								<span className="font-semibold text-ink">
+									"Equipo", "Puntos", "Jugador", "Goles"…
+								</span>{" "}
+								y tócala.
+							</>
+						) : (
+							<>{mappedCount} columnas detectadas automáticamente.</>
+						)}
+					</p>
 				</div>
 
 				<div className="bg-surface rounded-xl border border-line overflow-hidden">
 					<div className="px-3 py-2 bg-surface-2 border-b border-line text-[11px] font-bold text-ink-2 uppercase tracking-wider">
-						Vista de tu archivo — toca la fila correcta
+						Tu archivo — toca la fila correcta
 					</div>
 					<div className="overflow-x-auto">
 						{excelPreview.slice(0, 5).map((row, ri) => {
@@ -148,20 +153,28 @@ export function MapStep({
 									className={[
 										"w-full min-w-[320px] flex items-center gap-0 text-left border-b border-line last:border-0 transition-colors",
 										isSelected
-											? "bg-brand/10 border-l-[3px] border-l-green-500"
-											: "hover:bg-blue-950/40 border-l-[3px] border-l-transparent",
+											? "bg-brand/10 border-l-4 border-l-brand"
+											: looksLikeHeaders
+												? "hover:bg-brand/5 border-l-4 border-l-yellow-400/60 animate-pulse-subtle"
+												: "hover:bg-surface-2 border-l-4 border-l-transparent",
 									].join(" ")}
 								>
 									<div
-										className={`w-9 py-2 text-center text-[11px] font-bold shrink-0 border-r border-line ${isSelected ? "text-brand bg-brand/15" : "text-ink-3 bg-surface-2"}`}
+										className={`w-9 py-2.5 text-center text-[11px] font-bold shrink-0 border-r border-line ${isSelected ? "text-brand bg-brand/15" : "text-ink-3 bg-surface-2"}`}
 									>
-										{isSelected ? "★" : ri + 1}
+										{isSelected ? "✓" : ri + 1}
 									</div>
 									<div className="flex px-1">
 										{row.slice(0, 6).map((cell, ci) => (
 											<div
 												key={ci}
-												className={`px-2 py-2 text-[12px] truncate w-24 shrink-0 ${isSelected ? "text-brand font-semibold" : looksLikeHeaders ? "text-ink font-semibold" : "text-ink-3"}`}
+												className={`px-2 py-2.5 text-[12px] truncate w-24 shrink-0 ${
+													isSelected
+														? "text-brand font-bold"
+														: looksLikeHeaders
+															? "text-ink font-semibold"
+															: "text-ink-3"
+												}`}
 											>
 												{cell || "—"}
 											</div>
@@ -174,12 +187,12 @@ export function MapStep({
 									</div>
 									<div className="ml-auto px-3 shrink-0">
 										{isSelected ? (
-											<span className="text-[11px] bg-brand/15 text-brand px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
-												✓
+											<span className="text-[11px] bg-brand text-pitch px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
+												Esta es
 											</span>
 										) : looksLikeHeaders ? (
-											<span className="text-[11px] bg-yellow-100 text-yellow-300 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap">
-												↑
+											<span className="text-[11px] bg-yellow-400/20 text-yellow-300 border border-yellow-400/30 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap">
+												¿Esta?
 											</span>
 										) : null}
 									</div>
@@ -190,7 +203,7 @@ export function MapStep({
 				</div>
 			</div>
 
-			{/* Progress / how-it-works banner */}
+			{/* Progress banner */}
 			{hasGoodHeaders && (
 				<div
 					className={[
@@ -243,25 +256,17 @@ export function MapStep({
 				</div>
 			)}
 
-			{/* Two-panel mapping */}
+			{/* Dos paneles con líneas SVG de conexión entre pares mapeados */}
 			{hasGoodHeaders && (
-				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-					<FieldsPanel
-						fields={fields}
-						columnMap={columnMap}
-						headerCols={headerCols}
-						activeMapField={activeMapField}
-						onFieldClick={handleFieldClick}
-						onUnassign={handleUnassign}
-					/>
-					<ColumnsPanel
-						headerCols={headerCols}
-						columnMap={columnMap}
-						fields={fields}
-						activeMapField={activeMapField}
-						onColClick={handleColClickWrapper}
-					/>
-				</div>
+				<MappingPanels
+					fields={fields}
+					columnMap={columnMap}
+					headerCols={headerCols}
+					activeMapField={activeMapField}
+					onFieldClick={handleFieldClick}
+					onUnassign={handleUnassign}
+					onColClick={handleColClickWrapper}
+				/>
 			)}
 
 			{/* Save as template */}

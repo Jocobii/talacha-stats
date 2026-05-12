@@ -155,6 +155,7 @@ export function ImportWizardV2() {
 				<ResultStepV2
 					result={state.result}
 					jornada={state.preview?.jornada}
+					leagueId={state.leagueId}
 					onReset={handlers.reset}
 				/>
 			)}

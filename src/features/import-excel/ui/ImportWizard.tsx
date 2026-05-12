@@ -105,6 +105,7 @@ export function ImportWizard({ initialImportType }: ImportWizardProps = {}) {
 			{step === "done" && state.result && (
 				<DoneStep
 					result={state.result}
+					leagueId={state.leagueId}
 					copiedIdx={state.copiedIdx}
 					onCopy={handleCopyPill}
 					onReset={handlers.reset}

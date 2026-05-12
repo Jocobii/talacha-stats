@@ -587,34 +587,8 @@ async function upsertSeasonStats(
 			},
 		});
 
-	// Snapshot si hay jornada
-	if (jornada != null) {
-		await tx
-			.insert(playerSeasonStatsSnapshot)
-			.values({
-				playerId: profileId, // legacy column — snapshot usa playerId
-				leagueId,
-				jornada,
-				goals: row.goals,
-				assists: row.assists,
-				yellowCards: row.yellowCards,
-				redCards: row.redCards,
-				matchesPlayed: row.matchesPlayed,
-			})
-			.onConflictDoUpdate({
-				target: [
-					playerSeasonStatsSnapshot.playerId,
-					playerSeasonStatsSnapshot.leagueId,
-					playerSeasonStatsSnapshot.jornada,
-				],
-				set: {
-					goals: row.goals,
-					assists: row.assists,
-					yellowCards: row.yellowCards,
-					redCards: row.redCards,
-					matchesPlayed: row.matchesPlayed,
-					importedAt: new Date(),
-				},
-			});
-	}
+	// NOTA: playerSeasonStatsSnapshot.player_id tiene FK a players.id (tabla global legacy),
+	// no a player_profiles.id. El nuevo pipeline usa perfiles, por lo que no podemos
+	// insertar aquí sin una migración que agregue player_profile_id al snapshot.
+	// TODO: agregar columna player_profile_id a player_season_stats_snapshot y migrar.
 }

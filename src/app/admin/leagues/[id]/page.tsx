@@ -183,7 +183,7 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 									<p className="text-sm text-ink-3">Sin goleadores aún.</p>
 									{!isLeagueEmpty && (
 										<Link
-											href="/admin/imports"
+											href={`/admin/imports?leagueId=${id}&tab=goleadores`}
 											className="text-xs text-brand hover:underline mt-1 inline-block"
 										>
 											Importar estadísticas →
