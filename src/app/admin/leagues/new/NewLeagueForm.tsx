@@ -63,7 +63,7 @@ export default function NewLeagueForm({
 				setError(data.error);
 				return;
 			}
-			router.push(`/admin/leagues/${data.data.id}`);
+			router.push(`/admin/imports?leagueId=${data.data.id}&from=new-league`);
 		} finally {
 			setLoading(false);
 		}
@@ -88,7 +88,7 @@ export default function NewLeagueForm({
 						<select
 							value={form.organizationId}
 							onChange={(e) => setForm({ ...form, organizationId: e.target.value })}
-							className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+							className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-surface [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-brand"
 						>
 							<option value="">— Seleccionar organización —</option>
 							{organizations.map((o) => (
@@ -100,20 +100,6 @@ export default function NewLeagueForm({
 					</div>
 				)}
 
-				{/* Categoría */}
-				<div>
-					<label className="block text-sm font-medium text-ink mb-1">Categoría</label>
-					<input
-						value={form.category}
-						onChange={(e) => setForm({ ...form, category: e.target.value })}
-						placeholder="Libre, Libre Femenil, Mixto, 2015-2016…"
-						className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
-					/>
-					<p className="text-xs text-ink-3 mt-1">
-						Opcional. Solo si el torneo tiene múltiples categorías.
-					</p>
-				</div>
-
 				{/* Nombre */}
 				<div>
 					<label className="block text-sm font-medium text-ink mb-1">
@@ -123,7 +109,7 @@ export default function NewLeagueForm({
 						value={form.name}
 						onChange={(e) => setForm({ ...form, name: e.target.value })}
 						placeholder="Liga Lunes, Liga Femenil, Copa…"
-						className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+						className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-surface focus:outline-none focus:ring-2 focus:ring-brand"
 					/>
 					<p className="text-xs text-ink-3 mt-1">
 						Solo el nombre de la liga, sin repetir el nombre de la organización.
@@ -138,7 +124,7 @@ export default function NewLeagueForm({
 					<select
 						value={form.dayOfWeek}
 						onChange={(e) => setForm({ ...form, dayOfWeek: e.target.value })}
-						className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+						className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-surface [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-brand"
 					>
 						{DAYS.map((d) => (
 							<option key={d.value} value={d.value}>
@@ -157,12 +143,28 @@ export default function NewLeagueForm({
 						value={form.season}
 						onChange={(e) => setForm({ ...form, season: e.target.value })}
 						placeholder="Apertura 2025"
-						className="w-full border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+						className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-surface focus:outline-none focus:ring-2 focus:ring-brand"
 					/>
 					<p className="text-xs text-ink-3 mt-1">Ej: Apertura 2025, Clausura 2026, 2026-1</p>
 				</div>
 
-				{error && <p className="text-red-600 text-sm bg-red-950/40 px-3 py-2 rounded-lg">{error}</p>}
+				{/* Categoría */}
+				<div>
+					<label className="block text-sm font-medium text-ink mb-1">Categoría</label>
+					<input
+						value={form.category}
+						onChange={(e) => setForm({ ...form, category: e.target.value })}
+						placeholder="Libre, Libre Femenil, Mixto, 2015-2016…"
+						className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink bg-surface focus:outline-none focus:ring-2 focus:ring-brand"
+					/>
+					<p className="text-xs text-ink-3 mt-1">
+						Opcional. Solo si el torneo tiene múltiples categorías.
+					</p>
+				</div>
+
+				{error && (
+					<p className="text-red-600 text-sm bg-red-950/40 px-3 py-2 rounded-lg">{error}</p>
+				)}
 
 				<div className="flex gap-3 pt-1">
 					<button

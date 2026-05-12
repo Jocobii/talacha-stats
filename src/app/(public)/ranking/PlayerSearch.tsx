@@ -32,6 +32,7 @@ export default function PlayerSearch({ city, leagueId }: Props) {
 			const raw = localStorage.getItem(STORAGE_KEY);
 			if (raw) {
 				const player: SavedPlayer = JSON.parse(raw);
+				// eslint-disable-next-line react-hooks/set-state-in-effect
 				setSaved(player);
 				fetchPositions(player.id);
 			}
@@ -64,6 +65,7 @@ export default function PlayerSearch({ city, leagueId }: Props) {
 	// Debounced search
 	useEffect(() => {
 		if (!query.trim() || query.length < 2) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setResults([]);
 			return;
 		}

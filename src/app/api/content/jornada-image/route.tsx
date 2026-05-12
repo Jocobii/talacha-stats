@@ -34,7 +34,7 @@ const W = 1080;
 const H = 1920;
 
 type Scorer = {
-	player: { id: string; fullName: string; alias: string | null };
+	playerProfile: { id: string; fullName: string; alias: string | null };
 	team: { name: string } | null;
 	goals: number;
 };
@@ -104,7 +104,7 @@ function ScorerRow({ s, i }: { s: Scorer; i: number }) {
 						lineHeight: "1.1",
 					}}
 				>
-					{pName(s.player)}
+					{pName(s.playerProfile)}
 				</span>
 				<span style={{ fontSize: 16, color: C.inkDim, marginTop: 2 }}>
 					{titleCase(s.team?.name ?? "")}
@@ -240,7 +240,7 @@ export async function GET(request: NextRequest) {
 			? db.query.playerSeasonStats.findMany({
 					where: and(eq(playerSeasonStats.leagueId, leagueId)),
 					with: {
-						player: { columns: { id: true, fullName: true, alias: true } },
+						playerProfile: { columns: { id: true, fullName: true, alias: true } },
 						team: { columns: { name: true } },
 					},
 					orderBy: [desc(playerSeasonStats.goals)],
@@ -355,7 +355,7 @@ export async function GET(request: NextRequest) {
 					{scorers.length === 0 ? (
 						<span style={{ fontSize: 22, color: C.inkMuted }}>Sin datos aun</span>
 					) : (
-						scorers.map((s, i) => <ScorerRow key={s.player.id} s={s} i={i} />)
+						scorers.map((s, i) => <ScorerRow key={s.playerProfile.id} s={s} i={i} />)
 					)}
 				</div>
 			)}
@@ -379,7 +379,7 @@ export async function GET(request: NextRequest) {
 						{scorers.length === 0 ? (
 							<span style={{ fontSize: 18, color: C.inkMuted }}>Sin datos aun</span>
 						) : (
-							scorers.map((s, i) => <ScorerRow key={s.player.id} s={s} i={i} />)
+							scorers.map((s, i) => <ScorerRow key={s.playerProfile.id} s={s} i={i} />)
 						)}
 					</div>
 					<div

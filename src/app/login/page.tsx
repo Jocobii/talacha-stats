@@ -48,11 +48,12 @@ function LoginForm() {
 				</div>
 
 				{/* Form */}
-				<form onSubmit={handleSubmit} className="bg-surface border border-line rounded-2xl p-6 space-y-4">
+				<form
+					onSubmit={handleSubmit}
+					className="bg-surface border border-line rounded-2xl p-6 space-y-4"
+				>
 					<div>
-						<label className="block text-sm font-medium text-ink-2 mb-2">
-							Correo electrónico
-						</label>
+						<label className="block text-sm font-medium text-ink-2 mb-2">Correo electrónico</label>
 						<input
 							type="email"
 							value={form.email}
@@ -93,7 +94,10 @@ function LoginForm() {
 
 				<p className="text-center text-xs text-ink-3">
 					No tienes cuenta?{" "}
-					<a href="/register" className="text-brand hover:text-brand-dim font-medium transition-colors">
+					<a
+						href="/register"
+						className="text-brand hover:text-brand-dim font-medium transition-colors"
+					>
 						Registrate gratis
 					</a>
 				</p>

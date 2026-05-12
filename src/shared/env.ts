@@ -65,7 +65,7 @@ function fail(msg: string): never {
 
 function validateEnv(): Env {
 	const parsed = EnvSchema.safeParse(process.env);
-
+	console.log("🔍 Validando configuración de entorno...");
 	// 1. Fallar si faltan variables o tienen formato incorrecto
 	if (!parsed.success) {
 		const issues = parsed.error.issues

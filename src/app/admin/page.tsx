@@ -22,11 +22,7 @@ export default async function AdminDashboard() {
 			<h1 className="text-2xl font-bold text-ink mb-6">Dashboard</h1>
 
 			<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-				<StatCard
-					label="Ligas activas"
-					value={leagues.length}
-					color="bg-brand/15 text-brand"
-				/>
+				<StatCard label="Ligas activas" value={leagues.length} color="bg-brand/15 text-brand" />
 				<StatCard
 					label="Jugadores registrados"
 					value={players.meta?.total ?? players.length}

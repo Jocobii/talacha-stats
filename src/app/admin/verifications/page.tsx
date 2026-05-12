@@ -73,9 +73,7 @@ export default async function VerificationsPage() {
 				<div className="bg-surface rounded-xl border border-line p-12 text-center">
 					<p className="text-4xl mb-3">✅</p>
 					<p className="font-medium text-ink">Todo al dia</p>
-					<p className="text-sm text-ink-3 mt-1">
-						No hay organizaciones esperando verificacion.
-					</p>
+					<p className="text-sm text-ink-3 mt-1">No hay organizaciones esperando verificacion.</p>
 				</div>
 			) : (
 				<div className="space-y-3">

@@ -202,8 +202,8 @@ export default async function LeaguePublicPage({ params }: Props) {
 							<EmptyState text="Aún no hay estadísticas de goleadores." />
 						) : (
 							<div className="space-y-1.5">
-								{scorers.map((scorer: ScorerData, idx: number) => (
-									<ScorerCard key={scorer.playerId} scorer={scorer} rank={idx + 1} />
+								{scorers.map((scorer, idx) => (
+									<ScorerCard key={scorer.playerId ?? idx} scorer={scorer} rank={idx + 1} />
 								))}
 							</div>
 						)}

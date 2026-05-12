@@ -1,5 +1,6 @@
 import {
 	pgTable,
+	pgView,
 	uuid,
 	text,
 	integer,
@@ -9,7 +10,9 @@ import {
 	unique,
 	index,
 	jsonb,
+	check,
 } from "drizzle-orm/pg-core";
+import { sql as drizzleSql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
@@ -76,6 +79,8 @@ export type NewUser = typeof users.$inferInsert;
 
 // ---------------------------------------------------------------------------
 // PLAYERS — Identidad global del jugador (independiente de liga/equipo)
+// Historia 02: pasa a ser la capa global de la identidad en dos capas.
+// La capa local es player_profiles (ver abajo).
 // ---------------------------------------------------------------------------
 export const players = pgTable("players", {
 	id: uuid("id").primaryKey().defaultRandom(),
@@ -85,6 +90,58 @@ export const players = pgTable("players", {
 	photoUrl: text("photo_url"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// ---------------------------------------------------------------------------
+// PLAYER_PROFILES — Identidad local a la organización (Historia 02)
+//
+// Capa local de la identidad en dos capas:
+//   player_profile  →  (opcional) claimed_player_id  →  players (global)
+//
+// claim_status:
+//   unclaimed  → perfil local sin vínculo a identidad global
+//   proposed   → el sistema propone un merge cruzado (pendiente validación)
+//   verified   → el owner ha confirmado que es la misma persona
+//   rejected   → el owner rechazó el vínculo propuesto
+//
+// UNIQUE (organization_id, normalized_name): un jugador por nombre normalizado
+// por org. Los duplicados legacy se resuelven durante el backfill.
+// ---------------------------------------------------------------------------
+export const CLAIM_STATUSES = ["unclaimed", "proposed", "verified", "rejected"] as const;
+export type ClaimStatus = (typeof CLAIM_STATUSES)[number];
+
+export const playerProfiles = pgTable(
+	"player_profiles",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		fullName: text("full_name").notNull(),
+		alias: text("alias"),
+		normalizedName: text("normalized_name").notNull(),
+		fingerprint: text("fingerprint").notNull(),
+		// Vínculo a la identidad global (nullable — puede estar unclaimed)
+		claimedPlayerId: uuid("claimed_player_id").references(() => players.id, {
+			onDelete: "set null",
+		}),
+		claimStatus: text("claim_status").notNull().default("unclaimed").$type<ClaimStatus>(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		unique("uq_player_profile_org_name").on(t.organizationId, t.normalizedName),
+		index("idx_player_profiles_org").on(t.organizationId),
+		index("idx_player_profiles_claimed").on(t.claimedPlayerId),
+		index("idx_player_profiles_normalized").on(t.normalizedName),
+		check(
+			"chk_claim_status",
+			drizzleSql`${t.claimStatus} IN ('unclaimed','proposed','verified','rejected')`,
+		),
+	],
+);
+
+export type PlayerProfile = typeof playerProfiles.$inferSelect;
+export type NewPlayerProfile = typeof playerProfiles.$inferInsert;
 
 // ---------------------------------------------------------------------------
 // LEAGUES — Liga por día/torneo (Liga Lunes, Liga Martes, etc.)
@@ -123,15 +180,23 @@ export const teams = pgTable(
 
 // ---------------------------------------------------------------------------
 // PLAYER_REGISTRATIONS — Participación jugador ↔ equipo ↔ liga
-// Un jugador solo puede estar en UN equipo por liga (UNIQUE player_id + league_id)
+//
+// Historia 02: se agrega player_profile_id (capa local) como FK principal.
+// El campo legacy_player_id conserva la FK original a players.id durante
+// el período de transición; se elimina en migración posterior.
 // ---------------------------------------------------------------------------
 export const playerRegistrations = pgTable(
 	"player_registrations",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		playerId: uuid("player_id")
-			.notNull()
-			.references(() => players.id, { onDelete: "cascade" }),
+		// Nueva FK — capa local (Historia 02)
+		playerProfileId: uuid("player_profile_id").references(() => playerProfiles.id, {
+			onDelete: "cascade",
+		}),
+		// FK original mantenida como legacy durante transición
+		legacyPlayerId: uuid("legacy_player_id").references(() => players.id, {
+			onDelete: "set null",
+		}),
 		teamId: uuid("team_id")
 			.notNull()
 			.references(() => teams.id, { onDelete: "cascade" }),
@@ -142,8 +207,9 @@ export const playerRegistrations = pgTable(
 		registeredAt: timestamp("registered_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
-		unique("unique_player_per_league").on(t.playerId, t.leagueId),
-		index("registrations_player_idx").on(t.playerId),
+		unique("unique_profile_per_league").on(t.playerProfileId, t.leagueId),
+		index("registrations_profile_idx").on(t.playerProfileId),
+		index("registrations_legacy_player_idx").on(t.legacyPlayerId),
 		index("registrations_team_idx").on(t.teamId),
 		index("registrations_league_idx").on(t.leagueId),
 	],
@@ -191,9 +257,14 @@ export const matchEvents = pgTable(
 		matchId: uuid("match_id")
 			.notNull()
 			.references(() => matches.id, { onDelete: "cascade" }),
-		playerId: uuid("player_id")
-			.notNull()
-			.references(() => players.id),
+		// Nueva FK — capa local (Historia 02)
+		playerProfileId: uuid("player_profile_id").references(() => playerProfiles.id, {
+			onDelete: "cascade",
+		}),
+		// FK original mantenida como legacy durante transición
+		legacyPlayerId: uuid("legacy_player_id").references(() => players.id, {
+			onDelete: "set null",
+		}),
 		teamId: uuid("team_id")
 			.notNull()
 			.references(() => teams.id),
@@ -203,7 +274,8 @@ export const matchEvents = pgTable(
 	},
 	(t) => [
 		index("events_match_idx").on(t.matchId),
-		index("events_player_idx").on(t.playerId),
+		index("events_profile_idx").on(t.playerProfileId),
+		index("events_legacy_player_idx").on(t.legacyPlayerId),
 		index("events_type_idx").on(t.eventType),
 	],
 );
@@ -214,10 +286,26 @@ export const matchEvents = pgTable(
 export const organizationsRelations = relations(organizations, ({ many }) => ({
 	leagues: many(leagues),
 	members: many(users),
+	playerProfiles: many(playerProfiles),
 }));
 
 export const playersRelations = relations(players, ({ many }) => ({
+	// Legacy relations — maintained for compatibility during Historia 02 transition
+	events: many(matchEvents),
+	// Profiles that claim this global player identity
+	claimedBy: many(playerProfiles),
+}));
+export const playerProfilesRelations = relations(playerProfiles, ({ one, many }) => ({
+	organization: one(organizations, {
+		fields: [playerProfiles.organizationId],
+		references: [organizations.id],
+	}),
+	claimedPlayer: one(players, {
+		fields: [playerProfiles.claimedPlayerId],
+		references: [players.id],
+	}),
 	registrations: many(playerRegistrations),
+	seasonStats: many(playerSeasonStats),
 	events: many(matchEvents),
 }));
 
@@ -247,8 +335,13 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
 }));
 
 export const playerRegistrationsRelations = relations(playerRegistrations, ({ one }) => ({
-	player: one(players, {
-		fields: [playerRegistrations.playerId],
+	playerProfile: one(playerProfiles, {
+		fields: [playerRegistrations.playerProfileId],
+		references: [playerProfiles.id],
+	}),
+	// Legacy relation — kept during Historia 02 transition
+	legacyPlayer: one(players, {
+		fields: [playerRegistrations.legacyPlayerId],
 		references: [players.id],
 	}),
 	team: one(teams, {
@@ -284,8 +377,13 @@ export const matchEventsRelations = relations(matchEvents, ({ one }) => ({
 		fields: [matchEvents.matchId],
 		references: [matches.id],
 	}),
-	player: one(players, {
-		fields: [matchEvents.playerId],
+	playerProfile: one(playerProfiles, {
+		fields: [matchEvents.playerProfileId],
+		references: [playerProfiles.id],
+	}),
+	// Legacy relation — kept during Historia 02 transition
+	legacyPlayer: one(players, {
+		fields: [matchEvents.legacyPlayerId],
 		references: [players.id],
 	}),
 	team: one(teams, { fields: [matchEvents.teamId], references: [teams.id] }),
@@ -317,9 +415,14 @@ export const playerSeasonStats = pgTable(
 	"player_season_stats",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		playerId: uuid("player_id")
-			.notNull()
-			.references(() => players.id, { onDelete: "cascade" }),
+		// Nueva FK — capa local (Historia 02)
+		playerProfileId: uuid("player_profile_id").references(() => playerProfiles.id, {
+			onDelete: "cascade",
+		}),
+		// FK original mantenida como legacy durante transición
+		legacyPlayerId: uuid("legacy_player_id").references(() => players.id, {
+			onDelete: "set null",
+		}),
 		leagueId: uuid("league_id")
 			.notNull()
 			.references(() => leagues.id, { onDelete: "cascade" }),
@@ -336,8 +439,9 @@ export const playerSeasonStats = pgTable(
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
-		unique("unique_player_season").on(t.playerId, t.leagueId),
-		index("pss_player_idx").on(t.playerId),
+		unique("unique_profile_season").on(t.playerProfileId, t.leagueId),
+		index("pss_profile_idx").on(t.playerProfileId),
+		index("pss_legacy_player_idx").on(t.legacyPlayerId),
 		index("pss_league_idx").on(t.leagueId),
 	],
 );
@@ -376,8 +480,13 @@ export const teamStandingsSnapshot = pgTable(
 
 // Relations para las nuevas tablas
 export const playerSeasonStatsRelations = relations(playerSeasonStats, ({ one }) => ({
-	player: one(players, {
-		fields: [playerSeasonStats.playerId],
+	playerProfile: one(playerProfiles, {
+		fields: [playerSeasonStats.playerProfileId],
+		references: [playerProfiles.id],
+	}),
+	// Legacy relation — kept during Historia 02 transition
+	legacyPlayer: one(players, {
+		fields: [playerSeasonStats.legacyPlayerId],
 		references: [players.id],
 	}),
 	league: one(leagues, {
@@ -457,9 +566,12 @@ export const playerSeasonStatsSnapshot = pgTable(
 	"player_season_stats_snapshot",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		playerId: uuid("player_id")
-			.notNull()
-			.references(() => players.id, { onDelete: "cascade" }),
+		// Pipeline legacy — nullable durante el período de transición a player_profiles
+		playerId: uuid("player_id").references(() => players.id, { onDelete: "set null" }),
+		// Pipeline nuevo (Historia 03) — identidad local por organización
+		playerProfileId: uuid("player_profile_id").references(() => playerProfiles.id, {
+			onDelete: "set null",
+		}),
 		leagueId: uuid("league_id")
 			.notNull()
 			.references(() => leagues.id, { onDelete: "cascade" }),
@@ -475,8 +587,12 @@ export const playerSeasonStatsSnapshot = pgTable(
 		importedAt: timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
+		// Unique por pipeline legacy
 		unique("unique_player_league_jornada_snap").on(t.playerId, t.leagueId, t.jornada),
+		// Unique por pipeline nuevo
+		unique("unique_profile_league_jornada_snap").on(t.playerProfileId, t.leagueId, t.jornada),
 		index("psss_player_idx").on(t.playerId),
+		index("psss_profile_idx").on(t.playerProfileId),
 		index("psss_league_idx").on(t.leagueId),
 		index("psss_jornada_idx").on(t.jornada),
 	],
@@ -485,9 +601,15 @@ export const playerSeasonStatsSnapshot = pgTable(
 export const playerSeasonStatsSnapshotRelations = relations(
 	playerSeasonStatsSnapshot,
 	({ one }) => ({
+		// Pipeline legacy
 		player: one(players, {
 			fields: [playerSeasonStatsSnapshot.playerId],
 			references: [players.id],
+		}),
+		// Pipeline nuevo
+		playerProfile: one(playerProfiles, {
+			fields: [playerSeasonStatsSnapshot.playerProfileId],
+			references: [playerProfiles.id],
 		}),
 		league: one(leagues, {
 			fields: [playerSeasonStatsSnapshot.leagueId],
@@ -590,3 +712,65 @@ export const DAYS_OF_WEEK = [
 	"domingo",
 ] as const;
 export type DayOfWeek = (typeof DAYS_OF_WEEK)[number];
+
+// ---------------------------------------------------------------------------
+// PLAYER_GLOBAL_STATS — Vista agregada cross-org (Historia 05)
+//
+// Agrega estadísticas de un jugador a través de todos sus player_profiles
+// con claim_status = 'verified'. Profiles unclaimed / proposed / rejected
+// quedan EXCLUIDOS — garantía de privacidad cross-org.
+//
+// Vista REGULAR (no materializada) para MVP.
+// Deuda técnica: migrar a MATERIALIZED VIEW si el costo de query sube.
+// ---------------------------------------------------------------------------
+export const playerGlobalStats = pgView("player_global_stats").as((qb) =>
+	qb
+		.select({
+			playerId: players.id,
+			fullName: players.fullName,
+			alias: players.alias,
+			organizationsCount:
+				drizzleSql<number>`COUNT(DISTINCT ${playerProfiles.organizationId})::int`.as(
+					"organizations_count",
+				),
+			leaguesCount: drizzleSql<number>`COUNT(DISTINCT ${playerRegistrations.leagueId})::int`.as(
+				"leagues_count",
+			),
+			totalGoals: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.goals}), 0)::int`.as(
+				"total_goals",
+			),
+			totalAssists: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.assists}), 0)::int`.as(
+				"total_assists",
+			),
+			totalMatchesPlayed:
+				drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.matchesPlayed}), 0)::int`.as(
+					"total_matches_played",
+				),
+			totalYellowCards:
+				drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.yellowCards}), 0)::int`.as(
+					"total_yellow_cards",
+				),
+			totalRedCards: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.redCards}), 0)::int`.as(
+				"total_red_cards",
+			),
+			lastUpdatedAt: drizzleSql<Date | null>`MAX(${playerSeasonStats.updatedAt})`.as(
+				"last_updated_at",
+			),
+		})
+		.from(players)
+		.innerJoin(
+			playerProfiles,
+			drizzleSql`${playerProfiles.claimedPlayerId} = ${players.id} AND ${playerProfiles.claimStatus} = 'verified'`,
+		)
+		.leftJoin(
+			playerRegistrations,
+			drizzleSql`${playerRegistrations.playerProfileId} = ${playerProfiles.id}`,
+		)
+		.leftJoin(
+			playerSeasonStats,
+			drizzleSql`${playerSeasonStats.playerProfileId} = ${playerProfiles.id}`,
+		)
+		.groupBy(players.id, players.fullName, players.alias),
+);
+
+export type PlayerGlobalStatsRow = typeof playerGlobalStats.$inferSelect;

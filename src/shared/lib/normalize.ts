@@ -19,6 +19,10 @@
  *
  * Estas funciones son síncronas y no dependen de la BD. Se pueden usar tanto
  * en el servidor como en el cliente.
+ *
+ * Funciones para identidad en dos capas (Historia 02):
+ *   normalizePlayerName()  → clave de búsqueda exacta intra-org
+ *   fingerprintPlayer()    → clave compuesta para deduplicación intra-org
  */
 
 // ---------------------------------------------------------------------------
@@ -80,4 +84,52 @@ export function titleCase(str: string): string {
 			return word.charAt(0).toUpperCase() + word.slice(1); // primera letra upper
 		})
 		.join(" ");
+}
+
+// ---------------------------------------------------------------------------
+// normalizePlayerName (Historia 02)
+// Produce la clave normalizada que se almacena en player_profiles.normalized_name
+// y que se usa para el matching exacto intra-org (L1/L2).
+//
+// Diferencias vs sanitizeName:
+//   - Elimina acentos (á→a, é→e, etc.) en JS, sin depender de f_unaccent de PG
+//   - Colapsa sufijos generacionales: JR, JR., SR, SR., II, III, IV, HIJO, HIJA
+//
+// Invariante: normalizePlayerName(x) === normalizePlayerName(sanitizeName(x))
+// para cualquier string x. Es idempotente.
+// ---------------------------------------------------------------------------
+const GENERATIONAL_SUFFIXES = /\s+\b(jr\.?|sr\.?|ii|iii|iv|v|hijo|hija)\b\.?$/i;
+
+export function normalizePlayerName(input: string): string {
+	return (
+		input
+			.trim()
+			.toLowerCase()
+			// Colapsa espacios múltiples
+			.replace(/\s{2,}/g, " ")
+			// Elimina tabs/newlines
+			.replace(/[\t\r\n]+/g, " ")
+			// Quita sufijos generacionales (al final del string)
+			.replace(GENERATIONAL_SUFFIXES, "")
+			// Normaliza acentos: descompone en NFD y elimina diacríticos (U+0300-U+036F)
+			.normalize("NFD")
+			.replace(/[̀-ͯ]/g, "")
+			.trim()
+	);
+}
+
+// ---------------------------------------------------------------------------
+// fingerprintPlayer (Historia 02)
+// Clave compuesta usada para deduplicación intra-org durante el backfill.
+// Combina normalized_name con el número de dorsal si está disponible.
+//
+// Formato: "<normalized_name>" o "<normalized_name>::<jersey>"
+//
+// El dorsal es opcional — muchos imports legacy no lo tienen. Cuando no se
+// provee, el fingerprint es solo el nombre normalizado.
+// ---------------------------------------------------------------------------
+export function fingerprintPlayer(fullName: string, jersey?: string | number | null): string {
+	const base = normalizePlayerName(fullName);
+	if (jersey == null || jersey === "") return base;
+	return `${base}::${String(jersey).trim()}`;
 }

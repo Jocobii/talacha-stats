@@ -12,6 +12,11 @@ export default function TrackVisit() {
 	const pathname = usePathname();
 
 	useEffect(() => {
+		// Desactivar tracking si está deshabilitado en env
+		if (process.env.NODE_ENV !== "production") {
+			return;
+		}
+
 		const page = pathname.startsWith("/player/") ? "/player/[id]" : pathname;
 
 		fetch("/api/analytics/visit", {

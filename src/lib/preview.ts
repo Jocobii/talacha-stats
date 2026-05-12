@@ -204,7 +204,7 @@ async function getTopThreats(
 	// Jugadores del equipo en esta liga
 	const roster = await db.query.playerRegistrations.findMany({
 		where: and(eq(playerRegistrations.teamId, teamId), eq(playerRegistrations.leagueId, leagueId)),
-		with: { player: true },
+		with: { legacyPlayer: true },
 	});
 
 	if (roster.length === 0) return [];
@@ -212,12 +212,13 @@ async function getTopThreats(
 	const threats: TopThreat[] = [];
 
 	for (const reg of roster) {
-		const pid = reg.playerId;
+		const pid = reg.legacyPlayerId;
+		if (!pid) continue; // nuevo pipeline — sin legacyPlayerId
 
 		// Todos los goles de la temporada
 		const seasonGoalEvents = await db.query.matchEvents.findMany({
 			where: and(
-				eq(matchEvents.playerId, pid),
+				eq(matchEvents.legacyPlayerId, pid),
 				eq(matchEvents.eventType, "goal"),
 				inArray(matchEvents.matchId, matchIds),
 			),
@@ -233,7 +234,7 @@ async function getTopThreats(
 			last3MatchIds.length > 0
 				? await db.query.matchEvents.findMany({
 						where: and(
-							eq(matchEvents.playerId, pid),
+							eq(matchEvents.legacyPlayerId, pid),
 							eq(matchEvents.eventType, "goal"),
 							inArray(matchEvents.matchId, last3MatchIds),
 						),
@@ -243,7 +244,7 @@ async function getTopThreats(
 		// Asistencias en la temporada
 		const assistEvents = await db.query.matchEvents.findMany({
 			where: and(
-				eq(matchEvents.playerId, pid),
+				eq(matchEvents.legacyPlayerId, pid),
 				eq(matchEvents.eventType, "assist"),
 				inArray(matchEvents.matchId, matchIds),
 			),
@@ -253,7 +254,7 @@ async function getTopThreats(
 		const matchesPlayedIds = new Set(
 			(
 				await db.query.matchEvents.findMany({
-					where: and(eq(matchEvents.playerId, pid), inArray(matchEvents.matchId, matchIds)),
+					where: and(eq(matchEvents.legacyPlayerId, pid), inArray(matchEvents.matchId, matchIds)),
 					columns: { matchId: true },
 				})
 			).map((e) => e.matchId),
@@ -270,9 +271,9 @@ async function getTopThreats(
 		if (goalsThisSeason === 0 && assists === 0) continue;
 
 		threats.push({
-			playerId: pid,
-			player: reg.player.fullName,
-			alias: reg.player.alias,
+			playerId: pid!,
+			player: reg?.legacyPlayer?.fullName ?? "",
+			alias: reg?.legacyPlayer?.alias ?? "",
 			goalsThisSeason,
 			goalsLast3Matches: goalsLast3,
 			assists,
@@ -311,25 +312,26 @@ async function getCardRisk(
 
 	const roster = await db.query.playerRegistrations.findMany({
 		where: and(eq(playerRegistrations.teamId, teamId), eq(playerRegistrations.leagueId, leagueId)),
-		with: { player: true },
+		with: { legacyPlayer: true },
 	});
 
 	const risks: CardRiskPlayer[] = [];
 
 	for (const reg of roster) {
-		const pid = reg.playerId;
+		const pid = reg.legacyPlayerId;
+		if (!pid) continue; // nuevo pipeline — sin legacyPlayerId
 
 		const [yellows, reds] = await Promise.all([
 			db.query.matchEvents.findMany({
 				where: and(
-					eq(matchEvents.playerId, pid),
+					eq(matchEvents.legacyPlayerId, pid),
 					eq(matchEvents.eventType, "yellow_card"),
 					inArray(matchEvents.matchId, matchIds),
 				),
 			}),
 			db.query.matchEvents.findMany({
 				where: and(
-					eq(matchEvents.playerId, pid),
+					eq(matchEvents.legacyPlayerId, pid),
 					eq(matchEvents.eventType, "red_card"),
 					inArray(matchEvents.matchId, matchIds),
 				),
@@ -348,7 +350,7 @@ async function getCardRisk(
 
 		risks.push({
 			playerId: pid,
-			player: reg.player.fullName,
+			player: reg?.legacyPlayer?.fullName ?? "",
 			yellowCards: yellowCount,
 			redCards: redCount,
 			note,

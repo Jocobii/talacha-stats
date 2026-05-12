@@ -435,7 +435,7 @@ async function run(): Promise<void> {
 			const teamIdx = Math.floor(s / PLAYERS_PER_TEAM);
 			const team = leagueTeams[teamIdx];
 			registrationRows.push({
-				playerId: players[playerIdx].id,
+				legacyPlayerId: players[playerIdx].id,
 				teamId: team.id,
 				leagueId: league.id,
 				jerseyNumber: (s % PLAYERS_PER_TEAM) + 1,
@@ -443,7 +443,7 @@ async function run(): Promise<void> {
 			// Stats vary by both player and league index so the same player
 			// has different numbers per league (which is realistic).
 			statRows.push({
-				playerId: players[playerIdx].id,
+				legacyPlayerId: players[playerIdx].id,
 				leagueId: league.id,
 				teamId: team.id,
 				goals: det(playerIdx + li * 7, 26, 1),
@@ -472,7 +472,7 @@ async function run(): Promise<void> {
 		for (const s of sortedByGoals) {
 			const factor = j / 18; // partial accumulation
 			snapshotRows.push({
-				playerId: s.playerId,
+				playerId: s.legacyPlayerId!,
 				leagueId: s.leagueId,
 				teamId: s.teamId,
 				jornada: j,
@@ -571,7 +571,7 @@ async function run(): Promise<void> {
 			const r = homeRoster[det(mi * 13 + g, homeRoster.length, 7)];
 			eventRows.push({
 				matchId: m.id,
-				playerId: r.playerId,
+				playerProfileId: r.legacyPlayerId!,
 				teamId: m.homeTeamId,
 				eventType: "goal",
 				minute: 5 + det(mi * 17 + g, 80, 8),
@@ -581,7 +581,7 @@ async function run(): Promise<void> {
 			const r = awayRoster[det(mi * 19 + g, awayRoster.length, 9)];
 			eventRows.push({
 				matchId: m.id,
-				playerId: r.playerId,
+				playerProfileId: r.legacyPlayerId!,
 				teamId: m.awayTeamId,
 				eventType: "goal",
 				minute: 5 + det(mi * 23 + g, 80, 10),
@@ -592,7 +592,7 @@ async function run(): Promise<void> {
 			const yc = homeRoster[det(mi, homeRoster.length, 12)];
 			eventRows.push({
 				matchId: m.id,
-				playerId: yc.playerId,
+				playerProfileId: yc.legacyPlayerId!,
 				teamId: m.homeTeamId,
 				eventType: "yellow_card",
 				minute: 30 + det(mi, 50, 13),
@@ -602,7 +602,7 @@ async function run(): Promise<void> {
 			const rc = awayRoster[det(mi, awayRoster.length, 14)];
 			eventRows.push({
 				matchId: m.id,
-				playerId: rc.playerId,
+				playerProfileId: rc.legacyPlayerId!,
 				teamId: m.awayTeamId,
 				eventType: "red_card",
 				minute: 60 + det(mi, 30, 15),

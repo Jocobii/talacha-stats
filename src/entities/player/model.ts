@@ -76,7 +76,7 @@ export type PlayerEgoStats = {
 };
 
 // Perfil completo del jugador
-export type PlayerProfile = {
+export type PlayerView = {
 	id: string;
 	fullName: string;
 	alias: string | null;
@@ -84,4 +84,25 @@ export type PlayerProfile = {
 	photoUrl: string | null;
 	global: PlayerGlobalProfile;
 	leagues: PlayerLeagueStats[]; // ordenadas: más goles primero
+};
+
+// ---------------------------------------------------------------------------
+// PlayerGlobalStats — Agregacion cross-org para identidades verificadas
+// (Historia 05)
+//
+// Leida desde la vista player_global_stats.
+// Solo profiles con claim_status='verified' contribuyen a estos totales.
+// ---------------------------------------------------------------------------
+export type PlayerGlobalStats = {
+	playerId: string;
+	fullName: string;
+	alias: string | null;
+	organizationsCount: number;
+	leaguesCount: number;
+	totalGoals: number;
+	totalAssists: number;
+	totalMatchesPlayed: number;
+	totalYellowCards: number;
+	totalRedCards: number;
+	lastUpdatedAt: Date | null;
 };

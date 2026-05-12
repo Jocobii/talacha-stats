@@ -44,9 +44,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 					<div className="flex-1 min-w-0">
 						<h1 className="text-2xl sm:text-3xl font-black leading-tight">{profile.fullName}</h1>
 						{profile.alias && (
-							<p className="text-brand text-lg font-semibold mt-0.5">
-								&quot;{profile.alias}&quot;
-							</p>
+							<p className="text-brand text-lg font-semibold mt-0.5">&quot;{profile.alias}&quot;</p>
 						)}
 						{profile.phone && <p className="text-ink-3 text-sm mt-1">{profile.phone}</p>}
 					</div>
@@ -127,11 +125,7 @@ function GlobalStatsBar({ global: g }: { global: PlayerGlobalProfile }) {
 
 function LeagueCard({ league: l }: { league: PlayerLeagueStats }) {
 	const gpmColor =
-		l.goalsPerMatch >= 1
-			? "text-brand"
-			: l.goalsPerMatch >= 0.5
-				? "text-yellow-600"
-				: "text-ink-2";
+		l.goalsPerMatch >= 1 ? "text-brand" : l.goalsPerMatch >= 0.5 ? "text-yellow-600" : "text-ink-2";
 
 	return (
 		<div className="bg-surface rounded-xl shadow border-t-4 border-green-500 p-5 space-y-4">

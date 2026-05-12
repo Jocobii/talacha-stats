@@ -1,7 +1,7 @@
 import { db, players } from "@/db";
 import { eq } from "drizzle-orm";
 import { UpdatePlayerSchema, apiSuccess, apiError } from "@/types";
-import { getPlayerGlobalStats } from "@/lib/stats";
+import { getPlayerGlobalStats } from "@/entities/player";
 
 // GET /api/players/:id
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -9,11 +9,6 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
 	const player = await db.query.players.findFirst({
 		where: eq(players.id, id),
-		with: {
-			registrations: {
-				with: { league: true, team: true },
-			},
-		},
 	});
 
 	if (!player) return apiError("Jugador no encontrado", 404);

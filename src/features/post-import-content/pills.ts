@@ -15,7 +15,7 @@
  *   - Devuelve datos, nunca JSX
  */
 
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { db, playerSeasonStatsSnapshot, teamStandingsSnapshot } from "@/db";
 import { titleCase } from "@/shared/lib/normalize";
 
@@ -67,10 +67,26 @@ export async function generateJornadaPills(
 // Píldoras de jugadores
 // ---------------------------------------------------------------------------
 
+// Clave unificada para identificar un jugador en el snapshot, independientemente
+// del pipeline (legacy usa playerId, nuevo usa playerProfileId).
+function snapshotKey(s: { playerId: string | null; playerProfileId: string | null }): string {
+	return s.playerProfileId ?? s.playerId ?? "";
+}
+
+// Nombre de visualización: prefiere el perfil nuevo, cae en el legacy.
+function snapshotName(s: {
+	player: { fullName: string; alias: string | null } | null;
+	playerProfile: { fullName: string; alias: string | null } | null;
+}): string {
+	const src = s.playerProfile ?? s.player;
+	if (!src) return "Jugador";
+	return src.alias ? `"${titleCase(src.alias)}"` : titleCase(src.fullName);
+}
+
 async function buildPlayerPills(leagueId: string, jornada: number): Promise<JornadaPill[]> {
 	const pills: JornadaPill[] = [];
 
-	// Obtener snapshots de jornada N y N-1
+	// Obtener snapshots de jornada N — incluye ambos pipelines
 	const snapshotN = await db.query.playerSeasonStatsSnapshot.findMany({
 		where: and(
 			eq(playerSeasonStatsSnapshot.leagueId, leagueId),
@@ -78,6 +94,7 @@ async function buildPlayerPills(leagueId: string, jornada: number): Promise<Jorn
 		),
 		with: {
 			player: { columns: { id: true, fullName: true, alias: true } },
+			playerProfile: { columns: { id: true, fullName: true, alias: true } },
 			team: { columns: { id: true, name: true } },
 		},
 	});
@@ -92,15 +109,15 @@ async function buildPlayerPills(leagueId: string, jornada: number): Promise<Jorn
 						eq(playerSeasonStatsSnapshot.leagueId, leagueId),
 						eq(playerSeasonStatsSnapshot.jornada, jornada - 1),
 					),
-					columns: { playerId: true, goals: true, assists: true },
+					columns: { playerId: true, playerProfileId: true, goals: true, assists: true },
 				})
 			: [];
 
-	const prevByPlayer = new Map(snapshotPrev.map((s) => [s.playerId, s]));
+	const prevByPlayer = new Map(snapshotPrev.map((s) => [snapshotKey(s), s]));
 
 	// Calcular deltas de esta jornada
 	type Delta = {
-		playerId: string;
+		playerKey: string;
 		name: string;
 		teamName: string;
 		goalsTotal: number;
@@ -110,10 +127,11 @@ async function buildPlayerPills(leagueId: string, jornada: number): Promise<Jorn
 	};
 
 	const deltas: Delta[] = snapshotN.map((s) => {
-		const prev = prevByPlayer.get(s.playerId);
+		const key = snapshotKey(s);
+		const prev = prevByPlayer.get(key);
 		return {
-			playerId: s.playerId,
-			name: s.player.alias ? `"${titleCase(s.player.alias)}"` : titleCase(s.player.fullName),
+			playerKey: key,
+			name: snapshotName(s),
 			teamName: titleCase(s.team?.name ?? ""),
 			goalsTotal: s.goals,
 			assistsTotal: s.assists,
@@ -175,14 +193,18 @@ async function buildPlayerPills(leagueId: string, jornada: number): Promise<Jorn
 
 	// ── Rachas goleadoras (anotó en 3+ jornadas consecutivas) ────────────────
 	if (jornada >= 3) {
-		const streaks = await buildScoringStreaks(
-			leagueId,
-			jornada,
-			snapshotN.map((s) => s.playerId),
-		);
-		for (const [playerId, count] of streaks) {
+		// Separar IDs por pipeline para la query del historial
+		const profileIds = snapshotN
+			.map((s) => s.playerProfileId)
+			.filter((id): id is string => id !== null);
+		const legacyPlayerIds = snapshotN
+			.map((s) => s.playerId)
+			.filter((id): id is string => id !== null);
+
+		const streaks = await buildScoringStreaks(leagueId, jornada, profileIds, legacyPlayerIds);
+		for (const [playerKey, count] of streaks) {
 			if (count < 3) continue;
-			const player = deltas.find((d) => d.playerId === playerId);
+			const player = deltas.find((d) => d.playerKey === playerKey);
 			if (!player) continue;
 			pills.push({
 				type: "scoring_streak",
@@ -199,35 +221,48 @@ async function buildPlayerPills(leagueId: string, jornada: number): Promise<Jorn
 /**
  * Para cada jugador, calcula cuántas jornadas consecutivas hasta `jornada`
  * tiene con al menos 1 gol (delta positivo respecto a la jornada anterior).
- * Solo se evalúan los jugadores activos en la jornada N.
+ * Soporta ambos pipelines: profileIds (nuevo) y legacyPlayerIds (legacy).
  */
 async function buildScoringStreaks(
 	leagueId: string,
 	currentJornada: number,
-	playerIds: string[],
+	profileIds: string[],
+	legacyPlayerIds: string[],
 ): Promise<Map<string, number>> {
-	if (playerIds.length === 0 || currentJornada < 2) return new Map();
+	if (profileIds.length === 0 && legacyPlayerIds.length === 0) return new Map();
+	if (currentJornada < 2) return new Map();
 
-	// Traemos las últimas 5 jornadas disponibles para no hacer queries infinitas
 	const lookback = Math.min(currentJornada, 5);
 	const jornadaRange = Array.from({ length: lookback }, (_, i) => currentJornada - i);
+
+	// Construir cláusula WHERE que incluye ambos pipelines
+	const playerFilter = [
+		...(profileIds.length > 0
+			? [inArray(playerSeasonStatsSnapshot.playerProfileId, profileIds)]
+			: []),
+		...(legacyPlayerIds.length > 0
+			? [inArray(playerSeasonStatsSnapshot.playerId, legacyPlayerIds)]
+			: []),
+	];
 
 	const history = await db.query.playerSeasonStatsSnapshot.findMany({
 		where: and(
 			eq(playerSeasonStatsSnapshot.leagueId, leagueId),
-			inArray(playerSeasonStatsSnapshot.playerId, playerIds),
+			or(...playerFilter),
 			inArray(playerSeasonStatsSnapshot.jornada, jornadaRange),
 		),
-		columns: { playerId: true, jornada: true, goals: true },
+		columns: { playerId: true, playerProfileId: true, jornada: true, goals: true },
 		orderBy: [desc(playerSeasonStatsSnapshot.jornada)],
 	});
 
-	// Agrupar por jugador y ordenar por jornada desc
+	// Agrupar por clave unificada (playerProfileId ?? playerId)
 	const byPlayer = new Map<string, { jornada: number; goals: number }[]>();
 	for (const row of history) {
-		const arr = byPlayer.get(row.playerId) ?? [];
+		const key = row.playerProfileId ?? row.playerId ?? "";
+		if (!key) continue;
+		const arr = byPlayer.get(key) ?? [];
 		arr.push({ jornada: row.jornada, goals: row.goals });
-		byPlayer.set(row.playerId, arr);
+		byPlayer.set(key, arr);
 	}
 
 	const streaks = new Map<string, number>();

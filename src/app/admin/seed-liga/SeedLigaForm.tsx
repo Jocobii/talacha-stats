@@ -354,9 +354,7 @@ export default function SeedLigaForm({
 												<td className="px-3 py-2.5 text-center text-ink-3">{row.draws}</td>
 												<td className="px-3 py-2.5 text-center text-ink-3">{row.losses}</td>
 												<td className="px-3 py-2.5 text-center text-ink-3">{row.goalsFor}</td>
-												<td className="px-3 py-2.5 text-center text-ink-3">
-													{row.goalsAgainst}
-												</td>
+												<td className="px-3 py-2.5 text-center text-ink-3">{row.goalsAgainst}</td>
 												<td className="px-3 py-2.5 text-center text-ink-3">
 													{row.goalsFor - row.goalsAgainst > 0 ? "+" : ""}
 													{row.goalsFor - row.goalsAgainst}

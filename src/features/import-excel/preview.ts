@@ -22,7 +22,6 @@
 
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db, leagues, playerSeasonStatsSnapshot, teamStandingsSnapshot, teams } from "@/db";
-import { parseBulkBuffer } from "./parser";
 import { resolveImportEntities } from "./resolver";
 import { detectAnomalies } from "./anomaly-detector";
 import type { AnomalyReport, HistoricalSnapshot } from "./anomaly-detector";
@@ -76,12 +75,15 @@ export async function generatePreview(input: PreviewInput): Promise<PreviewResul
 	// ── Paso 1: Parsear el Excel ─────────────────────────────────────────────
 	const parsed = await parseBulkBuffer({ buffer, options });
 
-	// ── Paso 2: Obtener ciudad de la liga (necesaria para resolver jugadores) ─
+	// ── Paso 2: Obtener organizationId de la liga (scope del matching intra-org) ─
+	// HOTFIX Historia 01: el resolver ahora filtra por org, no por ciudad.
+	// organizationId null (liga legacy sin org) → string vacío → comportamiento
+	// seguro: no se encuentran candidatos intra-org, se crean jugadores nuevos.
 	const league = await db.query.leagues.findFirst({
 		where: eq(leagues.id, leagueId),
-		columns: { city: true },
+		columns: { organizationId: true },
 	});
-	const city = league?.city ?? "";
+	const organizationId = league?.organizationId ?? "";
 
 	// ── Flujo Standings ───────────────────────────────────────────────────────
 	if (parsed.type === "standings") {
@@ -100,7 +102,7 @@ export async function generatePreview(input: PreviewInput): Promise<PreviewResul
 		playerNames,
 		teamNames,
 		leagueId,
-		city,
+		organizationId,
 	});
 
 	// ── Paso 4: Cargar snapshots históricos en batch (1 query) ───────────────
@@ -224,13 +226,13 @@ async function loadHistoricalSnapshots(
 	const result = new Map<string, HistoricalSnapshot[]>();
 
 	for (const row of rows) {
-		const snapshots = result.get(row.playerId) ?? [];
+		const snapshots = result.get(row.playerId ?? "") ?? [];
 		snapshots.push({
 			jornada: row.jornada,
 			goals: row.goals,
 			matchesPlayed: row.matchesPlayed,
 		});
-		result.set(row.playerId, snapshots);
+		result.set(row.playerId ?? "", snapshots);
 	}
 
 	return result;
@@ -326,5 +328,136 @@ function buildWarnings(resolutions: PlayerResolution[], anomalyReports: AnomalyR
 		}
 	}
 
+	return warnings;
+}
+
+// ===========================================================================
+// Historia 03 — generateImportPreview (nuevo pipeline por capas)
+// ===========================================================================
+// Se añade a continuación del código existente para no romper el flujo bulk.
+// El flujo bulk (generatePreview) sigue usando resolver.ts durante la transición.
+// El nuevo flujo (generateImportPreview) usa matching.ts con player_profiles.
+
+import { parseBulkBuffer } from "./parser";
+import { matchRows } from "./matching";
+import { normalizePlayerName, fingerprintPlayer, sanitizeName } from "@/shared/lib/normalize";
+import { flags } from "@/shared/config/flags";
+import type { ParsedRow, ImportPreviewResult, MatchOutcome } from "./types";
+
+/**
+ * Genera la vista previa de una importación usando el nuevo motor de matching
+ * por capas (L1–L4). Reemplaza generatePreview() para el flujo /api/imports/preview.
+ *
+ * Input: archivo Excel de goleadores + leagueId + organizationId.
+ * Output: MatchOutcome[] listo para que el frontend muestre resolución manual
+ *         (solo para kind=intra_org_doubt y kind=cross_org_suggestion).
+ */
+export async function generateImportPreview(input: {
+	buffer: Buffer;
+	leagueId: string;
+	organizationId: string;
+	jornada?: number;
+}): Promise<ImportPreviewResult> {
+	const { buffer, leagueId, organizationId, jornada } = input;
+
+	// Parsear Excel — reutiliza el parser existente
+	const parsed = await parseBulkBuffer({ buffer });
+
+	if (parsed.type !== "goleadores") {
+		// Standings no necesita matching de jugadores
+		return {
+			outcomes: [],
+			summary: { auto: 0, doubts: 0, suggestions: 0, createNew: 0 },
+			jornada: parsed.jornada,
+			warnings: ["El archivo es de posiciones (standings) — usar /api/import/bulk para standings."],
+		};
+	}
+
+	// Construir ParsedRows desde las GoleadoresRows del parser
+	const rows: ParsedRow[] = parsed.rows.map((r) => {
+		const rawFullName = sanitizeName(r.rawName);
+		const normalizedName = normalizePlayerName(rawFullName);
+		return {
+			rawFullName,
+			normalizedName,
+			fingerprint: fingerprintPlayer(rawFullName),
+			team: sanitizeName(r.teamName),
+			goals: r.goals,
+			assists: r.assists ?? 0,
+			yellowCards: r.yellowCards ?? 0,
+			redCards: r.redCards ?? 0,
+			matchesPlayed: r.matchesPlayed ?? 0,
+			jornada: jornada ?? parsed.jornada,
+		};
+	});
+
+	// Deduplicar por fingerprint antes del matching
+	const uniqueRows = deduplicateRows(rows);
+
+	// Ejecutar el motor de matching en batch
+	const outcomes = await matchRows(uniqueRows, {
+		organizationId,
+		leagueId,
+		crossOrgEnabled: flags.CROSS_ORG_SUGGESTIONS,
+	});
+
+	// Construir warnings para la UI
+	const warnings = buildImportWarnings(outcomes);
+
+	// Resumen
+	const summary = {
+		auto: outcomes.filter((o) => o.kind === "auto_resolved").length,
+		doubts: outcomes.filter((o) => o.kind === "intra_org_doubt").length,
+		suggestions: outcomes.filter((o) => o.kind === "cross_org_suggestion").length,
+		createNew: outcomes.filter((o) => o.kind === "create_new").length,
+	};
+
+	return { outcomes, summary, jornada: jornada ?? parsed.jornada, warnings };
+}
+
+// ---------------------------------------------------------------------------
+// Helpers privados del nuevo pipeline
+// ---------------------------------------------------------------------------
+
+/**
+ * Elimina filas duplicadas por fingerprint.
+ * Si el mismo jugador aparece dos veces en el Excel, se toma la primera.
+ */
+function deduplicateRows(rows: ParsedRow[]): ParsedRow[] {
+	const seen = new Set<string>();
+	return rows.filter((r) => {
+		if (seen.has(r.fingerprint)) return false;
+		seen.add(r.fingerprint);
+		return true;
+	});
+}
+
+function buildImportWarnings(outcomes: MatchOutcome[]): string[] {
+	const warnings: string[] = [];
+	for (const o of outcomes) {
+		switch (o.kind) {
+			case "auto_resolved":
+				if (o.crossLeagueLink) {
+					warnings.push(
+						`"${o.row.rawFullName}" auto-vinculado desde otra liga (L2). ` +
+							`Si es un jugador diferente, usa 'crear nuevo' para separarlo.`,
+					);
+				}
+				break;
+			case "intra_org_doubt":
+				warnings.push(
+					`"${o.row.rawFullName}" tiene ${o.candidates.length} candidato(s) — requiere selección manual.`,
+				);
+				break;
+			case "cross_org_suggestion":
+				warnings.push(
+					`"${o.row.rawFullName}" coincide con un jugador en otra organización — revisa la sugerencia.`,
+				);
+				break;
+			case "create_new":
+				// Silencioso: crear nuevo es el comportamiento esperado para jugadores desconocidos
+				break;
+		}
+	}
 	return warnings;
 }

@@ -8,6 +8,10 @@
  *
  * Si viene "mapping" (JSON MappedImportOptions) usa mapeo manual.
  * Si no, auto-detección de columnas.
+ *
+ * ⚠️  Goleadores: Para el flujo nuevo con matching por capas (L1-L4),
+ *     usar /api/imports/preview y /api/imports/confirm en su lugar.
+ *     Este endpoint sigue gestionando standings y el flujo legacy de goleadores.
  */
 
 import {
@@ -46,12 +50,50 @@ export async function POST(request: Request) {
 	const options = parseMapping(formData);
 	if (options instanceof Response) return options;
 
+	// Detect import type to route goleadores to the new pipeline
+	const importType = options?.type ?? detectTypeFromFormData(formData);
+
 	try {
 		if (action === "preview") {
+			// Standings: use legacy preview engine
+			if (importType === "standings") {
+				return apiSuccess(await generatePreview({ buffer, leagueId, options }));
+			}
+
+			// Goleadores legacy: usar el engine antiguo para el wizard clásico.
+			// El nuevo engine (L1-L4) se accede desde /api/imports/preview.
 			return apiSuccess(await generatePreview({ buffer, leagueId, options }));
 		}
 
 		if (action === "confirm") {
+			// Standings: use legacy confirm engine
+			if (importType === "standings") {
+				let parsed = await parseBulkBuffer({ buffer, options });
+				parsed = applyExcludeRows(parsed, formData);
+				const resolutions = parseResolutions(formData);
+				if (resolutions instanceof Response) return resolutions;
+
+				const result = await confirmImport({
+					leagueId,
+					parsed,
+					playerResolutions: resolutions,
+				});
+
+				const jornada = parsed.jornada ?? null;
+				const content =
+					jornada != null
+						? {
+								jornada,
+								pills: await generateJornadaPills(leagueId, jornada),
+								imageUrl: `/api/content/jornada-image?leagueId=${leagueId}&jornada=${jornada}&type=standings`,
+							}
+						: null;
+
+				return apiSuccess({ ...result, content });
+			}
+
+			// Goleadores confirm: clients should use /api/imports/confirm directly.
+			// We keep legacy behaviour here for backwards-compat.
 			let parsed = await parseBulkBuffer({ buffer, options });
 			parsed = applyExcludeRows(parsed, formData);
 			const resolutions = parseResolutions(formData);
@@ -63,17 +105,13 @@ export async function POST(request: Request) {
 				playerResolutions: resolutions,
 			});
 
-			// ── Generar contenido post-importación ──────────────────────────────
-			// Solo cuando hay jornada definida (standings o goleadores con jornada).
-			// Las píldoras se generan en background — no bloquean la respuesta.
 			const jornada = parsed.jornada ?? null;
-			const importType = parsed.type; // "goleadores" | "standings"
 			const content =
 				jornada != null
 					? {
 							jornada,
 							pills: await generateJornadaPills(leagueId, jornada),
-							imageUrl: `/api/content/jornada-image?leagueId=${leagueId}&jornada=${jornada}&type=${importType}`,
+							imageUrl: `/api/content/jornada-image?leagueId=${leagueId}&jornada=${jornada}&type=goleadores`,
 						}
 					: null;
 
@@ -89,6 +127,15 @@ export async function POST(request: Request) {
 // ---------------------------------------------------------------------------
 // Helpers de parseo de form-data
 // ---------------------------------------------------------------------------
+
+/**
+ * Intenta inferir el tipo de importación del campo "type" del form-data
+ * cuando no hay mapping explícito.
+ */
+function detectTypeFromFormData(formData: FormData): "goleadores" | "standings" {
+	const raw = formData.get("type") as string | null;
+	return raw === "standings" ? "standings" : "goleadores";
+}
 
 function parseMapping(formData: FormData): MappedImportOptions | undefined | Response {
 	const raw = formData.get("mapping") as string | null;

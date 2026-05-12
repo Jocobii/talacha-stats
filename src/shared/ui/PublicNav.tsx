@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, Building2, Users, CalendarDays, BarChart3, Info, Settings } from "lucide-react";
+import {
+	Home,
+	Trophy,
+	Building2,
+	Users,
+	CalendarDays,
+	BarChart3,
+	Info,
+	Settings,
+} from "lucide-react";
 
 const NAV_ITEMS = [
 	{ href: "/", label: "Inicio", Icon: Home },
@@ -50,10 +59,11 @@ export default function PublicNav() {
 							<Link
 								key={href}
 								href={href}
-								className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${active
+								className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+									active
 										? "bg-surface-2 text-brand"
 										: "text-ink-2 hover:bg-surface-2 hover:text-ink"
-									}`}
+								}`}
 							>
 								<Icon size={20} strokeWidth={2} />
 								{label}
@@ -84,17 +94,19 @@ export default function PublicNav() {
 							<Link
 								key={href}
 								href={href}
-								className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-colors ${isAdmin
+								className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-colors ${
+									isAdmin
 										? "text-ink-3 border-l border-line hover:text-ink-2"
 										: active
 											? "text-brand"
 											: "text-ink-3 hover:text-ink-2"
-									}`}
+								}`}
 							>
 								<Icon size={isAdmin ? 16 : 20} strokeWidth={2} />
 								<span
-									className={`text-[10px] font-semibold uppercase tracking-wide leading-none ${isAdmin ? "text-ink-3" : active ? "text-brand" : "text-ink-3"
-										}`}
+									className={`text-[10px] font-semibold uppercase tracking-wide leading-none ${
+										isAdmin ? "text-ink-3" : active ? "text-brand" : "text-ink-3"
+									}`}
 								>
 									{label}
 								</span>

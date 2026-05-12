@@ -10,15 +10,15 @@ import type { PlayerStats, PlayerGlobalStats } from "@/types";
 export async function getPlayerLeagueStats(playerId: string): Promise<PlayerStats[]> {
 	// Primero buscar stats importadas directamente (Excel bulk)
 	const bulkStats = await db.query.playerSeasonStats.findMany({
-		where: eq(playerSeasonStats.playerId, playerId),
-		with: { league: true, team: true, player: true },
+		where: eq(playerSeasonStats.legacyPlayerId, playerId),
+		with: { league: true, team: true, legacyPlayer: true },
 	});
 
 	if (bulkStats.length > 0) {
 		return bulkStats.map((s) => ({
 			playerId,
-			fullName: s.player?.fullName ?? "",
-			alias: s.player?.alias ?? null,
+			fullName: s.legacyPlayer?.fullName ?? "",
+			alias: s.legacyPlayer?.alias ?? null,
 			leagueId: s.leagueId,
 			leagueName: s.league.name,
 			season: s.league.season,
@@ -36,8 +36,8 @@ export async function getPlayerLeagueStats(playerId: string): Promise<PlayerStat
 
 	// Obtener todas las registrations del jugador
 	const registrations = await db.query.playerRegistrations.findMany({
-		where: eq(playerRegistrations.playerId, playerId),
-		with: { league: true, team: true, player: true },
+		where: eq(playerRegistrations.legacyPlayerId, playerId),
+		with: { league: true, team: true, legacyPlayer: true },
 	});
 
 	if (registrations.length === 0) return [];
@@ -65,21 +65,23 @@ export async function getPlayerLeagueStats(playerId: string): Promise<PlayerStat
 				count: sql<number>`count(*)::int`,
 			})
 			.from(matchEvents)
-			.where(and(eq(matchEvents.playerId, playerId), inArray(matchEvents.matchId, matchIds)))
+			.where(and(eq(matchEvents.playerProfileId, playerId), inArray(matchEvents.matchId, matchIds)))
 			.groupBy(matchEvents.eventType);
 
 		// Partidos en los que el jugador tuvo al menos 1 evento
 		const matchesPlayed = await db
 			.selectDistinct({ matchId: matchEvents.matchId })
 			.from(matchEvents)
-			.where(and(eq(matchEvents.playerId, playerId), inArray(matchEvents.matchId, matchIds)));
+			.where(
+				and(eq(matchEvents.playerProfileId, playerId), inArray(matchEvents.matchId, matchIds)),
+			);
 
 		const counts = Object.fromEntries(eventCounts.map((e) => [e.eventType, e.count]));
 
 		results.push({
 			playerId,
-			fullName: reg.player?.fullName ?? "",
-			alias: reg.player?.alias ?? null,
+			fullName: reg.legacyPlayer?.fullName ?? "",
+			alias: reg.legacyPlayer?.alias ?? null,
 			leagueId: reg.leagueId,
 			leagueName: reg.league.name,
 			season: reg.league.season,
@@ -139,12 +141,12 @@ export async function getLeagueTopScorers(leagueId: string, limit = 10) {
 
 	const rows = await db
 		.select({
-			playerId: matchEvents.playerId,
+			playerId: matchEvents.playerProfileId,
 			goals: sql<number>`count(*)::int`,
 		})
 		.from(matchEvents)
 		.where(and(eq(matchEvents.eventType, "goal"), inArray(matchEvents.matchId, matchIds)))
-		.groupBy(matchEvents.playerId)
+		.groupBy(matchEvents.playerProfileId)
 		.orderBy(sql`count(*) desc`)
 		.limit(limit);
 
@@ -152,18 +154,18 @@ export async function getLeagueTopScorers(leagueId: string, limit = 10) {
 	const enriched = await Promise.all(
 		rows.map(async (r) => {
 			const player = await db.query.players.findFirst({
-				where: (p, { eq }) => eq(p.id, r.playerId),
+				where: (p, { eq }) => eq(p.id, r.playerId!),
 				columns: { fullName: true, alias: true },
 			});
 			const reg = await db.query.playerRegistrations.findFirst({
 				where: and(
-					eq(playerRegistrations.playerId, r.playerId),
+					eq(playerRegistrations.legacyPlayerId, r.playerId!),
 					eq(playerRegistrations.leagueId, leagueId),
 				),
 				with: { team: true },
 			});
 			return {
-				playerId: r.playerId,
+				playerId: r.playerId!,
 				fullName: player?.fullName ?? "",
 				alias: player?.alias ?? null,
 				teamName: reg?.team?.name ?? "",
@@ -190,24 +192,24 @@ export async function getLeagueTopAssists(leagueId: string, limit = 10) {
 
 	const rows = await db
 		.select({
-			playerId: matchEvents.playerId,
+			playerId: matchEvents.playerProfileId,
 			assists: sql<number>`count(*)::int`,
 		})
 		.from(matchEvents)
 		.where(and(eq(matchEvents.eventType, "assist"), inArray(matchEvents.matchId, matchIds)))
-		.groupBy(matchEvents.playerId)
+		.groupBy(matchEvents.playerProfileId)
 		.orderBy(sql`count(*) desc`)
 		.limit(limit);
 
 	const enriched = await Promise.all(
 		rows.map(async (r) => {
 			const player = await db.query.players.findFirst({
-				where: (p, { eq }) => eq(p.id, r.playerId),
+				where: (p, { eq }) => eq(p.id, r.playerId!),
 				columns: { fullName: true, alias: true },
 			});
 			const reg = await db.query.playerRegistrations.findFirst({
 				where: and(
-					eq(playerRegistrations.playerId, r.playerId),
+					eq(playerRegistrations.legacyPlayerId, r.playerId!),
 					eq(playerRegistrations.leagueId, leagueId),
 				),
 				with: { team: true },
@@ -239,13 +241,13 @@ function buildEmptyStats(
 		team: { id: string; name: string };
 		leagueId: string;
 		teamId: string;
-		player: { fullName: string; alias: string | null } | null;
+		legacyPlayer: { fullName: string; alias: string | null } | null;
 	},
 ): PlayerStats {
 	return {
 		playerId,
-		fullName: reg.player?.fullName ?? "",
-		alias: reg.player?.alias ?? null,
+		fullName: reg.legacyPlayer?.fullName ?? "",
+		alias: reg.legacyPlayer?.alias ?? null,
 		leagueId: reg.leagueId,
 		leagueName: reg.league.name,
 		season: reg.league.season,
