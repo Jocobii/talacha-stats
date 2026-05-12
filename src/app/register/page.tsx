@@ -42,17 +42,31 @@ export default function RegisterPage() {
 	const canSubmit = form.name.trim().length >= 2 && form.email !== "" && form.password.length >= 8;
 
 	return (
-		<div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+		<div className="min-h-screen bg-pitch flex items-center justify-center px-4">
 			<div className="w-full max-w-sm space-y-8">
 				{/* Logo */}
-				<div className="text-center">
-					<p className="text-4xl mb-3">⚽</p>
-					<h1 className="text-2xl font-black text-white">TalachaStats</h1>
+				<div className="flex flex-col items-center border-b border-white/[0.06] shrink-0 pb-3">
+					<div className="flex items-center gap-2">
+						<svg viewBox="0 0 54 44" fill="none" className="w-9 h-[30px] shrink-0">
+							<rect x="0" y="29" width="7" height="12" rx="2" fill="#00E676" fillOpacity="0.35" />
+							<rect x="11" y="19" width="7" height="22" rx="2" fill="#00E676" fillOpacity="0.55" />
+							<rect x="22" y="10" width="7" height="31" rx="2" fill="#00E676" fillOpacity="0.75" />
+							<rect x="33" y="3" width="7" height="38" rx="2" fill="#00E676" />
+							<rect x="44" y="13" width="7" height="28" rx="2" fill="#00E676" fillOpacity="0.65" />
+						</svg>
+
+						<span
+							className="text-[22px] font-black text-slate-100 tracking-tight whitespace-nowrap"
+							style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+						>
+							Talacha<span className="text-[#00e676]">Stats</span>
+						</span>
+					</div>
+
 					<p className="text-gray-400 text-sm mt-1">Crea tu cuenta de organizador</p>
 				</div>
-
 				{/* Form */}
-				<form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl p-6 space-y-4">
+				<form onSubmit={handleSubmit} className="bg-surface rounded-2xl p-6 space-y-4">
 					<div>
 						<label className="block text-sm font-medium text-gray-300 mb-2">Tu nombre</label>
 						<input
@@ -63,7 +77,7 @@ export default function RegisterPage() {
 							autoFocus
 							required
 							minLength={2}
-							className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+							className="w-full bg-surface-2 border border-gray-700 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
 						/>
 					</div>
 
@@ -77,7 +91,7 @@ export default function RegisterPage() {
 							onChange={updateField("email")}
 							placeholder="organizador@ejemplo.com"
 							required
-							className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+							className="w-full bg-surface-2 border border-gray-700 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
 						/>
 					</div>
 
@@ -90,7 +104,7 @@ export default function RegisterPage() {
 							placeholder="Minimo 8 caracteres"
 							required
 							minLength={8}
-							className="w-full bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+							className="w-full bg-surface-2 border border-gray-700 text-white placeholder-gray-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
 						/>
 					</div>
 
