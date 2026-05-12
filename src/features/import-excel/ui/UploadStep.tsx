@@ -93,42 +93,40 @@ export function UploadStep({
 
 				{/* Import type — hidden when locked via tab */}
 				{!hideTypeSelector && (
-				<div>
-					<label className="block text-sm font-semibold text-ink mb-2">Tipo de datos</label>
-					<div className="grid grid-cols-2 gap-3">
-						{(["goleadores", "standings"] as const).map((t) => (
-							<button
-								key={t}
-								type="button"
-								onClick={() => onImportTypeChange(t)}
-								className={[
-									"py-3.5 px-3 rounded-xl border-2 text-left transition-all",
-									importType === t
-										? "border-brand bg-brand/10"
-										: "border-line bg-surface hover:border-line",
-								].join(" ")}
-							>
-								<div
-									className={`text-[15px] font-bold ${importType === t ? "text-brand" : "text-ink"}`}
+					<div>
+						<label className="block text-sm font-semibold text-ink mb-2">Tipo de datos</label>
+						<div className="grid grid-cols-2 gap-3">
+							{(["goleadores", "standings"] as const).map((t) => (
+								<button
+									key={t}
+									type="button"
+									onClick={() => onImportTypeChange(t)}
+									className={[
+										"py-3.5 px-3 rounded-xl border-2 text-left transition-all",
+										importType === t
+											? "border-brand bg-brand/10"
+											: "border-line bg-surface hover:border-line",
+									].join(" ")}
 								>
-									{t === "goleadores" ? "⚽  Goleadores" : "📊  Tabla de posiciones"}
-								</div>
-								<div className="text-xs text-ink-2 mt-0.5">
-									{t === "goleadores" ? "Estadísticas de jugadores" : "Clasificación de equipos"}
-								</div>
-							</button>
-						))}
+									<div
+										className={`text-[15px] font-bold ${importType === t ? "text-brand" : "text-ink"}`}
+									>
+										{t === "goleadores" ? "⚽  Goleadores" : "📊  Tabla de posiciones"}
+									</div>
+									<div className="text-xs text-ink-2 mt-0.5">
+										{t === "goleadores" ? "Estadísticas de jugadores" : "Clasificación de equipos"}
+									</div>
+								</button>
+							))}
+						</div>
 					</div>
-				</div>
 				)}
 
 				{/* Jornada */}
 				<div>
 					<label className="block text-sm font-semibold text-ink mb-2">
-						Número de jornada
-						{importType === "goleadores" && (
-							<span className="ml-1.5 text-xs font-normal text-orange-600">* requerida</span>
-						)}
+						Número de jornada{" "}
+						<span className="ml-1.5 text-xs font-normal text-orange-600">* requerida</span>
 					</label>
 					<div className="flex items-center gap-3">
 						<button
@@ -178,10 +176,10 @@ export function UploadStep({
 			<button
 				type="button"
 				onClick={onSubmit}
-				disabled={loading || !file || !leagueId}
+				disabled={loading || !file || !leagueId || !jornada}
 				className={[
 					"w-full py-4 rounded-2xl text-base font-bold text-white flex items-center justify-center gap-2 transition-all",
-					!loading && file && leagueId
+					!loading && file && leagueId && jornada
 						? "bg-brand hover:bg-brand-dim shadow-[0_4px_12px_rgba(22,163,74,0.35)]"
 						: "bg-line cursor-not-allowed",
 				].join(" ")}

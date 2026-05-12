@@ -63,7 +63,7 @@ export default function NewLeagueForm({
 				setError(data.error);
 				return;
 			}
-			router.push(`/admin/leagues/${data.data.id}`);
+			router.push(`/admin/imports?leagueId=${data.data.id}&from=new-league`);
 		} finally {
 			setLoading(false);
 		}
@@ -162,7 +162,9 @@ export default function NewLeagueForm({
 					<p className="text-xs text-ink-3 mt-1">Ej: Apertura 2025, Clausura 2026, 2026-1</p>
 				</div>
 
-				{error && <p className="text-red-600 text-sm bg-red-950/40 px-3 py-2 rounded-lg">{error}</p>}
+				{error && (
+					<p className="text-red-600 text-sm bg-red-950/40 px-3 py-2 rounded-lg">{error}</p>
+				)}
 
 				<div className="flex gap-3 pt-1">
 					<button

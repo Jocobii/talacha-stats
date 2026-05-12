@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { ImportWizardV2 } from "@/features/import-excel/ui/ImportWizardV2";
 import { ImportWizard } from "@/features/import-excel/ui/ImportWizard";
+import NewLeagueBanner from "./NewLeagueBanner";
 
 type Tab = "goleadores" | "standings";
 
@@ -33,6 +34,10 @@ export default function ImportsPage() {
 
 	return (
 		<div className="max-w-3xl mx-auto">
+			<Suspense fallback={null}>
+				<NewLeagueBanner />
+			</Suspense>
+
 			<div className="mb-5">
 				<h1
 					className="text-2xl font-black text-ink tracking-tight"
@@ -66,9 +71,7 @@ export default function ImportsPage() {
 			</div>
 
 			{/* Active tab description */}
-			<p className="text-xs text-ink-3 mb-4 -mt-3">
-				{TABS.find((t) => t.id === activeTab)?.desc}
-			</p>
+			<p className="text-xs text-ink-3 mb-4 -mt-3">{TABS.find((t) => t.id === activeTab)?.desc}</p>
 
 			{/* Wizard content — keep both mounted so state survives tab switches */}
 			<div className={activeTab === "goleadores" ? "" : "hidden"}>

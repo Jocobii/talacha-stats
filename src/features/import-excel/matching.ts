@@ -26,8 +26,8 @@
  */
 
 import { sql, eq, and, inArray } from "drizzle-orm";
-import { db, playerProfiles, playerRegistrations, leagues, players } from "@/db";
-import { normalizePlayerName, fingerprintPlayer } from "@/shared/lib/normalize";
+import { db, playerProfiles, playerRegistrations } from "@/db";
+import { normalizePlayerName } from "@/shared/lib/normalize";
 import { flags } from "@/shared/config/flags";
 import type { ParsedRow, MatchOutcome, ProfileCandidate, GlobalCandidate } from "./types";
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type DragEvent, type ChangeEvent } from "react";
+import { TemplateLinks } from "@/shared/ui/TemplateLinks";
 
 type Props = {
 	file: File | null;
@@ -77,15 +78,8 @@ export function FileDropzone({ file, onFileChange }: Props) {
 				}}
 			/>
 
-			<div className="flex items-center gap-2 mt-2">
-				<span className="text-xs text-ink-3">¿No tienes el formato correcto?</span>
-				<a
-					href="/api/import/templates/example"
-					className="text-xs text-blue-300 font-semibold underline"
-					download
-				>
-					Descargar formato de ejemplo
-				</a>
+			<div className="mt-2">
+				<TemplateLinks />
 			</div>
 		</div>
 	);

@@ -29,7 +29,7 @@ function V2StepBar({ current }: { current: V2StepId }) {
 	const visibleSteps = V2_STEPS;
 	const currentIdx = visibleSteps.findIndex((s) => s.id === current);
 	return (
-		<div className="flex items-center gap-0 mb-7 overflow-x-auto pb-1">
+		<div className="flex items-center gap-0 mb-7 overflow-hidden">
 			{visibleSteps.map((s, i) => {
 				const isDone = i < currentIdx;
 				const isActive = i === currentIdx;
@@ -46,21 +46,17 @@ function V2StepBar({ current }: { current: V2StepId }) {
 							>
 								{isDone ? "✓" : i + 1}
 							</div>
-							<span
-								className={[
-									"text-[13px] whitespace-nowrap",
-									isActive ? "inline font-semibold text-brand" : "hidden sm:inline",
-									isDone ? "text-brand" : "",
-									!isDone && !isActive ? "text-ink-3" : "",
-								].join(" ")}
-							>
-								{s.label}
-							</span>
+							{/* Solo mostrar label del paso activo para evitar overflow */}
+							{isActive && (
+								<span className="text-[13px] whitespace-nowrap font-semibold text-brand">
+									{s.label}
+								</span>
+							)}
 						</div>
 						{i < visibleSteps.length - 1 && (
 							<div
 								className={[
-									"h-0.5 mx-1.5 sm:mx-2 w-3 sm:w-8 shrink-0 transition-colors duration-300",
+									"h-0.5 mx-2 w-4 shrink-0 transition-colors duration-300",
 									isDone ? "bg-brand" : "bg-surface-2",
 								].join(" ")}
 							/>
@@ -92,9 +88,10 @@ export function ImportWizardV2() {
 				<UploadStep
 					leagueId={state.leagueId}
 					onLeagueChange={handlers.setLeagueId}
-					// Lock to goleadores — this wizard only handles the new pipeline
+					// Tipo fijo en goleadores — el tab de la página ya maneja la selección
 					importType="goleadores"
 					onImportTypeChange={() => {}}
+					hideTypeSelector={true}
 					jornada={state.jornada}
 					onJornadaChange={handlers.setJornada}
 					file={state.file}
