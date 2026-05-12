@@ -226,13 +226,13 @@ async function loadHistoricalSnapshots(
 	const result = new Map<string, HistoricalSnapshot[]>();
 
 	for (const row of rows) {
-		const snapshots = result.get(row.playerId) ?? [];
+		const snapshots = result.get(row.playerId ?? "") ?? [];
 		snapshots.push({
 			jornada: row.jornada,
 			goals: row.goals,
 			matchesPlayed: row.matchesPlayed,
 		});
-		result.set(row.playerId, snapshots);
+		result.set(row.playerId ?? "", snapshots);
 	}
 
 	return result;
