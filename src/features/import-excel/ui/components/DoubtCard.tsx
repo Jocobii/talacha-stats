@@ -89,7 +89,7 @@ export function DoubtCard({ row, candidates, decision, onDecide }: Props) {
 						<span className="flex flex-col gap-0.5">
 							<span className="flex items-center gap-2 flex-wrap">
 								<span className="font-bold text-ink">{c.fullName}</span>
-								{c.alias && <span className="text-ink-2 font-normal">"{c.alias}"</span>}
+								{c.alias && <span className="text-ink-2 font-normal">&quot;{c.alias}&quot;</span>}
 								<span
 									className={[
 										"text-[11px] font-semibold px-1.5 py-0.5 rounded-full",

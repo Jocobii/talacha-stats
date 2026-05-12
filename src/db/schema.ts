@@ -566,9 +566,12 @@ export const playerSeasonStatsSnapshot = pgTable(
 	"player_season_stats_snapshot",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		playerId: uuid("player_id")
-			.notNull()
-			.references(() => players.id, { onDelete: "cascade" }),
+		// Pipeline legacy — nullable durante el período de transición a player_profiles
+		playerId: uuid("player_id").references(() => players.id, { onDelete: "set null" }),
+		// Pipeline nuevo (Historia 03) — identidad local por organización
+		playerProfileId: uuid("player_profile_id").references(() => playerProfiles.id, {
+			onDelete: "set null",
+		}),
 		leagueId: uuid("league_id")
 			.notNull()
 			.references(() => leagues.id, { onDelete: "cascade" }),
@@ -584,8 +587,12 @@ export const playerSeasonStatsSnapshot = pgTable(
 		importedAt: timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
+		// Unique por pipeline legacy
 		unique("unique_player_league_jornada_snap").on(t.playerId, t.leagueId, t.jornada),
+		// Unique por pipeline nuevo
+		unique("unique_profile_league_jornada_snap").on(t.playerProfileId, t.leagueId, t.jornada),
 		index("psss_player_idx").on(t.playerId),
+		index("psss_profile_idx").on(t.playerProfileId),
 		index("psss_league_idx").on(t.leagueId),
 		index("psss_jornada_idx").on(t.jornada),
 	],
@@ -594,9 +601,15 @@ export const playerSeasonStatsSnapshot = pgTable(
 export const playerSeasonStatsSnapshotRelations = relations(
 	playerSeasonStatsSnapshot,
 	({ one }) => ({
+		// Pipeline legacy
 		player: one(players, {
 			fields: [playerSeasonStatsSnapshot.playerId],
 			references: [players.id],
+		}),
+		// Pipeline nuevo
+		playerProfile: one(playerProfiles, {
+			fields: [playerSeasonStatsSnapshot.playerProfileId],
+			references: [playerProfiles.id],
 		}),
 		league: one(leagues, {
 			fields: [playerSeasonStatsSnapshot.leagueId],
@@ -716,14 +729,33 @@ export const playerGlobalStats = pgView("player_global_stats").as((qb) =>
 			playerId: players.id,
 			fullName: players.fullName,
 			alias: players.alias,
-			organizationsCount: drizzleSql<number>`COUNT(DISTINCT ${playerProfiles.organizationId})::int`,
-			leaguesCount: drizzleSql<number>`COUNT(DISTINCT ${playerRegistrations.leagueId})::int`,
-			totalGoals: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.goals}), 0)::int`,
-			totalAssists: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.assists}), 0)::int`,
-			totalMatchesPlayed: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.matchesPlayed}), 0)::int`,
-			totalYellowCards: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.yellowCards}), 0)::int`,
-			totalRedCards: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.redCards}), 0)::int`,
-			lastUpdatedAt: drizzleSql<Date | null>`MAX(${playerSeasonStats.updatedAt})`,
+			organizationsCount:
+				drizzleSql<number>`COUNT(DISTINCT ${playerProfiles.organizationId})::int`.as(
+					"organizations_count",
+				),
+			leaguesCount: drizzleSql<number>`COUNT(DISTINCT ${playerRegistrations.leagueId})::int`.as(
+				"leagues_count",
+			),
+			totalGoals: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.goals}), 0)::int`.as(
+				"total_goals",
+			),
+			totalAssists: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.assists}), 0)::int`.as(
+				"total_assists",
+			),
+			totalMatchesPlayed:
+				drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.matchesPlayed}), 0)::int`.as(
+					"total_matches_played",
+				),
+			totalYellowCards:
+				drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.yellowCards}), 0)::int`.as(
+					"total_yellow_cards",
+				),
+			totalRedCards: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.redCards}), 0)::int`.as(
+				"total_red_cards",
+			),
+			lastUpdatedAt: drizzleSql<Date | null>`MAX(${playerSeasonStats.updatedAt})`.as(
+				"last_updated_at",
+			),
 		})
 		.from(players)
 		.innerJoin(

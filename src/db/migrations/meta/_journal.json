@@ -113,6 +113,27 @@
 			"when": 1746864000000,
 			"tag": "0015_player_global_stats_view",
 			"breakpoints": true
+		},
+		{
+			"idx": 16,
+			"version": "7",
+			"when": 1778615372388,
+			"tag": "0017_overconfident_grey_gargoyle",
+			"breakpoints": true
+		},
+		{
+			"idx": 17,
+			"version": "7",
+			"when": 1747094400000,
+			"tag": "0018_ensure_profile_constraints",
+			"breakpoints": true
+		},
+		{
+			"idx": 18,
+			"version": "7",
+			"when": 1747180800000,
+			"tag": "0019_drop_legacy_not_null",
+			"breakpoints": true
 		}
 	]
 }

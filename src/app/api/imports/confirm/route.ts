@@ -95,7 +95,16 @@ export async function POST(request: Request) {
 
 		return apiSuccess(result);
 	} catch (e) {
-		const message = e instanceof Error ? e.message : "Error al confirmar la importación";
+		console.error("[imports/confirm] Error en transacción:", e);
+		// Extraer el mensaje legible: Drizzle envuelve el error de PG en e.message,
+		// que puede ser muy largo. Preferir e.cause.message (el error real de PostgreSQL).
+		const pgMessage =
+			e instanceof Error && (e as { cause?: { message?: string } }).cause?.message
+				? (e as { cause?: { message?: string } }).cause!.message!
+				: e instanceof Error
+					? e.message
+					: "Error al confirmar la importación";
+		const message = pgMessage.replace(/\n[\s\S]*/m, "").trim(); // solo la primera línea
 		return apiError(message, 500);
 	}
 }

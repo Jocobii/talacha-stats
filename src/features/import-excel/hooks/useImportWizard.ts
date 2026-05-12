@@ -332,7 +332,9 @@ export type UseImportWizardReturn = {
 	};
 };
 
-export function useImportWizard(opts?: { initialImportType?: "goleadores" | "standings" }): UseImportWizardReturn {
+export function useImportWizard(opts?: {
+	initialImportType?: "goleadores" | "standings";
+}): UseImportWizardReturn {
 	const [state, dispatch] = useReducer(wizardReducer, {
 		...INITIAL_STATE,
 		importType: opts?.initialImportType ?? "goleadores",
@@ -350,7 +352,6 @@ export function useImportWizard(opts?: { initialImportType?: "goleadores" | "sta
 
 	useEffect(() => {
 		loadTemplates();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	// ── Simple setters ───────────────────────────────────────────────────────
@@ -394,7 +395,6 @@ export function useImportWizard(opts?: { initialImportType?: "goleadores" | "sta
 				row,
 				columnMap: autoMapColumns(cols, state.importType),
 			});
-			// eslint-disable-next-line react-hooks/exhaustive-deps
 		},
 		[state.importType],
 	);
@@ -419,12 +419,12 @@ export function useImportWizard(opts?: { initialImportType?: "goleadores" | "sta
 		dispatch({ type: "NAVIGATE", step });
 	}, []);
 
+	// eslint-disable-next-line react-hooks/preserve-manual-memoization
 	const reset = useCallback(() => {
 		dispatch({ type: "RESET" });
 		if (opts?.initialImportType) {
 			dispatch({ type: "SET_IMPORT_TYPE", importType: opts.initialImportType });
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [opts?.initialImportType]);
 
 	// ── Async handlers ───────────────────────────────────────────────────────
@@ -580,7 +580,6 @@ export function useImportWizard(opts?: { initialImportType?: "goleadores" | "sta
 		} catch {
 			dispatch({ type: "SET_LOADING", loading: false });
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [state.newTemplateName, state.importType, state.headerRow, state.columnMap]);
 
 	const handleConfirm = useCallback(async () => {
