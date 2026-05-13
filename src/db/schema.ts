@@ -359,11 +359,18 @@ export const matchEvents = pgTable(
 		matchId: uuid("match_id")
 			.notNull()
 			.references(() => matches.id, { onDelete: "cascade" }),
-		// Nueva FK — capa local (Historia 02)
+		// FK nuevo ecosistema admin (Breaking Change)
+		globalPlayerId: uuid("global_player_id").references(() => globalPlayers.id, {
+			onDelete: "set null",
+		}),
+		leagueMemberId: uuid("league_member_id").references(() => leagueMembers.id, {
+			onDelete: "set null",
+		}),
+		// @deprecated — capa local Historia 02, mantener durante transición
 		playerProfileId: uuid("player_profile_id").references(() => playerProfiles.id, {
 			onDelete: "cascade",
 		}),
-		// FK original mantenida como legacy durante transición
+		// @deprecated — FK original legacy
 		legacyPlayerId: uuid("legacy_player_id").references(() => players.id, {
 			onDelete: "set null",
 		}),
@@ -376,6 +383,8 @@ export const matchEvents = pgTable(
 	},
 	(t) => [
 		index("events_match_idx").on(t.matchId),
+		index("events_global_player_idx").on(t.globalPlayerId),
+		index("events_league_member_idx").on(t.leagueMemberId),
 		index("events_profile_idx").on(t.playerProfileId),
 		index("events_legacy_player_idx").on(t.legacyPlayerId),
 		index("events_type_idx").on(t.eventType),
@@ -547,11 +556,18 @@ export const playerSeasonStats = pgTable(
 	"player_season_stats",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		// Nueva FK — capa local (Historia 02)
+		// FK nuevo ecosistema admin (Breaking Change)
+		globalPlayerId: uuid("global_player_id").references(() => globalPlayers.id, {
+			onDelete: "set null",
+		}),
+		leagueMemberId: uuid("league_member_id").references(() => leagueMembers.id, {
+			onDelete: "set null",
+		}),
+		// @deprecated — capa local Historia 02, mantener durante transición
 		playerProfileId: uuid("player_profile_id").references(() => playerProfiles.id, {
 			onDelete: "cascade",
 		}),
-		// FK original mantenida como legacy durante transición
+		// @deprecated — FK original legacy
 		legacyPlayerId: uuid("legacy_player_id").references(() => players.id, {
 			onDelete: "set null",
 		}),
@@ -572,6 +588,8 @@ export const playerSeasonStats = pgTable(
 	},
 	(t) => [
 		unique("unique_profile_season").on(t.playerProfileId, t.leagueId),
+		index("pss_global_player_idx").on(t.globalPlayerId),
+		index("pss_league_member_idx").on(t.leagueMemberId),
 		index("pss_profile_idx").on(t.playerProfileId),
 		index("pss_legacy_player_idx").on(t.legacyPlayerId),
 		index("pss_league_idx").on(t.leagueId),
@@ -698,9 +716,13 @@ export const playerSeasonStatsSnapshot = pgTable(
 	"player_season_stats_snapshot",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		// Pipeline legacy — nullable durante el período de transición a player_profiles
+		// FK nuevo ecosistema admin (Breaking Change)
+		globalPlayerId: uuid("global_player_id").references(() => globalPlayers.id, {
+			onDelete: "set null",
+		}),
+		// @deprecated — Pipeline legacy
 		playerId: uuid("player_id").references(() => players.id, { onDelete: "set null" }),
-		// Pipeline nuevo (Historia 03) — identidad local por organización
+		// @deprecated — Pipeline Historia 03
 		playerProfileId: uuid("player_profile_id").references(() => playerProfiles.id, {
 			onDelete: "set null",
 		}),
@@ -723,6 +745,7 @@ export const playerSeasonStatsSnapshot = pgTable(
 		unique("unique_player_league_jornada_snap").on(t.playerId, t.leagueId, t.jornada),
 		// Unique por pipeline nuevo
 		unique("unique_profile_league_jornada_snap").on(t.playerProfileId, t.leagueId, t.jornada),
+		index("psss_global_player_idx").on(t.globalPlayerId),
 		index("psss_player_idx").on(t.playerId),
 		index("psss_profile_idx").on(t.playerProfileId),
 		index("psss_league_idx").on(t.leagueId),
