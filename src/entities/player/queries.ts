@@ -7,7 +7,7 @@
  *  2. match_events          → fallback si no hay import para esa liga
  */
 
-import { eq, and, inArray, desc, sql } from "drizzle-orm";
+import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
 import {
 	db,
 	players,
@@ -869,4 +869,59 @@ export async function findLeagueMemberView(
 		teamId: row.teamId ?? null,
 		teamName: row.teamName ?? null,
 	};
+}
+
+// ---------------------------------------------------------------------------
+// Roster de equipo — jugadores inscritos via tablas V2
+// ---------------------------------------------------------------------------
+
+export type TeamRosterEntry = {
+	inscriptionId: string;
+	memberId: string;
+	globalPlayerId: string;
+	fullName: string;
+	birthDate: string;
+	avatarUrl: string | null;
+	dorsal: number | null;
+	status: "active" | "suspended" | "inactive";
+	inscriptionDate: string;
+};
+
+/**
+ * Devuelve el roster completo de un equipo usando las tablas V2:
+ *   inscriptions → league_members → global_players
+ *
+ * Ordenado por dorsal (nulls al final, comportamiento por defecto en PG para ASC)
+ * y luego por nombre alfabético.
+ */
+export async function getTeamRoster(teamId: string): Promise<TeamRosterEntry[]> {
+	const rows = await db
+		.select({
+			inscriptionId: inscriptions.id,
+			memberId: leagueMembers.id,
+			globalPlayerId: globalPlayers.id,
+			fullName: globalPlayers.fullName,
+			birthDate: globalPlayers.birthDate,
+			avatarUrl: globalPlayers.avatarUrl,
+			dorsal: leagueMembers.dorsal,
+			status: leagueMembers.status,
+			inscriptionDate: leagueMembers.inscriptionDate,
+		})
+		.from(inscriptions)
+		.innerJoin(leagueMembers, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.innerJoin(globalPlayers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+		.where(eq(inscriptions.teamId, teamId))
+		.orderBy(asc(leagueMembers.dorsal), asc(globalPlayers.fullName));
+
+	return rows.map((r) => ({
+		inscriptionId: r.inscriptionId,
+		memberId: r.memberId,
+		globalPlayerId: r.globalPlayerId,
+		fullName: r.fullName,
+		birthDate: r.birthDate,
+		avatarUrl: r.avatarUrl ?? null,
+		dorsal: r.dorsal ?? null,
+		status: r.status as TeamRosterEntry["status"],
+		inscriptionDate: r.inscriptionDate,
+	}));
 }

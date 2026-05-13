@@ -31,6 +31,7 @@ export {
 	LookupResponseSchema,
 	LeagueMemberViewSchema,
 } from "./model";
+export type { TeamRosterEntry } from "./queries";
 export {
 	getPlayerProfile,
 	getPlayerEgoStats,
@@ -43,4 +44,5 @@ export {
 	createLeagueMember,
 	createInscription,
 	findLeagueMemberView,
+	getTeamRoster,
 } from "./queries";

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 
 type League = { id: string; name: string; season: string; dayOfWeek: string };
@@ -310,7 +311,13 @@ export default function TeamsPage() {
 												</div>
 											</td>
 											<td className="px-4 py-2.5">
-												<div className="flex gap-1.5 justify-center">
+												<div className="flex gap-1.5 justify-center flex-wrap">
+													<Link
+														href={`/admin/teams/${team.id}`}
+														className="text-xs px-2.5 py-1 rounded-lg border border-line text-ink-2 hover:bg-surface-2 font-medium transition"
+													>
+														Ver
+													</Link>
 													{!isKeep && (
 														<button
 															onClick={() => handleSetKeep(team.id)}

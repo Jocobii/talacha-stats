@@ -210,7 +210,63 @@ Este enfoque permite rollback si algo falla. No eliminar las tablas viejas hasta
 
 ---
 
-## 7. Decisiones de diseño (cerradas)
+## 7. Coexistencia V1 / V2 (estrategia de balance)
+
+El sistema ahora tiene **dos flujos paralelos** que producen datos en estructuras distintas. Esta sección define cómo conviven y cuándo convergen.
+
+### Los dos flujos
+
+| Dimensión       | V1 — Flujo Excel                                         | V2 — Terminal CURP                                 |
+| --------------- | -------------------------------------------------------- | -------------------------------------------------- |
+| Audiencia       | Ligas pequeñas, organizador captura con Excel            | Organizadores formales, ventanilla física          |
+| Tablas escritas | `players`, `player_registrations`, `player_season_stats` | `global_players`, `league_members`, `inscriptions` |
+| Fuente de stats | `player_season_stats` (importadas)                       | `match_events` (partido a partido)                 |
+| Identidad       | Sin CURP — registro libre                                | CURP obligatorio — identidad verificada            |
+| Registro online | Sí (import wizard)                                       | No — requiere presencia física y documento         |
+
+### El puente: dummy CURPs
+
+Los jugadores migrados de V1 (tabla `players`) reciben un `curp_hash = sha256("PENDING_" + player.id)` al ejecutar la migración. Esto los hace ciudadanos de primera clase en `global_players` sin bloquear el sistema.
+
+**Flujo de regularización natural:**
+
+```
+Jugador existente en players (dummy CURP)
+   └─ Viene a la ventanilla con INE / CURP real
+   └─ Terminal encuentra hash PENDING → flujo "nuevo registro"
+   └─ Crea global_player con CURP real (o actualiza si superadmin)
+   └─ Liga old_player FK → nuevo global_player en siguiente migración
+```
+
+No hay urgencia para regularizar — el sistema funciona con ambos estados en paralelo. Los jugadores se regularizan orgánicamente conforme regresan a la ventanilla.
+
+### Prioridad de stats (ya implementado)
+
+El query de perfil de jugador sigue esta lógica, que ya resuelve la coexistencia de fuentes:
+
+```
+player_season_stats   →  prioridad 1 (importadas desde Excel, snapshot fijo)
+match_events          →  prioridad 2 (partido a partido, tablas nuevas)
+```
+
+Un jugador puede tener stats de ambas fuentes en ligas distintas. El perfil los muestra correctamente usando la fuente correcta por cada liga (`source: "season_stats" | "match_events"`).
+
+### Hoja de ruta de convergencia (v3 — backlog)
+
+- Hacer que el import Excel escriba a `global_players` + `league_members` + `inscriptions` en lugar de `players` + `player_registrations`
+- Requiere: campo CURP opcional en el Excel (o matching por nombre+fecha si no hay CURP)
+- Una vez completo: deprecar `players` y `player_registrations` definitivamente
+- Hasta entonces: **no eliminar las tablas viejas** — son la fuente de verdad para ligas que solo usan Excel
+
+### Regla práctica para el equipo
+
+> Si el feature toca **stats importadas de Excel** → usar tablas V1 (`player_season_stats`, `players`)
+> Si el feature toca **registro de identidad o inscripción** → usar tablas V2 (`global_players`, `league_members`, `inscriptions`)
+> Si el feature toca **ambas** → resolver por prioridad: season_stats > match_events
+
+---
+
+## 8. Decisiones de diseño (cerradas)
 
 | #   | Pregunta                          | Decisión                                                                                                              |
 | --- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
