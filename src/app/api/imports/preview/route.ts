@@ -32,6 +32,7 @@ export async function POST(request: Request) {
 
 	const leagueId = formData.get("league_id") as string | null;
 	const jornadaRaw = formData.get("jornada") as string | null;
+	const sheet = formData.get("sheet") as string | null;
 
 	const parsed = QuerySchema.safeParse({
 		league_id: leagueId ?? undefined,
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
 			leagueId: league_id,
 			organizationId: league.organizationId!,
 			jornada,
+			sheetName: sheet ?? undefined,
 		});
 		return apiSuccess(result);
 	} catch (e) {

@@ -110,7 +110,13 @@ type Action =
 			headerRow: number;
 			columnMap: ColumnMap;
 	  }
-	| { type: "SHEET_CHANGE_SUCCESS"; preview: string[][]; headerRow: number; columnMap: ColumnMap }
+	| {
+			type: "SHEET_CHANGE_SUCCESS";
+			activeSheet: string;
+			preview: string[][];
+			headerRow: number;
+			columnMap: ColumnMap;
+	  }
 	| { type: "SET_HEADER_ROW"; row: number; columnMap: ColumnMap }
 	| { type: "SET_COLUMN_MAP"; columnMap: ColumnMap }
 	| { type: "PREVIEW_SUCCESS"; preview: BulkPreviewResult; resolutions: Record<string, string> }
@@ -200,6 +206,7 @@ function wizardReducer(state: WizardState, action: Action): WizardState {
 		case "SHEET_CHANGE_SUCCESS":
 			return {
 				...state,
+				activeSheet: action.activeSheet,
 				excelPreview: action.preview,
 				headerRow: action.headerRow,
 				columnMap: action.columnMap,
@@ -439,6 +446,7 @@ export function useImportWizard(opts?: {
 			const fd = new FormData();
 			fd.append("file", state.file!);
 			if (state.activeSheet) fd.append("sheet", state.activeSheet);
+			if (state.jornada) fd.append("jornada", state.jornada);
 			const res = await fetch("/api/import/detect", { method: "POST", body: fd });
 			const data = (await res.json()) as {
 				ok: boolean;
@@ -480,6 +488,7 @@ export function useImportWizard(opts?: {
 					const hRow = guessHeaderRow(data.data.preview);
 					dispatch({
 						type: "SHEET_CHANGE_SUCCESS",
+						activeSheet: sheet,
 						preview: data.data.preview,
 						headerRow: hRow,
 						columnMap: autoMapColumns(data.data.preview[hRow] ?? [], state.importType),

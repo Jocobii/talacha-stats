@@ -13,13 +13,26 @@ import type {
 // Types
 // ---------------------------------------------------------------------------
 
-export type WizardStep = "upload" | "preview" | "doubts" | "suggestions" | "confirm" | "result";
+export type WizardStep =
+	| "upload"
+	| "sheet" // solo aparece cuando el Excel tiene > 1 hoja
+	| "preview"
+	| "doubts"
+	| "suggestions"
+	| "confirm"
+	| "result";
 
 interface WizardState {
 	step: WizardStep;
 	leagueId: string;
 	jornada: string;
 	file: File | null;
+	/** Nombres de todos los tabs/hojas del Excel subido. */
+	sheets: string[];
+	/** Tab seleccionado por el usuario (o auto-seleccionado por jornada). */
+	selectedSheet: string;
+	/** Primeras filas del sheet seleccionado — para mostrar en el paso "sheet". */
+	excelPreview: string[][];
 	preview: ImportPreviewResult | null;
 	/** Decisions keyed by row fingerprint (= rowId). */
 	decisions: Record<string, ImportDecision>;
@@ -33,6 +46,9 @@ const INITIAL: WizardState = {
 	leagueId: "",
 	jornada: "1",
 	file: null,
+	sheets: [],
+	selectedSheet: "",
+	excelPreview: [],
 	preview: null,
 	decisions: {},
 	result: null,
@@ -44,13 +60,6 @@ const INITIAL: WizardState = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Build the initial decisions map right after preview loads:
- *  - auto_resolved  → link_profile (no user action needed)
- *  - create_new     → create_new   (no user action needed)
- *  - cross_org_suggestion → create_new by default (user can override)
- *  - intra_org_doubt → left empty (user MUST decide)
- */
 function buildAutoDecisions(preview: ImportPreviewResult): Record<string, ImportDecision> {
 	const decisions: Record<string, ImportDecision> = {};
 	for (const outcome of preview.outcomes) {
@@ -58,18 +67,9 @@ function buildAutoDecisions(preview: ImportPreviewResult): Record<string, Import
 		if (outcome.kind === "auto_resolved") {
 			decisions[rowId] = { kind: "link_profile", rowId, profileId: outcome.profileId };
 		} else if (outcome.kind === "create_new") {
-			decisions[rowId] = {
-				kind: "create_new",
-				rowId,
-				fullName: outcome.row.rawFullName,
-			};
+			decisions[rowId] = { kind: "create_new", rowId, fullName: outcome.row.rawFullName };
 		} else if (outcome.kind === "cross_org_suggestion") {
-			// Default: treat as create_new until the user explicitly proposes a claim
-			decisions[rowId] = {
-				kind: "create_new",
-				rowId,
-				fullName: outcome.row.rawFullName,
-			};
+			decisions[rowId] = { kind: "create_new", rowId, fullName: outcome.row.rawFullName };
 		}
 		// intra_org_doubt → no default; user must pick
 	}
@@ -121,37 +121,60 @@ export function useImportWizardV2() {
 
 	// ── Handlers ────────────────────────────────────────────────────────────
 
-	const handlePreview = useCallback(async () => {
+	/**
+	 * Botón "Continuar" del paso 1 (upload).
+	 * Llama a /api/import/detect para obtener sheets + preview de filas.
+	 * - Si el archivo tiene > 1 hoja → avanza al paso "sheet" para que el usuario elija.
+	 * - Si solo tiene 1 hoja → llama directamente al preview (se salta el paso "sheet").
+	 */
+	const handleDetect = useCallback(async () => {
 		if (!state.file || !state.leagueId) return;
 		setState((prev) => ({ ...prev, loading: true, error: "" }));
 		try {
 			const fd = new FormData();
 			fd.append("file", state.file);
-			fd.append("league_id", state.leagueId);
 			if (state.jornada) fd.append("jornada", state.jornada);
 
-			const res = await fetch("/api/imports/preview", {
-				method: "POST",
-				body: fd,
-			});
-			const json = (await res.json()) as {
+			const res = await fetch("/api/import/detect", { method: "POST", body: fd });
+			const data = (await res.json()) as {
 				ok: boolean;
-				data?: ImportPreviewResult;
 				error?: string;
+				data?: { sheets: string[]; activeSheet: string; preview: string[][] };
 			};
-			if (!json.ok || !json.data) throw new Error(json.error ?? "Error al procesar el archivo");
 
-			const preview = json.data;
-			const decisions = buildAutoDecisions(preview);
+			if (!data.ok || !data.data) {
+				setState((prev) => ({
+					...prev,
+					loading: false,
+					error: data.error ?? "No se pudo leer el archivo",
+				}));
+				return;
+			}
 
-			setState((prev) => ({
-				...prev,
-				loading: false,
-				preview,
-				decisions,
-				step: "preview",
-				error: "",
-			}));
+			const { sheets, activeSheet, preview: excelPreview } = data.data;
+
+			if (sheets.length > 1) {
+				// Múltiples hojas → mostrar el selector
+				setState((prev) => ({
+					...prev,
+					loading: false,
+					sheets,
+					selectedSheet: activeSheet,
+					excelPreview,
+					step: "sheet",
+					error: "",
+				}));
+			} else {
+				// Una sola hoja → saltar directo al preview de matching
+				setState((prev) => ({
+					...prev,
+					sheets,
+					selectedSheet: activeSheet,
+					excelPreview,
+				}));
+				// Llamamos handlePreview con los valores actualizados directamente
+				await callPreviewAPI(state.file, state.leagueId, state.jornada, activeSheet, setState);
+			}
 		} catch (e) {
 			setState((prev) => ({
 				...prev,
@@ -160,6 +183,47 @@ export function useImportWizardV2() {
 			}));
 		}
 	}, [state.file, state.leagueId, state.jornada]);
+
+	/**
+	 * Cuando el usuario cambia el tab en el paso "sheet", recarga las filas de preview
+	 * para que pueda ver el contenido antes de confirmar.
+	 */
+	const handleSheetChange = useCallback(
+		async (sheet: string) => {
+			if (!state.file) return;
+			setState((prev) => ({ ...prev, selectedSheet: sheet, loading: true }));
+			try {
+				const fd = new FormData();
+				fd.append("file", state.file);
+				fd.append("sheet", sheet);
+				const res = await fetch("/api/import/detect", { method: "POST", body: fd });
+				const data = (await res.json()) as {
+					ok: boolean;
+					data?: { preview: string[][] };
+				};
+				if (data.ok && data.data) {
+					setState((prev) => ({
+						...prev,
+						excelPreview: data.data!.preview,
+						loading: false,
+					}));
+				} else {
+					setState((prev) => ({ ...prev, loading: false }));
+				}
+			} catch {
+				setState((prev) => ({ ...prev, loading: false }));
+			}
+		},
+		[state.file],
+	);
+
+	/**
+	 * Botón "Continuar" del paso "sheet" — llama al motor de matching.
+	 */
+	const handlePreview = useCallback(async () => {
+		if (!state.file || !state.leagueId) return;
+		await callPreviewAPI(state.file, state.leagueId, state.jornada, state.selectedSheet, setState);
+	}, [state.file, state.leagueId, state.jornada, state.selectedSheet]);
 
 	const setDecision = useCallback((rowId: string, decision: ImportDecision) => {
 		setState((prev) => ({
@@ -248,6 +312,8 @@ export function useImportWizardV2() {
 			setLeagueId: (id: string) => setState((prev) => ({ ...prev, leagueId: id })),
 			setJornada: (j: string) => setState((prev) => ({ ...prev, jornada: j })),
 			setFile: (f: File | null) => setState((prev) => ({ ...prev, file: f })),
+			handleDetect,
+			handleSheetChange,
 			handlePreview,
 			setDecision,
 			goFromPreview,
@@ -257,4 +323,52 @@ export function useImportWizardV2() {
 			reset,
 		},
 	};
+}
+
+// ---------------------------------------------------------------------------
+// Helper privado — extraído para poder llamarlo desde handleDetect sin
+// depender del state actual (evita closure stale).
+// ---------------------------------------------------------------------------
+
+async function callPreviewAPI(
+	file: File,
+	leagueId: string,
+	jornada: string,
+	selectedSheet: string,
+	setState: React.Dispatch<React.SetStateAction<WizardState>>,
+) {
+	setState((prev) => ({ ...prev, loading: true, error: "" }));
+	try {
+		const fd = new FormData();
+		fd.append("file", file);
+		fd.append("league_id", leagueId);
+		if (jornada) fd.append("jornada", jornada);
+		if (selectedSheet) fd.append("sheet", selectedSheet);
+
+		const res = await fetch("/api/imports/preview", { method: "POST", body: fd });
+		const json = (await res.json()) as {
+			ok: boolean;
+			data?: ImportPreviewResult;
+			error?: string;
+		};
+		if (!json.ok || !json.data) throw new Error(json.error ?? "Error al procesar el archivo");
+
+		const preview = json.data;
+		const decisions = buildAutoDecisions(preview);
+
+		setState((prev) => ({
+			...prev,
+			loading: false,
+			preview,
+			decisions,
+			step: "preview",
+			error: "",
+		}));
+	} catch (e) {
+		setState((prev) => ({
+			...prev,
+			loading: false,
+			error: e instanceof Error ? e.message : "Error inesperado",
+		}));
+	}
 }

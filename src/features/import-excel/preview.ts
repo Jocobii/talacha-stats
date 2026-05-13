@@ -357,11 +357,18 @@ export async function generateImportPreview(input: {
 	leagueId: string;
 	organizationId: string;
 	jornada?: number;
+	/** Nombre exacto del tab seleccionado por el usuario en la UI. Tiene prioridad sobre preferredJornada. */
+	sheetName?: string;
 }): Promise<ImportPreviewResult> {
-	const { buffer, leagueId, organizationId, jornada } = input;
+	const { buffer, leagueId, organizationId, jornada, sheetName } = input;
 
-	// Parsear Excel — reutiliza el parser existente
-	const parsed = await parseBulkBuffer({ buffer });
+	// Parsear Excel — si el usuario seleccionó un tab explícitamente se usa ese (prioridad máxima).
+	// Si no, se intenta auto-seleccionar por número de jornada.
+	const parsed = await parseBulkBuffer({
+		buffer,
+		preferredSheetName: sheetName ?? undefined,
+		preferredJornada: sheetName ? undefined : jornada,
+	});
 
 	if (parsed.type !== "goleadores") {
 		// Standings no necesita matching de jugadores
