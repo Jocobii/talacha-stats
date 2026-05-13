@@ -21,6 +21,8 @@ export async function POST(request: Request) {
 	if (!file) return apiError("Falta el archivo", 400);
 
 	const sheetName = formData.get("sheet") as string | null;
+	const jornadaRaw = formData.get("jornada") as string | null;
+	const jornada = jornadaRaw ? parseInt(jornadaRaw, 10) : null;
 
 	const buffer = Buffer.from(await file.arrayBuffer());
 
@@ -32,7 +34,18 @@ export async function POST(request: Request) {
 	}
 
 	const sheets = workbook.sheetNames;
-	const active = sheetName && sheets.includes(sheetName) ? sheetName : sheets[0];
+
+	// Prioridad: 1) nombre exacto enviado por el cliente, 2) tab cuyo nombre
+	// matchea "Jornada N" con la jornada seleccionada, 3) primer sheet.
+	let active: string;
+	if (sheetName && sheets.includes(sheetName)) {
+		active = sheetName;
+	} else if (jornada !== null && !isNaN(jornada)) {
+		const matched = sheets.find((s) => new RegExp(`jornada\\s*${jornada}\\b`, "i").test(s));
+		active = matched ?? sheets[0];
+	} else {
+		active = sheets[0];
+	}
 	const sheet = workbook.sheets[active];
 
 	// El wrapper ya filtra filas vacías y normaliza celdas a string

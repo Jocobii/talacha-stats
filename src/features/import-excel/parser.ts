@@ -59,6 +59,12 @@ export type MappedImportOptions = {
 export type ParserInput = {
 	buffer: Buffer;
 	options?: MappedImportOptions;
+	/**
+	 * Cuando el usuario especifica una jornada, se usa como hint para
+	 * seleccionar el sheet cuyo nombre coincida (ej: "Jornada 3").
+	 * Evita que parseAuto siempre tome el primer sheet válido.
+	 */
+	preferredJornada?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -90,7 +96,7 @@ export async function parseBulkBuffer(input: ParserInput): Promise<ParsedBulkImp
 	if (input.options) {
 		return parseMapped(workbook, input.options);
 	}
-	return parseAuto(workbook);
+	return parseAuto(workbook, input.preferredJornada);
 }
 
 // ---------------------------------------------------------------------------
@@ -164,8 +170,22 @@ async function parseMapped(
 // Parser automático (auto-detect)
 // ---------------------------------------------------------------------------
 
-function parseAuto(workbook: Awaited<ReturnType<typeof readWorkbook>>): ParsedBulkImport {
-	for (const sheetName of workbook.sheetNames) {
+function parseAuto(
+	workbook: Awaited<ReturnType<typeof readWorkbook>>,
+	preferredJornada?: number,
+): ParsedBulkImport {
+	// Si se especifica una jornada preferida, poner primero el sheet que la coincida.
+	// Esto evita que siempre se lea el primer tab del archivo cuando hay varios.
+	const sheetNames =
+		preferredJornada !== undefined
+			? [...workbook.sheetNames].sort((a) => {
+					const sheet = workbook.sheets[a];
+					const jornada = detectJornada(a, sheet);
+					return jornada === preferredJornada ? -1 : 1;
+				})
+			: workbook.sheetNames;
+
+	for (const sheetName of sheetNames) {
 		const sheet = workbook.sheets[sheetName];
 		if (sheet.rows.length === 0) continue;
 
