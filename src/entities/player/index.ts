@@ -7,6 +7,29 @@ export type {
 	PlayerBadge,
 	PlayerEgoStats,
 	PlayerGlobalStats,
+	// Breaking Change — identidad global
+	GlobalPlayer,
+	CreateGlobalPlayer,
+	LeagueMember,
+	CreateLeagueMember,
+	Inscription,
+	CreateInscription,
+	LookupResponse,
+	LeagueMemberView,
+} from "./model";
+export {
+	// Breaking Change — Zod schemas
+	CurpSchema,
+	CurpHashSchema,
+	GlobalPlayerSchema,
+	CreateGlobalPlayerSchema,
+	LeagueMemberStatusSchema,
+	LeagueMemberSchema,
+	CreateLeagueMemberSchema,
+	InscriptionSchema,
+	CreateInscriptionSchema,
+	LookupResponseSchema,
+	LeagueMemberViewSchema,
 } from "./model";
 export {
 	getPlayerProfile,
