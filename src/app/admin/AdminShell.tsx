@@ -111,24 +111,33 @@ export default function AdminShell({
 
 	const isOwner = user.role === "owner";
 
-	const navGroups: NavGroup[] = [
-		{
-			label: "Principal",
-			items: [
-				{ href: "/admin", label: "Dashboard", icon: Home, exact: true },
-				{ href: "/admin/import", label: "Importar jornada", icon: Upload },
-			],
-		},
-		{
-			label: "Gestión",
-			items: [
+	// Módulos base — todos los roles
+	const coreItems: NavItem[] = [
+		{ href: "/admin", label: "Dashboard", icon: Home, exact: true },
+		{ href: "/admin/import", label: "Importar jornada", icon: Upload },
+	];
+
+	// Módulos de gestión — filtrados por rol
+	// Organizer: ve solo lo de su org (sin Organizaciones, sin Registro standalone)
+	// Owner: ve todo
+	const gestionItems: NavItem[] = isOwner
+		? [
 				{ href: "/admin/registro", label: "Registro", icon: UserPlus },
 				{ href: "/admin/organizations", label: "Organizaciones", icon: Building2 },
 				{ href: "/admin/leagues", label: "Ligas", icon: Trophy },
 				{ href: "/admin/teams", label: "Equipos", icon: Users },
 				{ href: "/admin/players", label: "Jugadores", icon: UserCircle },
-			],
-		},
+			]
+		: [
+				// Organizer: Jugadores unifica el listado + acceso a Registro
+				{ href: "/admin/players", label: "Jugadores", icon: UserCircle },
+				{ href: "/admin/leagues", label: "Ligas", icon: Trophy },
+				{ href: "/admin/teams", label: "Equipos", icon: Users },
+			];
+
+	const navGroups: NavGroup[] = [
+		{ label: "Principal", items: coreItems },
+		{ label: "Gestión", items: gestionItems },
 		...(isOwner
 			? [
 					{
