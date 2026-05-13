@@ -36,4 +36,11 @@ export {
 	getPlayerEgoStats,
 	getPlayerGlobalStats,
 	listTopScorers,
+	// Breaking Change — identidad global
+	findGlobalPlayerByHash,
+	createGlobalPlayer,
+	findLeagueMember,
+	createLeagueMember,
+	createInscription,
+	findLeagueMemberView,
 } from "./queries";
