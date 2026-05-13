@@ -26,6 +26,7 @@ import {
 	Trophy,
 	Users,
 	UserCircle,
+	UserPlus,
 	Upload,
 	BarChart3,
 	UserCog,
@@ -121,6 +122,7 @@ export default function AdminShell({
 		{
 			label: "Gestión",
 			items: [
+				{ href: "/admin/registro", label: "Registro", icon: UserPlus },
 				{ href: "/admin/organizations", label: "Organizaciones", icon: Building2 },
 				{ href: "/admin/leagues", label: "Ligas", icon: Trophy },
 				{ href: "/admin/teams", label: "Equipos", icon: Users },

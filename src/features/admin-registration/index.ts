@@ -5,6 +5,8 @@
  * Los helpers internos (hashCurp) no se exportan — son detalles de implementación.
  */
 
+export { default as RegistrationForm } from "./ui/RegistrationForm";
+
 export { lookupByCurp } from "./lookup";
 export type { LookupInput, LookupResult, LookupSuccess, LookupError } from "./lookup";
 
