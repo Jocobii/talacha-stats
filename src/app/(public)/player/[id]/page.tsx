@@ -1,9 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getPlayerProfile, getPlayerEgoStats } from "@/entities/player";
-import type { PlayerGlobalProfile, PlayerBadge } from "@/entities/player";
-import ShareButton from "./ShareButton";
-import PlayerTabs from "./PlayerTabs";
+import PlayerEditorialProfile from "./PlayerEditorialProfile";
 
 export async function generateMetadata({
 	params,
@@ -38,11 +36,62 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 	const hasStats = g.totalGoals > 0 || g.totalMatches > 0;
 	const initial = (profile.alias ?? profile.fullName).charAt(0).toUpperCase();
 
-	const cityPos = egoStats.positions.city;
-	const showCityRank = cityPos !== null && cityPos.goals > 0;
-
 	return (
-		<div className="min-h-screen bg-pitch text-ink flex flex-col">
+		<div className="relative min-h-screen bg-pitch text-ink flex flex-col overflow-hidden">
+			{/* ── Capa decorativa de fondo — cubre toda la pantalla ── */}
+			<div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+				{/* Glow radial verde — esquina superior derecha */}
+				<div
+					style={{
+						position: "absolute",
+						top: "-15%",
+						right: "-10%",
+						width: "65%",
+						height: "75%",
+						background:
+							"radial-gradient(ellipse at 70% 25%, rgba(0,230,118,0.20) 0%, rgba(0,230,118,0.08) 45%, transparent 70%)",
+					}}
+				/>
+				{/* Glow secundario tenue — esquina inferior izquierda */}
+				<div
+					style={{
+						position: "absolute",
+						bottom: "-10%",
+						left: "-10%",
+						width: "50%",
+						height: "50%",
+						background:
+							"radial-gradient(ellipse at 30% 70%, rgba(0,230,118,0.09) 0%, transparent 60%)",
+					}}
+				/>
+				{/* Líneas de cancha SVG */}
+				<svg
+					className="absolute inset-0 w-full h-full"
+					xmlns="http://www.w3.org/2000/svg"
+					preserveAspectRatio="xMidYMid slice"
+				>
+					<circle
+						cx="88%"
+						cy="14%"
+						r="22%"
+						fill="none"
+						stroke="#00E676"
+						strokeWidth="1"
+						opacity="0.1"
+					/>
+					<circle cx="88%" cy="14%" r="0.6%" fill="#00E676" opacity="0.22" />
+					<ellipse
+						cx="8%"
+						cy="102%"
+						rx="28%"
+						ry="20%"
+						fill="none"
+						stroke="#00E676"
+						strokeWidth="1"
+						opacity="0.07"
+					/>
+				</svg>
+			</div>
 			<div className="max-w-lg mx-auto w-full px-4 pt-10 pb-20 flex flex-col gap-5">
 				{/* ── Header: Avatar small left + name right ── */}
 				<div className="flex items-start gap-4">
@@ -59,164 +108,19 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 					</div>
 				</div>
 
-				{/* ── Ranking ciudad — hero card ── */}
-				{showCityRank && (
-					<CityRankCard
-						rank={cityPos!.rank}
-						total={cityPos!.total}
-						cityName={cityPos!.cityName}
-						topPercent={egoStats.cityTopPercent}
-					/>
-				)}
-
-				{/* ── Stats hero ── */}
-				{hasStats && <StatsHero global={g} />}
-
-				{/* ── Badges ── */}
-				{egoStats.badges.length > 0 && <BadgesGrid badges={egoStats.badges} />}
-
-				{/* ── Racha ── */}
-				{egoStats.goalStreak > 0 && <StreakCard streak={egoStats.goalStreak} />}
-
+				<PlayerEditorialProfile
+					view={profile}
+					ego={egoStats}
+					shareUrl={`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/player/${id}`}
+				/>
 				{/* ── Tabs: Temporada / Carrera ── */}
-				<PlayerTabs leagues={profile.leagues} teamGoalShares={egoStats.teamGoalShares} global={g} />
+				{/* <PlayerTabs leagues={profile.leagues} teamGoalShares={egoStats.teamGoalShares} global={g} /> */}
 
 				{!hasStats && (
 					<div className="bg-surface border border-line rounded-2xl p-8 text-center text-ink-2 text-sm">
 						Este jugador aún no tiene estadísticas registradas.
 					</div>
 				)}
-
-				<ShareButton
-					url={`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/player/${id}`}
-					playerName={profile.alias ?? profile.fullName}
-				/>
-			</div>
-		</div>
-	);
-}
-
-// ── Componentes ───────────────────────────────────────────────────────────────
-
-function CityRankCard({
-	rank,
-	total,
-	cityName,
-	topPercent,
-}: {
-	rank: number;
-	total: number;
-	cityName: string;
-	topPercent: number | null;
-}) {
-	const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
-
-	return (
-		<div className="bg-surface border border-line rounded-2xl p-5 flex items-center gap-4">
-			<div className="shrink-0 text-center">
-				{medal ? (
-					<span className="text-5xl leading-none">{medal}</span>
-				) : (
-					<span className="font-display font-black text-5xl text-brand leading-none">#{rank}</span>
-				)}
-			</div>
-			<div className="min-w-0">
-				<p className="font-display font-black text-xl text-ink uppercase leading-tight">
-					Goleador de {cityName}
-				</p>
-				<p className="text-ink-2 text-xs mt-1">
-					{topPercent !== null && topPercent <= 10
-						? `Top ${topPercent}% · entre ${total} goleadores`
-						: `Entre ${total} goleadores`}
-				</p>
-			</div>
-		</div>
-	);
-}
-
-function StatsHero({ global: g }: { global: PlayerGlobalProfile }) {
-	return (
-		<div className="bg-surface border border-line rounded-2xl p-5">
-			<div className="flex items-end justify-between gap-4">
-				<div>
-					<p className="text-ink-2 text-xs uppercase tracking-widest mb-1">
-						{g.totalMatches > 0 ? "Goles por partido" : "Goles totales"}
-					</p>
-					<p className="font-display font-black text-6xl text-brand leading-none">
-						{g.totalMatches > 0 ? g.goalsPerMatch.toFixed(2) : g.totalGoals}
-					</p>
-				</div>
-				<div className="flex gap-4 pb-1">
-					<StatPill label="Goles" value={g.totalGoals} />
-					{g.totalMatches > 0 && <StatPill label="PJ" value={g.totalMatches} />}
-					<StatPill label={`Liga${g.leaguesCount !== 1 ? "s" : ""}`} value={g.leaguesCount} />
-				</div>
-			</div>
-
-			{g.totalContributions > g.totalGoals && (
-				<div className="mt-4 pt-4 border-t border-line flex gap-4">
-					<StatPill label="Asistencias" value={g.totalAssists} />
-					<StatPill label="Contribuciones" value={g.totalContributions} accent />
-				</div>
-			)}
-		</div>
-	);
-}
-
-function StatPill({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
-	return (
-		<div className="text-center">
-			<p
-				className={`font-display font-black text-2xl leading-none ${accent ? "text-brand" : "text-ink"}`}
-			>
-				{value}
-			</p>
-			<p className="text-[10px] text-ink-2 mt-0.5">{label}</p>
-		</div>
-	);
-}
-
-const BADGE_CONFIG: Record<PlayerBadge, { icon: string; label: string }> = {
-	league_top_scorer: { icon: "🥇", label: "Goleador de liga" },
-	multi_league: { icon: "🌐", label: "Multiligas" },
-	marksman: { icon: "🎯", label: "Artillero" },
-	on_streak: { icon: "🔥", label: "En racha" },
-	mvp: { icon: "🎖️", label: "MVP" },
-	hat_trick_club: { icon: "⚽", label: "Hat-trick" },
-	veteran: { icon: "🏅", label: "Veterano" },
-};
-
-function BadgesGrid({ badges }: { badges: PlayerBadge[] }) {
-	return (
-		<div className="bg-surface border border-line rounded-2xl p-5">
-			<p className="text-[11px] font-bold text-ink-2 uppercase tracking-widest mb-3">Logros</p>
-			<div className="flex flex-wrap gap-2">
-				{badges.map((b) => {
-					const cfg = BADGE_CONFIG[b];
-					return (
-						<div
-							key={b}
-							className="flex items-center gap-1.5 bg-surface-2 border border-line rounded-full px-3 py-2"
-						>
-							<span className="text-base leading-none">{cfg.icon}</span>
-							<span className="text-xs font-semibold text-ink">{cfg.label}</span>
-						</div>
-					);
-				})}
-			</div>
-		</div>
-	);
-}
-
-function StreakCard({ streak }: { streak: number }) {
-	return (
-		<div className="bg-surface border border-line rounded-2xl p-5 flex items-center gap-4">
-			<span className="text-4xl leading-none shrink-0">🔥</span>
-			<div>
-				<p className="font-display font-black text-xl text-ink leading-tight">
-					{streak} partido{streak !== 1 ? "s" : ""} consecutivo{streak !== 1 ? "s" : ""} anotando
-				</p>
-				<p className="text-ink-2 text-xs mt-0.5">Racha activa</p>
 			</div>
 		</div>
 	);
