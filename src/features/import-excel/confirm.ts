@@ -157,19 +157,21 @@ async function confirmGoleadores(
 		}
 
 		// Paso 3: Upsert registrations en batch
+		// NOTA: el campo Drizzle es `legacyPlayerId` (mapeado a legacy_player_id),
+		// no `playerId`. Usar el nombre correcto para que Drizzle no lo ignore silenciosamente.
 		const registrationValues = rows
 			.map((r) => {
-				const playerId = rawNameToPlayerId.get(r.rawName);
+				const legacyPlayerId = rawNameToPlayerId.get(r.rawName);
 				const teamId = r.teamName ? teamNameToId.get(sanitizeName(r.teamName)) : undefined;
-				if (!playerId || !teamId) return null;
-				return { playerId, teamId, leagueId };
+				if (!legacyPlayerId || !teamId) return null;
+				return { legacyPlayerId, teamId, leagueId };
 			})
 			.filter((v): v is NonNullable<typeof v> => v !== null);
 
-		// Dedup registrations por (playerId, leagueId) — UNIQUE constraint de la tabla
-		const regMap = new Map<string, { playerId: string; teamId: string; leagueId: string }>();
+		// Dedup registrations por (legacyPlayerId, leagueId) — UNIQUE constraint de la tabla
+		const regMap = new Map<string, { legacyPlayerId: string; teamId: string; leagueId: string }>();
 		for (const r of registrationValues) {
-			regMap.set(`${r.playerId}:${r.leagueId}`, r);
+			regMap.set(`${r.legacyPlayerId}:${r.leagueId}`, r);
 		}
 		const regValuesDeduped = [...regMap.values()];
 
@@ -178,16 +180,18 @@ async function confirmGoleadores(
 		}
 
 		// Paso 4: Upsert player_season_stats en batch
+		// NOTA: usar `legacyPlayerId` (no `playerId`) para que Drizzle mapee correctamente
+		// a la columna `legacy_player_id` de la tabla.
 		const statsValuesRaw = rows
 			.map((r) => {
-				const playerId = rawNameToPlayerId.get(r.rawName);
-				if (!playerId) {
+				const legacyPlayerId = rawNameToPlayerId.get(r.rawName);
+				if (!legacyPlayerId) {
 					warnings.push(`No se encontro playerId para "${r.rawName}" - fila omitida.`);
 					return null;
 				}
 				const teamId = r.teamName ? (teamNameToId.get(sanitizeName(r.teamName)) ?? null) : null;
 				return {
-					playerId,
+					legacyPlayerId,
 					leagueId,
 					teamId,
 					goals: r.goals,
@@ -201,37 +205,29 @@ async function confirmGoleadores(
 			})
 			.filter((v): v is NonNullable<typeof v> => v !== null);
 
-		// Dedup por (playerId, leagueId) — mismo jugador dos veces en el Excel
+		// Dedup por (legacyPlayerId, leagueId) — mismo jugador dos veces en el Excel
 		// Se conserva la última ocurrencia (orden del Excel)
 		const statsMap = new Map<string, (typeof statsValuesRaw)[0]>();
 		for (const s of statsValuesRaw) {
-			statsMap.set(`${s.playerId}:${s.leagueId}`, s);
+			statsMap.set(`${s.legacyPlayerId}:${s.leagueId}`, s);
 		}
 		const statsValues = [...statsMap.values()];
 
 		if (statsValues.length > 0) {
-			await tx
-				.insert(playerSeasonStats)
-				.values(statsValues)
-				.onConflictDoUpdate({
-					target: [playerSeasonStats.playerProfileId, playerSeasonStats.leagueId],
-					set: {
-						goals: playerSeasonStats.goals,
-						assists: playerSeasonStats.assists,
-						yellowCards: playerSeasonStats.yellowCards,
-						redCards: playerSeasonStats.redCards,
-						matchesPlayed: playerSeasonStats.matchesPlayed,
-						jornada: playerSeasonStats.jornada,
-						teamId: playerSeasonStats.teamId,
-						updatedAt: new Date(),
-					},
-				});
+			// El unique constraint de la tabla es (player_profile_id, league_id).
+			// En el flujo legacy (V1) player_profile_id es NULL, por lo que el conflicto
+			// nunca se activa con NULL values. Usamos onConflictDoNothing para evitar
+			// duplicados accidentales y dejar que el backfill y el flujo V2 gestionen
+			// la deduplicación correctamente.
+			await tx.insert(playerSeasonStats).values(statsValues).onConflictDoNothing();
 		}
 
 		// Paso 5: Upsert snapshot por jornada en batch
+		// El snapshot usa `playerId` (FK directa a players.id) — diferente a player_season_stats
+		// que usa `legacyPlayerId`. Mapeamos explícitamente para evitar confusión.
 		if (jornada != null) {
 			const snapshotValuesRaw = statsValues.map((s) => ({
-				playerId: s.playerId,
+				playerId: s.legacyPlayerId, // snapshot.player_id ← players.id (flujo legacy)
 				leagueId: s.leagueId,
 				teamId: s.teamId,
 				jornada,

@@ -1,19 +1,16 @@
 "use client";
 
 import { useImportWizardV2 } from "../hooks/useImportWizardV2";
-import { StepBar } from "./StepBar";
 import { UploadStep } from "./UploadStep";
+import { SheetSelectStep } from "./steps/SheetSelectStep";
 import { PreviewStepV2 } from "./steps/PreviewStepV2";
 import { DoubtsStep } from "./steps/DoubtsStep";
 import { SuggestionsStep } from "./steps/SuggestionsStep";
 import { ConfirmStepV2 } from "./steps/ConfirmStepV2";
 import { ResultStepV2 } from "./steps/ResultStepV2";
 
-// Re-use the existing step bar model — we need to register our new steps.
-// StepBar reads from the "model" ImportStep type, so we define a small
-// local adapter using the existing component (which accepts any ImportStep).
-// Since WizardV2 has different step IDs, we render our own step indicator.
-
+// El paso "sheet" solo aparece cuando el archivo tiene > 1 hoja, así que
+// lo excluimos del step bar para no confundir al usuario cuando no aplica.
 const V2_STEPS = [
 	{ id: "upload", label: "Archivo" },
 	{ id: "preview", label: "Vista previa" },
@@ -23,14 +20,15 @@ const V2_STEPS = [
 	{ id: "result", label: "¡Listo!" },
 ] as const;
 
-type V2StepId = (typeof V2_STEPS)[number]["id"];
+type V2StepId = (typeof V2_STEPS)[number]["id"] | "sheet";
 
 function V2StepBar({ current }: { current: V2StepId }) {
-	const visibleSteps = V2_STEPS;
-	const currentIdx = visibleSteps.findIndex((s) => s.id === current);
+	// "sheet" se muestra como si fuera "upload" en la barra (es parte del mismo flujo)
+	const barStep = current === "sheet" ? "upload" : current;
+	const currentIdx = V2_STEPS.findIndex((s) => s.id === barStep);
 	return (
 		<div className="flex items-center gap-0 mb-7 overflow-hidden">
-			{visibleSteps.map((s, i) => {
+			{V2_STEPS.map((s, i) => {
 				const isDone = i < currentIdx;
 				const isActive = i === currentIdx;
 				return (
@@ -46,14 +44,13 @@ function V2StepBar({ current }: { current: V2StepId }) {
 							>
 								{isDone ? "✓" : i + 1}
 							</div>
-							{/* Solo mostrar label del paso activo para evitar overflow */}
 							{isActive && (
 								<span className="text-[13px] whitespace-nowrap font-semibold text-brand">
 									{s.label}
 								</span>
 							)}
 						</div>
-						{i < visibleSteps.length - 1 && (
+						{i < V2_STEPS.length - 1 && (
 							<div
 								className={[
 									"h-0.5 mx-2 w-4 shrink-0 transition-colors duration-300",
@@ -71,10 +68,10 @@ function V2StepBar({ current }: { current: V2StepId }) {
 /**
  * ImportWizardV2
  *
- * New import wizard using the L1-L4 matching pipeline.
- * Handles goleadores only (standings use the legacy wizard).
+ * Wizard de importación de goleadores usando el pipeline L1-L4.
  *
- * Steps: upload → preview → doubts? → suggestions? → confirm → result
+ * Pasos: upload → [sheet]? → preview → doubts? → suggestions? → confirm → result
+ * El paso "sheet" solo aparece cuando el Excel tiene más de una hoja.
  */
 export function ImportWizardV2() {
 	const { state, derived, handlers } = useImportWizardV2();
@@ -88,7 +85,6 @@ export function ImportWizardV2() {
 				<UploadStep
 					leagueId={state.leagueId}
 					onLeagueChange={handlers.setLeagueId}
-					// Tipo fijo en goleadores — el tab de la página ya maneja la selección
 					importType="goleadores"
 					onImportTypeChange={() => {}}
 					hideTypeSelector={true}
@@ -96,13 +92,25 @@ export function ImportWizardV2() {
 					onJornadaChange={handlers.setJornada}
 					file={state.file}
 					onFileChange={handlers.setFile}
-					// Templates not supported in V2 yet
 					templates={[]}
 					selectedTemplate=""
 					onTemplateApply={() => {}}
-					onSubmit={handlers.handlePreview}
+					onSubmit={handlers.handleDetect}
 					loading={loading}
 					error={error}
+				/>
+			)}
+
+			{step === "sheet" && (
+				<SheetSelectStep
+					sheets={state.sheets}
+					selectedSheet={state.selectedSheet}
+					onSheetChange={handlers.handleSheetChange}
+					excelPreview={state.excelPreview}
+					loading={loading}
+					error={error}
+					onBack={() => handlers.navigate("upload")}
+					onSubmit={handlers.handlePreview}
 				/>
 			)}
 
@@ -111,7 +119,7 @@ export function ImportWizardV2() {
 					preview={state.preview}
 					warnings={state.preview.warnings}
 					onContinue={handlers.goFromPreview}
-					onBack={() => handlers.navigate("upload")}
+					onBack={() => handlers.navigate(state.sheets.length > 1 ? "sheet" : "upload")}
 				/>
 			)}
 
