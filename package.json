@@ -20,6 +20,8 @@
 		"test:e2e:report": "playwright show-report",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate:run": "npx tsx src/db/migrate.ts",
+		"db:migrate:global-players": "npx tsx src/db/migrate-to-global-players.ts",
+		"db:migrate:league-members": "npx tsx src/db/migrate-to-league-members.ts",
 		"db:seed": "npx tsx src/db/seed.ts",
 		"db:reset": "npx tsx src/db/seed.ts --reset",
 		"dev:setup": "pnpm db:migrate:run && pnpm db:seed && pnpm dev",
