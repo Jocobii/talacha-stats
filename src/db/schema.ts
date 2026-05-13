@@ -92,7 +92,36 @@ export const players = pgTable("players", {
 });
 
 // ---------------------------------------------------------------------------
+// GLOBAL_PLAYERS — Identidad global anclada en CURP (Breaking Change)
+//
+// Reemplaza a `players` como anchor de identidad entre ligas y organizaciones.
+// curp_hash = sha256(CURP) generado en servidor — el CURP nunca se almacena.
+// Inmutable después del primer registro (modificable solo por superadmin).
+//
+// Jugadores migrados del sistema anterior usan dummy hash:
+//   curp_hash = sha256("PENDING_" + legacy_player_id)
+// El oficinista los regulariza cuando vuelven a ventanilla con su INE.
+// ---------------------------------------------------------------------------
+export const globalPlayers = pgTable(
+	"global_players",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		curpHash: text("curp_hash").notNull().unique(), // sha256(CURP) — nunca el CURP real
+		fullName: text("full_name").notNull(),
+		birthDate: date("birth_date").notNull(),
+		avatarUrl: text("avatar_url"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("global_players_curp_idx").on(t.curpHash)],
+);
+
+export type GlobalPlayer = typeof globalPlayers.$inferSelect;
+export type NewGlobalPlayer = typeof globalPlayers.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // PLAYER_PROFILES — Identidad local a la organización (Historia 02)
+// @deprecated — reemplazada por league_members (Breaking Change admin ecosystem)
+// Se mantiene durante la transición. No agregar nuevas referencias a esta tabla.
 //
 // Capa local de la identidad en dos capas:
 //   player_profile  →  (opcional) claimed_player_id  →  players (global)
@@ -394,6 +423,7 @@ export const matchEventsRelations = relations(matchEvents, ({ one }) => ({
 // ---------------------------------------------------------------------------
 export type Player = typeof players.$inferSelect;
 export type NewPlayer = typeof players.$inferInsert;
+// GlobalPlayer types exported above near table definition (GlobalPlayer, NewGlobalPlayer)
 export type League = typeof leagues.$inferSelect;
 export type NewLeague = typeof leagues.$inferInsert;
 // Organization types are exported above near the table definition
