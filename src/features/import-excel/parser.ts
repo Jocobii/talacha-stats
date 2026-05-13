@@ -60,9 +60,14 @@ export type ParserInput = {
 	buffer: Buffer;
 	options?: MappedImportOptions;
 	/**
+	 * Nombre exacto del tab seleccionado por el usuario en la UI.
+	 * Tiene prioridad máxima sobre preferredJornada.
+	 */
+	preferredSheetName?: string;
+	/**
 	 * Cuando el usuario especifica una jornada, se usa como hint para
 	 * seleccionar el sheet cuyo nombre coincida (ej: "Jornada 3").
-	 * Evita que parseAuto siempre tome el primer sheet válido.
+	 * Solo aplica si preferredSheetName no está definido.
 	 */
 	preferredJornada?: number;
 };
@@ -96,7 +101,7 @@ export async function parseBulkBuffer(input: ParserInput): Promise<ParsedBulkImp
 	if (input.options) {
 		return parseMapped(workbook, input.options);
 	}
-	return parseAuto(workbook, input.preferredJornada);
+	return parseAuto(workbook, input.preferredSheetName, input.preferredJornada);
 }
 
 // ---------------------------------------------------------------------------
@@ -172,18 +177,29 @@ async function parseMapped(
 
 function parseAuto(
 	workbook: Awaited<ReturnType<typeof readWorkbook>>,
+	preferredSheetName?: string,
 	preferredJornada?: number,
 ): ParsedBulkImport {
-	// Si se especifica una jornada preferida, poner primero el sheet que la coincida.
-	// Esto evita que siempre se lea el primer tab del archivo cuando hay varios.
-	const sheetNames =
-		preferredJornada !== undefined
-			? [...workbook.sheetNames].sort((a) => {
-					const sheet = workbook.sheets[a];
-					const jornada = detectJornada(a, sheet);
-					return jornada === preferredJornada ? -1 : 1;
-				})
-			: workbook.sheetNames;
+	// Prioridad de selección de sheet:
+	// 1. Nombre exacto seleccionado por el usuario en la UI
+	// 2. Tab cuyo nombre matchea "Jornada N" con la jornada especificada
+	// 3. Primer sheet con datos válidos (comportamiento por defecto)
+	let sheetNames: string[];
+	if (preferredSheetName && workbook.sheetNames.includes(preferredSheetName)) {
+		// Poner el sheet seleccionado primero; el resto como fallback
+		sheetNames = [
+			preferredSheetName,
+			...workbook.sheetNames.filter((s) => s !== preferredSheetName),
+		];
+	} else if (preferredJornada !== undefined) {
+		sheetNames = [...workbook.sheetNames].sort((a) => {
+			const sheet = workbook.sheets[a];
+			const jornada = detectJornada(a, sheet);
+			return jornada === preferredJornada ? -1 : 1;
+		});
+	} else {
+		sheetNames = workbook.sheetNames;
+	}
 
 	for (const sheetName of sheetNames) {
 		const sheet = workbook.sheets[sheetName];
