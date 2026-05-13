@@ -290,6 +290,34 @@ export type LeagueMember = typeof leagueMembers.$inferSelect;
 export type NewLeagueMember = typeof leagueMembers.$inferInsert;
 
 // ---------------------------------------------------------------------------
+// INSCRIPTIONS — Asignación de un league_member a un equipo (Breaking Change)
+//
+// Liga = torneo (decisión de diseño). UNIQUE(league_member_id) garantiza que
+// un jugador solo puede pertenecer a un equipo por liga.
+// Para cambiar de equipo: se elimina la inscripción anterior y se crea una nueva.
+// ---------------------------------------------------------------------------
+export const inscriptions = pgTable(
+	"inscriptions",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		leagueMemberId: uuid("league_member_id")
+			.notNull()
+			.references(() => leagueMembers.id, { onDelete: "cascade" }),
+		teamId: uuid("team_id")
+			.notNull()
+			.references(() => teams.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		unique("uq_inscription_member").on(t.leagueMemberId), // un equipo por jugador por liga
+		index("inscriptions_team_idx").on(t.teamId),
+	],
+);
+
+export type Inscription = typeof inscriptions.$inferSelect;
+export type NewInscription = typeof inscriptions.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // MATCHES — Partido entre dos equipos de la misma liga
 // ---------------------------------------------------------------------------
 export const matches = pgTable(
@@ -361,7 +389,7 @@ export const globalPlayersRelations = relations(globalPlayers, ({ many }) => ({
 	leagueMembers: many(leagueMembers),
 }));
 
-export const leagueMembersRelations = relations(leagueMembers, ({ one }) => ({
+export const leagueMembersRelations = relations(leagueMembers, ({ one, many }) => ({
 	globalPlayer: one(globalPlayers, {
 		fields: [leagueMembers.globalPlayerId],
 		references: [globalPlayers.id],
@@ -370,7 +398,18 @@ export const leagueMembersRelations = relations(leagueMembers, ({ one }) => ({
 		fields: [leagueMembers.leagueId],
 		references: [leagues.id],
 	}),
-	// inscriptions: many(inscriptions) — se agrega en task #3
+	inscription: many(inscriptions),
+}));
+
+export const inscriptionsRelations = relations(inscriptions, ({ one }) => ({
+	leagueMember: one(leagueMembers, {
+		fields: [inscriptions.leagueMemberId],
+		references: [leagueMembers.id],
+	}),
+	team: one(teams, {
+		fields: [inscriptions.teamId],
+		references: [teams.id],
+	}),
 }));
 
 export const organizationsRelations = relations(organizations, ({ many }) => ({
@@ -420,6 +459,7 @@ export const leaguesRelations = relations(leagues, ({ one, many }) => ({
 export const teamsRelations = relations(teams, ({ one, many }) => ({
 	league: one(leagues, { fields: [teams.leagueId], references: [leagues.id] }),
 	registrations: many(playerRegistrations),
+	inscriptions: many(inscriptions),
 	homeMatches: many(matches, { relationName: "homeTeam" }),
 	awayMatches: many(matches, { relationName: "awayTeam" }),
 	events: many(matchEvents),
