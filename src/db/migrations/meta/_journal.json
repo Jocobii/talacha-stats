@@ -134,6 +134,13 @@
 			"when": 1747180800000,
 			"tag": "0019_drop_legacy_not_null",
 			"breakpoints": true
+		},
+		{
+			"idx": 19,
+			"version": "7",
+			"when": 1778693032008,
+			"tag": "0019_good_brother_voodoo",
+			"breakpoints": true
 		}
 	]
 }
