@@ -245,6 +245,51 @@ export const playerRegistrations = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// LEAGUE_MEMBERS — Identidad local scoped por liga (Breaking Change)
+//
+// Reemplaza a `player_profiles` (que era por organización) y absorbe la
+// relación de pertenencia que tenía `player_registrations`.
+// Scope más granular: un registro por jugador × liga.
+//
+// Data siloing: institution_photo_url e internal_notes son PRIVADOS de cada
+// liga. Nunca se exponen en queries cross-liga. Se hace a nivel de queries.
+// ---------------------------------------------------------------------------
+export const LEAGUE_MEMBER_STATUSES = ["active", "suspended", "inactive"] as const;
+export type LeagueMemberStatus = (typeof LEAGUE_MEMBER_STATUSES)[number];
+
+export const leagueMembers = pgTable(
+	"league_members",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		globalPlayerId: uuid("global_player_id")
+			.notNull()
+			.references(() => globalPlayers.id, { onDelete: "cascade" }),
+		leagueId: uuid("league_id")
+			.notNull()
+			.references(() => leagues.id, { onDelete: "cascade" }),
+		status: text("status").notNull().default("active").$type<LeagueMemberStatus>(),
+		dorsal: integer("dorsal"), // nullable — no todos los equipos usan dorsales
+		inscriptionDate: date("inscription_date").notNull(),
+		institutionPhotoUrl: text("institution_photo_url"), // foto tomada por la institución
+		internalNotes: text("internal_notes"), // notas privadas de la liga — data siloing
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		unique("uq_league_member").on(t.globalPlayerId, t.leagueId),
+		index("league_members_global_player_idx").on(t.globalPlayerId),
+		index("league_members_league_idx").on(t.leagueId),
+		check("chk_league_member_status", drizzleSql`${t.status} IN ('active','suspended','inactive')`),
+		check(
+			"chk_dorsal_range",
+			drizzleSql`${t.dorsal} IS NULL OR (${t.dorsal} >= 1 AND ${t.dorsal} <= 99)`,
+		),
+	],
+);
+
+export type LeagueMember = typeof leagueMembers.$inferSelect;
+export type NewLeagueMember = typeof leagueMembers.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // MATCHES — Partido entre dos equipos de la misma liga
 // ---------------------------------------------------------------------------
 export const matches = pgTable(
@@ -312,6 +357,22 @@ export const matchEvents = pgTable(
 // ---------------------------------------------------------------------------
 // RELATIONS (para queries con Drizzle relational API)
 // ---------------------------------------------------------------------------
+export const globalPlayersRelations = relations(globalPlayers, ({ many }) => ({
+	leagueMembers: many(leagueMembers),
+}));
+
+export const leagueMembersRelations = relations(leagueMembers, ({ one }) => ({
+	globalPlayer: one(globalPlayers, {
+		fields: [leagueMembers.globalPlayerId],
+		references: [globalPlayers.id],
+	}),
+	league: one(leagues, {
+		fields: [leagueMembers.leagueId],
+		references: [leagues.id],
+	}),
+	// inscriptions: many(inscriptions) — se agrega en task #3
+}));
+
 export const organizationsRelations = relations(organizations, ({ many }) => ({
 	leagues: many(leagues),
 	members: many(users),
@@ -353,6 +414,7 @@ export const leaguesRelations = relations(leagues, ({ one, many }) => ({
 	teams: many(teams),
 	matches: many(matches),
 	registrations: many(playerRegistrations),
+	leagueMembers: many(leagueMembers),
 }));
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
