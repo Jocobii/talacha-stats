@@ -360,8 +360,10 @@ export async function generateImportPreview(input: {
 }): Promise<ImportPreviewResult> {
 	const { buffer, leagueId, organizationId, jornada } = input;
 
-	// Parsear Excel — reutiliza el parser existente
-	const parsed = await parseBulkBuffer({ buffer });
+	// Parsear Excel — reutiliza el parser existente.
+	// Si el usuario especificó una jornada, se usa como hint para seleccionar
+	// el sheet correcto cuando el archivo tiene múltiples tabs (ej: Jornada 1, Jornada 3).
+	const parsed = await parseBulkBuffer({ buffer, preferredJornada: jornada });
 
 	if (parsed.type !== "goleadores") {
 		// Standings no necesita matching de jugadores
