@@ -63,7 +63,7 @@ export default function NewLeagueForm({
 				setError(data.error);
 				return;
 			}
-			router.push(`/admin/imports?leagueId=${data.data.id}&from=new-league`);
+			router.push(`/admin/leagues/${data.data.id}/setup`);
 		} finally {
 			setLoading(false);
 		}

@@ -74,7 +74,7 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 				<div className="lg:col-span-2">
 					{isLeagueEmpty ? (
 						<div className="bg-surface rounded-lg shadow overflow-hidden">
-							<LeagueEmptyState />
+							<LeagueEmptyState leagueId={id} />
 						</div>
 					) : (
 						<>
