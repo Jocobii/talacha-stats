@@ -47,16 +47,5 @@ export default async function RegistroPage({ searchParams }: Props) {
 	// Si el param existe pero no pertenece al usuario, ignorarlo (no lanzar 404)
 	// — el form simplemente mostrará el selector de ligas.
 
-	return (
-		<div>
-			<div className="mb-6">
-				<h1 className="text-2xl font-bold text-ink">Registro de jugadores</h1>
-				<p className="text-ink-3 text-sm mt-1">
-					Ingresa la CURP del jugador para buscarlo en el sistema o crear un nuevo registro.
-				</p>
-			</div>
-
-			<RegistrationForm fixedLeague={fixedLeague} leagues={fixedLeague ? [] : allLeagues} />
-		</div>
-	);
+	return <RegistrationForm fixedLeague={fixedLeague} leagues={fixedLeague ? [] : allLeagues} />;
 }

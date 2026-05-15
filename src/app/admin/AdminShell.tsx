@@ -7,11 +7,11 @@
  * El layout (server component) hace la auth y le pasa el user/city como props.
  *
  * Características:
- *  • Sidebar oscuro fijo en desktop (210px / 64px colapsado)
+ *  • Sidebar oscuro fijo en desktop (244px / 64px colapsado)
  *  • Drawer con overlay en mobile (<768px)
  *  • Navegación agrupada (Principal / Gestión / Administración)
  *  • Footer con ciudad activa, usuario, y cerrar sesión
- *  • Iconos de lucide-react (ya en el proyecto)
+ *  • Iconos de lucide-react
  *  • Estado activo basado en usePathname()
  *  • Tooltips automáticos en modo colapsado
  *  • Persiste el estado colapsado en localStorage
@@ -28,7 +28,6 @@ import {
 	UserCircle,
 	UserPlus,
 	Upload,
-	BarChart3,
 	UserCog,
 	CheckCircle2,
 	MapPin,
@@ -37,12 +36,12 @@ import {
 	X,
 	ChevronLeft,
 	ChevronRight,
-	CalendarDays,
-	Check,
 	ChevronDown,
 	Search,
+	Check,
 	type LucideIcon,
 } from "lucide-react";
+import { cn } from "@/shared/lib/cn";
 import { MEXICO_CITIES } from "@/shared/lib/cities";
 
 type UserShape = {
@@ -62,6 +61,21 @@ type NavItem = {
 };
 
 type NavGroup = { label: string; items: NavItem[] };
+
+// ── Logo SVG ──────────────────────────────────────────────────────────────────
+
+function LogoMark({ className }: { className?: string }) {
+	return (
+		<svg viewBox="0 0 28 28" className={cn("shrink-0", className)} fill="none">
+			<rect x="3" y="17" width="4" height="8" rx="1" fill="#00E676" />
+			<rect x="9" y="13" width="4" height="12" rx="1" fill="#00E676" />
+			<rect x="15" y="8" width="4" height="17" rx="1" fill="#00E676" />
+			<rect x="21" y="4" width="4" height="21" rx="1" fill="#00E676" />
+		</svg>
+	);
+}
+
+// ── Shell principal ───────────────────────────────────────────────────────────
 
 export default function AdminShell({
 	user,
@@ -91,7 +105,7 @@ export default function AdminShell({
 		localStorage.setItem("admin_sidebar_collapsed", collapsed ? "1" : "0");
 	}, [collapsed]);
 
-	// Track viewport for mobile/desktop
+	// Track viewport
 	useEffect(() => {
 		const handler = () => {
 			const mobile = window.innerWidth < 768;
@@ -103,7 +117,7 @@ export default function AdminShell({
 		return () => window.removeEventListener("resize", handler);
 	}, []);
 
-	// Close mobile drawer on route change
+	// Close drawer on route change
 	useEffect(() => {
 		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setMobileOpen(false);
@@ -111,15 +125,11 @@ export default function AdminShell({
 
 	const isOwner = user.role === "owner";
 
-	// Módulos base — todos los roles
 	const coreItems: NavItem[] = [
 		{ href: "/admin", label: "Dashboard", icon: Home, exact: true },
 		{ href: "/admin/import", label: "Importar jornada", icon: Upload },
 	];
 
-	// Módulos de gestión — filtrados por rol
-	// Organizer: ve solo lo de su org (sin Organizaciones, sin Registro standalone)
-	// Owner: ve todo
 	const gestionItems: NavItem[] = isOwner
 		? [
 				{ href: "/admin/registro", label: "Registro", icon: UserPlus },
@@ -129,7 +139,6 @@ export default function AdminShell({
 				{ href: "/admin/players", label: "Jugadores", icon: UserCircle },
 			]
 		: [
-				// Organizer: Jugadores unifica el listado + acceso a Registro
 				{ href: "/admin/players", label: "Jugadores", icon: UserCircle },
 				{ href: "/admin/leagues", label: "Ligas", icon: Trophy },
 				{ href: "/admin/teams", label: "Equipos", icon: Users },
@@ -154,9 +163,8 @@ export default function AdminShell({
 	const isActive = (item: NavItem) =>
 		item.exact ? pathname === item.href : pathname.startsWith(item.href);
 
-	const W = collapsed ? 64 : 210;
+	const sidebarW = collapsed && !isMobile ? 64 : 244;
 
-	// User display
 	const initials =
 		(user.name || user.email)
 			.split(/[\s@.]+/)
@@ -167,51 +175,39 @@ export default function AdminShell({
 	const displayName = user.name || user.email.split("@")[0];
 
 	return (
-		<div className="flex h-screen overflow-hidden  bg-pitch">
+		<div className="flex h-screen overflow-hidden bg-pitch">
 			{/* Mobile overlay */}
 			{isMobile && mobileOpen && (
-				<div
-					className="fixed inset-0 bg-black/45 backdrop-blur-[2px] z-40 animate-[fadeIn_0.2s_ease_both]"
-					onClick={() => setMobileOpen(false)}
-				/>
+				<div className="fixed inset-0 bg-black/60 z-40" onClick={() => setMobileOpen(false)} />
 			)}
 
 			{/* Sidebar */}
 			<aside
-				className={[
-					"flex flex-col h-screen z-50 overflow-hidden shrink-0",
-					"bg-gradient-to-b from-[#0f2318] to-[#0d1f14] text-slate-100",
-					"shadow-[2px_0_24px_rgba(0,0,0,0.3)]",
-					"transition-[width,transform] duration-250 ease-out",
+				className={cn(
+					"flex flex-col h-screen z-50 shrink-0 overflow-hidden",
+					"bg-surface/40 border-r border-line",
+					"transition-[width,transform] duration-150 ease-out",
 					isMobile
-						? `fixed left-0 top-0 bottom-0 w-[260px] ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`
+						? cn(
+								"fixed left-0 top-0 bottom-0 w-[244px]",
+								mobileOpen ? "translate-x-0" : "-translate-x-full",
+							)
 						: "",
-				].join(" ")}
-				style={!isMobile ? { width: `${W}px` } : undefined}
+				)}
+				style={!isMobile ? { width: `${sidebarW}px` } : undefined}
 			>
-				{/* Header: Logo + collapse/close */}
+				{/* Logo header */}
 				<div
-					className={[
-						"flex items-center border-b border-white/[0.06] shrink-0",
-						collapsed && !isMobile
-							? "justify-center py-[18px]"
-							: "justify-between py-[18px] pl-4 pr-3.5",
-					].join(" ")}
+					className={cn(
+						"flex items-center h-14 border-b border-line shrink-0",
+						collapsed && !isMobile ? "justify-center px-0" : "justify-between pl-4 pr-3",
+					)}
 				>
-					<Link href="/admin" className="flex items-center gap-2.5 min-w-0 overflow-hidden">
-						<svg viewBox="0 0 54 44" fill="none" className="w-9 h-[30px] shrink-0">
-							<rect x="0" y="29" width="7" height="12" rx="2" fill="#00E676" fillOpacity="0.35" />
-							<rect x="11" y="19" width="7" height="22" rx="2" fill="#00E676" fillOpacity="0.55" />
-							<rect x="22" y="10" width="7" height="31" rx="2" fill="#00E676" fillOpacity="0.75" />
-							<rect x="33" y="3" width="7" height="38" rx="2" fill="#00E676" />
-							<rect x="44" y="13" width="7" height="28" rx="2" fill="#00E676" fillOpacity="0.65" />
-						</svg>
+					<Link href="/admin" className="flex items-center gap-2 min-w-0 overflow-hidden">
+						<LogoMark className="w-7 h-7" />
 						{(!collapsed || isMobile) && (
-							<span
-								className="text-[22px] font-black text-slate-100 tracking-tight whitespace-nowrap"
-								style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-							>
-								Talacha<span className="text-[#00e676]">Stats</span>
+							<span className="font-display font-black text-[18px] tracking-tight text-ink whitespace-nowrap">
+								Talacha<span className="text-brand">Stats</span>
 							</span>
 						)}
 					</Link>
@@ -219,86 +215,78 @@ export default function AdminShell({
 					{isMobile ? (
 						<button
 							onClick={() => setMobileOpen(false)}
-							className="text-slate-100/50 hover:text-slate-100 p-1"
+							className="w-8 h-8 grid place-items-center rounded-md text-ink-3 hover:text-ink hover:bg-surface transition"
 							aria-label="Cerrar menú"
 						>
-							<X size={20} />
+							<X size={16} strokeWidth={2} />
 						</button>
 					) : (
 						<button
 							onClick={() => setCollapsed((c) => !c)}
-							className="bg-white/[0.06] hover:bg-white/[0.12] text-slate-100/50 hover:text-slate-100 p-1.5 rounded-lg transition shrink-0"
-							title={collapsed ? "Expandir menú" : "Colapsar menú"}
-							aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
+							className="w-7 h-7 grid place-items-center rounded-md text-ink-3 hover:text-ink hover:bg-surface transition shrink-0"
+							title={collapsed ? "Expandir" : "Colapsar"}
 						>
-							{collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+							{collapsed ? (
+								<ChevronRight size={14} strokeWidth={2} />
+							) : (
+								<ChevronLeft size={14} strokeWidth={2} />
+							)}
 						</button>
 					)}
 				</div>
 
 				{/* Navigation */}
-				<nav className="flex-1 overflow-y-auto overflow-x-hidden py-2 px-2 admin-scrollbar">
+				<nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-5 admin-scrollbar">
 					{navGroups.map((group) => (
-						<div key={group.label}>
+						<div key={group.label} className="flex flex-col gap-1">
 							{collapsed && !isMobile ? (
-								<div className="h-px bg-white/[0.08] mx-3 my-1.5" />
+								<div className="h-px bg-line mx-1 mb-1" />
 							) : (
-								<div className="text-[10px] font-bold tracking-[0.1em] uppercase text-slate-100/30 px-3.5 pt-3 pb-1">
+								<p className="px-2 mb-1 text-[10.5px] font-semibold tracking-[0.18em] uppercase text-ink-3">
 									{group.label}
-								</div>
+								</p>
 							)}
-							{group.items.map((item) => {
-								const active = isActive(item);
-								return (
-									<NavLink
-										key={item.href}
-										item={item}
-										active={active}
-										collapsed={collapsed && !isMobile}
-									/>
-								);
-							})}
+							{group.items.map((item) => (
+								<NavLink
+									key={item.href}
+									item={item}
+									active={isActive(item)}
+									collapsed={collapsed && !isMobile}
+								/>
+							))}
 						</div>
 					))}
 				</nav>
 
-				{/* Footer: City + User + Logout */}
+				{/* Footer */}
 				<div
-					className={[
-						"border-t border-white/[0.06] shrink-0 flex flex-col gap-0.5",
-						collapsed && !isMobile ? "p-2" : "p-2.5",
-					].join(" ")}
+					className={cn(
+						"border-t border-line shrink-0 flex flex-col gap-2",
+						collapsed && !isMobile ? "p-2" : "p-3",
+					)}
 				>
-					{/* City switcher */}
 					<SidebarCitySwitcher activeCity={activeCity} collapsed={collapsed && !isMobile} />
 
 					{/* User card */}
 					<div
-						className={[
-							"flex items-center gap-2.5 rounded-[10px]",
-							collapsed && !isMobile ? "justify-center py-2" : "px-2.5 py-2",
-						].join(" ")}
+						className={cn(
+							"flex items-center gap-2.5",
+							collapsed && !isMobile ? "justify-center py-1" : "px-1.5 py-2",
+						)}
 					>
-						<div
-							className="w-[30px] h-[30px] rounded-full shrink-0 flex items-center justify-center text-[12px] font-extrabold text-[#0a0a0a]"
-							style={{
-								background: "linear-gradient(135deg, #00e676, #00c853)",
-								fontFamily: "'Barlow Condensed', sans-serif",
-							}}
-						>
+						<span className="w-7 h-7 rounded-md bg-brand/15 text-brand font-display font-bold text-[11px] grid place-items-center shrink-0 tracking-tight">
 							{initials}
-						</div>
+						</span>
 						{(!collapsed || isMobile) && (
 							<div className="flex-1 min-w-0">
-								<div className="text-[13px] font-semibold text-slate-100 truncate">
+								<div className="text-[13px] font-semibold text-ink truncate leading-none">
 									{displayName}
 								</div>
-								<div className="text-[11px] text-slate-100/40 truncate">{user.email}</div>
+								<div className="text-[11px] text-ink-3 truncate mt-0.5">{user.email}</div>
 							</div>
 						)}
 					</div>
 
-					{/* Logout */}
 					<LogoutButton collapsed={collapsed && !isMobile} />
 				</div>
 			</aside>
@@ -307,57 +295,21 @@ export default function AdminShell({
 			<div className="flex-1 flex flex-col overflow-hidden min-w-0">
 				{/* Mobile topbar */}
 				{isMobile && (
-					<div
-						className="h-13 bg-[#0f2318] flex items-center px-4 gap-3 shadow-[0_1px_8px_rgba(0,0,0,0.3)] shrink-0"
-						style={{ height: 52 }}
-					>
+					<header className="h-14 bg-pitch border-b border-line flex items-center px-4 gap-3 shrink-0 z-20">
 						<button
 							onClick={() => setMobileOpen(true)}
-							className="text-slate-100 p-1"
+							className="w-9 h-9 grid place-items-center rounded-md text-ink-2 hover:text-ink hover:bg-surface"
 							aria-label="Abrir menú"
 						>
-							<Menu size={22} />
+							<Menu size={18} strokeWidth={1.75} />
 						</button>
 						<Link href="/admin" className="flex items-center gap-2 flex-1">
-							<svg viewBox="0 0 54 44" fill="none" className="w-9 h-[30px]">
-								<rect x="0" y="29" width="7" height="12" rx="2" fill="#00E676" fillOpacity="0.35" />
-								<rect
-									x="11"
-									y="19"
-									width="7"
-									height="22"
-									rx="2"
-									fill="#00E676"
-									fillOpacity="0.55"
-								/>
-								<rect
-									x="22"
-									y="10"
-									width="7"
-									height="31"
-									rx="2"
-									fill="#00E676"
-									fillOpacity="0.75"
-								/>
-								<rect x="33" y="3" width="7" height="38" rx="2" fill="#00E676" />
-								<rect
-									x="44"
-									y="13"
-									width="7"
-									height="28"
-									rx="2"
-									fill="#00E676"
-									fillOpacity="0.65"
-								/>
-							</svg>
-							<span
-								className="text-[20px] font-black text-slate-100 tracking-tight"
-								style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-							>
-								Talacha<span className="text-[#00e676]">Stats</span>
+							<LogoMark className="w-6 h-6" />
+							<span className="font-display font-black text-[18px] tracking-tight text-ink">
+								Talacha<span className="text-brand">Stats</span>
 							</span>
 						</Link>
-					</div>
+					</header>
 				)}
 
 				{/* Trial banner */}
@@ -365,84 +317,28 @@ export default function AdminShell({
 
 				{/* Page content */}
 				<main className="flex-1 overflow-y-auto overflow-x-hidden">
-					<div className="max-w-7xl mx-auto px-4 py-6">{children}</div>
+					<div className="max-w-[1400px] w-full mx-auto px-5 sm:px-8 py-8 sm:py-10">{children}</div>
 				</main>
 			</div>
 
-			{/* Local styles */}
 			<style jsx global>{`
-				@keyframes fadeIn {
-					from {
-						opacity: 0;
-					}
-					to {
-						opacity: 1;
-					}
-				}
 				.admin-scrollbar::-webkit-scrollbar {
-					width: 4px;
+					width: 3px;
 				}
 				.admin-scrollbar::-webkit-scrollbar-track {
 					background: transparent;
 				}
 				.admin-scrollbar::-webkit-scrollbar-thumb {
-					background: rgba(255, 255, 255, 0.15);
+					background: rgba(255, 255, 255, 0.08);
 					border-radius: 2px;
-				}
-				.nav-item-link {
-					position: relative;
-				}
-				.nav-item-link::before {
-					content: "";
-					position: absolute;
-					left: -8px;
-					top: 6px;
-					bottom: 6px;
-					width: 3px;
-					border-radius: 0 3px 3px 0;
-					background: #00e676;
-					opacity: 0;
-					transition: opacity 0.15s;
-				}
-				.nav-item-link.active::before {
-					opacity: 1;
-				}
-				.nav-tooltip {
-					position: absolute;
-					left: calc(100% + 12px);
-					top: 50%;
-					transform: translateY(-50%);
-					background: #1e293b;
-					color: white;
-					font-size: 12px;
-					font-weight: 600;
-					padding: 5px 10px;
-					border-radius: 8px;
-					white-space: nowrap;
-					pointer-events: none;
-					opacity: 0;
-					transition: opacity 0.15s;
-					z-index: 100;
-				}
-				.nav-tooltip::before {
-					content: "";
-					position: absolute;
-					right: 100%;
-					top: 50%;
-					transform: translateY(-50%);
-					border: 5px solid transparent;
-					border-right-color: #1e293b;
-				}
-				.nav-item-link:hover .nav-tooltip,
-				.sidebar-footer-btn:hover .nav-tooltip {
-					opacity: 1;
 				}
 			`}</style>
 		</div>
 	);
 }
 
-// ── NavLink ───────────────────────────────────────────────────────
+// ── NavLink ───────────────────────────────────────────────────────────────────
+
 function NavLink({
 	item,
 	active,
@@ -456,27 +352,33 @@ function NavLink({
 	return (
 		<Link
 			href={item.href}
-			className={[
-				"nav-item-link flex items-center gap-3 rounded-[10px] transition-colors mx-2",
-				collapsed ? "py-2.5 justify-center" : "px-3.5 py-2",
+			title={collapsed ? item.label : undefined}
+			className={cn(
+				"relative group flex items-center gap-2.5 h-9 rounded-md transition-colors text-[13.5px]",
+				collapsed ? "justify-center px-0 w-9 mx-auto" : "px-2.5",
 				active
-					? "active bg-[rgba(0,230,118,0.12)] text-[#00e676] font-semibold"
-					: "text-slate-100/70 hover:bg-white/[0.07] hover:text-slate-100 font-medium",
-			].join(" ")}
-			style={{ fontSize: 14 }}
+					? "bg-brand/10 text-brand font-semibold"
+					: "text-ink-2 hover:text-ink hover:bg-surface font-medium",
+			)}
 		>
-			<Icon size={18} strokeWidth={2} className={active ? "" : "opacity-80"} />
-			{!collapsed && <span className="flex-1 whitespace-nowrap text-left">{item.label}</span>}
+			{/* Barra activa vertical */}
+			{active && !collapsed && (
+				<span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r bg-brand" />
+			)}
+
+			<Icon size={16} strokeWidth={active ? 2 : 1.75} className="shrink-0" />
+
+			{!collapsed && <span className="flex-1 whitespace-nowrap truncate">{item.label}</span>}
+
 			{!collapsed && item.badge && (
-				<span
-					className="text-[10px] font-bold px-1.5 py-px rounded-full shrink-0"
-					style={{ background: "#00e676", color: "#0a0a0a" }}
-				>
+				<span className="text-[10px] font-bold px-1.5 py-px rounded-full bg-brand text-pitch shrink-0">
 					{item.badge}
 				</span>
 			)}
+
+			{/* Tooltip colapsado */}
 			{collapsed && (
-				<span className="nav-tooltip">
+				<span className="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-surface-2 border border-line text-ink text-[12px] font-semibold px-2.5 py-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-50">
 					{item.label}
 					{item.badge ? ` (${item.badge})` : ""}
 				</span>
@@ -485,7 +387,8 @@ function NavLink({
 	);
 }
 
-// ── Logout button ─────────────────────────────────────────────────
+// ── Logout ────────────────────────────────────────────────────────────────────
+
 function LogoutButton({ collapsed }: { collapsed: boolean }) {
 	const router = useRouter();
 	const [busy, setBusy] = useState(false);
@@ -504,24 +407,28 @@ function LogoutButton({ collapsed }: { collapsed: boolean }) {
 		<button
 			onClick={handleLogout}
 			disabled={busy}
-			className={[
-				"sidebar-footer-btn flex items-center gap-2.5 rounded-[10px] transition-all w-full relative",
-				collapsed ? "justify-center py-2" : "px-2.5 py-2",
-				"text-slate-100/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50",
-			].join(" ")}
+			className={cn(
+				"group relative flex items-center gap-2.5 h-8 rounded-md transition-colors w-full",
+				collapsed ? "justify-center px-0" : "px-2.5",
+				"text-ink-3 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-50",
+			)}
 			title="Cerrar sesión"
-			aria-label="Cerrar sesión"
 		>
-			<LogOut size={16} />
+			<LogOut size={14} strokeWidth={1.75} className="shrink-0" />
 			{!collapsed && (
 				<span className="text-[13px] font-medium">{busy ? "Saliendo…" : "Cerrar sesión"}</span>
 			)}
-			{collapsed && <span className="nav-tooltip">Cerrar sesión</span>}
+			{collapsed && (
+				<span className="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-surface-2 border border-line text-ink text-[12px] font-semibold px-2.5 py-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-50">
+					Cerrar sesión
+				</span>
+			)}
 		</button>
 	);
 }
 
-// ── City switcher (sidebar variant) ───────────────────────────────
+// ── City switcher ─────────────────────────────────────────────────────────────
+
 function SidebarCitySwitcher({
 	activeCity,
 	collapsed,
@@ -562,6 +469,17 @@ function SidebarCitySwitcher({
 		if (res.ok) window.location.reload();
 	}
 
+	if (collapsed) {
+		return (
+			<button
+				title={activeCity}
+				className="w-9 h-9 mx-auto grid place-items-center rounded-md text-brand hover:bg-surface transition"
+			>
+				<MapPin size={16} strokeWidth={1.75} />
+			</button>
+		);
+	}
+
 	return (
 		<div data-city-switcher className="relative">
 			<button
@@ -569,42 +487,30 @@ function SidebarCitySwitcher({
 					setOpen((v) => !v);
 					setQuery("");
 				}}
-				className={[
-					"sidebar-footer-btn flex items-center gap-2.5 rounded-[10px] w-full transition-all relative",
-					collapsed ? "justify-center py-2" : "px-2.5 py-2",
-					"text-slate-100/60 hover:bg-white/[0.07]",
-				].join(" ")}
+				className="w-full flex items-center gap-2.5 h-11 px-2.5 rounded-md bg-surface border border-line text-left hover:border-ink-3 transition"
 				aria-expanded={open}
-				title={`Ciudad: ${activeCity}`}
 			>
-				<MapPin size={16} className="text-[#00e676]/80 shrink-0" />
-				{!collapsed && (
-					<>
-						<div className="flex-1 min-w-0 text-left">
-							<div className="text-[11px] text-slate-100/35 font-medium">Ciudad activa</div>
-							<div className="text-[13px] font-semibold text-slate-100 truncate">{activeCity}</div>
-						</div>
-						<ChevronDown
-							size={12}
-							className={`text-slate-100/40 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}
-						/>
-					</>
-				)}
-				{collapsed && <span className="nav-tooltip">{activeCity}</span>}
+				<MapPin size={14} strokeWidth={1.75} className="text-brand shrink-0" />
+				<div className="flex-1 min-w-0">
+					<div className="text-[10.5px] font-semibold tracking-[0.14em] uppercase text-ink-3 leading-none">
+						Ciudad activa
+					</div>
+					<div className="text-[13px] font-semibold text-ink mt-0.5 truncate">{activeCity}</div>
+				</div>
+				<ChevronDown
+					size={14}
+					strokeWidth={1.75}
+					className={cn("text-ink-3 shrink-0 transition-transform", open && "rotate-180")}
+				/>
 			</button>
 
 			{open && (
-				<div
-					className={[
-						"absolute bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[60] overflow-hidden",
-						collapsed ? "left-full ml-2 bottom-0 w-60" : "left-0 right-0 bottom-full mb-2",
-					].join(" ")}
-				>
-					<div className="p-2 border-b border-slate-700">
+				<div className="absolute left-0 right-0 bottom-full mb-2 bg-surface-2 border border-line rounded-xl shadow-2xl z-60 overflow-hidden">
+					<div className="p-2 border-b border-line">
 						<div className="relative">
 							<Search
 								size={12}
-								className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+								className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none"
 							/>
 							<input
 								autoFocus
@@ -612,27 +518,27 @@ function SidebarCitySwitcher({
 								value={query}
 								onChange={(e) => setQuery(e.target.value)}
 								placeholder="Buscar ciudad…"
-								className="w-full bg-slate-800 text-white text-sm placeholder-slate-500 rounded-lg pl-7 pr-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-500"
+								className="w-full bg-surface border border-line text-ink text-sm placeholder:text-ink-3 rounded-md pl-7 pr-3 py-1.5 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30"
 							/>
 						</div>
 					</div>
-					<ul role="listbox" className="max-h-64 overflow-y-auto py-1">
+					<ul className="max-h-56 overflow-y-auto py-1">
 						{filtered.length === 0 ? (
-							<li className="px-3 py-2 text-sm text-slate-500 text-center">Sin resultados</li>
+							<li className="px-3 py-2 text-sm text-ink-3 text-center">Sin resultados</li>
 						) : (
 							filtered.map((city) => (
 								<li key={city}>
 									<button
 										onClick={() => selectCity(city)}
-										className={[
-											"w-full flex items-center justify-between px-3 py-2 text-sm text-left transition",
+										className={cn(
+											"w-full flex items-center justify-between px-3 py-2 text-[13px] text-left transition",
 											city === activeCity
-												? "bg-green-900/50 text-green-400"
-												: "text-slate-200 hover:bg-slate-800",
-										].join(" ")}
+												? "bg-brand/10 text-brand"
+												: "text-ink-2 hover:bg-surface hover:text-ink",
+										)}
 									>
 										{city}
-										{city === activeCity && <Check size={12} />}
+										{city === activeCity && <Check size={12} strokeWidth={2.5} />}
 									</button>
 								</li>
 							))

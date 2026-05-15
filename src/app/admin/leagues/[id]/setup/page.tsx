@@ -40,7 +40,7 @@ export default async function LeagueSetupPage({
 	const startV2 = sp.start === "v2";
 
 	return (
-		<div className="max-w-2xl py-2">
+		<div className="py-2">
 			<PathSelector
 				league={{
 					id: league.id,

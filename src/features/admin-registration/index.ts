@@ -6,6 +6,17 @@
  */
 
 export { default as RegistrationForm } from "./ui/RegistrationForm";
+export { useRegistrationForm } from "./model/useRegistrationForm";
+export type { UseRegistrationFormReturn } from "./model/useRegistrationForm";
+export type {
+	League,
+	Team,
+	GlobalPlayerData,
+	SuccessData,
+	RegistrationStep,
+	RegistrationStage,
+	AssignmentFieldsProps,
+} from "./types";
 
 export { lookupByCurp } from "./lookup";
 export type { LookupInput, LookupResult, LookupSuccess, LookupError } from "./lookup";

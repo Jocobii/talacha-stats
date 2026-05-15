@@ -1,0 +1,23 @@
+// ── Sistema de diseño — componentes base ──────────────────────────────────────
+export { Button } from "./Button";
+export type { ButtonProps } from "./Button";
+export { Field } from "./Field";
+export { Input } from "./Input";
+export type { InputProps } from "./Input";
+export { Select } from "./Select";
+export { Card } from "./Card";
+export { Badge } from "./Badge";
+export { StatusDot } from "./StatusDot";
+export { Avatar } from "./Avatar";
+export { PageHeader } from "./PageHeader";
+export { SectionLabel } from "./SectionLabel";
+export { KeyHint } from "./KeyHint";
+export { EmptyState } from "./EmptyState";
+export { Stepper } from "./Stepper";
+export { StatTile } from "./StatTile";
+
+// ── Componentes existentes (sin cambios) ──────────────────────────────────────
+export { AdminTable } from "./AdminTable";
+export type { AdminTableColumn, AdminTableProps } from "./AdminTable";
+export type { AdminTablePagination } from "./admin-table.helpers";
+export { DEFAULT_PAGE_SIZE, buildPagination } from "./admin-table.helpers";

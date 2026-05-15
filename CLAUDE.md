@@ -10,14 +10,15 @@ Este archivo define cómo trabajamos en este proyecto. Toda respuesta, todo arch
 
 ## Stack
 
-| Capa          | Tecnología               |
-| ------------- | ------------------------ |
-| Framework     | Next.js 15 (App Router)  |
-| Base de datos | PostgreSQL + Drizzle ORM |
-| Validación    | Zod                      |
-| Estilos       | Tailwind CSS             |
-| Excel         | SheetJS (xlsx)           |
-| Lenguaje      | TypeScript estricto      |
+| Capa          | Tecnología                                                                 |
+| ------------- | -------------------------------------------------------------------------- |
+| Framework     | Next.js 15 (App Router)                                                    |
+| Base de datos | PostgreSQL + Drizzle ORM                                                   |
+| Validación    | Zod                                                                        |
+| Estilos       | Tailwind CSS                                                               |
+| Excel         | SheetJS (xlsx)                                                             |
+| Lenguaje      | TypeScript estricto                                                        |
+| Estado global | Zustand (solo cuando el estado cruza más de 2 componentes no relacionados) |
 
 ---
 
@@ -74,6 +75,53 @@ src/
 ```
 
 > **Estado actual:** El proyecto usa `lib/` en lugar de `features/` y `entities/`. Los archivos nuevos deben seguir la estructura objetivo. Los existentes se migran cuando se toquen, no en un refactor masivo.
+
+---
+
+## Reglas de calidad de código (no negociables)
+
+### Principio de Responsabilidad Única (SRP)
+
+- **Límite estricto de tamaño**: ningún archivo de componente supera las 150 líneas.
+- **Custom Hooks obligatorios**: si la lógica de estado o efectos supera las 20 líneas, se extrae a `use[Name].ts` en la carpeta `model/` de la feature.
+- **Anti God Components**: divide interfaces complejas en subcomponentes atómicos dentro de `features/*/ui/` o `shared/ui/`.
+
+### Sin hardcoding (DRY)
+
+- Strings repetidos, IDs, regex, timeouts y "magic numbers" van en `constants.ts` de la feature.
+- Antes de crear una nueva utilidad, tipo o componente visual: verifica si ya existe en `shared/`. Si no existe, créalo ahí si es reutilizable.
+
+### Métricas de funciones
+
+- **Máximo 20 líneas por función**. Si hace más de una cosa, divídela.
+- Nombres descriptivos y semánticos: `isLoading` no `ld`, `userData` no `u`.
+- Booleans con verbos auxiliares: `isLoading`, `hasTeams`, `shouldRedirect`, `canSubmit`.
+- Prioriza métodos declarativos (`map`, `filter`, `reduce`) sobre bucles imperativos.
+
+### TypeScript estricto
+
+- Sin `any`. Tipos desconocidos: `unknown` + narrowing.
+- Sin `as SomeType` salvo necesidad absoluta, documentada.
+- Tipos de retorno explícitos en funciones de `features/` y `entities/`.
+- Preferir `type` sobre `interface` salvo que se necesite `extends`/`implements`.
+- Orden de imports: 1. React/librerías externas · 2. Capas FSD superiores · 3. Capas locales · 4. Tipos/estilos.
+- Sin imports muertos ni variables sin usar.
+
+### Estructura interna de una feature con UI
+
+```
+features/[nombre]/
+├── constants.ts          # Magic strings, regex, timeouts
+├── types.ts              # Tipos compartidos de la feature
+├── index.ts              # Exportaciones públicas
+├── lib/
+│   └── [nombre]-utils.ts # Funciones puras sin ciclo de vida React
+├── model/
+│   └── use[Nombre].ts    # Custom Hook con estado + efectos
+└── ui/
+    ├── [Nombre].tsx       # Orquestador (≤ 80 líneas)
+    └── [SubComp].tsx      # Subcomponentes atómicos (≤ 150 líneas)
+```
 
 ---
 
@@ -225,15 +273,21 @@ app/(admin)/*/      → páginas: componen features y entities, no tienen lógic
 // ✅ Estado local con useState para forms y UI transitoria
 const [step, setStep] = useState<Step>("upload");
 
+// ✅ Lógica de estado compleja → Custom Hook
+// useRegistrationForm.ts en features/[nombre]/model/
+
+// ✅ Estado que cruza componentes no relacionados → Zustand store
+// features/[nombre]/model/use[Nombre]Store.ts
+
 // ✅ Fetch de datos en Server Components cuando sea posible
 // ✅ fetch() en Client Components para interacciones post-render
 
-// ❌ No usar librerías de estado global (Redux, Zustand) — no hay necesidad en este proyecto
+// ❌ Redux — no hay necesidad en este proyecto
 ```
 
 ### Formularios
 
-- Sin librerías de forms (react-hook-form, formik) — el proyecto es suficientemente simple
+- Sin react-hook-form ni formik — el proyecto es suficientemente simple
 - Validar en el cliente antes de enviar (feedback inmediato), validar en el server (fuente de verdad)
 - Mostrar errores de la API en la UI siempre
 
@@ -294,6 +348,11 @@ Cuando se pida una nueva funcionalidad, seguir este orden:
 - No usar `console.log` en producción — usar `console.error` solo para errores reales en el server
 - No mezclar Server y Client Components sin necesidad
 - No usar CSS custom cuando Tailwind lo puede hacer
+- No crear God Components — ningún archivo supera 150 líneas
+- No hardcodear magic strings, regex ni timeouts — van en `constants.ts`
+- No poner lógica de estado/efectos en el cuerpo del componente si supera 20 líneas — va en un Custom Hook
+- No usar `any` ni casts sin documentar
+- No importar entre features del mismo nivel — solo a través de una capa superior
 
 ---
 
