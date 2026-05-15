@@ -249,7 +249,10 @@ export type CreateInscription = z.infer<typeof CreateInscriptionSchema>;
  */
 export const PlayerLookupResultSchema = z.object({
 	found: z.literal(true),
-	player: GlobalPlayerSchema.omit({ curpHash: true }),
+	player: GlobalPlayerSchema.omit({ curpHash: true }).extend({
+		/** Número de ligas (league_members) en las que ya ha participado. */
+		previousLeaguesCount: z.number().int().nonnegative(),
+	}),
 });
 
 export const PlayerNotFoundSchema = z.object({

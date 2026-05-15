@@ -20,6 +20,8 @@ export type GlobalPlayerData = {
 	birthDate: string;
 	avatarUrl: string | null;
 	createdAt: string;
+	/** Cantidad de ligas en las que el jugador ya ha participado históricamente. */
+	previousLeaguesCount: number;
 };
 
 export type SuccessData = {

@@ -259,10 +259,10 @@ function PlayerPreviewCard() {
 					<div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-brand">
 						● Goleadora
 					</div>
-					<div className="font-display text-[22px] font-black leading-none tracking-tight mt-1">
+					<div className="font-display text-[22px] text-ink leading-none tracking-tight mt-1">
 						MARGARITA
 					</div>
-					<div className="font-display text-[22px] font-black leading-none tracking-tight text-brand">
+					<div className="font-display text-[22px] text-ink leading-none tracking-tight text-brand">
 						GUTIERREZ
 					</div>
 				</div>
@@ -271,6 +271,14 @@ function PlayerPreviewCard() {
 				<StatMini value={46} label="Goles" brand />
 				<StatMini value={2} label="Ligas" />
 				<StatMini value={36} label="PJ" />
+			</div>
+			<div className="mt-3 flex gap-1.5 flex-wrap">
+				<span className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 h-4 rounded bg-brand text-pitch">
+					🥇 GOLEADORA
+				</span>
+				<span className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 h-4 rounded bg-surface-2 border border-line text-ink-2">
+					MULTILIGAS
+				</span>
 			</div>
 		</div>
 	);
@@ -400,7 +408,9 @@ function StepTeams({ league, onNext }: { league: League; onNext: (teams: Created
 				{/* Main card */}
 				<Card className="p-6">
 					<div className="flex items-center justify-between mb-1">
-						<h3 className="font-display text-[22px] font-bold tracking-tight">Crea los equipos</h3>
+						<h3 className="font-display text-[22px] text-ink font-bold tracking-tight">
+							Crea los equipos
+						</h3>
 						<span className="text-[12px] text-ink-3">{drafts.length} equipos</span>
 					</div>
 					<p className="text-sm text-ink-2 mb-5">
@@ -534,7 +544,7 @@ function StepPlayers({
 	return (
 		<div className="flex flex-col gap-6">
 			<Card className="p-6">
-				<h3 className="font-display text-[22px] font-bold tracking-tight">
+				<h3 className="font-display text-[22px] text-ink font-bold tracking-tight">
 					Registra jugadores en ventanilla
 				</h3>
 				<p className="text-sm text-ink-2 mt-1 mb-5 max-w-[640px]">
@@ -636,7 +646,7 @@ function StepDone({ league, teams }: { league: League; teams: CreatedTeam[] }) {
 				<Check size={26} strokeWidth={2.5} className="text-brand" />
 			</div>
 
-			<h2 className="font-display text-[36px] sm:text-[44px] leading-[0.95] font-black tracking-tight">
+			<h2 className="font-display text-[36px] sm:text-[44px] leading-[0.95] text-ink tracking-tight">
 				Liga lista.
 			</h2>
 			<p className="text-[15px] text-ink-2 mt-3 max-w-md mx-auto">

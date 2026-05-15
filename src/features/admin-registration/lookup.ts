@@ -15,7 +15,10 @@
 
 import { CurpSchema } from "@/entities/player/model";
 import type { LookupResponse } from "@/entities/player/model";
-import { findGlobalPlayerByHash } from "@/entities/player/queries";
+import {
+	findGlobalPlayerByHash,
+	countGlobalPlayerLeagueMemberships,
+} from "@/entities/player/queries";
 import { hashCurp } from "./hash";
 
 export type LookupInput = {
@@ -63,7 +66,10 @@ export async function lookupByCurp(input: LookupInput): Promise<LookupResult> {
 			return { ok: true, data: { found: false } };
 		}
 
-		// 4. Retornar datos globales — curpHash excluido explícitamente
+		// 4. Contar ligas previas para mostrar historial en ventanilla
+		const previousLeaguesCount = await countGlobalPlayerLeagueMemberships(player.id);
+
+		// 5. Retornar datos globales — curpHash excluido explícitamente
 		return {
 			ok: true,
 			data: {
@@ -74,6 +80,7 @@ export async function lookupByCurp(input: LookupInput): Promise<LookupResult> {
 					birthDate: player.birthDate,
 					avatarUrl: player.avatarUrl,
 					createdAt: player.createdAt,
+					previousLeaguesCount,
 				},
 			},
 		};

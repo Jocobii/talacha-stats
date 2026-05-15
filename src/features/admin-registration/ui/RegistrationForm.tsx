@@ -61,6 +61,7 @@ export default function RegistrationForm({ fixedLeague, leagues = [] }: Props) {
 			{step.type === "found" && (
 				<PlayerFoundCard
 					player={step.player}
+					curp={form.curp}
 					fixedLeague={fixedLeague}
 					leagues={leagues}
 					leagueId={form.leagueId}

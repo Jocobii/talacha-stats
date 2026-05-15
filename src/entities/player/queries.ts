@@ -656,6 +656,18 @@ import type {
 // ---------------------------------------------------------------------------
 
 /**
+ * Cuenta cuántas ligas (league_members) tiene un global_player.
+ * Usado en el lookup para mostrar historial en la ventanilla de registro.
+ */
+export async function countGlobalPlayerLeagueMemberships(globalPlayerId: string): Promise<number> {
+	const rows = await db
+		.select({ count: sql<number>`count(*)::int` })
+		.from(leagueMembers)
+		.where(eq(leagueMembers.globalPlayerId, globalPlayerId));
+	return rows[0]?.count ?? 0;
+}
+
+/**
  * Busca un jugador global por su curp_hash.
  * Es la query central del flujo de registro: el oficinista ingresa el CURP,
  * el feature genera el hash y llama a esta función.
