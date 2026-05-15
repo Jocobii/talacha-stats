@@ -108,11 +108,18 @@ export const globalPlayers = pgTable(
 		id: uuid("id").primaryKey().defaultRandom(),
 		curpHash: text("curp_hash").notNull().unique(), // sha256(CURP) — nunca el CURP real
 		fullName: text("full_name").notNull(),
+		// Forma canónica del nombre: sin acentos (salvo Ñ), sin puntuación, lowercase.
+		// Generado por sanitizeToCanonical() en shared/lib/normalize.ts.
+		// Se usa para búsquedas y agrupaciones cross-liga sin depender de f_unaccent en PG.
+		fullNameCanonical: text("full_name_canonical"),
 		birthDate: date("birth_date").notNull(),
 		avatarUrl: text("avatar_url"),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(t) => [index("global_players_curp_idx").on(t.curpHash)],
+	(t) => [
+		index("global_players_curp_idx").on(t.curpHash),
+		index("global_players_name_canonical_idx").on(t.fullNameCanonical),
+	],
 );
 
 export type GlobalPlayer = typeof globalPlayers.$inferSelect;
@@ -178,6 +185,9 @@ export type NewPlayerProfile = typeof playerProfiles.$inferInsert;
 export const leagues = pgTable("leagues", {
 	id: uuid("id").primaryKey().defaultRandom(),
 	name: text("name").notNull(),
+	// Forma canónica del nombre: sin acentos (salvo Ñ), sin puntuación, lowercase.
+	// Generado por sanitizeToCanonical() en shared/lib/normalize.ts.
+	nameCanonical: text("name_canonical"),
 	slug: text("slug"), // URL-friendly, único por organización
 	category: text("category"), // "Libre", "Libre Femenil", "2015-2016", "Mixto"
 	dayOfWeek: text("day_of_week").notNull(), // lunes | martes | miercoles | ...
@@ -198,13 +208,22 @@ export const teams = pgTable(
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
 		name: text("name").notNull(),
+		// Forma canónica del nombre: sin acentos (salvo Ñ), sin puntuación, lowercase.
+		// Generado por sanitizeToCanonical() en shared/lib/normalize.ts.
+		// Constraint UNIQUE(league_id, name_canonical) impide duplicados en la misma liga.
+		nameCanonical: text("name_canonical"),
 		leagueId: uuid("league_id")
 			.notNull()
 			.references(() => leagues.id, { onDelete: "cascade" }),
 		color: text("color"),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(t) => [index("teams_league_idx").on(t.leagueId)],
+	(t) => [
+		index("teams_league_idx").on(t.leagueId),
+		// Previene dos equipos con el mismo nombre canónico en la misma liga.
+		// "Deportivo FC" y "Deportivo F.C." colisionan → error de negocio claro.
+		unique("uq_teams_league_canonical").on(t.leagueId, t.nameCanonical),
+	],
 );
 
 // ---------------------------------------------------------------------------

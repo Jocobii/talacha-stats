@@ -3,11 +3,11 @@
  *
  * Server Component. Carga ligas y equipos directamente desde DB.
  * El filtro de liga funciona via URL param (leagueId).
- * La fusión de duplicados es una acción secundaria en TeamsTable.
  */
 
 import { redirect } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
+import { Shield } from "lucide-react";
 import { db, leagues, teams, leagueMembers, inscriptions } from "@/db";
 import { getSessionUser } from "@/shared/lib/auth";
 import { LeagueFilter } from "./LeagueFilter";
@@ -15,8 +15,6 @@ import { TeamsTable } from "./TeamsTable";
 import type { LeagueOption } from "./LeagueFilter";
 import type { TeamRow } from "./TeamsTable";
 import { buildPagination, DEFAULT_PAGE_SIZE } from "@/shared/ui/admin-table.helpers";
-
-// ── Página principal ──────────────────────────────────────────────────────────
 
 export default async function TeamsPage({
 	searchParams,
@@ -30,7 +28,6 @@ export default async function TeamsPage({
 	const page = Math.max(1, Number(params.page ?? 1));
 	const isOwner = user.role === "owner";
 
-	// ── Ligas disponibles (scoped a org para organizers) ─────────────────────
 	const leagueRows = await db
 		.select({
 			id: leagues.id,
@@ -55,7 +52,6 @@ export default async function TeamsPage({
 		dayOfWeek: l.dayOfWeek,
 	}));
 
-	// ── Equipos (solo si hay liga seleccionada) ───────────────────────────────
 	let teamRows: TeamRow[] = [];
 	let total = 0;
 
@@ -94,11 +90,11 @@ export default async function TeamsPage({
 	const selectedLeague = leagueOptions.find((l) => l.id === leagueId);
 
 	return (
-		<div className="max-w-3xl space-y-5">
+		<div className="space-y-5">
 			{/* Header */}
 			<div>
 				<h1 className="text-2xl font-bold text-ink">Equipos</h1>
-				<p className="text-sm text-ink-2 mt-0.5">Selecciona una liga para ver sus equipos.</p>
+				<p className="text-sm text-ink-2 mt-0.5">Gestiona los equipos de cada liga.</p>
 			</div>
 
 			{/* Filtro de liga */}
@@ -106,9 +102,7 @@ export default async function TeamsPage({
 
 			{/* Contenido */}
 			{!leagueId ? (
-				<div className="bg-surface rounded-xl shadow p-10 text-center text-sm text-ink-3">
-					Selecciona una liga para ver sus equipos.
-				</div>
+				<NoLeagueSelected />
 			) : (
 				<>
 					{selectedLeague && (
@@ -120,7 +114,7 @@ export default async function TeamsPage({
 							<span className="capitalize">{selectedLeague.dayOfWeek}</span>
 							{total > 0 && (
 								<span className="text-ink-3 ml-2">
-									— {total} equipo{total !== 1 ? "s" : ""}
+									({total} equipo{total !== 1 ? "s" : ""})
 								</span>
 							)}
 						</p>
@@ -140,6 +134,24 @@ export default async function TeamsPage({
 					/>
 				</>
 			)}
+		</div>
+	);
+}
+
+// Empty state: no league selected yet
+
+function NoLeagueSelected() {
+	return (
+		<div className="bg-surface border border-line rounded-2xl p-12 flex flex-col items-center gap-4 text-center">
+			<div className="w-16 h-16 rounded-2xl bg-surface-2 border border-line grid place-items-center">
+				<Shield size={32} strokeWidth={1.5} className="text-ink-3" />
+			</div>
+			<div>
+				<p className="text-[15px] font-semibold text-ink">Selecciona una liga</p>
+				<p className="text-[13px] text-ink-3 mt-1 max-w-xs">
+					Elige una liga en el selector de arriba para ver y gestionar sus equipos.
+				</p>
+			</div>
 		</div>
 	);
 }

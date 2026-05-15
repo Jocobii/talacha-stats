@@ -148,6 +148,13 @@
 			"when": 1778693608111,
 			"tag": "0020_jazzy_wiccan",
 			"breakpoints": true
+		},
+		{
+			"idx": 21,
+			"version": "7",
+			"when": 1778883912409,
+			"tag": "0021_past_earthquake",
+			"breakpoints": true
 		}
 	]
 }

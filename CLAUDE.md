@@ -208,6 +208,135 @@ export async function confirmImport(data: ParsedImport) {
 
 ---
 
+## SANITIZACIÓN Y PREVENCIÓN DE DUPLICADOS — CUMPLIMIENTO OBLIGATORIO
+
+> Estas reglas son **NO NEGOCIABLES**. Aplican a cualquier tarea de desarrollo,
+> refactorización o creación de endpoints y componentes relacionados con el CRUD
+> de Equipos, Jugadores y Ligas. Si una instrucción las rompe, **notificar el
+> riesgo de negocio y corregir antes de implementar**.
+
+---
+
+### Regla 1 — Verificación previa obligatoria (anti-duplicados)
+
+Antes de cualquier `INSERT` o `UPDATE` en la DB, la aplicación **debe** validar
+proactivamente la existencia del registro. Nunca confiar solo en el `catch` del
+constraint de la DB.
+
+| Entidad | Clave de unicidad             | Acción si existe                        |
+| ------- | ----------------------------- | --------------------------------------- |
+| Jugador | `global_players.curp_hash`    | Abortar y devolver flujo de vinculación |
+| Equipo  | `(league_id, name_canonical)` | Rechazar con `apiError(..., 409)`       |
+| Liga    | `(org_id, name_canonical)`    | Rechazar con `apiError(..., 409)`       |
+
+```typescript
+// ✅ CORRECTO — verificar antes del insert
+const existing = await db.query.teams.findFirst({
+	where: and(eq(teams.leagueId, leagueId), eq(teams.nameCanonical, canonical)),
+});
+if (existing) return apiError(`Ya existe un equipo con ese nombre ("${existing.name}")`, 409);
+
+// ❌ INCORRECTO — confiar solo en el constraint de DB
+try {
+	await db.insert(teams).values({ name, leagueId });
+} catch (e) {
+	return apiError("Error al crear equipo"); // mensaje oscuro, UX rota
+}
+```
+
+---
+
+### Regla 2 — Patrón de almacenamiento canónico (dos columnas)
+
+Toda entidad con nombre crítico para el negocio tiene **dos columnas** en la DB:
+
+| Columna          | Propósito                              | Ejemplo            |
+| ---------------- | -------------------------------------- | ------------------ |
+| `name`           | Texto original del usuario (display)   | `"Deportivo F.C."` |
+| `name_canonical` | Texto normalizado (búsquedas/GROUP BY) | `"deportivo fc"`   |
+
+Tablas que aplican actualmente: `teams`, `leagues`, `global_players`
+(`full_name_canonical`).
+
+**Nunca** usar la columna `name` para filtros, `GROUP BY` ni comparaciones de
+unicidad — siempre usar `name_canonical`.
+
+---
+
+### Regla 3 — Pipeline de sanitización (backend únicamente)
+
+Toda cadena destinada a una columna `*_canonical` pasa obligatoriamente por
+`sanitizeToCanonical()` de `shared/lib/normalize.ts` **antes** de tocar el ORM.
+
+```typescript
+import { sanitizeToCanonical } from "@/shared/lib/normalize";
+
+// Al crear o actualizar cualquier entidad con nombre canónico:
+const nameCanonical = sanitizeToCanonical(input.name);
+```
+
+**Pipeline interno de la función (no reimplementar):**
+
+1. `trim()`
+2. `normalize('NFD')` — descompone diacríticos
+3. Elimina marcas diacríticas U+0300-U+036F, **excepto U+0303** (tilde → preserva Ñ/ñ)
+4. `normalize('NFC')` — recompone `n + U+0303` → `ñ`
+5. Elimina `[^a-zA-Z0-9\sñÑ]` — puntuación, guiones, puntos (`"F.C."` → `"FC"`)
+6. `toLowerCase()`
+7. Colapsa espacios múltiples
+8. `trim()` final
+
+**Función de referencia** (ya implementada en `src/shared/lib/normalize.ts`):
+
+```typescript
+export function sanitizeToCanonical(text: string): string {
+	if (!text) return "";
+	return text
+		.trim()
+		.normalize("NFD")
+		.replace(/[̀-ͯ]/g, (m) => (m === "̃" ? m : ""))
+		.normalize("NFC")
+		.replace(/[^a-zA-Z0-9\sñÑ]/g, "")
+		.toLowerCase()
+		.replace(/\s+/g, " ")
+		.trim();
+}
+```
+
+> **No reimplementar esta función en otro archivo.** Si necesitas la lógica,
+> importa desde `@/shared/lib/normalize`.
+
+---
+
+### Regla 4 — Sanitización en el frontend (UX)
+
+Los formularios React **no** sanitizan en tiempo real. La responsabilidad del
+canonical es 100% del backend.
+
+| Evento     | Acción permitida            | Acción prohibida                 |
+| ---------- | --------------------------- | -------------------------------- |
+| `onChange` | Actualizar estado           | Limpiar acentos o caracteres     |
+| `onBlur`   | `.trim()` visual del campo  | Normalizar, canonicalizar        |
+| `onSubmit` | Enviar texto crudo a la API | Calcular `_canonical` en cliente |
+
+Para estética visual (ej. todo en mayúsculas): usar **CSS únicamente**
+(`text-transform: uppercase`), nunca modificar el valor del estado.
+
+---
+
+### Checklist de cumplimiento al crear/editar entidades
+
+Antes de hacer PR con cualquier endpoint o feature de CRUD, verificar:
+
+- [ ] Columna `*_canonical` existe en el schema de Drizzle
+- [ ] `sanitizeToCanonical()` se llama en backend antes del insert/update
+- [ ] Consulta de existencia por canonical **antes** del insert (no solo constraint)
+- [ ] Error 409 con mensaje legible si hay duplicado
+- [ ] Formularios React sin sanitización en `onChange`
+- [ ] No hay reimplementación de la lógica de canonicalización fuera de `normalize.ts`
+
+---
+
 ## Reglas de backend
 
 ### Naming de endpoints

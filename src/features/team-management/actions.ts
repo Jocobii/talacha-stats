@@ -9,12 +9,20 @@ import { db, teams, leagueMembers, inscriptions } from "@/db";
 import { eq } from "drizzle-orm";
 import type { Team, LeagueMember, Inscription } from "@/db";
 import type { UpdateTeamData, UpdateRosterMemberData } from "./types";
+import { sanitizeToCanonical } from "@/shared/lib/normalize";
 
 /** Actualiza nombre y/o color de un equipo. */
 export async function updateTeamInfo(id: string, data: UpdateTeamData): Promise<Team> {
 	const [updated] = await db
 		.update(teams)
-		.set({ ...(data.name && { name: data.name }), color: data.color ?? null })
+		.set({
+			...(data.name && {
+				name: data.name,
+				// Recalcular canonical cada vez que cambia el nombre para mantener consistencia.
+				nameCanonical: sanitizeToCanonical(data.name),
+			}),
+			color: data.color ?? null,
+		})
 		.where(eq(teams.id, id))
 		.returning();
 	if (!updated) throw new Error("Equipo no encontrado");

@@ -23,7 +23,7 @@ import type {
 import { getSessionUser } from "@/shared/lib/auth";
 import { LeagueMemberEditor } from "@/shared/ui/LeagueMemberEditor";
 
-// ── Página principal ──────────────────────────────────────────────────────────
+// ── Página principal ──────────────────────────────────────────────
 
 export default async function PlayerProfilePage({ params }: { params: Promise<{ id: string }> }) {
 	const [{ id }, user] = await Promise.all([params, getSessionUser()]);
@@ -83,7 +83,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 				)}
 			</div>
 
-			{/* ── Hero ─────────────────────────────────────────────────────────── */}
+			{/* ── Hero ────────────────────────────────────────────────────── */}
 			<div className="bg-surface text-white rounded-2xl p-6 sm:p-8">
 				<div className="flex flex-col sm:flex-row sm:items-center gap-6">
 					{/* Avatar / inicial */}
@@ -133,7 +133,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 				</div>
 			</div>
 
-			{/* ── Stats globales ───────────────────────────────────────────────── */}
+			{/* ── Stats globales ────────────────────────────────────────────── */}
 			{hasStats && v1Profile ? (
 				<GlobalStatsBar global={v1Profile.global} />
 			) : (
@@ -141,6 +141,9 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 					Este jugador aún no tiene estadísticas registradas.
 				</div>
 			)}
+
+			{/* ── Equipos actuales ───────────────────────────────────────────── */}
+			{v2Members.some((m) => m.teamId) && <PlayerTeamsBar members={v2Members} />}
 
 			{/* ── Membresías V2 editables (solo si el usuario puede editar) ────── */}
 			{canEdit && v2Members.length > 0 && (
@@ -161,7 +164,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 				</section>
 			)}
 
-			{/* ── Ligas V1 (stats históricas) ──────────────────────────────────── */}
+			{/* ── Ligas V1 (stats históricas) ────────────────────────────────── */}
 			{v1Profile && v1Profile.leagues.length > 0 && (
 				<section>
 					<h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wider mb-3">
@@ -184,7 +187,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 	);
 }
 
-// ── Barra de stats globales ───────────────────────────────────────────────────
+// ── Barra de stats globales ───────────────────────────────────────────────
 
 function GlobalStatsBar({ global: g }: { global: PlayerGlobalProfile }) {
 	const stats = [
@@ -203,6 +206,35 @@ function GlobalStatsBar({ global: g }: { global: PlayerGlobalProfile }) {
 						<p className={`text-3xl font-black ${s.color}`}>{s.value}</p>
 						<p className="text-xs text-ink-2 mt-0.5">{s.label}</p>
 					</div>
+				))}
+			</div>
+		</div>
+	);
+}
+
+// ── Equipos actuales ───────────────────────────────────────────────────
+
+function PlayerTeamsBar({ members }: { members: GlobalPlayerLeagueMember[] }) {
+	const withTeam = members.filter((m) => m.teamId);
+
+	return (
+		<div className="bg-surface rounded-xl shadow p-5">
+			<h2 className="text-[11px] font-semibold text-ink-3 uppercase tracking-widest mb-3">
+				Equipos actuales
+			</h2>
+			<div className="flex flex-wrap gap-2">
+				{withTeam.map((m) => (
+					<Link
+						key={m.memberId}
+						href={`/admin/teams/${m.teamId}`}
+						className="inline-flex items-center gap-2 bg-surface-2 border border-line hover:border-brand/50 hover:bg-surface px-3 py-2 rounded-xl transition group"
+					>
+						<span className="text-[13px] font-semibold text-ink group-hover:text-brand transition">
+							{m.teamName}
+						</span>
+						<span className="text-[11px] text-ink-3">{m.leagueName}</span>
+						<span className="text-ink-3 group-hover:text-brand transition text-[11px]">↗</span>
+					</Link>
 				))}
 			</div>
 		</div>

@@ -37,6 +37,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 		return apiError(parsed.error.message, 400);
 	}
 
-	const created = await bulkCreateTeams(id, parsed.data);
-	return apiSuccess(created, 201);
+	const result = await bulkCreateTeams(id, parsed.data);
+
+	if (!result.ok) {
+		const message =
+			result.error.type === "DUPLICATE_IN_BATCH"
+				? `Hay nombres duplicados en el listado enviado: ${result.error.names.join(", ")}`
+				: `Ya existen equipos con esos nombres en esta liga: ${result.error.names.join(", ")}`;
+		return apiError(message, 409);
+	}
+
+	return apiSuccess(result.teams, 201);
 }

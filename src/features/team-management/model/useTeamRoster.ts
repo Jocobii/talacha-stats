@@ -6,7 +6,7 @@
  * datos del servidor despues de cada mutacion.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ROSTER_MEMBER_URL, TRANSFER_URL } from "../constants";
 import type { RosterEntry, ModalType, UpdateRosterMemberData } from "../types";
@@ -28,6 +28,12 @@ export type UseTeamRosterReturn = {
 export function useTeamRoster(teamId: string, initialRoster: RosterEntry[]): UseTeamRosterReturn {
 	const [roster, setRoster] = useState<RosterEntry[]>(initialRoster);
 	const [activeModal, setActiveModal] = useState<ModalType>(null);
+
+	// Sync local state when server re-renders with updated roster after router.refresh()
+	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
+		setRoster(initialRoster);
+	}, [initialRoster]);
 	const [selectedMember, setSelectedMember] = useState<RosterEntry | null>(null);
 	const [mutating, setMutating] = useState(false);
 	const [error, setError] = useState("");

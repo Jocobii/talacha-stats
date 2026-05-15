@@ -4,6 +4,7 @@ import { CreateLeagueSchema, apiSuccess, apiError } from "@/types";
 import { getActiveCity, getRequestCity } from "@/shared/lib/active-city";
 import { getSessionUserFromRequest } from "@/shared/lib/auth";
 import { generateSlug } from "@/entities/organization";
+import { sanitizeToCanonical } from "@/shared/lib/normalize";
 
 // GET /api/leagues?city=Tijuana
 // Sin sesión (público) → solo ligas activas de la ciudad
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
 		.insert(leagues)
 		.values({
 			name: parsed.data.name,
+			nameCanonical: sanitizeToCanonical(parsed.data.name),
 			slug,
 			category: parsed.data.category ?? null,
 			dayOfWeek: parsed.data.dayOfWeek,

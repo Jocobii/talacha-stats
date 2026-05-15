@@ -28,6 +28,7 @@ import { eq, and } from "drizzle-orm";
 import { CurpSchema } from "@/entities/player/model";
 import type { GlobalPlayer, LeagueMember, Inscription } from "@/entities/player/model";
 import { hashCurp } from "./hash";
+import { sanitizeToCanonical } from "@/shared/lib/normalize";
 
 // ---------------------------------------------------------------------------
 // Input schema — validado en el API route antes de llamar a registerPlayer
@@ -103,6 +104,7 @@ export async function registerPlayer(input: RegisterPlayerInput): Promise<Regist
 					.values({
 						curpHash,
 						fullName: input.fullName,
+						fullNameCanonical: sanitizeToCanonical(input.fullName),
 						birthDate: input.birthDate,
 						avatarUrl: input.avatarUrl ?? null,
 					})
