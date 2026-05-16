@@ -197,6 +197,9 @@ export const leagues = pgTable("leagues", {
 		onDelete: "set null",
 	}),
 	status: text("status").notNull().default("active"), // "active" | "finished"
+	// Módulo de sorteo opt-in por liga (Opción 2 — feature premium).
+	// Si false, los endpoints de /scheduling/* retornan 400 y la UI no lo muestra.
+	schedulingEnabled: boolean("scheduling_enabled").notNull().default(false),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -358,12 +361,24 @@ export const matches = pgTable(
 		homeScore: integer("home_score").notNull().default(0),
 		awayScore: integer("away_score").notNull().default(0),
 		notes: text("notes"),
+		// --- Módulo de sorteo (campos nuevos) ---
+		// FK a matchdays.id. Nullable durante transición desde legacy.
+		// El campo `matchday: integer` queda como @deprecated; leer desde matchdays.number.
+		matchdayId: uuid("matchday_id").references(() => matchdays.id, { onDelete: "set null" }),
+		venueId: uuid("venue_id").references(() => venues.id, { onDelete: "set null" }),
+		// Fecha + hora exacta del partido (timezone de la organización).
+		kickoffAt: timestamp("kickoff_at", { withTimezone: true }),
+		// true = partido de recuperación generado por makeup-builder
+		isMakeup: boolean("is_makeup").notNull().default(false),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
 		index("matches_league_idx").on(t.leagueId),
 		index("matches_date_idx").on(t.matchDate),
 		index("matches_status_idx").on(t.status),
+		index("matches_matchday_idx").on(t.matchdayId),
+		index("matches_venue_idx").on(t.venueId),
+		index("matches_kickoff_idx").on(t.kickoffAt),
 	],
 );
 
@@ -482,6 +497,15 @@ export const leaguesRelations = relations(leagues, ({ one, many }) => ({
 	matches: many(matches),
 	registrations: many(playerRegistrations),
 	leagueMembers: many(leagueMembers),
+	// Módulo de sorteo
+	schedulingConfig: one(leagueSchedulingConfig, {
+		fields: [leagues.id],
+		references: [leagueSchedulingConfig.leagueId],
+	}),
+	leagueVenues: many(leagueVenues),
+	matchdays: many(matchdays),
+	restRequests: many(teamRestRequests),
+	purchasedTimeslots: many(teamPurchasedTimeslots),
 }));
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
@@ -529,6 +553,20 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
 		relationName: "awayTeam",
 	}),
 	events: many(matchEvents),
+	// Módulo de sorteo
+	matchday: one(matchdays, {
+		fields: [matches.matchdayId],
+		references: [matchdays.id],
+	}),
+	venue: one(venues, {
+		fields: [matches.venueId],
+		references: [venues.id],
+	}),
+	makeupRecord: one(makeupMatches, {
+		fields: [matches.id],
+		references: [makeupMatches.matchId],
+	}),
+	overrides: many(matchScheduleOverrides),
 }));
 
 export const matchEventsRelations = relations(matchEvents, ({ one }) => ({
@@ -862,6 +900,303 @@ export const importAuditLogRelations = relations(importAuditLog, ({ one }) => ({
 
 export type ImportAuditLog = typeof importAuditLog.$inferSelect;
 export type NewImportAuditLog = typeof importAuditLog.$inferInsert;
+
+// ===========================================================================
+// MÓDULO DE SORTEO Y CALENDARIZACIÓN (opt-in por liga)
+// Documentación: docs/scheduling-plan.md
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// VENUES — Canchas físicas disponibles para una organización
+// ---------------------------------------------------------------------------
+export const venues = pgTable(
+	"venues",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		name: text("name").notNull(),
+		// Generado con sanitizeToCanonical(). Usado para unicidad dentro de la org.
+		nameCanonical: text("name_canonical").notNull(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		city: text("city"),
+		notes: text("notes"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		unique("uq_venues_org_canonical").on(t.organizationId, t.nameCanonical),
+		index("venues_org_idx").on(t.organizationId),
+	],
+);
+
+export type Venue = typeof venues.$inferSelect;
+export type NewVenue = typeof venues.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// LEAGUE_SCHEDULING_CONFIG — Parámetros de calendarización por liga (1:1)
+// ---------------------------------------------------------------------------
+export const leagueSchedulingConfig = pgTable("league_scheduling_config", {
+	leagueId: uuid("league_id")
+		.primaryKey()
+		.references(() => leagues.id, { onDelete: "cascade" }),
+	// Default: teamsCount - 1 (single round-robin). Editable.
+	regularMatchdays: integer("regular_matchdays").notNull(),
+	// "single" | "double" — MVP solo implementa "single"
+	regularFormat: text("regular_format").notNull().default("single"),
+	matchDurationMinutes: integer("match_duration_minutes").notNull().default(50),
+	bufferMinutes: integer("buffer_minutes").notNull().default(0),
+	// Si true, permite swaps manuales que generarían un par repetido en regular
+	allowDuplicateMatchups: boolean("allow_duplicate_matchups").notNull().default(false),
+	// Seed del último sorteo generado. Mismo seed → mismo resultado.
+	lastSeed: integer("last_seed"),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type LeagueSchedulingConfig = typeof leagueSchedulingConfig.$inferSelect;
+export type NewLeagueSchedulingConfig = typeof leagueSchedulingConfig.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// LEAGUE_VENUES — Pivote: qué canchas usa una liga y con qué prioridad
+// ---------------------------------------------------------------------------
+export const leagueVenues = pgTable(
+	"league_venues",
+	{
+		leagueId: uuid("league_id")
+			.notNull()
+			.references(() => leagues.id, { onDelete: "cascade" }),
+		venueId: uuid("venue_id")
+			.notNull()
+			.references(() => venues.id, { onDelete: "cascade" }),
+		// Menor número = el slot assigner la llena primero
+		priority: integer("priority").notNull().default(1),
+	},
+	(t) => [unique("uq_league_venue").on(t.leagueId, t.venueId)],
+);
+
+export type LeagueVenue = typeof leagueVenues.$inferSelect;
+export type NewLeagueVenue = typeof leagueVenues.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// VENUE_TIME_WINDOWS — Banda horaria de una cancha para una liga
+// Permite múltiples ventanas por cancha/día (ej. mañana y noche).
+// ---------------------------------------------------------------------------
+export const venueTimeWindows = pgTable(
+	"venue_time_windows",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		leagueId: uuid("league_id")
+			.notNull()
+			.references(() => leagues.id, { onDelete: "cascade" }),
+		venueId: uuid("venue_id")
+			.notNull()
+			.references(() => venues.id, { onDelete: "cascade" }),
+		dayOfWeek: text("day_of_week").notNull(), // "lunes" | "martes" | ...
+		startTime: text("start_time").notNull(), // "19:40"
+		endTime: text("end_time").notNull(), // "22:10"
+		isActive: boolean("is_active").notNull().default(true),
+	},
+	(t) => [index("vtw_league_idx").on(t.leagueId), index("vtw_venue_idx").on(t.venueId)],
+);
+
+export type VenueTimeWindow = typeof venueTimeWindows.$inferSelect;
+export type NewVenueTimeWindow = typeof venueTimeWindows.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// MATCHDAYS — Jornada explícita de una liga
+// ---------------------------------------------------------------------------
+export const matchdays = pgTable(
+	"matchdays",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		leagueId: uuid("league_id")
+			.notNull()
+			.references(() => leagues.id, { onDelete: "cascade" }),
+		number: integer("number").notNull(),
+		phase: text("phase").notNull().default("regular"), // "regular" | "playoff"
+		scheduledDate: date("scheduled_date").notNull(),
+		status: text("status").notNull().default("draft"), // "draft" | "published" | "in_progress" | "completed"
+		notes: text("notes"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		unique("uq_matchday_league_number").on(t.leagueId, t.number),
+		index("matchdays_league_idx").on(t.leagueId),
+		check("chk_matchday_phase", drizzleSql`${t.phase} IN ('regular','playoff')`),
+		check(
+			"chk_matchday_status",
+			drizzleSql`${t.status} IN ('draft','published','in_progress','completed')`,
+		),
+	],
+);
+
+export type Matchday = typeof matchdays.$inferSelect;
+export type NewMatchday = typeof matchdays.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// TEAM_REST_REQUESTS — Equipos que solicitan descanso en una jornada (S3)
+// ---------------------------------------------------------------------------
+export const teamRestRequests = pgTable(
+	"team_rest_requests",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		teamId: uuid("team_id")
+			.notNull()
+			.references(() => teams.id, { onDelete: "cascade" }),
+		leagueId: uuid("league_id")
+			.notNull()
+			.references(() => leagues.id, { onDelete: "cascade" }),
+		matchdayNumber: integer("matchday_number").notNull(),
+		reason: text("reason"),
+		requestedAt: timestamp("requested_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		unique("uq_team_rest").on(t.teamId, t.leagueId, t.matchdayNumber),
+		index("trr_league_matchday_idx").on(t.leagueId, t.matchdayNumber),
+	],
+);
+
+export type TeamRestRequest = typeof teamRestRequests.$inferSelect;
+export type NewTeamRestRequest = typeof teamRestRequests.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// TEAM_PURCHASED_TIMESLOTS — Horario comprado por equipo para la temporada (S7)
+// Hard constraint para el slot assigner.
+// ---------------------------------------------------------------------------
+export const teamPurchasedTimeslots = pgTable(
+	"team_purchased_timeslots",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		teamId: uuid("team_id")
+			.notNull()
+			.references(() => teams.id, { onDelete: "cascade" }),
+		leagueId: uuid("league_id")
+			.notNull()
+			.references(() => leagues.id, { onDelete: "cascade" }),
+		startTime: text("start_time").notNull(), // "18:50" — hora local de la org
+		// Si compró cancha específica; null = cualquier cancha activa
+		venueId: uuid("venue_id").references(() => venues.id, { onDelete: "set null" }),
+		activeFromDate: date("active_from_date").notNull(),
+		// null = vigente toda la temporada
+		endMatchdayNumber: integer("end_matchday_number"),
+		notes: text("notes"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		unique("uq_team_purchased").on(t.teamId, t.leagueId),
+		index("tpt_team_idx").on(t.teamId),
+		index("tpt_league_idx").on(t.leagueId),
+	],
+);
+
+export type TeamPurchasedTimeslot = typeof teamPurchasedTimeslots.$inferSelect;
+export type NewTeamPurchasedTimeslot = typeof teamPurchasedTimeslots.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// MAKEUP_MATCHES — Tracking de partidos de recuperación para equipos late (S2)
+// ---------------------------------------------------------------------------
+export const makeupMatches = pgTable(
+	"makeup_matches",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		matchId: uuid("match_id")
+			.notNull()
+			.references(() => matches.id, { onDelete: "cascade" }),
+		teamId: uuid("team_id")
+			.notNull()
+			.references(() => teams.id, { onDelete: "cascade" }),
+		originalMatchdayNumber: integer("original_matchday_number"),
+		reason: text("reason"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("mm_team_idx").on(t.teamId), index("mm_match_idx").on(t.matchId)],
+);
+
+export type MakeupMatch = typeof makeupMatches.$inferSelect;
+export type NewMakeupMatch = typeof makeupMatches.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// MATCH_SCHEDULE_OVERRIDES — Audit log de cambios manuales sobre partidos (S6)
+// No es tabla de estado; es de historia. El estado vive en `matches`.
+// ---------------------------------------------------------------------------
+export const matchScheduleOverrides = pgTable(
+	"match_schedule_overrides",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		matchId: uuid("match_id")
+			.notNull()
+			.references(() => matches.id, { onDelete: "cascade" }),
+		changedBy: uuid("changed_by").references(() => users.id, { onDelete: "set null" }),
+		// "time" | "venue" | "team_swap" | "matchday"
+		changeType: text("change_type").notNull(),
+		previousValue: jsonb("previous_value").notNull(), // snapshot del estado anterior
+		newValue: jsonb("new_value").notNull(),
+		reason: text("reason"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("mso_match_idx").on(t.matchId), index("mso_changed_by_idx").on(t.changedBy)],
+);
+
+export type MatchScheduleOverride = typeof matchScheduleOverrides.$inferSelect;
+export type NewMatchScheduleOverride = typeof matchScheduleOverrides.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// RELATIONS — Módulo de sorteo
+// ---------------------------------------------------------------------------
+export const venuesRelations = relations(venues, ({ one, many }) => ({
+	organization: one(organizations, {
+		fields: [venues.organizationId],
+		references: [organizations.id],
+	}),
+	leagueVenues: many(leagueVenues),
+	timeWindows: many(venueTimeWindows),
+	purchasedSlots: many(teamPurchasedTimeslots),
+}));
+
+export const leagueSchedulingConfigRelations = relations(leagueSchedulingConfig, ({ one }) => ({
+	league: one(leagues, {
+		fields: [leagueSchedulingConfig.leagueId],
+		references: [leagues.id],
+	}),
+}));
+
+export const leagueVenuesRelations = relations(leagueVenues, ({ one }) => ({
+	league: one(leagues, { fields: [leagueVenues.leagueId], references: [leagues.id] }),
+	venue: one(venues, { fields: [leagueVenues.venueId], references: [venues.id] }),
+}));
+
+export const venueTimeWindowsRelations = relations(venueTimeWindows, ({ one }) => ({
+	league: one(leagues, { fields: [venueTimeWindows.leagueId], references: [leagues.id] }),
+	venue: one(venues, { fields: [venueTimeWindows.venueId], references: [venues.id] }),
+}));
+
+export const matchdaysRelations = relations(matchdays, ({ one, many }) => ({
+	league: one(leagues, { fields: [matchdays.leagueId], references: [leagues.id] }),
+	matches: many(matches),
+}));
+
+export const teamRestRequestsRelations = relations(teamRestRequests, ({ one }) => ({
+	team: one(teams, { fields: [teamRestRequests.teamId], references: [teams.id] }),
+	league: one(leagues, { fields: [teamRestRequests.leagueId], references: [leagues.id] }),
+}));
+
+export const teamPurchasedTimeslotsRelations = relations(teamPurchasedTimeslots, ({ one }) => ({
+	team: one(teams, { fields: [teamPurchasedTimeslots.teamId], references: [teams.id] }),
+	league: one(leagues, { fields: [teamPurchasedTimeslots.leagueId], references: [leagues.id] }),
+	venue: one(venues, { fields: [teamPurchasedTimeslots.venueId], references: [venues.id] }),
+}));
+
+export const makeupMatchesRelations = relations(makeupMatches, ({ one }) => ({
+	match: one(matches, { fields: [makeupMatches.matchId], references: [matches.id] }),
+	team: one(teams, { fields: [makeupMatches.teamId], references: [teams.id] }),
+}));
+
+export const matchScheduleOverridesRelations = relations(matchScheduleOverrides, ({ one }) => ({
+	match: one(matches, { fields: [matchScheduleOverrides.matchId], references: [matches.id] }),
+	changedBy: one(users, {
+		fields: [matchScheduleOverrides.changedBy],
+		references: [users.id],
+	}),
+}));
 
 export const EVENT_TYPES = [
 	"goal",
