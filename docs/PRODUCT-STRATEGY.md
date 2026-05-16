@@ -203,3 +203,50 @@ Ante cualquier feature propuesta, preguntar en orden:
 5. ¿Hay 10 ligas pidiéndolo? (Si no, no construir aún.)
 
 Si pasa los cinco filtros, construir.
+
+---
+
+## 11. Módulo de sorteo y calendarización
+
+> Actualizado 2026-05. Implementación completa en `src/features/scheduling/`.
+
+### Posicionamiento
+
+Feature **opt-in por liga** (`leagues.scheduling_enabled`). No bloquea el flujo base de Excel→stats. El organizador la activa cuando quiere reemplazar su sorteo manual de WhatsApp.
+
+### Restricciones de negocio (S1–S7)
+
+| ID  | Nombre              | Qué garantiza                                                                  |
+| --- | ------------------- | ------------------------------------------------------------------------------ |
+| S1  | Reproducibilidad    | Mismo seed → mismo sorteo. Seed guardado en `leagueSchedulingConfig.lastSeed`. |
+| S2  | Equipos tardíos     | Equipos que entran después de J1 reciben jornadas de recuperación automáticas. |
+| S3  | Descanso solicitado | Un equipo puede pedir descanso en una jornada específica.                      |
+| S4  | Sin duplicados      | Ningún par se enfrenta más de una vez en fase regular.                         |
+| S5  | BYE en N impar      | Si los equipos son impares, una jornada tiene un slot BYE.                     |
+| S6  | Overrides manuales  | El admin puede mover hora, cancha o equipo después de confirmar el sorteo.     |
+| S7  | Slots comprados     | Un equipo puede comprar un horario fijo. Hard constraint para el asignador.    |
+
+### Arquitectura de dos capas (ambas puras, sin DB)
+
+```
+Capa 1 — Pairing Generator:  circle-method → apply-rests → validate-no-duplicates
+Capa 2 — Slot Assigner:      build-slots → conflict-detector → assign-greedy
+```
+
+La persistencia ocurre una sola vez en `POST /schedule/confirm` dentro de una transacción atómica.
+
+### Flujo de uso
+
+1. Owner activa el módulo por liga (`scheduling-toggle`)
+2. Admin configura venues, ventanas horarias y config del sorteo
+3. Admin/equipos registran descansos y slots comprados
+4. Admin hace preview (sin persistir) → confirma → overrides manuales si aplica
+5. Equipos tardíos → `POST /makeup` genera jornadas de recuperación
+
+### Lo que no hace el MVP
+
+- ❌ Formato doble (vuelta) — rechazado con 400 si se intenta
+- ❌ Playoffs — schema preparado, generador pendiente
+- ❌ Notificaciones push al confirmar
+- ❌ Exportación PDF/Excel del sorteo
+- ❌ Solver LP para optimización multi-cancha

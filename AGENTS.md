@@ -357,3 +357,35 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 - **El "corte semanal" (lun/mar) es el evento clave** — toda la generación de contenido (Capa 2) se dispara después de la importación bulk
 - **Ciudades están predefinidas** en `shared/lib/cities.ts`. No hardcodees ciudades
 - **`jornada` es un integer de negocio**, no una fecha — representa la ronda de la liga
+
+---
+
+## 14. Módulo de sorteo — reglas para agentes
+
+> Ver `docs/PRODUCT-STRATEGY.md §11` para el contexto de producto y `src/features/scheduling/README.md` para la arquitectura técnica detallada.
+
+### Restricciones que nunca se pueden violar
+
+- **S4** (sin duplicados en fase regular) se aplica en dos lugares: `validate-no-duplicates.ts` en runtime y el índice parcial `uq_regular_pair` en la DB. Ambos deben mantenerse sincronizados.
+- **El seed siempre se guarda** en `leagueSchedulingConfig.lastSeed` al confirmar. Nunca confirmar sin persistir el seed.
+- **BYE no es un partido**. Pairings con `awayTeamId === null` nunca se insertan en `matches`.
+- **`isMakeup: true`** solo se pone en partidos generados por `build-makeup-matches.ts`. No mezclar con partidos regulares.
+
+### Dónde vive cada responsabilidad
+
+| Qué necesitas hacer                         | Archivo correcto                                    |
+| ------------------------------------------- | --------------------------------------------------- |
+| Cambiar el algoritmo de emparejamiento      | `pairing-generator/circle-method.ts`                |
+| Cambiar cómo se aplican los descansos       | `pairing-generator/apply-rest-requests.ts`          |
+| Cambiar la generación de slots              | `slot-assigner/build-slots.ts`                      |
+| Cambiar la prioridad de asignación de slots | `slot-assigner/assign-greedy.ts`                    |
+| Agregar un tipo nuevo de override           | `overrides/` + nuevo `changeType` en `CHANGE_TYPES` |
+| Cambiar la lógica de déficit                | `makeup/detect-deficit.ts`                          |
+| Cambiar qué se persiste al confirmar        | `app/api/leagues/[id]/schedule/confirm/route.ts`    |
+
+### Reglas de contribución
+
+- Las funciones de `pairing-generator/` y `slot-assigner/` son **puras** (sin imports de `@/db`). Si necesitas agregar una consulta, hazla en el endpoint o en una función entity separada y pasa el resultado como argumento.
+- Todo override registra un snapshot en `match_schedule_overrides`. Si agregas un nuevo tipo de cambio, incluye siempre `previousValue` y `newValue`.
+- Las jornadas makeup se numeran secuencialmente después de la última regular. No hardcodear números de jornada.
+- El formato `"double"` (vuelta y vuelta) devuelve 400 hasta que se implemente el generador correspondiente. No eliminar esa validación silenciosamente.
