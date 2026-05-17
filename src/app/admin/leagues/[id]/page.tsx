@@ -124,13 +124,13 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 												>
 													<td className="px-3 py-2 text-ink-2">{i + 1}</td>
 													<td className="px-3 py-2 font-medium text-ink">{s.teamName}</td>
-													<td className="px-3 py-2 text-center">{s.played}</td>
+													<td className="px-3 py-2 text-center text-ink">{s.played}</td>
 													<td className="px-3 py-2 text-center text-brand">{s.wins}</td>
 													<td className="px-3 py-2 text-center text-ink-2">{s.draws}</td>
 													<td className="px-3 py-2 text-center text-red-500">{s.losses}</td>
-													<td className="px-3 py-2 text-center">{s.goalsFor}</td>
-													<td className="px-3 py-2 text-center">{s.goalsAgainst}</td>
-													<td className="px-3 py-2 text-center">
+													<td className="px-3 py-2 text-center text-ink">{s.goalsFor}</td>
+													<td className="px-3 py-2 text-center text-ink">{s.goalsAgainst}</td>
+													<td className="px-3 py-2 text-center text-ink">
 														{s.goalDifference > 0 ? `+${s.goalDifference}` : s.goalDifference}
 													</td>
 													<td className="px-3 py-2 text-center font-bold text-ink">{s.points}</td>

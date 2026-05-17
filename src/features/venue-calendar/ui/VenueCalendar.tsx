@@ -1,17 +1,21 @@
+/* eslint-disable react-hooks/refs */
 "use client";
 
 /**
  * features/venue-calendar/ui/VenueCalendar.tsx
- * Orquestador del calendario de canchas. ≤ 80 líneas.
- * Toda la lógica vive en useVenueCalendar.
+ * Orquestador del calendario de canchas.
+ * Motor: FullCalendar (timeGrid + interaction). Diseño: mockup profesional.
  */
 
-import { useMemo } from "react";
+import FullCalendar from "@fullcalendar/react";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import type { DateSelectArg, EventClickArg } from "@fullcalendar/core";
+import type { RefObject } from "react";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
-import { useVenueCalendar, addDays } from "../model/useVenueCalendar";
+import { useVenueCalendar } from "../model/useVenueCalendar";
 import { VenueSelector } from "./VenueSelector";
 import { SummaryStrip } from "./SummaryStrip";
-import { CalendarGrid } from "./CalendarGrid";
 import { RentalModal } from "./RentalModal";
 import { EventPopover } from "./EventPopover";
 import type { VenueEvent, VenueSummary } from "../types";
@@ -27,33 +31,38 @@ const LEGEND = [
 
 export function VenueCalendar({ venues }: Props) {
 	const cal = useVenueCalendar(venues[0]!.id);
-	const today = useMemo(() => new Date(), []);
 
-	const weekLabel = useMemo(() => {
-		const end = addDays(cal.weekStart, 6);
-		const month = (d: Date) => d.toLocaleDateString("es-MX", { month: "long" });
-		if (cal.weekStart.getMonth() === end.getMonth())
-			return `${cal.weekStart.getDate()} – ${end.getDate()} de ${month(cal.weekStart)} ${end.getFullYear()}`;
-		return `${cal.weekStart.getDate()} ${month(cal.weekStart)} – ${end.getDate()} ${month(end)} ${end.getFullYear()}`;
-	}, [cal.weekStart]);
-
-	function onEventClick(ev: VenueEvent, el: HTMLElement) {
-		cal.popover.open(ev, el);
+	function onEventClick(arg: EventClickArg): void {
+		const venueEvent = arg.event.extendedProps.venueEvent as VenueEvent;
+		cal.popover.open(venueEvent, arg.el as HTMLElement);
 	}
 
-	function onSelectRange(start: string, end: string) {
-		cal.modal.openCreate(start, end);
+	function onSelect(arg: DateSelectArg): void {
+		cal.modal.openCreate(arg.startStr, arg.endStr);
+	}
+
+	function goPrev(): void {
+		cal.calendarRef.current?.getApi().prev();
+	}
+	function goNext(): void {
+		cal.calendarRef.current?.getApi().next();
+	}
+	function goToday(): void {
+		cal.calendarRef.current?.getApi().today();
+	}
+	function changeView(v: "week" | "day"): void {
+		cal.calendarRef.current?.getApi().changeView(v === "week" ? "timeGridWeek" : "timeGridDay");
 	}
 
 	return (
 		<div className="space-y-4">
-			<SummaryStrip events={cal.events} />
+			<SummaryStrip events={cal.displayEvents} />
 
 			<section
 				className="rounded-xl border border-line overflow-hidden"
 				style={{ background: "var(--color-surface)" }}
 			>
-				{/* Panel head: venue selector + legend + view toggle */}
+				{/* Panel head: venue selector + leyenda + control de vista */}
 				<div className="px-4 py-3 border-b border-line flex items-center justify-between gap-3 flex-wrap">
 					<div className="flex items-center gap-3 flex-wrap">
 						<VenueSelector
@@ -82,7 +91,7 @@ export function VenueCalendar({ venues }: Props) {
 						{(["week", "day"] as const).map((v) => (
 							<button
 								key={v}
-								onClick={() => cal.setView(v)}
+								onClick={() => changeView(v)}
 								className="px-3 py-1 rounded-md text-[12px] font-medium transition-colors"
 								style={
 									cal.view === v
@@ -96,11 +105,11 @@ export function VenueCalendar({ venues }: Props) {
 					</div>
 				</div>
 
-				{/* Toolbar: week navigation */}
+				{/* Toolbar: navegación + título de semana */}
 				<div className="px-4 py-3 border-b border-line flex items-center justify-between gap-3 flex-wrap">
 					<div className="flex items-center gap-2">
 						<button
-							onClick={() => cal.setWeekStart(addDays(cal.weekStart, -7))}
+							onClick={goPrev}
 							aria-label="Semana anterior"
 							className="w-8 h-8 grid place-items-center rounded-lg border border-line text-ink-2 hover:text-ink hover:border-ink-3 transition-colors"
 							style={{ background: "var(--color-surface-2)" }}
@@ -108,7 +117,7 @@ export function VenueCalendar({ venues }: Props) {
 							<ChevronLeft size={15} />
 						</button>
 						<button
-							onClick={() => cal.setWeekStart(addDays(cal.weekStart, 7))}
+							onClick={goNext}
 							aria-label="Semana siguiente"
 							className="w-8 h-8 grid place-items-center rounded-lg border border-line text-ink-2 hover:text-ink hover:border-ink-3 transition-colors"
 							style={{ background: "var(--color-surface-2)" }}
@@ -116,32 +125,56 @@ export function VenueCalendar({ venues }: Props) {
 							<ChevronRight size={15} />
 						</button>
 						<button
-							onClick={() => cal.setWeekStart(addDays(today, 0))}
+							onClick={goToday}
 							className="px-3 py-1.5 rounded-lg text-[13px] border border-line text-ink-2 hover:text-ink hover:bg-surface-2 transition-colors"
 						>
 							Hoy
 						</button>
 					</div>
 					<span className="text-ink font-display font-semibold text-xl capitalize">
-						{weekLabel}
+						{cal.viewTitle}
 					</span>
 					<div className="flex items-center gap-1.5 text-[12px] text-ink-2">
 						<Info size={13} /> Arrastra sobre un espacio libre para crear una renta
 					</div>
 				</div>
 
-				{/* Calendar grid */}
-				<CalendarGrid
-					events={cal.events}
-					weekStart={cal.weekStart}
-					today={today}
-					activeEventId={cal.popover.event?.id}
-					onSelectRange={onSelectRange}
-					onEventClick={onEventClick}
-				/>
+				{/* FullCalendar */}
+				<div className="vcal-fc-wrap">
+					{/*
+				  calendarRef: el hook usa CalendarHandle (duck-type) para no importar FullCalendar.
+				  El cast es seguro — React asigna la instancia real de FullCalendar en ref.current.
+				*/}
+					<FullCalendar
+						ref={cal.calendarRef as unknown as RefObject<FullCalendar>}
+						plugins={[timeGridPlugin, interactionPlugin]}
+						headerToolbar={false}
+						initialView="timeGridWeek"
+						locale="es"
+						firstDay={1}
+						slotMinTime="06:00:00"
+						slotMaxTime="24:00:00"
+						slotDuration="00:30:00"
+						slotLabelInterval="01:00:00"
+						slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
+						allDaySlot={false}
+						editable={true}
+						selectable={true}
+						selectMirror={true}
+						nowIndicator={true}
+						height="auto"
+						contentHeight={660}
+						events={cal.fetchEvents}
+						datesSet={cal.onDatesSet}
+						select={onSelect}
+						eventClick={onEventClick}
+						eventDrop={cal.handleDrop}
+						eventResize={cal.handleResize}
+					/>
+				</div>
 			</section>
 
-			{/* Bottom hint */}
+			{/* Hint inferior */}
 			<p className="text-[11px] text-ink-2 flex items-center gap-1.5">
 				<kbd className="bg-surface-2 border border-line rounded px-1.5 py-px text-[10px] text-ink">
 					Esc

@@ -2,28 +2,68 @@
 
 /**
  * features/venue-calendar/model/useVenueCalendar.ts
- * Custom hook — toda la lógica de estado del calendario de canchas.
- * Reemplaza FullCalendar por calendario custom con semana navegable.
+ * Custom hook — toda la lógica del calendario de canchas.
+ * Motor: FullCalendar (fetchEvents + calendarRef para navegación).
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, type RefObject } from "react";
+import type { EventInput } from "@fullcalendar/core";
 import type { VenueEvent, CreateRentalPayload, UpdateRentalPayload } from "../types";
+import { EVENT_COLORS } from "../constants";
 
-// ── Helpers de fecha ──────────────────────────────────────────────────────────
+// ── Tipos mínimos de FullCalendar (evita importar de @fullcalendar/react e interaction) ──
 
-function toWeekStart(d: Date): Date {
-	const date = new Date(d);
-	const day = date.getDay();
-	const diff = day === 0 ? -6 : 1 - day; // Lunes como inicio
-	date.setHours(0, 0, 0, 0);
-	date.setDate(date.getDate() + diff);
-	return date;
+/** API de FullCalendar que usamos para navegación y refetch */
+type CalendarApi = {
+	prev: () => void;
+	next: () => void;
+	today: () => void;
+	changeView: (view: string) => void;
+	refetchEvents: () => void;
+	view: { title: string; type: string };
+};
+/** Handle de la instancia FullCalendar expuesta por el ref */
+type CalendarHandle = { getApi: () => CalendarApi };
+
+/** Subset de DatesSetArg necesario en el hook */
+type DatesSetInfo = { view: { title: string; type: string } };
+
+/** Subset de EventDropArg necesario en el hook */
+type DropArg = {
+	event: { startStr: string; endStr: string | null; extendedProps: Record<string, unknown> };
+	revert: () => void;
+};
+
+/** Subset de EventResizeDoneArg necesario en el hook */
+type ResizeArg = {
+	event: { startStr: string; endStr: string; extendedProps: Record<string, unknown> };
+	revert: () => void;
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function toCalendarEvent(e: VenueEvent): EventInput {
+	const colors = EVENT_COLORS[e.type];
+	return {
+		id: e.id,
+		title: e.clientName ?? e.leagueName ?? e.title,
+		start: e.startAt,
+		end: e.endAt,
+		backgroundColor: colors.background,
+		borderColor: colors.border,
+		textColor: colors.text,
+		extendedProps: { venueEvent: e },
+	};
 }
 
-export function addDays(d: Date, n: number): Date {
-	const c = new Date(d);
-	c.setDate(c.getDate() + n);
-	return c;
+async function patchRental(id: string, payload: UpdateRentalPayload): Promise<boolean> {
+	const res = await fetch(`/api/venue-rentals/${id}`, {
+		method: "PATCH",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(payload),
+	});
+	const json = (await res.json()) as { ok: boolean };
+	return Boolean(json.ok);
 }
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -41,15 +81,19 @@ type PopoverState = {
 	anchorEl: HTMLElement | null;
 };
 
+type FetchInfo = { startStr: string; endStr: string };
+type SuccessCb = (events: EventInput[]) => void;
+type FailureCb = (error: Error) => void;
+
 export type UseVenueCalendarReturn = {
+	calendarRef: RefObject<CalendarHandle | null>;
+	fetchEvents: (info: FetchInfo, successCb: SuccessCb, failureCb: FailureCb) => void;
+	displayEvents: VenueEvent[];
 	selectedVenueId: string;
 	setSelectedVenueId: (id: string) => void;
-	events: VenueEvent[];
-	isLoading: boolean;
-	weekStart: Date;
-	setWeekStart: (d: Date) => void;
 	view: "week" | "day";
-	setView: (v: "week" | "day") => void;
+	viewTitle: string;
+	onDatesSet: (arg: DatesSetInfo) => void;
 	modal: ModalState & {
 		openCreate: (start: string, end: string) => void;
 		openEdit: (event: VenueEvent) => void;
@@ -62,6 +106,8 @@ export type UseVenueCalendarReturn = {
 	handleCreate: (payload: CreateRentalPayload) => Promise<void>;
 	handleUpdate: (id: string, payload: UpdateRentalPayload) => Promise<void>;
 	handleDelete: (id: string) => Promise<void>;
+	handleDrop: (arg: DropArg) => Promise<void>;
+	handleResize: (arg: ResizeArg) => Promise<void>;
 	isSaving: boolean;
 	error: string | null;
 };
@@ -69,12 +115,11 @@ export type UseVenueCalendarReturn = {
 // ── Hook principal ────────────────────────────────────────────────────────────
 
 export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn {
-	const [selectedVenueId, setSelectedVenueId] = useState(initialVenueId);
-	const [weekStart, setWeekStart] = useState<Date>(() => toWeekStart(new Date()));
+	const calendarRef = useRef<CalendarHandle | null>(null);
+	const [selectedVenueId, setSelectedVenueIdState] = useState(initialVenueId);
 	const [view, setView] = useState<"week" | "day">("week");
-
-	const [events, setEvents] = useState<VenueEvent[]>([]);
-	const [isLoading, setIsLoading] = useState(false);
+	const [viewTitle, setViewTitle] = useState("");
+	const [displayEvents, setDisplayEvents] = useState<VenueEvent[]>([]);
 	const [isSaving, setIsSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -91,28 +136,64 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 		anchorEl: null,
 	});
 
-	const loadEvents = useCallback(async (): Promise<void> => {
-		setIsLoading(true);
-		setError(null);
-		try {
-			const end = addDays(weekStart, 7);
-			const res = await fetch(
-				`/api/venues/${selectedVenueId}/events?start=${weekStart.toISOString()}&end=${end.toISOString()}`,
-			);
-			const json = await res.json();
-			if (!json.ok) throw new Error(json.error ?? "Error al cargar eventos");
-			setEvents(json.data as VenueEvent[]);
-		} catch (e) {
-			setError(e instanceof Error ? e.message : "Error inesperado");
-		} finally {
-			setIsLoading(false);
-		}
-	}, [selectedVenueId, weekStart]);
+	// FullCalendar events source — llamado por FC al cambiar el rango de fechas
+	const fetchEvents = useCallback(
+		(info: FetchInfo, successCb: SuccessCb, failureCb: FailureCb): void => {
+			fetch(`/api/venues/${selectedVenueId}/events?start=${info.startStr}&end=${info.endStr}`)
+				.then((res) => res.json())
+				.then((json: { ok: boolean; data: VenueEvent[]; error?: string }) => {
+					if (!json.ok) throw new Error(json.error ?? "Error al cargar eventos");
+					setDisplayEvents(json.data);
+					successCb(json.data.map(toCalendarEvent));
+				})
+				.catch((e: unknown) => {
+					failureCb(e instanceof Error ? e : new Error("Error inesperado"));
+				});
+		},
+		[selectedVenueId],
+	);
 
+	// Refetch automático al cambiar de cancha
 	useEffect(() => {
-		// eslint-disable-next-line react-hooks/set-state-in-effect
-		void loadEvents();
-	}, [loadEvents]);
+		calendarRef.current?.getApi().refetchEvents();
+	}, [selectedVenueId]);
+
+	function setSelectedVenueId(id: string): void {
+		setSelectedVenueIdState(id);
+	}
+
+	function onDatesSet(arg: DatesSetInfo): void {
+		setViewTitle(arg.view.title);
+		setView(arg.view.type === "timeGridDay" ? "day" : "week");
+	}
+
+	// Drag & drop — solo rentas editables; torneos revertan
+	async function handleDrop(arg: DropArg): Promise<void> {
+		const venueEvent = arg.event.extendedProps.venueEvent as VenueEvent;
+		if (!venueEvent.rentalId) {
+			arg.revert();
+			return;
+		}
+		const ok = await patchRental(venueEvent.rentalId, {
+			startAt: arg.event.startStr,
+			endAt: arg.event.endStr ?? undefined,
+		}).catch(() => false);
+		if (!ok) arg.revert();
+	}
+
+	// Resize — solo rentas
+	async function handleResize(arg: ResizeArg): Promise<void> {
+		const venueEvent = arg.event.extendedProps.venueEvent as VenueEvent;
+		if (!venueEvent.rentalId) {
+			arg.revert();
+			return;
+		}
+		const ok = await patchRental(venueEvent.rentalId, {
+			startAt: arg.event.startStr,
+			endAt: arg.event.endStr,
+		}).catch(() => false);
+		if (!ok) arg.revert();
+	}
 
 	async function handleCreate(payload: CreateRentalPayload): Promise<void> {
 		setIsSaving(true);
@@ -123,10 +204,10 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(payload),
 			});
-			const json = await res.json();
+			const json = (await res.json()) as { ok: boolean; error?: string };
 			if (!json.ok) throw new Error(json.error ?? "Error al crear renta");
 			setModal((m) => ({ ...m, isOpen: false }));
-			void loadEvents();
+			calendarRef.current?.getApi().refetchEvents();
 		} catch (e) {
 			setError(e instanceof Error ? e.message : "Error inesperado");
 		} finally {
@@ -143,11 +224,11 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(payload),
 			});
-			const json = await res.json();
+			const json = (await res.json()) as { ok: boolean; error?: string };
 			if (!json.ok) throw new Error(json.error ?? "Error al actualizar renta");
 			setModal((m) => ({ ...m, isOpen: false }));
 			setPopover((p) => ({ ...p, isOpen: false }));
-			void loadEvents();
+			calendarRef.current?.getApi().refetchEvents();
 		} catch (e) {
 			setError(e instanceof Error ? e.message : "Error inesperado");
 		} finally {
@@ -160,10 +241,10 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 		setError(null);
 		try {
 			const res = await fetch(`/api/venue-rentals/${id}`, { method: "DELETE" });
-			const json = await res.json();
+			const json = (await res.json()) as { ok: boolean; error?: string };
 			if (!json.ok) throw new Error(json.error ?? "Error al eliminar renta");
 			setPopover((p) => ({ ...p, isOpen: false }));
-			void loadEvents();
+			calendarRef.current?.getApi().refetchEvents();
 		} catch (e) {
 			setError(e instanceof Error ? e.message : "Error inesperado");
 		} finally {
@@ -172,14 +253,14 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 	}
 
 	return {
+		calendarRef,
+		fetchEvents,
+		displayEvents,
 		selectedVenueId,
 		setSelectedVenueId,
-		events,
-		isLoading,
-		weekStart,
-		setWeekStart,
 		view,
-		setView,
+		viewTitle,
+		onDatesSet,
 		modal: {
 			...modal,
 			openCreate: (start, end) =>
@@ -196,6 +277,8 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 		handleCreate,
 		handleUpdate,
 		handleDelete,
+		handleDrop,
+		handleResize,
 		isSaving,
 		error,
 	};

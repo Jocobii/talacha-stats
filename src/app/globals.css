@@ -211,12 +211,112 @@ body {
 	animation: vcal-spin 0.8s linear infinite;
 }
 
-.fc .fc-scrollgrid {
+/* ── FullCalendar dark theme ─────────────────────────────────────────────── */
+
+/* Grid borders */
+.vcal-fc-wrap .fc-theme-standard td,
+.vcal-fc-wrap .fc-theme-standard th,
+.vcal-fc-wrap .fc-theme-standard .fc-scrollgrid {
 	border-color: var(--color-line);
 }
 
-.fc .fc-highlight {
+/* Typography base */
+.vcal-fc-wrap .fc {
+	font-family: var(--font-body);
+	font-size: 13px;
+	color: var(--color-ink);
+}
+
+/* Day column headers */
+.vcal-fc-wrap .fc-col-header-cell {
+	background: var(--color-surface-2);
+	padding: 6px 0;
+}
+.vcal-fc-wrap .fc-col-header-cell-cushion {
+	color: var(--color-ink-2);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	text-decoration: none;
+}
+.vcal-fc-wrap .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
+	color: var(--color-brand);
+}
+
+/* Time slots */
+.vcal-fc-wrap .fc-timegrid-slot {
+	height: 28px;
+}
+.vcal-fc-wrap .fc-timegrid-slot-minor {
+	border-top-style: dashed;
+	border-top-color: rgba(42, 42, 42, 0.6);
+}
+.vcal-fc-wrap .fc-timegrid-slot-label {
+	color: var(--color-ink-3);
+	font-size: 11px;
+	vertical-align: top;
+	padding-top: 3px;
+}
+.vcal-fc-wrap .fc-timegrid-axis {
+	color: var(--color-ink-3);
+	font-size: 11px;
+}
+
+/* Today column highlight */
+.vcal-fc-wrap .fc-day-today {
+	background: rgba(0, 230, 118, 0.03) !important;
+}
+
+/* Now indicator */
+.vcal-fc-wrap .fc-timegrid-now-indicator-line {
+	border-color: var(--color-brand);
+}
+.vcal-fc-wrap .fc-timegrid-now-indicator-arrow {
+	border-top-color: var(--color-brand);
+	border-bottom-color: var(--color-brand);
+}
+
+/* Selection highlight (drag to create) */
+.vcal-fc-wrap .fc-highlight {
 	background: rgba(0, 230, 118, 0.1);
+	border: 1px dashed rgba(0, 230, 118, 0.4);
+}
+
+/* Events */
+.vcal-fc-wrap .fc-event {
+	border-radius: 6px;
+	border-width: 1px;
+	cursor: pointer;
+	transition: opacity 0.12s;
+}
+.vcal-fc-wrap .fc-event:hover {
+	opacity: 0.82;
+}
+.vcal-fc-wrap .fc-event-main {
+	padding: 2px 5px;
+}
+.vcal-fc-wrap .fc-event-title {
+	font-size: 11px;
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.vcal-fc-wrap .fc-event-time {
+	font-size: 10px;
+	opacity: 0.7;
+	margin-bottom: 1px;
+}
+
+/* Select mirror (ghost while dragging) */
+.vcal-fc-wrap .fc-event-mirror {
+	opacity: 0.6;
+}
+
+/* Event column padding */
+.vcal-fc-wrap .fc-timegrid-col-events {
+	margin: 0 2px;
 }
 
 /* Respeta prefers-reduced-motion */
