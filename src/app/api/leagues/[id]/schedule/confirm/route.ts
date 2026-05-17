@@ -149,9 +149,10 @@ export async function POST(request: Request, { params }: Params) {
 
 			if (!inserted) continue;
 
-			// 3. Insertar partidos reales (no BYE)
+			// 3. Insertar partidos reales (no BYE).
+			// Doble guarda: awayTeamId != null Y homeTeamId != null (loose, cubre undefined).
 			const matchValues = md.pairings
-				.filter((p) => p.awayTeamId !== null)
+				.filter((p) => p.homeTeamId != null && p.awayTeamId != null)
 				.map((p) => {
 					const key = pairingKey(p.homeTeamId, p.awayTeamId!);
 					const assigned = assignedByKey.get(key);

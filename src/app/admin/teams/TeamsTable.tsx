@@ -10,8 +10,10 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { AdminTable } from "@/shared/ui/AdminTable";
 import type { AdminTableColumn, AdminTablePagination } from "@/shared/ui/AdminTable";
+import { CreateTeamModal } from "@/features/team-management/ui/CreateTeamModal";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -102,14 +104,16 @@ function buildColumns(duplicateIds: Set<string>): AdminTableColumn<TeamRow>[] {
 type Props = {
 	rows: TeamRow[];
 	pagination?: AdminTablePagination;
-	leagueId: string; // para reload tras fusión
+	leagueId: string; // para reload tras fusión y creación
+	leagueName: string; // para mostrar en el modal de creación
 	emptyMessage: string;
 };
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
-export function TeamsTable({ rows, pagination, leagueId, emptyMessage }: Props) {
+export function TeamsTable({ rows, pagination, leagueId, leagueName, emptyMessage }: Props) {
 	const [mergeOpen, setMergeOpen] = useState(false);
+	const [createOpen, setCreateOpen] = useState(false);
 
 	const duplicateGroups = useMemo(() => detectDuplicateGroups(rows), [rows]);
 	const duplicateIds = useMemo(
@@ -119,8 +123,34 @@ export function TeamsTable({ rows, pagination, leagueId, emptyMessage }: Props) 
 
 	const columns = useMemo(() => buildColumns(duplicateIds), [duplicateIds]);
 
+	function handleCreateSuccess() {
+		setCreateOpen(false);
+		window.location.href = `/admin/teams?leagueId=${leagueId}`;
+	}
+
 	return (
 		<div className="space-y-4">
+			{/* Modal de creación */}
+			{createOpen && (
+				<CreateTeamModal
+					leagueId={leagueId}
+					leagueName={leagueName}
+					onSuccess={handleCreateSuccess}
+					onClose={() => setCreateOpen(false)}
+				/>
+			)}
+
+			{/* Toolbar: botón de nuevo equipo */}
+			<div className="flex justify-end">
+				<button
+					onClick={() => setCreateOpen(true)}
+					className="inline-flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg bg-brand text-white font-medium hover:bg-brand/90 transition"
+				>
+					<Plus size={15} strokeWidth={2.5} />
+					Nuevo equipo
+				</button>
+			</div>
+
 			{/* Aviso de duplicados detectados */}
 			{duplicateGroups.length > 0 && (
 				<div className="bg-yellow-950/40 border border-yellow-800/50 rounded-xl px-4 py-3 flex items-center justify-between gap-4">

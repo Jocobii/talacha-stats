@@ -35,14 +35,28 @@ function buildRound(rotation: (string | null)[], roundIndex: number): Pairing[] 
 	const half = rotation.length / 2;
 	const pairings: Pairing[] = [];
 	for (let i = 0; i < half; i++) {
-		const a = rotation[i]!;
+		const a = rotation[i] ?? null;
 		const b = rotation[rotation.length - 1 - i] ?? null;
 		const isEvenRound = roundIndex % 2 === 0;
-		pairings.push(
-			isEvenRound
-				? { homeTeamId: a, awayTeamId: b }
-				: { homeTeamId: b ?? a, awayTeamId: b === null ? null : a },
-		);
+
+		let home: string | null;
+		let away: string | null;
+
+		if (isEvenRound) {
+			home = a;
+			away = b;
+		} else {
+			home = b ?? a;
+			away = b === null ? null : a;
+		}
+
+		// Invariante: el BYE (null) siempre va en awayTeamId.
+		// Si null quedó en home por la rotación, se intercambia.
+		if (home === null && away !== null) {
+			[home, away] = [away, null];
+		}
+
+		pairings.push({ homeTeamId: home as string, awayTeamId: away });
 	}
 	return pairings;
 }

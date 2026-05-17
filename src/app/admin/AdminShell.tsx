@@ -31,6 +31,7 @@ import {
 	UserCog,
 	CheckCircle2,
 	MapPin,
+	CalendarDays,
 	LogOut,
 	Menu,
 	X,
@@ -128,6 +129,7 @@ export default function AdminShell({
 	const coreItems: NavItem[] = [
 		{ href: "/admin", label: "Dashboard", icon: Home, exact: true },
 		{ href: "/admin/import", label: "Importar jornada", icon: Upload },
+		{ href: "/admin/venues/calendar", label: "Calendario canchas", icon: CalendarDays },
 	];
 
 	const gestionItems: NavItem[] = isOwner

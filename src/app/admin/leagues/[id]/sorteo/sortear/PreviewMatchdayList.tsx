@@ -11,7 +11,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 type Pairing = {
 	matchdayNumber: number;
 	homeTeamId: string;
-	awayTeamId: string | null;
+	awayTeamId: string | null | undefined;
 };
 
 type Matchday = { number: number; pairings: Pairing[] };
@@ -70,7 +70,7 @@ export function PreviewMatchdayList({
 							{open && (
 								<div className="px-5 pb-3 space-y-1.5 bg-surface-2/30">
 									{md.pairings.map((p, i) => {
-										if (p.awayTeamId === null) {
+										if (p.awayTeamId == null) {
 											return (
 												<div key={i} className="flex items-center gap-2 text-sm text-ink-3 py-1">
 													<span className="font-mono text-xs bg-surface px-2 py-0.5 rounded">

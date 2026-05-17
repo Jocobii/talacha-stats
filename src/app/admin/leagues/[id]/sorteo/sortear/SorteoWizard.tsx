@@ -13,7 +13,7 @@ import { PreviewMatchdayList } from "./PreviewMatchdayList";
 type Pairing = {
 	matchdayNumber: number;
 	homeTeamId: string;
-	awayTeamId: string | null;
+	awayTeamId: string | null | undefined;
 };
 type Matchday = { number: number; pairings: Pairing[] };
 type Conflict = { teamId: string; message: string };
@@ -49,7 +49,8 @@ export function SorteoWizard({ leagueId, defaultStartDate, calendarHref, teamMap
 	const [preview, setPreview] = useState<PreviewResult | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
-	const teamName = (id: string) => teamMap[id] ?? id.slice(0, 8) + "…";
+	const teamName = (id: string | null | undefined) =>
+		id ? (teamMap[id] ?? id.slice(0, 8) + "…") : "—";
 	const busy = step === "previewing" || step === "confirming";
 
 	async function handlePreview() {

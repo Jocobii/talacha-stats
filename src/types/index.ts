@@ -318,3 +318,27 @@ export const MakeupBuildSchema = z.object({
 	maxFutureMatchdays: z.number().int().min(1).max(20).default(5),
 });
 export type MakeupBuildInput = z.infer<typeof MakeupBuildSchema>;
+
+// ===========================================================================
+// MÓDULO DE CALENDARIO DE CANCHAS — Schemas Zod (T_VC)
+// ===========================================================================
+
+export const CreateRentalSchema = z.object({
+	title: z.string().min(1).max(200),
+	startAt: z.string().datetime({ message: "Se requiere datetime ISO 8601 con timezone" }),
+	endAt: z.string().datetime({ message: "Se requiere datetime ISO 8601 con timezone" }),
+	status: z.enum(["confirmed", "tentative"]).default("confirmed"),
+	price: z.number().positive().nullable().optional(),
+	notes: z.string().max(1000).nullable().optional(),
+});
+export type CreateRentalInput = z.infer<typeof CreateRentalSchema>;
+
+export const UpdateRentalSchema = z.object({
+	title: z.string().min(1).max(200).optional(),
+	startAt: z.string().datetime().optional(),
+	endAt: z.string().datetime().optional(),
+	status: z.enum(["confirmed", "tentative", "cancelled"]).optional(),
+	price: z.number().positive().nullable().optional(),
+	notes: z.string().max(1000).nullable().optional(),
+});
+export type UpdateRentalInput = z.infer<typeof UpdateRentalSchema>;

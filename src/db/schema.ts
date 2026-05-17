@@ -11,6 +11,7 @@ import {
 	index,
 	jsonb,
 	check,
+	numeric,
 } from "drizzle-orm/pg-core";
 import { sql as drizzleSql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
@@ -1140,6 +1141,43 @@ export type MatchScheduleOverride = typeof matchScheduleOverrides.$inferSelect;
 export type NewMatchScheduleOverride = typeof matchScheduleOverrides.$inferInsert;
 
 // ---------------------------------------------------------------------------
+// VENUE_RENTALS — Rentas directas de canchas (fuera de torneos)
+// Gestiona el uso comercial de la cancha en huecos entre torneos.
+// ---------------------------------------------------------------------------
+export const RENTAL_STATUSES = ["confirmed", "tentative", "cancelled"] as const;
+export type RentalStatus = (typeof RENTAL_STATUSES)[number];
+
+export const venueRentals = pgTable(
+	"venue_rentals",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		venueId: uuid("venue_id")
+			.notNull()
+			.references(() => venues.id, { onDelete: "cascade" }),
+		// Nombre del cliente o descripción del evento
+		title: text("title").notNull(),
+		startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+		endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+		// Precio en MXN; null = no definido
+		price: numeric("price", { precision: 10, scale: 2 }),
+		status: text("status").notNull().default("confirmed").$type<RentalStatus>(),
+		notes: text("notes"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		index("vr_venue_idx").on(t.venueId),
+		index("vr_start_at_idx").on(t.startAt),
+		index("vr_status_idx").on(t.status),
+		check("chk_rental_status", drizzleSql`${t.status} IN ('confirmed','tentative','cancelled')`),
+		check("chk_rental_dates", drizzleSql`${t.endAt} > ${t.startAt}`),
+	],
+);
+
+export type VenueRental = typeof venueRentals.$inferSelect;
+export type NewVenueRental = typeof venueRentals.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // RELATIONS — Módulo de sorteo
 // ---------------------------------------------------------------------------
 export const venuesRelations = relations(venues, ({ one, many }) => ({
@@ -1150,6 +1188,14 @@ export const venuesRelations = relations(venues, ({ one, many }) => ({
 	leagueVenues: many(leagueVenues),
 	timeWindows: many(venueTimeWindows),
 	purchasedSlots: many(teamPurchasedTimeslots),
+	rentals: many(venueRentals),
+}));
+
+export const venueRentalsRelations = relations(venueRentals, ({ one }) => ({
+	venue: one(venues, {
+		fields: [venueRentals.venueId],
+		references: [venues.id],
+	}),
 }));
 
 export const leagueSchedulingConfigRelations = relations(leagueSchedulingConfig, ({ one }) => ({

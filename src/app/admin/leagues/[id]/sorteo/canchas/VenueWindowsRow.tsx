@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Plus, Trash2, Clock, ChevronDown, ChevronUp } from "lucide-react";
 import type { VenueForLeague } from "@/entities/venue/model";
 
-const DAYS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"] as const;
+const DAYS = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"] as const;
 
 type Window = VenueForLeague["windows"][number];
 

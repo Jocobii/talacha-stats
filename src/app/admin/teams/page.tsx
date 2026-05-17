@@ -8,7 +8,7 @@
 import { redirect } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
 import { Shield } from "lucide-react";
-import { db, leagues, teams, leagueMembers, inscriptions } from "@/db";
+import { db, leagues, teams, inscriptions } from "@/db";
 import { getSessionUser } from "@/shared/lib/auth";
 import { LeagueFilter } from "./LeagueFilter";
 import { TeamsTable } from "./TeamsTable";
@@ -123,6 +123,7 @@ export default async function TeamsPage({
 					<TeamsTable
 						rows={teamRows}
 						leagueId={leagueId}
+						leagueName={selectedLeague?.name ?? ""}
 						pagination={
 							total > DEFAULT_PAGE_SIZE
 								? buildPagination(page, total, "/admin/teams", {

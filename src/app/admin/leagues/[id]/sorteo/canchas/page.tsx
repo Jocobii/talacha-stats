@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
+import { CalendarDays } from "lucide-react";
 import { db } from "@/db";
 import { leagues } from "@/db/schema";
 import { getSessionUser } from "@/shared/lib/auth";
@@ -52,10 +53,20 @@ export default async function CanchasPage({ params }: Params) {
 				<Link href={`/admin/leagues/${id}/sorteo`} className="text-sm text-ink-2 hover:underline">
 					← Módulo de sorteo
 				</Link>
-				<h1 className="text-2xl font-bold text-ink mt-1">Canchas</h1>
-				<p className="text-ink-2 text-sm">
-					{league.name} — {league.season}
-				</p>
+				<div className="flex items-start justify-between gap-4 mt-1">
+					<div>
+						<h1 className="text-2xl font-bold text-ink">Canchas</h1>
+						<p className="text-ink-2 text-sm">
+							{league.name} — {league.season}
+						</p>
+					</div>
+					<Link
+						href="/admin/venues/calendar"
+						className="flex items-center gap-1.5 text-sm text-brand hover:underline shrink-0 mt-1"
+					>
+						<CalendarDays size={14} /> Ver calendario →
+					</Link>
+				</div>
 			</div>
 			<VenuesPanel
 				leagueId={id}
