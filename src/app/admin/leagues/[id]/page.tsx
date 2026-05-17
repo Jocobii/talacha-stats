@@ -55,6 +55,12 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
 							)}
 						</p>
 					</div>
+					<Link
+						href={`/admin/leagues/${id}/sorteo`}
+						className="flex items-center gap-1.5 text-sm text-ink-2 bg-surface-2 border border-line px-3 py-1.5 rounded-lg hover:bg-surface-3 transition-colors"
+					>
+						🗓 Sorteo
+					</Link>
 					<NewSeasonButton
 						leagueId={id}
 						leagueName={league.name}
