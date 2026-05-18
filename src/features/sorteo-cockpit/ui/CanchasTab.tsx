@@ -62,7 +62,9 @@ function VenueCard({ venue }: { venue: VenueOption }) {
 	);
 }
 
-export function CanchasTab({ leagueId: _leagueId, venues }: CanchasTabProps) {
+export function CanchasTab({ leagueId, venues }: CanchasTabProps) {
+	const canchasHref = `/admin/leagues/${leagueId}/sorteo/canchas`;
+
 	return (
 		<div style={{ padding: "18px 20px 24px" }}>
 			<div
@@ -90,13 +92,13 @@ export function CanchasTab({ leagueId: _leagueId, venues }: CanchasTabProps) {
 						style={{ fontSize: 12, color: "var(--color-ink-3)", marginTop: 4, lineHeight: 1.45 }}
 					>
 						El sorteo solo usará estas canchas y dentro de los horarios definidos.{" "}
-						<Link href="/admin/venues" style={{ color: "var(--color-brand)" }}>
-							Administrar pool →
+						<Link href={canchasHref} style={{ color: "var(--color-brand)" }}>
+							Configurar canchas →
 						</Link>
 					</div>
 				</div>
 				<Link
-					href="/admin/venues"
+					href={canchasHref}
 					style={{
 						display: "inline-flex",
 						alignItems: "center",
@@ -107,7 +109,7 @@ export function CanchasTab({ leagueId: _leagueId, venues }: CanchasTabProps) {
 					}}
 					className="btn-ghost"
 				>
-					<ExternalLink size={11} /> Ir a canchas
+					<ExternalLink size={11} /> Gestionar canchas
 				</Link>
 			</div>
 

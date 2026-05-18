@@ -13,14 +13,31 @@ export type VenueWithWindows = Venue & {
 	priority: number;
 };
 
-/** Venue con toda la información de liga */
+/** Venue con toda la información de liga (pantalla de asignación por liga) */
 export type VenueForLeague = {
 	id: string;
 	name: string;
+	address: string | null;
 	city: string | null;
+	color: string;
+	capacity: number;
 	notes: string | null;
 	priority: number;
 	windows: VenueTimeWindow[];
+};
+
+/** Liga compacta para la ficha de cancha en el pool global */
+export type VenueLeagueRef = {
+	id: string;
+	name: string;
+	season: string;
+};
+
+/** Venue enriquecido con agregaciones para el pool global /admin/canchas */
+export type VenueWithStats = Venue & {
+	ligasCount: number;
+	ligas: VenueLeagueRef[];
+	totalWindows: number;
 };
 
 export type NewVenue = {
@@ -28,5 +45,8 @@ export type NewVenue = {
 	nameCanonical: string;
 	organizationId: string;
 	city?: string;
+	address?: string;
+	capacity?: number;
+	color?: string;
 	notes?: string;
 };

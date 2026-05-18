@@ -45,6 +45,11 @@ import {
 import { cn } from "@/shared/lib/cn";
 import { MEXICO_CITIES } from "@/shared/lib/cities";
 
+// Badge "NUEVO" visible durante los primeros 14 días desde el release del módulo.
+const CANCHAS_RELEASE_DATE = new Date("2026-05-18");
+const CANCHAS_NUEVO_UNTIL = new Date(CANCHAS_RELEASE_DATE.getTime() + 14 * 24 * 60 * 60 * 1000);
+const showCanchasNuevo = new Date() < CANCHAS_NUEVO_UNTIL;
+
 type UserShape = {
 	id: string;
 	email: string;
@@ -129,6 +134,12 @@ export default function AdminShell({
 	const coreItems: NavItem[] = [
 		{ href: "/admin", label: "Dashboard", icon: Home, exact: true },
 		{ href: "/admin/import", label: "Importar jornada", icon: Upload },
+		{
+			href: "/admin/canchas",
+			label: "Canchas",
+			icon: MapPin,
+			badge: showCanchasNuevo ? "NUEVO" : undefined,
+		},
 		{ href: "/admin/venues/calendar", label: "Calendario canchas", icon: CalendarDays },
 	];
 

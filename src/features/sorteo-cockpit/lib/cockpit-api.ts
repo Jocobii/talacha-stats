@@ -16,8 +16,21 @@ type CurrentResponse = {
 
 type ApiResult<T> = { ok: boolean; data?: T };
 
+/** Fetch con timeout para evitar que el spinner quede colgado indefinidamente. */
+const COCKPIT_FETCH_TIMEOUT_MS = 15_000;
+
+async function timedFetch(url: string, init?: RequestInit): Promise<Response> {
+	const controller = new AbortController();
+	const id = setTimeout(() => controller.abort(), COCKPIT_FETCH_TIMEOUT_MS);
+	try {
+		return await fetch(url, { ...init, signal: controller.signal });
+	} finally {
+		clearTimeout(id);
+	}
+}
+
 export async function fetchCurrent(leagueId: string): Promise<CurrentResponse | null> {
-	const res = await fetch(`/api/leagues/${leagueId}/sorteo/current`);
+	const res = await timedFetch(`/api/leagues/${leagueId}/sorteo/current`);
 	const json = (await res.json()) as ApiResult<CurrentResponse>;
 	return json.ok && json.data ? json.data : null;
 }
@@ -26,7 +39,7 @@ export async function fetchRoster(
 	leagueId: string,
 	matchdayNumber: number,
 ): Promise<TeamWithAttendance[]> {
-	const res = await fetch(`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/roster`);
+	const res = await timedFetch(`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/roster`);
 	const json = (await res.json()) as ApiResult<{ teams: TeamWithAttendance[] }>;
 	return json.ok && json.data ? json.data.teams : [];
 }

@@ -107,6 +107,37 @@ export function CockpitPage({ leagueId, leagueName }: CockpitPageProps) {
 		);
 	}
 
+	if (state.loadError) {
+		return (
+			<div
+				style={{
+					display: "flex",
+					flexDirection: "column",
+					alignItems: "center",
+					justifyContent: "center",
+					height: "100%",
+					gap: 12,
+					background: "var(--color-pitch)",
+					fontFamily: "var(--font-body)",
+				}}
+			>
+				<span style={{ fontSize: 16, color: "var(--color-ink)" }}>No se pudo cargar el sorteo</span>
+				<span
+					style={{ fontSize: 12, color: "var(--color-ink-3)", maxWidth: 340, textAlign: "center" }}
+				>
+					{state.loadError}
+				</span>
+				<button
+					className="btn-ghost"
+					style={{ marginTop: 8 }}
+					onClick={() => void state.loadCurrent()}
+				>
+					Reintentar
+				</button>
+			</div>
+		);
+	}
+
 	return (
 		<div
 			style={{

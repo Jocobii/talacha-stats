@@ -214,8 +214,8 @@ export function apiSuccessPaginated<T>(
 	return Response.json({ ok: true, data, meta }, { status });
 }
 
-export function apiError(message: string, status = 400) {
-	return Response.json({ ok: false, error: message }, { status });
+export function apiError(message: string, status = 400, detail?: Record<string, unknown>) {
+	return Response.json({ ok: false, error: message, ...detail }, { status });
 }
 
 // ===========================================================================
@@ -232,10 +232,27 @@ export const SchedulingConfigSchema = z.object({
 });
 export type SchedulingConfigInput = z.infer<typeof SchedulingConfigSchema>;
 
+export const VENUE_COLORS = [
+	"#7C9CFF",
+	"#FBBF24",
+	"#F87171",
+	"#34D399",
+	"#A78BFA",
+	"#60A5FA",
+	"#F472B6",
+	"#FB923C",
+] as const;
+
 export const CreateVenueSchema = z.object({
-	name: z.string().min(2).max(100),
+	name: z.string().min(2).max(80),
 	organizationId: z.string().uuid(),
 	city: z.string().max(80).optional(),
+	address: z.string().max(200).optional(),
+	capacity: z.number().int().min(1).max(6).default(1),
+	color: z
+		.string()
+		.regex(/^#[0-9A-Fa-f]{6}$/, "Color debe ser hex válido (#RRGGBB)")
+		.default("#60A5FA"),
 	notes: z.string().max(500).optional(),
 });
 export type CreateVenueInput = z.infer<typeof CreateVenueSchema>;

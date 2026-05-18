@@ -5,7 +5,7 @@
 
 import { apiSuccess, apiError, CreateVenueSchema } from "@/types";
 import { getSessionUserFromRequest } from "@/shared/lib/auth";
-import { listVenuesByOrganization } from "@/entities/venue";
+import { listVenuesWithStats } from "@/entities/venue";
 import { createVenue } from "@/features/venue-management";
 
 export async function GET(request: Request) {
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 		return apiError("Sin permiso para ver estas canchas", 403);
 	}
 
-	const data = await listVenuesByOrganization(orgId);
+	const data = await listVenuesWithStats(orgId);
 	return apiSuccess(data);
 }
 

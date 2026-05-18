@@ -60,6 +60,10 @@ export async function DELETE(request: Request, { params }: Params) {
 	if (error) return error;
 
 	const result = await deleteVenue(id);
-	if (!result.ok) return apiError(result.error, result.status);
+	if (!result.ok) {
+		return apiError(result.error, result.status, {
+			affectedLeagues: result.affectedLeagues ?? [],
+		});
+	}
 	return apiSuccess({ deleted: true });
 }

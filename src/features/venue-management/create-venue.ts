@@ -42,6 +42,9 @@ export async function createVenue(input: CreateVenueInput): Promise<CreateVenueR
 			nameCanonical,
 			organizationId: input.organizationId,
 			city: input.city ?? null,
+			address: input.address ?? null,
+			capacity: input.capacity ?? 1,
+			color: input.color ?? "#60A5FA",
 			notes: input.notes ?? null,
 		})
 		.returning();

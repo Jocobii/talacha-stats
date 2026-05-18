@@ -921,6 +921,11 @@ export const venues = pgTable(
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		city: text("city"),
+		address: text("address"),
+		// Hex de identificación visible en cockpit, tarjetas y calendario (#RRGGBB).
+		color: text("color").notNull().default("#60A5FA"),
+		// Canchas paralelas disponibles (1–6). CHECK en migración 0025.
+		capacity: integer("capacity").notNull().default(1),
 		notes: text("notes"),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
@@ -1320,10 +1325,7 @@ export const playerGlobalStats = pgView("player_global_stats").as((qb) =>
 			playerProfiles,
 			drizzleSql`${playerProfiles.claimedPlayerId} = ${players.id} AND ${playerProfiles.claimStatus} = 'verified'`,
 		)
-		.leftJoin(
-			playerRegistrations,
-			drizzleSql`${playerRegistrations.playerProfileId} = ${playerProfiles.id}`,
-		)
+		.leftJoin(drizzleSql`${playerRegistrations.playerProfileId} = ${playerProfiles.id}`)
 		.leftJoin(
 			playerSeasonStats,
 			drizzleSql`${playerSeasonStats.playerProfileId} = ${playerProfiles.id}`,

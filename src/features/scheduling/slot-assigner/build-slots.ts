@@ -56,6 +56,10 @@ export function buildSlotsFromWindow(
 	durationMinutes: number,
 	bufferMinutes: number,
 ): TimeSlot[] {
+	// Guard: duración inválida o ventana invertida → sin slots
+	if (durationMinutes <= 0) return [];
+	if (toMinutes(openTime) >= toMinutes(closeTime)) return [];
+
 	const closeMin = toMinutes(closeTime);
 	const slots: TimeSlot[] = [];
 	let current = openTime;

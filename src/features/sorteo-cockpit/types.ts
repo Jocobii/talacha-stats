@@ -47,6 +47,7 @@ export type CockpitHookReturn = {
 	pairings: CockpitPairing[];
 	recentPairKeys: Set<string>;
 	loading: boolean;
+	loadError: string | null;
 	sortearLoading: boolean;
 	confirmLoading: boolean;
 	drawerOpen: boolean;

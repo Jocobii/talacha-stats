@@ -49,6 +49,9 @@ export async function updateVenue(id: string, input: UpdateVenueInput): Promise<
 	}
 
 	if (input.city !== undefined) patch.city = input.city;
+	if (input.address !== undefined) patch.address = input.address;
+	if (input.capacity !== undefined) patch.capacity = input.capacity;
+	if (input.color !== undefined) patch.color = input.color;
 	if (input.notes !== undefined) patch.notes = input.notes;
 
 	const [updated] = await db.update(venues).set(patch).where(eq(venues.id, id)).returning();

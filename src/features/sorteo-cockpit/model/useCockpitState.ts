@@ -26,6 +26,7 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 	const [pairings, setPairings] = useState<CockpitPairing[]>([]);
 	const [recentPairKeys, setRecentPairKeys] = useState<Set<string>>(new Set());
 	const [loading, setLoading] = useState(false);
+	const [loadError, setLoadError] = useState<string | null>(null);
 	const [sortearLoading, setSortearLoading] = useState(false);
 	const [confirmLoading, setConfirmLoading] = useState(false);
 	const [drawerOpen, setDrawerOpen] = useState(false);
@@ -39,6 +40,7 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 
 	const loadCurrent = useCallback(async () => {
 		setLoading(true);
+		setLoadError(null);
 		try {
 			const data = await fetchCurrent(leagueId);
 			if (!data) return;
@@ -48,6 +50,9 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 			setVenues(data.venues);
 			setConfig(data.config);
 			if (data.matchday) setTeams(await fetchRoster(leagueId, data.matchday.number));
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : "Error al cargar el sorteo";
+			setLoadError(msg);
 		} finally {
 			setLoading(false);
 		}
@@ -194,6 +199,7 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 		pairings,
 		recentPairKeys,
 		loading,
+		loadError,
 		sortearLoading,
 		confirmLoading,
 		drawerOpen,
