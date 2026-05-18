@@ -948,6 +948,9 @@ export const leagueSchedulingConfig = pgTable("league_scheduling_config", {
 	bufferMinutes: integer("buffer_minutes").notNull().default(0),
 	// Si true, permite swaps manuales que generarían un par repetido en regular
 	allowDuplicateMatchups: boolean("allow_duplicate_matchups").notNull().default(false),
+	// Número de jornadas cerradas/publicadas hacia atrás en las que no se permite
+	// repetir un enfrentamiento (S4 deslizante). Default: 3.
+	noRepeatWithin: integer("no_repeat_within").notNull().default(3),
 	// Seed del último sorteo generado. Mismo seed → mismo resultado.
 	lastSeed: integer("last_seed"),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

@@ -16,6 +16,12 @@ export { EmptyState } from "./EmptyState";
 export { Stepper } from "./Stepper";
 export { StatTile } from "./StatTile";
 
+// ── Sorteo Cockpit atoms ───────────────────────────────────────────────────────
+export { TeamBadge } from "./TeamBadge";
+export { StatusPill } from "./StatusPill";
+export { CheckPill } from "./CheckPill";
+export { TeamPicker } from "./TeamPicker";
+
 // ── Componentes existentes (sin cambios) ──────────────────────────────────────
 export { AdminTable } from "./AdminTable";
 export type { AdminTableColumn, AdminTableProps } from "./AdminTable";

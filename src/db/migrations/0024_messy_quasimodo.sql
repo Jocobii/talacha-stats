@@ -1,0 +1,1 @@
+ALTER TABLE "league_scheduling_config" ADD COLUMN "no_repeat_within" integer DEFAULT 3 NOT NULL;
