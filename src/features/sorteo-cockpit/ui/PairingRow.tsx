@@ -52,9 +52,11 @@ export function PairingRow({
 	onTimeChange,
 	disabled = false,
 }: PairingRowProps) {
-	// Usar los slots del venue asignado a este partido; si no hay, caer al primero disponible
-	const assignedVenue = venues.find((v) => v.id === pairing.venueId) ?? venues[0];
-	const timeSlots = assignedVenue?.slots.length ? assignedVenue.slots : DEFAULT_TIME_SLOTS;
+	// Usar los slots del venue asignado; si no hay venue, unión de todos los venues
+	const assignedVenue = venues.find((v) => v.id === pairing.venueId);
+	const allVenueSlots = [...new Set(venues.flatMap((v) => v.slots))].sort();
+	const fallbackSlots = allVenueSlots.length ? allVenueSlots : DEFAULT_TIME_SLOTS;
+	const timeSlots = assignedVenue?.slots.length ? assignedVenue.slots : fallbackSlots;
 	const draftPairings = allPairings.map(toPairingDraft);
 
 	return (

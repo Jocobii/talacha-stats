@@ -8,6 +8,7 @@ import {
 	fetchCurrent,
 	fetchRoster,
 	fetchSortear,
+	fetchPairings,
 	postConfirm,
 	postAttendance,
 	postCreateMatchday,
@@ -15,6 +16,16 @@ import {
 } from "../lib/cockpit-api";
 
 export type UseCockpitStateReturn = CockpitHookReturn;
+
+/** Ordena pairings por hora ascendente; los sin hora van al final. */
+function sortByTime(ps: CockpitPairing[]): CockpitPairing[] {
+	return [...ps].sort((a, b) => {
+		if (!a.startTime && !b.startTime) return 0;
+		if (!a.startTime) return 1;
+		if (!b.startTime) return -1;
+		return a.startTime.localeCompare(b.startTime);
+	});
+}
 
 export function useCockpitState(leagueId: string): CockpitHookReturn {
 	const [matchday, setMatchday] = useState<CockpitMatchday | null>(null);
@@ -49,7 +60,22 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 			setLeagueName(data.leagueName);
 			setVenues(data.venues);
 			setConfig(data.config);
-			if (data.matchday) setTeams(await fetchRoster(leagueId, data.matchday.number));
+
+			if (data.matchday) {
+				const [roster, existingPairings] = await Promise.all([
+					fetchRoster(leagueId, data.matchday.number),
+					data.matchday.matchCount > 0
+						? fetchPairings(leagueId, data.matchday.number)
+						: Promise.resolve([] as import("../types").CockpitPairing[]),
+				]);
+				setTeams(roster);
+				if (existingPairings.length > 0) {
+					setPairings(sortByTime(existingPairings));
+					// Synthetic seed so the debounce auto-save wires up correctly
+					setLastSeed(0);
+					setIsDirty(false);
+				}
+			}
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : "Error al cargar el sorteo";
 			setLoadError(msg);
@@ -89,8 +115,10 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 					.filter((p) => p.isConflict && p.awayTeamId)
 					.forEach((p) => keys.add([p.homeTeamId, p.awayTeamId].sort().join("|")));
 				setRecentPairKeys(keys);
-				setPairings(data.pairings.map((p, i) => ({ ...p, uid: String(i) })));
-				setIsDirty(false);
+				setPairings(sortByTime(data.pairings.map((p, i) => ({ ...p, uid: String(i) }))));
+				// isDirty=true dispara el debounce → auto-save a DB.
+				// Sin esto los pairings solo existen en memoria y se pierden al navegar.
+				setIsDirty(true);
 			} finally {
 				setSortearLoading(false);
 			}
@@ -134,7 +162,7 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 		setPairings((prev) => {
 			const np = prev.slice();
 			np[idx] = { ...np[idx], venueId };
-			return np;
+			return np; // no re-sort: la cancha no cambia el orden de hora
 		});
 		setIsDirty(true);
 	}, []);
@@ -143,7 +171,7 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 		setPairings((prev) => {
 			const np = prev.slice();
 			np[idx] = { ...np[idx], startTime };
-			return np;
+			return sortByTime(np); // re-ordenar al cambiar hora
 		});
 		setIsDirty(true);
 	}, []);
@@ -183,6 +211,10 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 		};
 	}, [pairings, isDirty, lastSeed, confirmPairings]);
 
+	const updateConfig = useCallback((partial: Partial<import("../types").CockpitConfig>) => {
+		setConfig((prev) => (prev ? { ...prev, ...partial } : prev));
+	}, []);
+
 	const openDrawer = useCallback((tab: string) => {
 		setActiveDrawerTab(tab);
 		setDrawerOpen(true);
@@ -217,6 +249,7 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 		deletePairing,
 		confirmPairings,
 		publishMatchday,
+		updateConfig,
 		openDrawer,
 		closeDrawer,
 	};

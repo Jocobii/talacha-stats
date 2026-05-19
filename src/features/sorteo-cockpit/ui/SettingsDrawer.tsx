@@ -20,6 +20,7 @@ export type SettingsDrawerProps = {
 	teams: TeamWithAttendance[];
 	matchdayNumber: number | null;
 	onConfigChange: (c: Partial<CockpitConfig>) => void;
+	onSave?: () => void;
 	onAttendanceChange?: (teamId: string, status: "presente" | "ausente") => void;
 };
 
@@ -168,6 +169,7 @@ export function SettingsDrawer({
 	teams,
 	matchdayNumber,
 	onConfigChange,
+	onSave,
 	onAttendanceChange,
 }: SettingsDrawerProps) {
 	useEffect(() => {
@@ -211,7 +213,12 @@ export function SettingsDrawer({
 				<div style={{ flex: 1, overflow: "auto" }}>
 					{activeTab === "canchas" && <CanchasTab leagueId={leagueId} venues={venues} />}
 					{activeTab === "parametros" && (
-						<ParametrosTab leagueId={leagueId} config={config} onConfigChange={onConfigChange} />
+						<ParametrosTab
+							leagueId={leagueId}
+							config={config}
+							onConfigChange={onConfigChange}
+							onSave={onSave}
+						/>
 					)}
 					{activeTab === "descansos" && (
 						<DescansosTab

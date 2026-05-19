@@ -59,63 +59,33 @@ export function generateSingleRound(input: GenerateSingleRoundInput): GenerateSi
 
 	const purchasedSet = new Set(purchasedSlots.map((s) => s.teamId));
 
-	const withSlot = presentTeamIds.filter((id) => purchasedSet.has(id));
-	const withoutSlot = presentTeamIds.filter((id) => !purchasedSet.has(id));
-
 	const pairings: Pairing[] = [];
 	const conflicts: Array<{ homeTeamId: string; awayTeamId: string }> = [];
 	const assigned = new Set<string>();
 
-	// Fase 1: equipos con slot fijo — intenta emparejarlos entre sí primero
-	const slotPaired = pairFixedSlotTeams(withSlot, recentPairKeys, pairings, conflicts, assigned);
-
-	// Los que no quedaron emparejados en la fase 1 pasan a la libre
-	const remainingFixed = withSlot.filter((id) => !assigned.has(id));
-	const freePool = shuffleWithSeed([...remainingFixed, ...withoutSlot], seed);
-
-	// Fase 2: greedy matching sobre el pool libre
-	pairFreePool(freePool, recentPairKeys, pairings, conflicts, assigned, withSlot);
-
-	void slotPaired; // suprime warning si no se usa directamente
+	// Intercalar equipos con slot entre los sin slot:
+	//   [slot_0, libre_0, slot_1, libre_1, …, libre_n]
+	// Esto garantiza que cada equipo con slot comprado quede adyacente a un equipo
+	// sin slot → el greedy los empareja con distintos rivales en lugar de entre sí.
+	// Los equipos sobrantes (si hay más sin slot) van al final → el BYE (impar) cae
+	// sobre alguien sin slot comprado.
+	const withSlot = shuffleWithSeed(
+		presentTeamIds.filter((id) => purchasedSet.has(id)),
+		seed,
+	);
+	const withoutSlot = shuffleWithSeed(
+		presentTeamIds.filter((id) => !purchasedSet.has(id)),
+		seed ^ 0xdeadbeef,
+	);
+	const pool: string[] = [];
+	const maxLen = Math.max(withSlot.length, withoutSlot.length);
+	for (let i = 0; i < maxLen; i++) {
+		if (i < withSlot.length) pool.push(withSlot[i]!);
+		if (i < withoutSlot.length) pool.push(withoutSlot[i]!);
+	}
+	pairFreePool(pool, recentPairKeys, pairings, conflicts, assigned, [...purchasedSet]);
 
 	return { pairings, conflicts };
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Intenta emparejar los equipos con slot fijo entre sí.
- * Retorna cuántos pares se formaron.
- */
-function pairFixedSlotTeams(
-	fixedIds: string[],
-	recentPairKeys: Set<string>,
-	pairings: Pairing[],
-	conflicts: Array<{ homeTeamId: string; awayTeamId: string }>,
-	assigned: Set<string>,
-): number {
-	let paired = 0;
-	const remaining = [...fixedIds];
-
-	for (let i = 0; i < remaining.length; i++) {
-		const home = remaining[i]!;
-		if (assigned.has(home)) continue;
-
-		for (let j = i + 1; j < remaining.length; j++) {
-			const away = remaining[j]!;
-			if (assigned.has(away)) continue;
-
-			assigned.add(home);
-			assigned.add(away);
-			const isConflict = recentPairKeys.has(pairKey(home, away));
-			pairings.push({ homeTeamId: home, awayTeamId: away });
-			if (isConflict) conflicts.push({ homeTeamId: home, awayTeamId: away });
-			paired++;
-			break;
-		}
-	}
-
-	return paired;
 }
 
 /**

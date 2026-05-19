@@ -8,7 +8,6 @@ import { SorteoPanel } from "./SorteoPanel";
 import { ContextPanel } from "./ContextPanel";
 import { CockpitFooter } from "./CockpitFooter";
 import { SettingsDrawer } from "./SettingsDrawer";
-import type { CockpitConfig } from "../types";
 
 type CockpitPageProps = {
 	leagueId: string;
@@ -84,10 +83,6 @@ export function CockpitPage({ leagueId, leagueName }: CockpitPageProps) {
 	const presentTeams = state.teams.filter((t) => t.status === "presente");
 	const isCompleted = state.matchday?.status === "completed";
 
-	function handleConfigChange(_partial: Partial<CockpitConfig>) {
-		/* handled by ParametrosTab */
-	}
-
 	if (state.loading) {
 		return (
 			<div
@@ -160,7 +155,6 @@ export function CockpitPage({ leagueId, leagueName }: CockpitPageProps) {
 			) : (
 				<>
 					<CockpitTopBar
-						leagueName={state.leagueName || leagueName}
 						leagueId={leagueId}
 						matchday={state.matchday}
 						totalMatchdays={state.totalMatchdays}
@@ -199,6 +193,7 @@ export function CockpitPage({ leagueId, leagueName }: CockpitPageProps) {
 							onVenueChange={state.changeVenue}
 							onTimeChange={state.changeTime}
 							onSortear={state.sortear}
+							onOpenSettings={state.openDrawer}
 						/>
 						<ContextPanel
 							matchday={state.matchday}
@@ -229,7 +224,8 @@ export function CockpitPage({ leagueId, leagueName }: CockpitPageProps) {
 							config={state.config}
 							teams={state.teams}
 							matchdayNumber={state.matchday.number}
-							onConfigChange={handleConfigChange}
+							onConfigChange={state.updateConfig}
+							onSave={state.loadCurrent}
 							onAttendanceChange={state.toggleAttendance}
 						/>
 					)}

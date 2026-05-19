@@ -65,6 +65,7 @@ export type CockpitHookReturn = {
 	deletePairing: (pairingIdx: number) => void;
 	confirmPairings: () => Promise<void>;
 	publishMatchday: () => Promise<void>;
+	updateConfig: (partial: Partial<CockpitConfig>) => void;
 	openDrawer: (tab: string) => void;
 	closeDrawer: () => void;
 };

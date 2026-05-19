@@ -185,14 +185,81 @@ export function ContextPanel({
 
 			<div className="surface-card" style={{ padding: 12 }}>
 				<h3 className="section-label" style={{ margin: 0, marginBottom: 8 }}>
+					Canchas
+				</h3>
+				{venues.length === 0 ? (
+					<Link
+						href={`/admin/leagues/${leagueId}/canchas`}
+						style={{
+							display: "block",
+							width: "100%",
+							padding: "10px 8px",
+							background: "rgba(251,191,36,0.06)",
+							border: "1px dashed rgba(251,191,36,0.3)",
+							borderRadius: 7,
+							color: "var(--color-amber)",
+							fontSize: 11.5,
+							cursor: "pointer",
+							textAlign: "center",
+							textDecoration: "none",
+						}}
+					>
+						Sin canchas configuradas → Agregar
+					</Link>
+				) : (
+					<>
+						<div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 8 }}>
+							{venues.map((v) => (
+								<div
+									key={v.id}
+									style={{
+										display: "flex",
+										alignItems: "center",
+										gap: 7,
+										padding: "5px 6px",
+										borderRadius: 6,
+										background: "rgba(255,255,255,0.03)",
+									}}
+								>
+									<MapPin size={10} color="var(--color-ink-3)" />
+									<span style={{ flex: 1, fontSize: 12, color: "var(--color-ink-2)" }}>
+										{v.name}
+									</span>
+									{v.slots.length > 0 && (
+										<span
+											style={{
+												fontSize: 10,
+												color: "var(--color-ink-3)",
+												fontFamily: "var(--font-mono, monospace)",
+											}}
+										>
+											{v.slots[0]}
+											{v.slots.length > 1 && `+${v.slots.length - 1}`}
+										</span>
+									)}
+								</div>
+							))}
+						</div>
+						<Link
+							href={`/admin/leagues/${leagueId}/canchas`}
+							style={{
+								color: "var(--color-ink-3)",
+								fontSize: 11,
+								textDecoration: "none",
+								display: "inline-block",
+								padding: "2px 0",
+							}}
+						>
+							+ Editar canchas
+						</Link>
+					</>
+				)}
+			</div>
+
+			<div className="surface-card" style={{ padding: 12 }}>
+				<h3 className="section-label" style={{ margin: 0, marginBottom: 8 }}>
 					Configuración base
 				</h3>
-				<SetupRow
-					icon={<MapPin size={12} />}
-					label="Canchas"
-					value={`${venues.length} activa${venues.length !== 1 ? "s" : ""}`}
-					onClick={() => onOpenSettings("canchas")}
-				/>
 				<SetupRow
 					icon={<Settings size={12} />}
 					label="Parámetros"
@@ -203,7 +270,7 @@ export function ContextPanel({
 					icon={<Calendar size={12} />}
 					label="Calendario"
 					value="Ver completo"
-					href={`/admin/leagues/${leagueId}/sorteo/calendario`}
+					href={`/admin/leagues/${leagueId}/calendario`}
 					emphasize
 				/>
 			</div>

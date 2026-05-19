@@ -63,7 +63,7 @@ function VenueCard({ venue }: { venue: VenueOption }) {
 }
 
 export function CanchasTab({ leagueId, venues }: CanchasTabProps) {
-	const canchasHref = `/admin/leagues/${leagueId}/sorteo/canchas`;
+	const canchasHref = `/admin/leagues/${leagueId}/canchas`;
 
 	return (
 		<div style={{ padding: "18px 20px 24px" }}>

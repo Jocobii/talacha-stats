@@ -52,6 +52,7 @@ export async function upsertSchedulingConfig(
 				regularFormat: input.regularFormat,
 				matchDurationMinutes: input.matchDurationMinutes,
 				bufferMinutes: input.bufferMinutes,
+				noRepeatWithin: input.noRepeatWithin,
 				allowDuplicateMatchups: input.allowDuplicateMatchups,
 				updatedAt: new Date(),
 			},

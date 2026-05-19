@@ -74,9 +74,11 @@ export function CockpitFooter({
 				<span style={{ color: "var(--color-ink)", fontWeight: 600 }}>{NEXT_STEP_TEXT[key]}</span>
 			</div>
 			<Link
-				href={`/admin/leagues/${leagueId}/sorteo/calendario`}
+				href={`/admin/leagues/${leagueId}/calendario`}
 				className="btn-ghost"
-				style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+				target="_blank"
+				rel="noopener noreferrer"
+				title="Abrir calendario público en nueva pestaña"
 			>
 				<Eye size={13} /> Vista pública
 			</Link>

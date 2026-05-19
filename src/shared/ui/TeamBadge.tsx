@@ -1,5 +1,7 @@
 "use client";
 
+import { teamColorFromId } from "@/shared/lib/team-color";
+
 type TeamBadgeSize = "sm" | "md" | "lg";
 
 type TeamBadgeProps = {
@@ -23,7 +25,7 @@ function getInitials(name: string, short: string | null | undefined): string {
 }
 
 export function TeamBadge({
-	teamId: _teamId,
+	teamId,
 	name,
 	color,
 	short,
@@ -31,7 +33,7 @@ export function TeamBadge({
 	size = "md",
 }: TeamBadgeProps) {
 	const { box, font, radius } = SIZE_MAP[size];
-	const bg = color ?? "#1E1E1E";
+	const bg = color ?? teamColorFromId(teamId);
 	const initials = getInitials(name, short);
 
 	const badge = (

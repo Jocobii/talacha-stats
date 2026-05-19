@@ -789,10 +789,10 @@ feature, retornan `apiSuccess`/`apiError`. Sin lógica de negocio.
 
 ```ts
 export const SchedulingConfigSchema = z.object({
-	regularMatchdays: z.number().int().min(1).max(60),
+	regularMatchdays: z.number().int().min(1).max(50),
 	regularFormat: z.enum(["single", "double"]),
 	matchDurationMinutes: z.number().int().min(20).max(120),
-	bufferMinutes: z.number().int().min(0).max(60),
+	bufferMinutes: z.number().int().min(0).max(50),
 	allowDuplicateMatchups: z.boolean().default(false),
 });
 

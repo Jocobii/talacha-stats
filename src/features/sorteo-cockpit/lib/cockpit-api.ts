@@ -122,3 +122,12 @@ export async function postPublish(leagueId: string, matchdayNumber: number): Pro
 		method: "POST",
 	});
 }
+
+export async function fetchPairings(
+	leagueId: string,
+	matchdayNumber: number,
+): Promise<CockpitPairing[]> {
+	const res = await timedFetch(`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/pairings`);
+	const json = (await res.json()) as ApiResult<{ pairings: CockpitPairing[] }>;
+	return json.ok && json.data ? json.data.pairings : [];
+}

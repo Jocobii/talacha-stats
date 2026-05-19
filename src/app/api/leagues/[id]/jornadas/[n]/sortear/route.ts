@@ -194,14 +194,21 @@ export async function POST(request: Request, { params }: Params) {
 
 	const byeTeamId = pairings.find((p) => p.awayTeamId === null)?.homeTeamId ?? null;
 
-	const pairingsOut = assigned.map((a) => ({
-		homeTeamId: a.homeTeamId,
-		awayTeamId: a.awayTeamId,
-		venueId: a.venueId,
-		venueName: a.venueId ? (venueNameMap.get(a.venueId) ?? null) : null,
-		startTime: a.startTime,
-		isConflict: a.awayTeamId !== null && conflictKeys.has(pairKey(a.homeTeamId, a.awayTeamId)),
-	}));
+	const pairingsOut = assigned
+		.map((a) => ({
+			homeTeamId: a.homeTeamId,
+			awayTeamId: a.awayTeamId,
+			venueId: a.venueId,
+			venueName: a.venueId ? (venueNameMap.get(a.venueId) ?? null) : null,
+			startTime: a.startTime,
+			isConflict: a.awayTeamId !== null && conflictKeys.has(pairKey(a.homeTeamId, a.awayTeamId)),
+		}))
+		.sort((a, b) => {
+			if (!a.startTime && !b.startTime) return 0;
+			if (!a.startTime) return 1;
+			if (!b.startTime) return -1;
+			return a.startTime.localeCompare(b.startTime);
+		});
 
 	return apiSuccess({
 		seed,

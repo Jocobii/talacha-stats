@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCw, Plus, Loader2 } from "lucide-react";
+import { RefreshCw, Plus, Loader2, RotateCcw } from "lucide-react";
 import { PairingRow } from "./PairingRow";
 import type { CockpitPairing, VenueOption, TeamWithAttendance, CockpitConfig } from "../types";
 
@@ -28,7 +28,32 @@ type SorteoPanelProps = {
 	onVenueChange: (idx: number, venueId: string) => void;
 	onTimeChange: (idx: number, time: string) => void;
 	onSortear: (seed?: number) => void;
+	onOpenSettings: (tab: string) => void;
 };
+
+function ConfigSetupCard({ onOpenSettings }: { onOpenSettings: (tab: string) => void }) {
+	return (
+		<div
+			style={{
+				display: "flex",
+				flexDirection: "column",
+				alignItems: "center",
+				justifyContent: "center",
+				padding: 48,
+				gap: 12,
+				textAlign: "center",
+			}}
+		>
+			<div style={{ fontSize: 14, color: "var(--color-ink-2)", maxWidth: 280, lineHeight: 1.5 }}>
+				Antes de sortear, configura los parámetros de la liga: duración de partido, buffer y
+				jornadas.
+			</div>
+			<button className="btn-primary" onClick={() => onOpenSettings("parametros")}>
+				Configurar parámetros →
+			</button>
+		</div>
+	);
+}
 
 function EmptyState({ onSortear, disabled }: { onSortear: () => void; disabled: boolean }) {
 	return (
@@ -64,6 +89,7 @@ export function SorteoPanel({
 	onVenueChange,
 	onTimeChange,
 	onSortear,
+	onOpenSettings,
 }: SorteoPanelProps) {
 	const fixedSlotCount = presentTeams.filter((t) => t.purchasedSlot !== null).length;
 	return (
@@ -104,9 +130,24 @@ export function SorteoPanel({
 				<span style={{ fontSize: 11, color: "var(--color-ink-3)", fontStyle: "italic" }}>
 					Click en cualquier equipo, cancha u hora para editar
 				</span>
-				<div style={{ marginLeft: "auto" }}>
-					<button className="btn-ghost" onClick={() => onSortear()} disabled={loading || disabled}>
-						<RefreshCw size={13} /> Regenerar
+				<div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+					<button
+						className="btn-ghost"
+						onClick={() => onSortear()}
+						disabled={loading || disabled}
+						title="Generar un nuevo sorteo aleatorio"
+						style={
+							loading
+								? { color: "var(--color-brand)", borderColor: "rgba(0,230,118,0.3)" }
+								: undefined
+						}
+					>
+						{loading ? (
+							<Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} />
+						) : (
+							<RotateCcw size={13} />
+						)}
+						Regenerar
 					</button>
 				</div>
 			</div>
@@ -124,6 +165,8 @@ export function SorteoPanel({
 					>
 						<Loader2 size={24} />
 					</div>
+				) : !config ? (
+					<ConfigSetupCard onOpenSettings={onOpenSettings} />
 				) : pairings.length === 0 ? (
 					<EmptyState onSortear={() => onSortear()} disabled={disabled} />
 				) : (

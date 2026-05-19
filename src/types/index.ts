@@ -224,10 +224,11 @@ export function apiError(message: string, status = 400, detail?: Record<string, 
 // ===========================================================================
 
 export const SchedulingConfigSchema = z.object({
-	regularMatchdays: z.number().int().min(1).max(60),
+	regularMatchdays: z.number().int().min(1).max(50),
 	regularFormat: z.enum(["single", "double"]),
 	matchDurationMinutes: z.number().int().min(20).max(120),
-	bufferMinutes: z.number().int().min(0).max(60),
+	bufferMinutes: z.number().int().min(0).max(5),
+	noRepeatWithin: z.number().int().min(0).max(20).default(3),
 	allowDuplicateMatchups: z.boolean().default(false),
 });
 export type SchedulingConfigInput = z.infer<typeof SchedulingConfigSchema>;
@@ -289,7 +290,7 @@ export const CreatePurchasedTimeslotSchema = z.object({
 	teamId: z.string().uuid(),
 	leagueId: z.string().uuid(),
 	startTime: z.string().regex(/^\d{2}:\d{2}$/, "Formato HH:MM requerido"),
-	venueId: z.string().uuid().optional(),
+	venueId: z.string().uuid().nullable().optional(),
 	activeFromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato YYYY-MM-DD requerido"),
 	endMatchdayNumber: z.number().int().min(1).optional(),
 	notes: z.string().max(500).optional(),

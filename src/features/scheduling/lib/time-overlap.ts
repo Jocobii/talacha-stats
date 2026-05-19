@@ -21,7 +21,7 @@ export function slotsOverlap(aStart: string, aEnd: string, bStart: string, bEnd:
 /** Suma `minutes` minutos a un tiempo "HH:MM". Resultado en "HH:MM". */
 export function addMinutes(hhmm: string, minutes: number): string {
 	const total = toMinutes(hhmm) + minutes;
-	const h = Math.floor(total / 60) % 24;
+	const h = Math.floor(total / 60);
 	const m = total % 60;
 	return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }

@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { Clock, RefreshCw, Calendar, Info } from "lucide-react";
 import { ParamRow } from "./ParamRow";
+import { ParametrosWizard } from "./ParametrosWizard";
 import { COCKPIT_DEBOUNCE_MS } from "../constants";
 import type { CockpitConfig } from "../types";
 
@@ -10,9 +11,10 @@ type ParametrosTabProps = {
 	leagueId: string;
 	config: CockpitConfig | null;
 	onConfigChange: (c: Partial<CockpitConfig>) => void;
+	onSave?: () => void;
 };
 
-export function ParametrosTab({ leagueId, config, onConfigChange }: ParametrosTabProps) {
+export function ParametrosTab({ leagueId, config, onConfigChange, onSave }: ParametrosTabProps) {
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	function handleChange(partial: Partial<CockpitConfig>) {
@@ -22,24 +24,22 @@ export function ParametrosTab({ leagueId, config, onConfigChange }: ParametrosTa
 			if (!config) return;
 			const updated = { ...config, ...partial };
 			await fetch(`/api/leagues/${leagueId}/scheduling-config`, {
-				method: "PATCH",
+				method: "PUT",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					matchDurationMinutes: updated.matchDurationMinutes,
 					bufferMinutes: updated.bufferMinutes,
 					noRepeatWithin: updated.noRepeatWithin,
 					regularMatchdays: updated.regularMatchdays,
+					regularFormat: "single",
+					allowDuplicateMatchups: false,
 				}),
 			});
 		}, COCKPIT_DEBOUNCE_MS);
 	}
 
 	if (!config) {
-		return (
-			<div style={{ padding: "18px 20px", color: "var(--color-ink-3)", fontSize: 13 }}>
-				No hay configuracion de sorteo para esta liga.
-			</div>
-		);
+		return <ParametrosWizard leagueId={leagueId} onSave={onSave ?? (() => {})} />;
 	}
 
 	return (

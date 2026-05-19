@@ -29,7 +29,7 @@ El flujo de datos central es: **Excel semanal → importación bulk → stats di
 
 ## 1.5 Posicionamiento del producto — leer antes de proponer features
 
-**TalachaStats es la capa de identidad digital y contenido para ligas locales de fútbol amateur.** No somos software de gestión de ligas. No construimos sorteos, calendario, pagos, arbitraje ni cancha — eso lo resuelve el organizador con WhatsApp y Excel.
+\*\*TalachaStats es la capa de identidad digital y contenido para ligas locales de fútbol amateur.
 
 Lo que sí construimos, en capas:
 

@@ -1,20 +1,85 @@
 /**
+ * GET  /api/leagues/[id]/jornadas/[n]/pairings
  * PATCH /api/leagues/[id]/jornadas/[n]/pairings
  *
- * Actualiza los pairings existentes (swap, cambio de venue, cambio de hora).
- * Aplica para jornadas en draft, published o in_progress.
- * En in_progress advierte si se cambia venue/hora (no bloquea).
+ * GET  → devuelve los partidos ya confirmados de la jornada como CockpitPairing[].
+ *        Permite que el cockpit restaure el estado editable al reabrir una jornada.
+ * PATCH → actualiza los pairings existentes (swap, cambio de venue/hora).
+ *         Aplica para jornadas en draft, published o in_progress.
  */
 
 import { z } from "zod";
 import { apiSuccess, apiError } from "@/types";
 import { getSessionUserFromRequest, canManageLeague } from "@/shared/lib/auth";
 import { db } from "@/db";
-import { leagues, matchdays, teamRestRequests } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { leagues, matchdays, matches, teamRestRequests } from "@/db/schema";
+import { eq, and, asc } from "drizzle-orm";
 import { confirmSingleRound } from "@/features/scheduling/jornada/confirm-single-round";
 
 type Params = { params: Promise<{ id: string; n: string }> };
+
+/**
+ * Extrae "HH:MM" de kickoffAt en hora LOCAL del servidor.
+ * Consistente con buildKickoffAt (crea Date sin timezone = hora local) y con
+ * MatchdayCard.formatTime (usa toLocaleTimeString = hora local).
+ * ⚠️ NO usar toISOString() — devuelve UTC y desincroniza con los slots del venue.
+ */
+function toStartTime(kickoffAt: Date | null): string | null {
+	if (!kickoffAt) return null;
+	const h = kickoffAt.getHours().toString().padStart(2, "0");
+	const m = kickoffAt.getMinutes().toString().padStart(2, "0");
+	return `${h}:${m}`;
+}
+
+// ── GET ───────────────────────────────────────────────────────────────────────
+
+export async function GET(request: Request, { params }: Params) {
+	const session = await getSessionUserFromRequest(request);
+	if (!session) return apiError("No autenticado", 401);
+
+	const { id, n } = await params;
+	const matchdayNumber = parseInt(n, 10);
+	if (isNaN(matchdayNumber) || matchdayNumber < 1)
+		return apiError("Numero de jornada invalido", 400);
+
+	const league = await db.query.leagues.findFirst({
+		where: eq(leagues.id, id),
+		columns: { id: true, organizationId: true, schedulingEnabled: true },
+	});
+	if (!league) return apiError("Liga no encontrada", 404);
+	if (!league.schedulingEnabled) return apiError("Modulo de sorteo no habilitado", 400);
+	if (!canManageLeague(session, league.organizationId ?? null)) return apiError("Sin permiso", 403);
+
+	const matchday = await db.query.matchdays.findFirst({
+		where: and(eq(matchdays.leagueId, id), eq(matchdays.number, matchdayNumber)),
+		columns: { id: true },
+	});
+	if (!matchday) return apiError("Jornada no encontrada", 404);
+
+	const rows = await db.query.matches.findMany({
+		where: and(eq(matches.matchdayId, matchday.id), eq(matches.leagueId, id)),
+		columns: {
+			id: true,
+			homeTeamId: true,
+			awayTeamId: true,
+			venueId: true,
+			kickoffAt: true,
+		},
+		orderBy: [asc(matches.kickoffAt), asc(matches.id)],
+	});
+
+	const pairings = rows.map((m, i) => ({
+		uid: m.id,
+		homeTeamId: m.homeTeamId,
+		awayTeamId: m.awayTeamId,
+		venueId: m.venueId ?? null,
+		startTime: toStartTime(m.kickoffAt),
+		isConflict: false,
+		sortIndex: i,
+	}));
+
+	return apiSuccess({ pairings });
+}
 
 const PairingSchema = z.object({
 	homeTeamId: z.string().uuid(),

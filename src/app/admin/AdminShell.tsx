@@ -328,10 +328,13 @@ export default function AdminShell({
 				{/* Trial banner */}
 				{trialBanner}
 
-				{/* Page content */}
-				<main className="flex-1 overflow-y-auto overflow-x-hidden">
-					<div className="max-w-[1400px] w-full mx-auto px-5 sm:px-8 py-8 sm:py-10">{children}</div>
-				</main>
+				{/* Page content — outer div clips horizontal overflow (overflow-y:auto + overflow-x:hidden
+				    en el mismo elemento forza overflow-x:auto en browsers). */}
+				<div className="flex-1 overflow-hidden">
+					<main className="h-full overflow-y-auto">
+						<div className="w-full mx-auto px-5 sm:px-8 py-8 sm:py-10">{children}</div>
+					</main>
+				</div>
 			</div>
 
 			<style jsx global>{`

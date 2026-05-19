@@ -1,11 +1,11 @@
 "use client";
 
-import { Settings, ChevronRight } from "lucide-react";
+import { Settings, Eye } from "lucide-react";
+import Link from "next/link";
 import { StatusPill } from "@/shared/ui";
 import type { CockpitMatchday } from "../types";
 
 type CockpitTopBarProps = {
-	leagueName: string;
 	leagueId: string;
 	matchday: CockpitMatchday | null;
 	totalMatchdays: number;
@@ -30,10 +30,10 @@ function formatDate(dateStr: string): string {
 }
 
 export function CockpitTopBar({
-	leagueName,
 	matchday,
 	totalMatchdays,
 	onOpenSettings,
+	leagueId,
 }: CockpitTopBarProps) {
 	return (
 		<header
@@ -48,24 +48,9 @@ export function CockpitTopBar({
 			<div style={{ flex: 1, minWidth: 0 }}>
 				<div
 					style={{
-						fontSize: 11,
-						color: "var(--color-ink-3)",
-						letterSpacing: "0.06em",
-						textTransform: "uppercase",
-						display: "flex",
-						alignItems: "center",
-						gap: 6,
-					}}
-				>
-					Ligas <ChevronRight size={11} /> {leagueName} <ChevronRight size={11} />
-					<span style={{ color: "var(--color-ink-2)" }}>Sorteo</span>
-				</div>
-				<div
-					style={{
 						display: "flex",
 						alignItems: "baseline",
 						gap: 14,
-						marginTop: 6,
 						flexWrap: "nowrap",
 						minWidth: 0,
 					}}
@@ -139,9 +124,19 @@ export function CockpitTopBar({
 				</div>
 			)}
 
-			<button className="btn-ghost" onClick={onOpenSettings} title="Ajustes del sorteo">
-				<Settings size={14} /> Ajustes
-			</button>
+			<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+				<Link
+					href={`/admin/leagues/${leagueId}/calendario`}
+					className="btn-ghost"
+					style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+					title="Ver vista pública del calendario"
+				>
+					<Eye size={13} /> Calendario
+				</Link>
+				<button className="btn-ghost" onClick={onOpenSettings} title="Ajustes del sorteo">
+					<Settings size={13} /> Ajustes
+				</button>
+			</div>
 		</header>
 	);
 }

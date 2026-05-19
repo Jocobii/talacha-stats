@@ -43,7 +43,7 @@ export function SlotsFijosTab({ leagueId, teams }: SlotsFijosTabProps) {
 					</div>
 				</div>
 				<Link
-					href={`/admin/leagues/${leagueId}/sorteo/configuracion`}
+					href={`/admin/leagues/${leagueId}/configuracion`}
 					className="btn-ghost"
 					style={{
 						display: "inline-flex",
@@ -105,7 +105,7 @@ export function SlotsFijosTab({ leagueId, teams }: SlotsFijosTabProps) {
 
 			<div style={{ marginTop: 16 }}>
 				<Link
-					href={`/admin/leagues/${leagueId}/sorteo/configuracion`}
+					href={`/admin/leagues/${leagueId}/configuracion`}
 					style={{
 						display: "inline-flex",
 						alignItems: "center",

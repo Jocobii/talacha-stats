@@ -1,4 +1,4 @@
-// ── Sistema de diseño — componentes base ──────────────────────────────────────
+// Sistema de diseno - componentes base
 export { Button } from "./Button";
 export type { ButtonProps } from "./Button";
 export { Field } from "./Field";
@@ -16,13 +16,16 @@ export { EmptyState } from "./EmptyState";
 export { Stepper } from "./Stepper";
 export { StatTile } from "./StatTile";
 
-// ── Sorteo Cockpit atoms ───────────────────────────────────────────────────────
+// Sorteo Cockpit atoms
 export { TeamBadge } from "./TeamBadge";
 export { StatusPill } from "./StatusPill";
 export { CheckPill } from "./CheckPill";
 export { TeamPicker } from "./TeamPicker";
 
-// ── Componentes existentes (sin cambios) ──────────────────────────────────────
+// Navegacion de liga
+export { LeagueTabBar } from "./LeagueTabBar";
+
+// Componentes existentes
 export { AdminTable } from "./AdminTable";
 export type { AdminTableColumn, AdminTableProps } from "./AdminTable";
 export type { AdminTablePagination } from "./admin-table.helpers";
