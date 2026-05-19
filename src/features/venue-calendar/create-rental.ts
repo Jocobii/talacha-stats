@@ -6,7 +6,7 @@
 
 import { db } from "@/db";
 import { venueRentals } from "@/db/schema";
-import { and, eq, lt, gt } from "drizzle-orm";
+import { checkVenueOverlap } from "./check-venue-overlap";
 import type { VenueEvent, CreateRentalPayload } from "./types";
 
 type Params = {
@@ -24,18 +24,11 @@ export async function createRental({ venueId, payload }: Params): Promise<Result
 		return { ok: false, error: "La hora de fin debe ser posterior a la de inicio", status: 400 };
 	}
 
-	const conflict = await db.query.venueRentals.findFirst({
-		where: and(
-			eq(venueRentals.venueId, venueId),
-			lt(venueRentals.startAt, end),
-			gt(venueRentals.endAt, start),
-		),
-	});
-
-	if (conflict) {
+	const overlap = await checkVenueOverlap({ venueId, start, end });
+	if (overlap.hasConflict) {
 		return {
 			ok: false,
-			error: `Conflicto con renta existente: "${conflict.title}"`,
+			error: `Horario ocupado por ${overlap.label}`,
 			status: 409,
 		};
 	}

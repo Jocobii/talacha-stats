@@ -9,6 +9,8 @@ import { matches, venueRentals } from "@/db/schema";
 import { and, eq, gte, lte, isNotNull } from "drizzle-orm";
 import type { VenueEvent } from "./types";
 
+const DEFAULT_DURATION_MS = 60 * 60 * 1000; // 1h fallback si la liga no tiene config
+
 type Params = {
 	venueId: string;
 	start: Date;
@@ -43,7 +45,12 @@ async function fetchTournamentEvents(
 			awayTeam: { columns: { name: true } },
 			matchday: {
 				with: {
-					league: { columns: { name: true } },
+					league: {
+						columns: { name: true },
+						with: {
+							schedulingConfig: { columns: { matchDurationMinutes: true } },
+						},
+					},
 				},
 			},
 		},
@@ -51,7 +58,9 @@ async function fetchTournamentEvents(
 
 	return rows.map((m): VenueEvent => {
 		const kickoff = m.kickoffAt!;
-		const endTime = new Date(kickoff.getTime() + 60 * 60 * 1000); // fallback 1h si no hay config
+		const configMinutes = m.matchday?.league?.schedulingConfig?.matchDurationMinutes ?? null;
+		const durationMs = configMinutes !== null ? configMinutes * 60 * 1000 : DEFAULT_DURATION_MS;
+		const endTime = new Date(kickoff.getTime() + durationMs);
 		return {
 			id: `tournament_${m.id}`,
 			type: "tournament",

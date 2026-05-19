@@ -10,7 +10,7 @@
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import type { DateSelectArg, EventClickArg } from "@fullcalendar/core";
+import type { DateSelectArg, DateSpanApi, EventClickArg } from "@fullcalendar/core";
 import type { RefObject } from "react";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { useVenueCalendar } from "../model/useVenueCalendar";
@@ -39,6 +39,18 @@ export function VenueCalendar({ venues }: Props) {
 
 	function onSelect(arg: DateSelectArg): void {
 		cal.modal.openCreate(arg.startStr, arg.endStr);
+	}
+
+	/** Impide arrastrar sobre un slot ya ocupado por cualquier evento. */
+	function selectAllow(info: DateSpanApi): boolean {
+		const selStart = info.start;
+		const selEnd = info.end;
+		return !cal.displayEvents.some((ev) => {
+			const evStart = new Date(ev.startAt);
+			const evEnd = new Date(ev.endAt);
+			// Solapamiento: evStart < selEnd  Y  evEnd > selStart
+			return evStart < selEnd && evEnd > selStart;
+		});
 	}
 
 	function goPrev(): void {
@@ -161,6 +173,8 @@ export function VenueCalendar({ venues }: Props) {
 						editable={true}
 						selectable={true}
 						selectMirror={true}
+						selectAllow={selectAllow}
+						eventOverlap={false}
 						nowIndicator={true}
 						height="auto"
 						contentHeight={660}

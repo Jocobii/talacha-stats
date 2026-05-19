@@ -7,7 +7,7 @@
  */
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { addDays } from "../model/useVenueCalendar";
+import { addDays } from "../lib/date-utils";
 import { EVENT_COLORS } from "../constants";
 import type { VenueEvent } from "../types";
 
@@ -36,6 +36,61 @@ function pad2(n: number): string {
 
 function fmtTime(d: Date): string {
 	return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+// ── Layout de eventos solapados ───────────────────────────────────────────────
+
+type LayoutItem = {
+	ev: VenueEvent;
+	colIdx: number;
+	totalCols: number;
+};
+
+/**
+ * Asigna columnas a eventos que se solapan en el tiempo.
+ * Algoritmo greedy: cada evento ocupa la primera columna libre.
+ * Para cada evento, `totalCols` refleja el máximo de columnas concurrentes
+ * en su rango, para que todos los solapados tengan el mismo ancho.
+ */
+function layoutEvents(events: VenueEvent[]): LayoutItem[] {
+	if (events.length === 0) return [];
+
+	const sorted = [...events].sort(
+		(a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+	);
+
+	const colEnds: number[] = [];
+	const assignments: number[] = [];
+
+	for (const ev of sorted) {
+		const start = new Date(ev.startAt).getTime();
+		const end = new Date(ev.endAt).getTime();
+		let placed = false;
+		for (let c = 0; c < colEnds.length; c++) {
+			if ((colEnds[c] ?? 0) <= start) {
+				colEnds[c] = end;
+				assignments.push(c);
+				placed = true;
+				break;
+			}
+		}
+		if (!placed) {
+			colEnds.push(new Date(ev.endAt).getTime());
+			assignments.push(colEnds.length - 1);
+		}
+	}
+
+	return sorted.map((ev, i) => {
+		const start = new Date(ev.startAt).getTime();
+		const end = new Date(ev.endAt).getTime();
+		let maxCol = assignments[i]!;
+		for (let j = 0; j < sorted.length; j++) {
+			const os = new Date(sorted[j]!.startAt).getTime();
+			const oe = new Date(sorted[j]!.endAt).getTime();
+			if (os < end && oe > start) maxCol = Math.max(maxCol, assignments[j]!);
+		}
+		return { ev, colIdx: assignments[i]!, totalCols: maxCol + 1 };
+	});
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -231,8 +286,8 @@ export function CalendarGrid({
 										);
 									})()}
 
-								{/* Events */}
-								{dayEvents.map((ev) => {
+								{/* Events — con columnas para solapados */}
+								{layoutEvents(dayEvents).map(({ ev, colIdx, totalCols }) => {
 									const start = new Date(ev.startAt);
 									const end = new Date(ev.endAt);
 									const top = dateToY(start);
@@ -242,13 +297,18 @@ export function CalendarGrid({
 									);
 									const colors = EVENT_COLORS[ev.type];
 									const isActive = ev.id === activeEventId;
+									const colW = 1 / totalCols;
+									const leftPct = colIdx * colW * 100;
+									const widthPct = colW * 100;
 									return (
 										<div
 											key={ev.id}
-											className="absolute left-1 right-1 rounded-md overflow-hidden cursor-pointer z-10 flex flex-col gap-0.5 p-1"
+											className="absolute rounded-md overflow-hidden cursor-pointer flex flex-col gap-0.5 p-1"
 											style={{
 												top,
 												height,
+												left: `calc(${leftPct}% + 2px)`,
+												width: `calc(${widthPct}% - 4px)`,
 												background: colors.background,
 												borderLeft: `3px solid ${colors.border}`,
 												color: colors.text,

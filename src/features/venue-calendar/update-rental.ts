@@ -1,9 +1,11 @@
 /**
  * features/venue-calendar/update-rental.ts
  * Actualiza parcialmente una renta existente.
+ * Valida que el nuevo rango no se encime con ningún otro evento en la cancha.
  */
 
 import { db } from "@/db";
+import { checkVenueOverlap } from "./check-venue-overlap";
 import { venueRentals } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import type { VenueEvent, UpdateRentalPayload } from "./types";
@@ -21,6 +23,25 @@ export async function updateRental(id: string, payload: UpdateRentalPayload): Pr
 
 	if (end <= start) {
 		return { ok: false, error: "La hora de fin debe ser posterior a la de inicio", status: 400 };
+	}
+
+	// Solo validar conflictos si cambia el tiempo (optimización menor)
+	const timeChanged = payload.startAt !== undefined || payload.endAt !== undefined;
+
+	if (timeChanged) {
+		const overlap = await checkVenueOverlap({
+			venueId: existing.venueId,
+			start,
+			end,
+			excludeRentalId: id, // excluir la propia renta
+		});
+		if (overlap.hasConflict) {
+			return {
+				ok: false,
+				error: `Horario ocupado por ${overlap.label}`,
+				status: 409,
+			};
+		}
 	}
 
 	const values: Partial<typeof venueRentals.$inferInsert> = {
