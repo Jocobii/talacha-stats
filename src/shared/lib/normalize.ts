@@ -119,6 +119,51 @@ export function normalizePlayerName(input: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// sanitizeToCanonical
+// Produce la forma canónica de búsqueda para columnas *_canonical en la BD.
+// Esta función es la fuente de verdad para todos los campos canónicos del
+// proyecto (teams.name_canonical, leagues.name_canonical,
+// global_players.full_name_canonical, etc.).
+//
+// Diferencias clave vs normalizePlayerName:
+//   - Preserva la Ñ/ñ (normalizePlayerName la elimina por compatibilidad legacy).
+//   - Elimina signos de puntuación y caracteres especiales (puntos, comas,
+//     guiones), unificando "F.C." y "FC" o "F-C" como el mismo token.
+//   - NO elimina sufijos generacionales — es para entidades, no solo jugadores.
+//
+// Algoritmo (pipeline):
+//   1. trim
+//   2. NFD — descompone diacríticos en codepoints separados
+//   3. Elimina marcas de diacrítico U+0300-U+036F, EXCEPTO U+0303 (tilde → Ñ)
+//   4. NFC — recompone "n" + U+0303 → "ñ" para que el siguiente regex funcione
+//   5. Elimina todo lo que no sea [a-zA-Z0-9 ñÑ]
+//   6. toLowerCase
+//   7. Colapsa espacios múltiples
+//   8. trim final (por si la eliminación de chars dejó espacios en los bordes)
+//
+// Idempotente: sanitizeToCanonical(x) === sanitizeToCanonical(sanitizeToCanonical(x))
+// ---------------------------------------------------------------------------
+export function sanitizeToCanonical(text: string): string {
+	if (!text) return "";
+	return (
+		text
+			.trim()
+			.normalize("NFD")
+			// Elimina marcas de diacrítico excepto U+0303 (la tilde que forma la Ñ)
+			.replace(/[̀-ͯ]/g, (match) => (match === "̃" ? match : ""))
+			// Recompone NFD→NFC para que n+U+0303 vuelva a ser el caracter ñ (U+00F1)
+			// y la siguiente regex pueda reconocerlo como [ñÑ]
+			.normalize("NFC")
+			// Elimina signos de puntuación y caracteres que no sean letras, números,
+			// espacios o la letra ñ/Ñ
+			.replace(/[^a-zA-Z0-9\sñÑ]/g, "")
+			.toLowerCase()
+			.replace(/\s+/g, " ")
+			.trim()
+	);
+}
+
+// ---------------------------------------------------------------------------
 // fingerprintPlayer (Historia 02)
 // Clave compuesta usada para deduplicación intra-org durante el backfill.
 // Combina normalized_name con el número de dorsal si está disponible.

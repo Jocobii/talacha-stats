@@ -15,9 +15,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 	return (
 		<AdminSidebar>
 			<div className="flex-1 flex flex-col min-h-0 pt-14 md:pt-0 bg-pitch">
-				<main className="flex-1 overflow-y-auto">
-					<div className="max-w-7xl mx-auto px-4 py-6">{children}</div>
-				</main>
+				<main className="flex-1 overflow-y-auto">{children}</main>
 			</div>
 		</AdminSidebar>
 	);

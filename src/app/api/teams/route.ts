@@ -1,7 +1,8 @@
 import { db, teams, leagues } from "@/db";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and } from "drizzle-orm";
 import { CreateTeamSchema, apiSuccess, apiError } from "@/types";
 import { getRequestCity } from "@/shared/lib/active-city";
+import { sanitizeToCanonical } from "@/shared/lib/normalize";
 
 // GET /api/teams?league_id=xxx&city=Tijuana
 // When league_id is provided, city filter is implicit (league already belongs to a city).
@@ -46,10 +47,28 @@ export async function POST(request: Request) {
 	const parsed = CreateTeamSchema.safeParse(body);
 	if (!parsed.success) return apiError(parsed.error.message);
 
+	const nameCanonical = sanitizeToCanonical(parsed.data.name);
+
+	// Verificación previa de duplicado por nombre canónico en la misma liga.
+	// No se confía solo en el constraint de DB — se valida proactivamente para
+	// devolver un mensaje claro antes de intentar el insert.
+	const existing = await db.query.teams.findFirst({
+		where: and(eq(teams.leagueId, parsed.data.leagueId), eq(teams.nameCanonical, nameCanonical)),
+		columns: { id: true, name: true },
+	});
+
+	if (existing) {
+		return apiError(
+			`Ya existe un equipo con ese nombre en esta liga ("${existing.name}"). Elige un nombre diferente.`,
+			409,
+		);
+	}
+
 	const [team] = await db
 		.insert(teams)
 		.values({
 			name: parsed.data.name,
+			nameCanonical,
 			leagueId: parsed.data.leagueId,
 			color: parsed.data.color ?? null,
 		})

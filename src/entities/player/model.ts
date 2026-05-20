@@ -106,3 +106,183 @@ export type PlayerGlobalStats = {
 	totalRedCards: number;
 	lastUpdatedAt: Date | null;
 };
+
+// ===========================================================================
+// BREAKING CHANGE — Ecosistema de identidad global (admin-ecosystem branch)
+//
+// Schemas Zod + tipos inferidos para las tres nuevas entidades:
+//   GlobalPlayer   → identidad única anclada en CURP (sha256)
+//   LeagueMember   → pertenencia de un jugador a una liga
+//   Inscription    → asignación del league_member a un equipo (1 por liga)
+//
+// Regla: un tipo = un schema Zod. Sin tipos manuales duplicados.
+// ===========================================================================
+
+import { z } from "zod";
+import { LEAGUE_MEMBER_STATUSES } from "@/db/schema";
+
+// ---------------------------------------------------------------------------
+// Helpers de validación compartidos
+// ---------------------------------------------------------------------------
+
+/**
+ * CURP mexicana: 18 caracteres en formato oficial RECA-890101-H-BCABC-A-0.
+ * Validación de formato solamente — la verificación real ocurre en ventanilla
+ * cuando el oficinista comprueba la INE física del jugador.
+ */
+export const CurpSchema = z
+	.string()
+	.trim()
+	.toUpperCase()
+	.regex(
+		/^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/,
+		"CURP inválida — debe tener 18 caracteres en formato oficial",
+	);
+
+/**
+ * Hash sha256 hex del CURP — 64 caracteres hex en minúsculas.
+ * Es el único dato del CURP que viaja entre cliente y servidor.
+ * El CURP raw nunca se persiste ni se loguea.
+ */
+export const CurpHashSchema = z
+	.string()
+	.length(64, "El hash debe tener exactamente 64 caracteres")
+	.regex(/^[0-9a-f]+$/, "El hash debe ser hexadecimal en minúsculas");
+
+/** Fecha ISO 8601 (YYYY-MM-DD) — formato que retorna Drizzle para columnas `date`. */
+const isoDate = z
+	.string()
+	.regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe estar en formato YYYY-MM-DD");
+
+// ---------------------------------------------------------------------------
+// GlobalPlayer — identidad global del jugador
+// ---------------------------------------------------------------------------
+
+export const GlobalPlayerSchema = z.object({
+	id: z.string().uuid(),
+	curpHash: CurpHashSchema,
+	fullName: z.string().min(2).max(100),
+	birthDate: isoDate,
+	avatarUrl: z.string().url().nullable(),
+	createdAt: z.coerce.date(),
+});
+
+export type GlobalPlayer = z.infer<typeof GlobalPlayerSchema>;
+
+/**
+ * Input de creación: el servidor genera el curpHash a partir del CURP raw.
+ * El cliente nunca envía el curpHash directamente — solo el CURP en el POST.
+ */
+export const CreateGlobalPlayerSchema = z.object({
+	curpHash: CurpHashSchema,
+	fullName: z.string().min(2).max(100).trim(),
+	birthDate: isoDate,
+	avatarUrl: z.string().url().nullable().optional(),
+});
+
+export type CreateGlobalPlayer = z.infer<typeof CreateGlobalPlayerSchema>;
+
+// ---------------------------------------------------------------------------
+// LeagueMember — pertenencia de un jugador a una liga específica
+// ---------------------------------------------------------------------------
+
+export const LeagueMemberStatusSchema = z.enum(LEAGUE_MEMBER_STATUSES);
+
+export const LeagueMemberSchema = z.object({
+	id: z.string().uuid(),
+	globalPlayerId: z.string().uuid(),
+	leagueId: z.string().uuid(),
+	status: LeagueMemberStatusSchema,
+	dorsal: z.number().int().min(1).max(99).nullable(),
+	inscriptionDate: isoDate,
+	// Data siloing: estos campos son privados de la liga.
+	// Solo se incluyen en queries scoped a una liga — nunca cross-liga.
+	institutionPhotoUrl: z.string().url().nullable(),
+	internalNotes: z.string().max(500).nullable(),
+	createdAt: z.coerce.date(),
+});
+
+export type LeagueMember = z.infer<typeof LeagueMemberSchema>;
+
+export const CreateLeagueMemberSchema = z.object({
+	globalPlayerId: z.string().uuid(),
+	leagueId: z.string().uuid(),
+	status: LeagueMemberStatusSchema.optional().default("active"),
+	dorsal: z.number().int().min(1).max(99).nullable().optional(),
+	inscriptionDate: isoDate,
+	institutionPhotoUrl: z.string().url().nullable().optional(),
+	internalNotes: z.string().max(500).nullable().optional(),
+});
+
+export type CreateLeagueMember = z.infer<typeof CreateLeagueMemberSchema>;
+
+// ---------------------------------------------------------------------------
+// Inscription — asignación del league_member a un equipo
+//
+// UNIQUE(league_member_id): un jugador solo puede pertenecer a un equipo
+// por liga. Para transferir: eliminar la inscripción anterior + crear nueva.
+// ---------------------------------------------------------------------------
+
+export const InscriptionSchema = z.object({
+	id: z.string().uuid(),
+	leagueMemberId: z.string().uuid(),
+	teamId: z.string().uuid(),
+	createdAt: z.coerce.date(),
+});
+
+export type Inscription = z.infer<typeof InscriptionSchema>;
+
+export const CreateInscriptionSchema = z.object({
+	leagueMemberId: z.string().uuid(),
+	teamId: z.string().uuid(),
+});
+
+export type CreateInscription = z.infer<typeof CreateInscriptionSchema>;
+
+// ---------------------------------------------------------------------------
+// Tipos compuestos — usados en features y respuestas de API
+// ---------------------------------------------------------------------------
+
+/**
+ * Respuesta del endpoint GET /api/players/lookup.
+ * El curpHash nunca sale del servidor — se omite del resultado.
+ */
+export const PlayerLookupResultSchema = z.object({
+	found: z.literal(true),
+	player: GlobalPlayerSchema.omit({ curpHash: true }).extend({
+		/** Número de ligas (league_members) en las que ya ha participado. */
+		previousLeaguesCount: z.number().int().nonnegative(),
+	}),
+});
+
+export const PlayerNotFoundSchema = z.object({
+	found: z.literal(false),
+});
+
+export const LookupResponseSchema = z.discriminatedUnion("found", [
+	PlayerLookupResultSchema,
+	PlayerNotFoundSchema,
+]);
+
+export type LookupResponse = z.infer<typeof LookupResponseSchema>;
+
+/**
+ * Vista combinada para la UI del panel de registro y el narrador.
+ * Fusiona los datos globales del jugador con su membresía en la liga.
+ */
+export const LeagueMemberViewSchema = GlobalPlayerSchema.omit({
+	curpHash: true,
+	createdAt: true,
+}).merge(
+	z.object({
+		memberId: z.string().uuid(), // league_members.id
+		leagueId: z.string().uuid(),
+		status: LeagueMemberStatusSchema,
+		dorsal: z.number().int().min(1).max(99).nullable(),
+		inscriptionDate: isoDate,
+		teamId: z.string().uuid().nullable(), // null si aún no inscrito en equipo
+		teamName: z.string().nullable(),
+	}),
+);
+
+export type LeagueMemberView = z.infer<typeof LeagueMemberViewSchema>;

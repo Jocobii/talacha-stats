@@ -2,6 +2,7 @@ import { db, leagues } from "@/db";
 import { eq } from "drizzle-orm";
 import { UpdateLeagueSchema, apiSuccess, apiError } from "@/types";
 import { getSessionUserFromRequest, canManageLeague } from "@/shared/lib/auth";
+import { sanitizeToCanonical } from "@/shared/lib/normalize";
 
 // GET /api/leagues/:id
 // Cualquier usuario autenticado puede leer una liga.
@@ -59,7 +60,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 	const [updated] = await db
 		.update(leagues)
 		.set({
-			...(parsed.data.name !== undefined && { name: parsed.data.name }),
+			...(parsed.data.name !== undefined && {
+				name: parsed.data.name,
+				// Recalcular canonical cada vez que cambia el nombre.
+				nameCanonical: sanitizeToCanonical(parsed.data.name),
+			}),
 			...(parsed.data.dayOfWeek !== undefined && { dayOfWeek: parsed.data.dayOfWeek }),
 			...(parsed.data.season !== undefined && { season: parsed.data.season }),
 			...(parsed.data.status !== undefined && { status: parsed.data.status }),
