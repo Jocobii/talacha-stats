@@ -26,7 +26,7 @@ export async function resolveMatch(
 
 		// 2. Calcular marcador y bonus para walkover
 		const scoreData = isWalkover
-			? applyWalkoverDefaults(input.status)
+			? applyWalkoverDefaults(input.status as "walkover_home" | "walkover_away")
 			: {
 					homeScore: input.homeScore,
 					awayScore: input.awayScore,

@@ -107,8 +107,8 @@ function getTeamForm(
 	// Los partidos ya vienen ordenados por fecha desc — los últimos 5 son los primeros
 	for (const m of teamMatches) {
 		const isHome = m.homeTeamId === teamId;
-		const myGoals = isHome ? m.homeScore : m.awayScore;
-		const theirGoals = isHome ? m.awayScore : m.homeScore;
+		const myGoals = isHome ? (m.homeScore ?? 0) : (m.awayScore ?? 0);
+		const theirGoals = isHome ? (m.awayScore ?? 0) : (m.homeScore ?? 0);
 
 		goalsFor += myGoals;
 		goalsAgainst += theirGoals;
@@ -380,8 +380,8 @@ function getHeadToHead(
 
 	for (const m of h2hMatches) {
 		const isHomeFirst = m.homeTeamId === homeTeamId;
-		const team1Goals = isHomeFirst ? m.homeScore : m.awayScore;
-		const team2Goals = isHomeFirst ? m.awayScore : m.homeScore;
+		const team1Goals = isHomeFirst ? (m.homeScore ?? 0) : (m.awayScore ?? 0);
+		const team2Goals = isHomeFirst ? (m.awayScore ?? 0) : (m.homeScore ?? 0);
 
 		if (team1Goals > team2Goals) homeWins++;
 		else if (team1Goals === team2Goals) draws++;
@@ -393,8 +393,8 @@ function getHeadToHead(
 
 	if (last) {
 		const isHomeFirst = last.homeTeamId === homeTeamId;
-		const homeGoals = isHomeFirst ? last.homeScore : last.awayScore;
-		const awayGoals = isHomeFirst ? last.awayScore : last.homeScore;
+		const homeGoals = isHomeFirst ? (last.homeScore ?? 0) : (last.awayScore ?? 0);
+		const awayGoals = isHomeFirst ? (last.awayScore ?? 0) : (last.homeScore ?? 0);
 		const winner =
 			homeGoals > awayGoals ? "local ganó" : homeGoals === awayGoals ? "empate" : "visitante ganó";
 		lastMatch = {
