@@ -31,6 +31,7 @@ type Props = {
 	leagueId: string;
 	matchdayId: string;
 	matchdayNumber: number;
+	matchdayLabel?: string;
 	sidebarMatches: SidebarMatch[];
 };
 
@@ -48,6 +49,7 @@ export function MatchResolutionScreen({
 	leagueId,
 	matchdayId,
 	matchdayNumber,
+	matchdayLabel,
 	sidebarMatches,
 }: Props) {
 	const capturedCount = sidebarMatches.filter((m) => CAPTURED_STATUSES.has(m.status)).length;
@@ -134,6 +136,7 @@ export function MatchResolutionScreen({
 				leagueId={leagueId}
 				matchdayId={matchdayId}
 				matchdayNumber={matchdayNumber}
+				matchdayLabel={matchdayLabel}
 				capturedCount={capturedCount}
 			/>
 
@@ -146,6 +149,7 @@ export function MatchResolutionScreen({
 					lastSavedAt={lastSavedAt}
 					capturedCount={capturedCount}
 					totalMatches={sidebarMatches.length}
+					matchdayLabel={matchdayLabel}
 					onScoreChange={(side, v) =>
 						updateMatchField(side === "home" ? "homeScore" : "awayScore", v)
 					}

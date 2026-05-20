@@ -16,6 +16,7 @@ type Props = {
 	lastSavedAt: Date | null;
 	capturedCount: number;
 	totalMatches: number;
+	matchdayLabel?: string; // overrides "JN" pill (used for playoff rounds)
 	onScoreChange: (side: "home" | "away", value: number | null) => void;
 	onStatusChange: (status: ResolutionStatus) => void;
 	onSaveNext: () => void;
@@ -36,6 +37,7 @@ export function ScoreHeader({
 	lastSavedAt,
 	capturedCount,
 	totalMatches,
+	matchdayLabel,
 	onScoreChange,
 	onStatusChange,
 	onSaveNext,
@@ -54,10 +56,16 @@ export function ScoreHeader({
 					<span className="bg-surface-2 text-ink-2 px-2 py-1 rounded font-medium border border-line">
 						{data.league.name}
 					</span>
-					{data.matchday && (
-						<span className="bg-surface-2 text-ink-2 px-2 py-1 rounded border border-line">
-							J{data.matchday.number}
+					{matchdayLabel ? (
+						<span className="bg-brand/10 text-brand px-2 py-1 rounded border border-brand/20 font-semibold">
+							{matchdayLabel}
 						</span>
+					) : (
+						data.matchday && (
+							<span className="bg-surface-2 text-ink-2 px-2 py-1 rounded border border-line">
+								J{data.matchday.number}
+							</span>
+						)
 					)}
 					<span className="bg-surface-2 text-ink-2 px-2 py-1 rounded border border-line">
 						{data.match.matchDate}

@@ -9,6 +9,10 @@ import {
 	getPublicMatchdays,
 	getLeagueZones,
 } from "@/entities/organization";
+import { db } from "@/db";
+import { playoffBrackets, playoffSlots } from "@/db/schema";
+import { eq, asc } from "drizzle-orm";
+import type { PublicBracket } from "./PublicBracketView";
 import { titleCase } from "@/shared/lib/normalize";
 import { findZone, getZoneTokens } from "@/shared/lib/zone-colors";
 import ShareLeagueButton from "./ShareLeagueButton";
@@ -65,12 +69,43 @@ export default async function LeaguePublicPage({ params }: Props) {
 	const { org, league } = result;
 
 	// Fetch paralelo — matchdays solo si schedulingEnabled
-	const [{ standings, jornada }, scorers, matchdays, zones] = await Promise.all([
+	const [{ standings, jornada }, scorers, matchdays, zones, bracketRows] = await Promise.all([
 		getLatestStandings(league.id),
 		getLatestTopScorers(league.id, 10),
 		league.schedulingEnabled ? getPublicMatchdays(league.id) : Promise.resolve([]),
 		getLeagueZones(league.id),
+		db.query.playoffBrackets.findMany({
+			where: eq(playoffBrackets.leagueId, league.id),
+			orderBy: [asc(playoffBrackets.createdAt)],
+			with: {
+				slots: {
+					with: {
+						homeTeam: { columns: { id: true, name: true } },
+						awayTeam: { columns: { id: true, name: true } },
+						winner: { columns: { id: true, name: true } },
+					},
+				},
+			},
+		}),
 	]);
+
+	const brackets: PublicBracket[] = bracketRows.map((b) => ({
+		id: b.id,
+		zoneName: b.zoneName,
+		zoneColor: b.zoneColor,
+		slots: b.slots
+			.sort((a, b) => a.round - b.round || a.slotIndex - b.slotIndex)
+			.map((s) => ({
+				id: s.id,
+				round: s.round,
+				slotIndex: s.slotIndex,
+				isThirdPlace: s.isThirdPlace,
+				isBye: s.isBye,
+				homeTeam: s.homeTeam ?? null,
+				awayTeam: s.awayTeam ?? null,
+				winner: s.winner ?? null,
+			})),
+	}));
 
 	const hasStandings = standings.length > 0;
 	const hasScorers = scorers.length > 0;
@@ -238,6 +273,7 @@ export default async function LeaguePublicPage({ params }: Props) {
 						matchdays={matchdays}
 						standingsSection={standingsSection}
 						scorersSection={scorersSection}
+						brackets={brackets}
 					/>
 				</div>
 			</div>

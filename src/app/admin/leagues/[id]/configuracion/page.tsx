@@ -129,24 +129,32 @@ export default async function ConfiguracionPage({ params }: Params) {
 	if (!canManage) redirect("/admin/leagues");
 
 	const isOwner = user.role === "owner";
-	const [allOrganizations, leagueTeams, leagueVenuesList, purchasedSlots, leagueZones] =
-		await Promise.all([
-			isOwner ? listOrganizations() : Promise.resolve([]),
-			league.schedulingEnabled
-				? db.query.teams.findMany({
-						where: eq(teams.leagueId, id),
-						columns: { id: true, name: true, color: true },
-					})
-				: Promise.resolve([]),
-			league.schedulingEnabled
-				? fetchVenuesForLeague(id, league.dayOfWeek ?? "")
-				: Promise.resolve([]),
-			league.schedulingEnabled ? fetchPurchasedSlots(id) : Promise.resolve([]),
-			db.query.leaguePlayoffZones.findMany({
-				where: eq(leaguePlayoffZones.leagueId, id),
-				orderBy: [asc(leaguePlayoffZones.order), asc(leaguePlayoffZones.fromPosition)],
-			}),
-		]);
+	const [
+		allOrganizations,
+		leagueTeams,
+		leagueVenuesList,
+		purchasedSlots,
+		leagueZones,
+		leagueVenueCount,
+	] = await Promise.all([
+		isOwner ? listOrganizations() : Promise.resolve([]),
+		db.query.teams.findMany({
+			where: eq(teams.leagueId, id),
+			columns: { id: true, name: true, color: true },
+		}),
+		league.schedulingEnabled
+			? fetchVenuesForLeague(id, league.dayOfWeek ?? "")
+			: Promise.resolve([]),
+		league.schedulingEnabled ? fetchPurchasedSlots(id) : Promise.resolve([]),
+		db.query.leaguePlayoffZones.findMany({
+			where: eq(leaguePlayoffZones.leagueId, id),
+			orderBy: [asc(leaguePlayoffZones.order), asc(leaguePlayoffZones.fromPosition)],
+		}),
+		db.query.leagueVenues.findMany({
+			where: eq(leagueVenues.leagueId, id),
+			columns: { venueId: true },
+		}),
+	]);
 
 	const initialZones: ZoneRow[] = leagueZones.map((z) => ({
 		id: z.id,
@@ -198,13 +206,15 @@ export default async function ConfiguracionPage({ params }: Params) {
 			<div className="bg-surface rounded-lg shadow p-4">
 				<h2 className="text-sm font-semibold text-ink mb-1">Nueva temporada</h2>
 				<p className="text-xs text-ink-2 mb-3">
-					Crea una copia de esta liga con temporada nueva. Los datos actuales se conservan.
+					Crea la siguiente temporada copiando equipos, canchas y zonas. Los resultados anteriores
+					quedan archivados en esta liga.
 				</p>
 				<NewSeasonButton
 					leagueId={id}
 					leagueName={league.name}
-					dayOfWeek={league.dayOfWeek}
-					organizationId={league.organizationId ?? null}
+					teamCount={leagueTeams.length}
+					venueCount={leagueVenueCount.length}
+					zoneCount={leagueZones.length}
 				/>
 			</div>
 		</div>

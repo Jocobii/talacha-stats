@@ -14,6 +14,7 @@ import {
 	check,
 	numeric,
 } from "drizzle-orm/pg-core";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { sql as drizzleSql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 
@@ -598,6 +599,7 @@ export const leaguesRelations = relations(leagues, ({ one, many }) => ({
 	restRequests: many(teamRestRequests),
 	purchasedTimeslots: many(teamPurchasedTimeslots),
 	playoffZones: many(leaguePlayoffZones),
+	playoffBrackets: many(playoffBrackets),
 }));
 
 export const leaguePlayoffZonesRelations = relations(leaguePlayoffZones, ({ one }) => ({
@@ -1406,6 +1408,126 @@ export const DAYS_OF_WEEK = [
 	"domingo",
 ] as const;
 export type DayOfWeek = (typeof DAYS_OF_WEEK)[number];
+
+// ---------------------------------------------------------------------------
+// PLAYOFF_BRACKETS — Un bracket por zona activa cuando se inicia la fase final.
+// Se crean todos a la vez al presionar "Iniciar Fase Final".
+// UNIQUE (leagueId, zoneId) — no puede haber dos brackets de la misma zona.
+// ---------------------------------------------------------------------------
+export const playoffBrackets = pgTable(
+	"playoff_brackets",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		leagueId: uuid("league_id")
+			.notNull()
+			.references(() => leagues.id, { onDelete: "cascade" }),
+		zoneId: uuid("zone_id")
+			.notNull()
+			.references(() => leaguePlayoffZones.id, { onDelete: "cascade" }),
+		zoneName: text("zone_name").notNull(), // denormalized para no hacer join en display
+		zoneColor: text("zone_color").notNull().default("green"), // denormalized
+		status: text("status").notNull().default("active"), // "active" | "completed"
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		unique("uq_bracket_zone").on(t.leagueId, t.zoneId),
+		index("playoff_brackets_league_idx").on(t.leagueId),
+	],
+);
+
+export type PlayoffBracket = typeof playoffBrackets.$inferSelect;
+export type NewPlayoffBracket = typeof playoffBrackets.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// PLAYOFF_SLOTS — Las casillas del bracket. Generadas de golpe al crear el bracket.
+//
+// round:       1 = primera ronda (QF/SF según el tamaño), 2 = SF, 3 = Final/3er lugar
+// slotIndex:   posición 0-based dentro del round
+// isThirdPlace: distingue la Final del partido por 3er/4to lugar
+// isBye:       true → el home_team avanza sin jugar (score automático)
+//
+// homeFromSlotId / awayFromSlotId: referencia al slot del round anterior
+//   cuyo GANADOR o PERDEDOR se convierte en local/visitante.
+// homeFromType / awayFromType: "winner" | "loser"
+//   (el 3er lugar usa "loser", todos los demás usan "winner")
+//
+// matchId: FK a matches.id — null hasta que el admin arranca ese round.
+// ---------------------------------------------------------------------------
+export const playoffSlots = pgTable(
+	"playoff_slots",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		bracketId: uuid("bracket_id")
+			.notNull()
+			.references(() => playoffBrackets.id, { onDelete: "cascade" }),
+		round: integer("round").notNull(),
+		slotIndex: integer("slot_index").notNull(),
+		isThirdPlace: boolean("is_third_place").notNull().default(false),
+		isBye: boolean("is_bye").notNull().default(false),
+		// Equipos — nullable hasta que el round se genera
+		homeTeamId: uuid("home_team_id").references(() => teams.id, { onDelete: "set null" }),
+		awayTeamId: uuid("away_team_id").references(() => teams.id, { onDelete: "set null" }),
+		// Propagación desde round anterior (self-reference)
+		homeFromSlotId: uuid("home_from_slot_id").references((): AnyPgColumn => playoffSlots.id, {
+			onDelete: "set null",
+		}),
+		homeFromType: text("home_from_type"), // "winner" | "loser"
+		awayFromSlotId: uuid("away_from_slot_id").references((): AnyPgColumn => playoffSlots.id, {
+			onDelete: "set null",
+		}),
+		awayFromType: text("away_from_type"), // "winner" | "loser"
+		// Resultado (se rellena al capturar el partido)
+		winnerId: uuid("winner_id").references(() => teams.id, { onDelete: "set null" }),
+		loserId: uuid("loser_id").references(() => teams.id, { onDelete: "set null" }),
+		// Partido real — null hasta que se crea
+		matchId: uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		index("playoff_slots_bracket_idx").on(t.bracketId),
+		unique("uq_slot_bracket_round_index").on(t.bracketId, t.round, t.slotIndex),
+	],
+);
+
+export type PlayoffSlot = typeof playoffSlots.$inferSelect;
+export type NewPlayoffSlot = typeof playoffSlots.$inferInsert;
+
+export const playoffBracketsRelations = relations(playoffBrackets, ({ one, many }) => ({
+	league: one(leagues, { fields: [playoffBrackets.leagueId], references: [leagues.id] }),
+	zone: one(leaguePlayoffZones, {
+		fields: [playoffBrackets.zoneId],
+		references: [leaguePlayoffZones.id],
+	}),
+	slots: many(playoffSlots),
+}));
+
+export const playoffSlotsRelations = relations(playoffSlots, ({ one }) => ({
+	bracket: one(playoffBrackets, {
+		fields: [playoffSlots.bracketId],
+		references: [playoffBrackets.id],
+	}),
+	homeTeam: one(teams, {
+		fields: [playoffSlots.homeTeamId],
+		references: [teams.id],
+		relationName: "slotHome",
+	}),
+	awayTeam: one(teams, {
+		fields: [playoffSlots.awayTeamId],
+		references: [teams.id],
+		relationName: "slotAway",
+	}),
+	winner: one(teams, {
+		fields: [playoffSlots.winnerId],
+		references: [teams.id],
+		relationName: "slotWinner",
+	}),
+	loser: one(teams, {
+		fields: [playoffSlots.loserId],
+		references: [teams.id],
+		relationName: "slotLoser",
+	}),
+	match: one(matches, { fields: [playoffSlots.matchId], references: [matches.id] }),
+}));
 
 // ---------------------------------------------------------------------------
 // PLAYER_GLOBAL_STATS — Vista agregada cross-org (Historia 05)

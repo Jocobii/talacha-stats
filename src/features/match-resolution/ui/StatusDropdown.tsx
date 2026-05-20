@@ -8,8 +8,8 @@ import { STATUS_LABELS, WALKOVER_STATUSES, CLEAR_STATS_STATUSES } from "../const
 import type { ResolutionStatus } from "@/db/schema";
 
 const RESOLUTION_STATUS_OPTIONS: ResolutionStatus[] = [
-	"scheduled",
 	"played",
+	"scheduled",
 	"suspended",
 	"postponed",
 	"walkover_home",

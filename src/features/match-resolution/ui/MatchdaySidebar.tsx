@@ -23,6 +23,7 @@ type Props = {
 	leagueId: string;
 	matchdayId: string;
 	matchdayNumber: number;
+	matchdayLabel?: string; // overrides "Jornada N" display
 	capturedCount: number;
 };
 
@@ -61,6 +62,7 @@ export function MatchdaySidebar({
 	leagueId,
 	matchdayId,
 	matchdayNumber,
+	matchdayLabel,
 	capturedCount,
 }: Props) {
 	const total = matches.length;
@@ -71,7 +73,7 @@ export function MatchdaySidebar({
 			{/* Header */}
 			<div className="px-4 py-2.5 border-b border-line">
 				<p className="text-xs font-semibold text-ink-2 uppercase tracking-wider">
-					Jornada {matchdayNumber}
+					{matchdayLabel ?? `Jornada ${matchdayNumber}`}
 				</p>
 				{allDone && <p className="text-xs text-green-600 font-medium mt-0.5">✓ Todos capturados</p>}
 			</div>

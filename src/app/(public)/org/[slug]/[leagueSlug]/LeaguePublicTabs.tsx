@@ -3,22 +3,24 @@
 /**
  * app/(public)/org/[slug]/[leagueSlug]/LeaguePublicTabs.tsx
  *
- * Tabs: Tabla | Goleadores | Jornada.
- * Tab "Jornada" solo si schedulingEnabled y hay jornadas publicadas.
+ * Tabs: Tabla | Goleadores | Jornada | Fase Final.
  */
 
 import { useState } from "react";
-import { Trophy, Target, CalendarDays } from "lucide-react";
+import { Trophy, Target, CalendarDays, Swords } from "lucide-react";
 import type { PublicMatchday } from "@/entities/organization";
 import MatchdayPublicView from "./MatchdayPublicView";
+import { PublicBracketView } from "./PublicBracketView";
+import type { PublicBracket } from "./PublicBracketView";
 
-type Tab = "tabla" | "goleadores" | "jornada";
+type Tab = "tabla" | "goleadores" | "jornada" | "playoffs";
 
 type Props = {
 	schedulingEnabled: boolean;
 	matchdays: PublicMatchday[];
 	standingsSection: React.ReactNode;
 	scorersSection: React.ReactNode;
+	brackets: PublicBracket[];
 };
 
 export default function LeaguePublicTabs({
@@ -26,8 +28,10 @@ export default function LeaguePublicTabs({
 	matchdays,
 	standingsSection,
 	scorersSection,
+	brackets,
 }: Props) {
 	const showJornada = schedulingEnabled && matchdays.length > 0;
+	const showPlayoffs = brackets.length > 0;
 	const [activeTab, setActiveTab] = useState<Tab>("tabla");
 
 	const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -39,6 +43,15 @@ export default function LeaguePublicTabs({
 						id: "jornada" as Tab,
 						label: "Jornada",
 						icon: <CalendarDays size={14} strokeWidth={2} />,
+					},
+				]
+			: []),
+		...(showPlayoffs
+			? [
+					{
+						id: "playoffs" as Tab,
+						label: "Fase Final",
+						icon: <Swords size={14} strokeWidth={2} />,
 					},
 				]
 			: []),
@@ -71,6 +84,7 @@ export default function LeaguePublicTabs({
 			{activeTab === "tabla" && standingsSection}
 			{activeTab === "goleadores" && scorersSection}
 			{activeTab === "jornada" && showJornada && <MatchdayPublicView matchdays={matchdays} />}
+			{activeTab === "playoffs" && showPlayoffs && <PublicBracketView brackets={brackets} />}
 		</div>
 	);
 }

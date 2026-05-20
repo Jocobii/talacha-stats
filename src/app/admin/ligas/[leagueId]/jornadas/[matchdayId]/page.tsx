@@ -12,6 +12,7 @@ import { getSessionUser } from "@/shared/lib/auth";
 import { listMatchesByRound } from "@/entities/match/queries";
 import { CedulaSearch } from "./CedulaSearch";
 import { CloseMatchdayButton } from "./CloseMatchdayButton";
+import { ReopenPlayoffButton } from "./ReopenPlayoffButton";
 import { STATUS_LABELS } from "@/features/match-resolution/constants";
 import type { ResolutionStatus } from "@/db/schema";
 
@@ -43,7 +44,7 @@ export default async function JornadaDashboardPage({ params }: Params) {
 	const [matchday, league] = await Promise.all([
 		db.query.matchdays.findFirst({
 			where: eq(matchdays.id, matchdayId),
-			columns: { id: true, number: true, scheduledDate: true, status: true },
+			columns: { id: true, number: true, scheduledDate: true, status: true, phase: true },
 		}),
 		db.query.leagues.findFirst({
 			where: eq(leagues.id, leagueId),
@@ -60,7 +61,8 @@ export default async function JornadaDashboardPage({ params }: Params) {
 
 	const matches = await listMatchesByRound(matchdayId);
 	const capturedCount = matches.filter((m) => CAPTURED_STATUSES.has(m.status)).length;
-	const isClosed = matchday.status === "completed";
+	const isPlayoff = matchday.phase === "playoff";
+	const isClosed = matchday.status === "completed" && !isPlayoff;
 	const allCaptured = matches.length > 0 && capturedCount === matches.length;
 	const firstScheduled = matches.find((m) => m.status === "scheduled");
 
@@ -77,7 +79,7 @@ export default async function JornadaDashboardPage({ params }: Params) {
 							{league.name}
 						</Link>
 						<span className="mx-1.5 text-ink-3">·</span>
-						Jornada {matchday.number}
+						{isPlayoff ? "Fase Final" : `Jornada ${matchday.number}`}
 						<span className="mx-1.5 text-ink-3">·</span>
 						{matchday.scheduledDate}
 					</p>
@@ -126,12 +128,15 @@ export default async function JornadaDashboardPage({ params }: Params) {
 									)}
 								</>
 							)}
-							{allCaptured && !isClosed && (
+							{allCaptured && !isClosed && !isPlayoff && (
 								<CloseMatchdayButton
 									matchdayId={matchdayId}
 									leagueId={leagueId}
 									matchdayNumber={matchday.number}
 								/>
+							)}
+							{isPlayoff && matchday.status === "completed" && (
+								<ReopenPlayoffButton matchdayId={matchdayId} />
 							)}
 						</div>
 					</div>

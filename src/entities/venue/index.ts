@@ -2,6 +2,7 @@
 export type {
 	Venue,
 	NewVenue,
+	VenueTimeWindow,
 	VenueWithWindows,
 	VenueForLeague,
 	VenueWithStats,

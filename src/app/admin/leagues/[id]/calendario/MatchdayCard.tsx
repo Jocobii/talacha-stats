@@ -97,7 +97,11 @@ export function MatchdayCard({
 				<div className="flex items-center justify-between mb-2">
 					<div className="flex items-center gap-2">
 						<span className="font-semibold text-ink text-sm">
-							{isExtra ? "🔄 " : ""}Jornada {md.number}
+							{md.phase === "playoff"
+								? "🏆 Fase Final"
+								: isExtra
+									? `🔄 Jornada ${md.number}`
+									: `Jornada ${md.number}`}
 						</span>
 						{isClosed ? (
 							<span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-green-600/10 text-green-700 border border-green-600/20">

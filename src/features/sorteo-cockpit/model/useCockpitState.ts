@@ -69,6 +69,11 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 						setLeagueName(fresh.leagueName);
 						setVenues(fresh.venues);
 						setConfig(fresh.config);
+						// Cargar el roster de la jornada recién creada
+						if (fresh.matchday) {
+							const roster = await fetchRoster(leagueId, fresh.matchday.number);
+							setTeams(roster);
+						}
 					}
 					return;
 				}

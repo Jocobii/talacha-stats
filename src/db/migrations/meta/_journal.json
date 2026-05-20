@@ -218,6 +218,20 @@
 			"when": 1779255831715,
 			"tag": "0030_burly_warpath",
 			"breakpoints": true
+		},
+		{
+			"idx": 31,
+			"version": "7",
+			"when": 1747785600000,
+			"tag": "0031_playoff_brackets_and_slots",
+			"breakpoints": true
+		},
+		{
+			"idx": 32,
+			"version": "7",
+			"when": 1779258275100,
+			"tag": "0032_parched_iron_lad",
+			"breakpoints": true
 		}
 	]
 }

@@ -11,6 +11,7 @@ import { eq } from "drizzle-orm";
 import { resolveMatch } from "@/features/match-resolution/resolve-match";
 import { getNextScheduledMatch } from "@/entities/match/queries";
 import { ResolveMatchSchema } from "@/entities/match/model";
+import { propagatePlayoffWinner } from "@/features/playoffs/lib/winner-propagator";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -35,6 +36,17 @@ export async function POST(request: Request, { params }: Params) {
 	if (!parsed.success) return apiError(parsed.error.message, 400);
 
 	await resolveMatch(id, parsed.data, session.id);
+
+	// Propagate playoff winner if this match belongs to a bracket slot
+	if (
+		parsed.data.status === "played" ||
+		parsed.data.status === "walkover_home" ||
+		parsed.data.status === "walkover_away"
+	) {
+		const homeScore = parsed.data.homeScore ?? 0;
+		const awayScore = parsed.data.awayScore ?? 0;
+		await propagatePlayoffWinner(id, homeScore, awayScore);
+	}
 
 	const nextMatch = match.matchdayId ? await getNextScheduledMatch(match.matchdayId, id) : null;
 

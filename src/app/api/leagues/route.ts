@@ -65,8 +65,25 @@ export async function POST(request: Request) {
 			? parsed.data.organizationId
 			: (session.organizationId ?? null);
 
-	// Auto-generar slug desde nombre + día si no viene explícito
-	const slug = parsed.data.slug ?? generateSlug(`${parsed.data.name} ${parsed.data.dayOfWeek}`);
+	// Slug único por temporada: "comics-domingo-2026"
+	// Incluir la temporada evita colisiones al crear una nueva temporada de la misma liga.
+	const slug =
+		parsed.data.slug ??
+		generateSlug(`${parsed.data.name} ${parsed.data.dayOfWeek} ${parsed.data.season}`);
+
+	// Verificación proactiva de slug duplicado (Regla CLAUDE.md: nunca confiar solo en el constraint)
+	if (organizationId) {
+		const existing = await db.query.leagues.findFirst({
+			where: and(eq(leagues.organizationId, organizationId), eq(leagues.slug, slug)),
+			columns: { id: true, name: true, season: true },
+		});
+		if (existing) {
+			return apiError(
+				`Ya existe una liga "${existing.name}" (${existing.season}) con ese nombre y día en esta organización.`,
+				409,
+			);
+		}
+	}
 
 	// Auto-generar código de liga para prefijo de cédula
 	const baseCode = generateLeagueCode(parsed.data.name);
