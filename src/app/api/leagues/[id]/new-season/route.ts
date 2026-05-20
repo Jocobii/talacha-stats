@@ -66,7 +66,7 @@ export async function POST(request: Request, { params }: Params) {
 	// ── Validar input ─────────────────────────────────────────────────────────
 	const body = await request.json().catch(() => null);
 	const parsed = NewSeasonSchema.safeParse(body);
-	if (!parsed.success) return apiError(parsed.error.errors[0].message, 400);
+	if (!parsed.success) return apiError(parsed.error.issues[0].message, 400);
 
 	const { season } = parsed.data;
 

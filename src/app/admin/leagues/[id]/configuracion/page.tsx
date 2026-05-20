@@ -27,6 +27,7 @@ import { SlotsFijosSection } from "./SlotsFijosSection";
 import type { SlotRow } from "./SlotsFijosSection";
 import { PlayoffZonesSection } from "./PlayoffZonesSection";
 import type { ZoneRow } from "./PlayoffZonesSection";
+import { TeamsSection } from "./TeamsSection";
 import { buildSlotsFromWindow } from "@/features/scheduling/slot-assigner/build-slots";
 
 export const metadata = { title: "Configuración · TalachaStats" };
@@ -140,7 +141,7 @@ export default async function ConfiguracionPage({ params }: Params) {
 		isOwner ? listOrganizations() : Promise.resolve([]),
 		db.query.teams.findMany({
 			where: eq(teams.leagueId, id),
-			columns: { id: true, name: true, color: true },
+			columns: { id: true, name: true, color: true, status: true },
 		}),
 		league.schedulingEnabled
 			? fetchVenuesForLeague(id, league.dayOfWeek ?? "")
@@ -164,6 +165,8 @@ export default async function ConfiguracionPage({ params }: Params) {
 		color: z.color,
 		order: z.order,
 	}));
+
+	const activeTeamCount = leagueTeams.filter((t) => t.status === "active").length;
 
 	return (
 		<div className="max-w-xl space-y-6">
@@ -202,6 +205,9 @@ export default async function ConfiguracionPage({ params }: Params) {
 			{/* ── Zonas de clasificación ───────────────────────────────────── */}
 			<PlayoffZonesSection leagueId={id} initialZones={initialZones} />
 
+			{/* ── Equipos ───────────────────────────────────────────────────── */}
+			<TeamsSection leagueId={id} teams={leagueTeams} />
+
 			{/* ── Nueva temporada ───────────────────────────────────────────── */}
 			<div className="bg-surface rounded-lg shadow p-4">
 				<h2 className="text-sm font-semibold text-ink mb-1">Nueva temporada</h2>
@@ -212,7 +218,7 @@ export default async function ConfiguracionPage({ params }: Params) {
 				<NewSeasonButton
 					leagueId={id}
 					leagueName={league.name}
-					teamCount={leagueTeams.length}
+					teamCount={activeTeamCount}
 					venueCount={leagueVenueCount.length}
 					zoneCount={leagueZones.length}
 				/>

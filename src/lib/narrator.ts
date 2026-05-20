@@ -329,8 +329,8 @@ async function getTeamRecord(
 		goalsAgainst = 0;
 	for (const m of teamMatches) {
 		const isHome = m.homeTeamId === teamId;
-		const gf = isHome ? m.homeScore : m.awayScore;
-		const ga = isHome ? m.awayScore : m.homeScore;
+		const gf = (isHome ? m.homeScore : m.awayScore) ?? 0;
+		const ga = (isHome ? m.awayScore : m.homeScore) ?? 0;
 		goalsFor += gf;
 		goalsAgainst += ga;
 		if (gf > ga) wins++;
@@ -463,8 +463,8 @@ function getLast5(
 		.slice(0, 5)
 		.map((m) => {
 			const isHome = m.homeTeamId === teamId;
-			const gf = isHome ? m.homeScore : m.awayScore;
-			const ga = isHome ? m.awayScore : m.homeScore;
+			const gf = isHome ? (m.homeScore ?? 0) : (m.awayScore ?? 0);
+			const ga = isHome ? (m.awayScore ?? 0) : (m.homeScore ?? 0);
 			return gf > ga ? "W" : gf === ga ? "D" : "L";
 		});
 }
@@ -564,8 +564,8 @@ function buildH2H(
 
 	for (const m of h2hMatches) {
 		const aIsHome = m.homeTeamId === aId;
-		const aGoals = aIsHome ? m.homeScore : m.awayScore;
-		const bGoals = aIsHome ? m.awayScore : m.homeScore;
+		const aGoals = aIsHome ? (m.homeScore ?? 0) : (m.awayScore ?? 0);
+		const bGoals = aIsHome ? (m.awayScore ?? 0) : (m.homeScore ?? 0);
 		if (aGoals > bGoals) aWins++;
 		else if (aGoals === bGoals) draws++;
 		else bWins++;
@@ -576,8 +576,8 @@ function buildH2H(
 
 	if (last) {
 		const aIsHome = last.homeTeamId === aId;
-		const aGoals = aIsHome ? last.homeScore : last.awayScore;
-		const bGoals = aIsHome ? last.awayScore : last.homeScore;
+		const aGoals = aIsHome ? (last.homeScore ?? 0) : (last.awayScore ?? 0);
+		const bGoals = aIsHome ? (last.awayScore ?? 0) : (last.homeScore ?? 0);
 		const result = aGoals > bGoals ? "A ganó" : aGoals === bGoals ? "Empate" : "B ganó";
 		lastMatch = { date: last.matchDate, aGoals, bGoals, result };
 	}

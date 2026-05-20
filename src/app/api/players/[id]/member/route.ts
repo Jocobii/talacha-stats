@@ -34,7 +34,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 	const body = await request.json().catch(() => null);
 	const parsed = UpdateLeagueMemberSchema.safeParse(body);
 	if (!parsed.success) {
-		return apiError(parsed.error.errors[0]?.message ?? "Datos inválidos", 400);
+		return apiError(parsed.error.issues[0]?.message ?? "Datos inválidos", 400);
 	}
 
 	const { leagueMemberId, ...fields } = parsed.data;

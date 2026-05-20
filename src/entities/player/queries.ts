@@ -1080,7 +1080,7 @@ export async function getGlobalPlayerLeagueMembers(
 		memberId: r.memberId,
 		leagueId: r.leagueId,
 		leagueName: r.leagueName,
-		organizationId: r.organizationId,
+		organizationId: r.organizationId!,
 		teamId: r.teamId ?? null,
 		teamName: r.teamName ?? null,
 		dorsal: r.dorsal ?? null,

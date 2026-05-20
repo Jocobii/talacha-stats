@@ -232,6 +232,13 @@
 			"when": 1779258275100,
 			"tag": "0032_parched_iron_lad",
 			"breakpoints": true
+		},
+		{
+			"idx": 33,
+			"version": "7",
+			"when": 1747872000000,
+			"tag": "0033_teams_status",
+			"breakpoints": true
 		}
 	]
 }

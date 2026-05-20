@@ -566,8 +566,10 @@ async function run(): Promise<void> {
 		const m = matches[mi];
 		const homeRoster = regsByLeagueTeam.get(`${m.leagueId}:${m.homeTeamId}`) ?? [];
 		const awayRoster = regsByLeagueTeam.get(`${m.leagueId}:${m.awayTeamId}`) ?? [];
+		const homeScore = m.homeScore ?? 0;
+		const awayScore = m.awayScore ?? 0;
 		// Goals
-		for (let g = 0; g < m.homeScore && homeRoster.length > 0; g++) {
+		for (let g = 0; g < homeScore && homeRoster.length > 0; g++) {
 			const r = homeRoster[det(mi * 13 + g, homeRoster.length, 7)];
 			eventRows.push({
 				matchId: m.id,
@@ -577,7 +579,7 @@ async function run(): Promise<void> {
 				minute: 5 + det(mi * 17 + g, 80, 8),
 			});
 		}
-		for (let g = 0; g < m.awayScore && awayRoster.length > 0; g++) {
+		for (let g = 0; g < awayScore && awayRoster.length > 0; g++) {
 			const r = awayRoster[det(mi * 19 + g, awayRoster.length, 9)];
 			eventRows.push({
 				matchId: m.id,
