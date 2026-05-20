@@ -1,9 +1,14 @@
-import { db, leagues } from "@/db";
+import { db, leagues, leaguePlayoffZones } from "@/db";
 import { eq, desc, and } from "drizzle-orm";
 import { CreateLeagueSchema, apiSuccess, apiError } from "@/types";
 import { getActiveCity, getRequestCity } from "@/shared/lib/active-city";
 import { getSessionUserFromRequest } from "@/shared/lib/auth";
 import { generateSlug } from "@/entities/organization";
+import { sanitizeToCanonical } from "@/shared/lib/normalize";
+import {
+	generateLeagueCode,
+	resolveUniqueCode,
+} from "@/features/league-management/lib/generate-league-code";
 
 // GET /api/leagues?city=Tijuana
 // Sin sesión (público) → solo ligas activas de la ciudad
@@ -60,21 +65,65 @@ export async function POST(request: Request) {
 			? parsed.data.organizationId
 			: (session.organizationId ?? null);
 
-	// Auto-generar slug desde nombre + día si no viene explícito
-	const slug = parsed.data.slug ?? generateSlug(`${parsed.data.name} ${parsed.data.dayOfWeek}`);
+	// Slug único por temporada: "comics-domingo-2026"
+	// Incluir la temporada evita colisiones al crear una nueva temporada de la misma liga.
+	const slug =
+		parsed.data.slug ??
+		generateSlug(`${parsed.data.name} ${parsed.data.dayOfWeek} ${parsed.data.season}`);
 
-	const [league] = await db
-		.insert(leagues)
-		.values({
-			name: parsed.data.name,
-			slug,
-			category: parsed.data.category ?? null,
-			dayOfWeek: parsed.data.dayOfWeek,
-			season: parsed.data.season,
-			city,
-			organizationId,
-		})
-		.returning();
+	// Verificación proactiva de slug duplicado (Regla CLAUDE.md: nunca confiar solo en el constraint)
+	if (organizationId) {
+		const existing = await db.query.leagues.findFirst({
+			where: and(eq(leagues.organizationId, organizationId), eq(leagues.slug, slug)),
+			columns: { id: true, name: true, season: true },
+		});
+		if (existing) {
+			return apiError(
+				`Ya existe una liga "${existing.name}" (${existing.season}) con ese nombre y día en esta organización.`,
+				409,
+			);
+		}
+	}
+
+	// Auto-generar código de liga para prefijo de cédula
+	const baseCode = generateLeagueCode(parsed.data.name);
+	const existingRows = organizationId
+		? await db.query.leagues.findMany({
+				where: eq(leagues.organizationId, organizationId),
+				columns: { code: true },
+			})
+		: [];
+	const existingCodes = new Set(existingRows.map((r) => r.code).filter(Boolean) as string[]);
+	const code = resolveUniqueCode(baseCode, existingCodes);
+
+	const league = await db.transaction(async (tx) => {
+		const [created] = await tx
+			.insert(leagues)
+			.values({
+				name: parsed.data.name,
+				nameCanonical: sanitizeToCanonical(parsed.data.name),
+				slug,
+				category: parsed.data.category ?? null,
+				dayOfWeek: parsed.data.dayOfWeek,
+				season: parsed.data.season,
+				city,
+				organizationId,
+				code,
+			})
+			.returning();
+
+		// Zona por default: Liguilla del 1 al 8
+		await tx.insert(leaguePlayoffZones).values({
+			leagueId: created.id,
+			name: "Liguilla",
+			fromPosition: 1,
+			toPosition: 8,
+			color: "green",
+			order: 0,
+		});
+
+		return created;
+	});
 
 	return apiSuccess(league, 201);
 }

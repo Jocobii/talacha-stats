@@ -214,6 +214,149 @@ export function apiSuccessPaginated<T>(
 	return Response.json({ ok: true, data, meta }, { status });
 }
 
-export function apiError(message: string, status = 400) {
-	return Response.json({ ok: false, error: message }, { status });
+export function apiError(message: string, status = 400, detail?: Record<string, unknown>) {
+	return Response.json({ ok: false, error: message, ...detail }, { status });
 }
+
+// ===========================================================================
+// MÓDULO DE SORTEO — Schemas Zod (T1.5)
+// Documentación: docs/scheduling-plan.md §7
+// ===========================================================================
+
+export const SchedulingConfigSchema = z.object({
+	regularMatchdays: z.number().int().min(1).max(50),
+	regularFormat: z.enum(["single", "double"]),
+	matchDurationMinutes: z.number().int().min(20).max(120),
+	bufferMinutes: z.number().int().min(0).max(5),
+	noRepeatWithin: z.number().int().min(0).max(20).default(3),
+	allowDuplicateMatchups: z.boolean().default(false),
+});
+export type SchedulingConfigInput = z.infer<typeof SchedulingConfigSchema>;
+
+export const VENUE_COLORS = [
+	"#7C9CFF",
+	"#FBBF24",
+	"#F87171",
+	"#34D399",
+	"#A78BFA",
+	"#60A5FA",
+	"#F472B6",
+	"#FB923C",
+] as const;
+
+export const CreateVenueSchema = z.object({
+	name: z.string().min(2).max(80),
+	organizationId: z.string().uuid(),
+	city: z.string().max(80).optional(),
+	address: z.string().max(200).optional(),
+	capacity: z.number().int().min(1).max(6).default(1),
+	color: z
+		.string()
+		.regex(/^#[0-9A-Fa-f]{6}$/, "Color debe ser hex válido (#RRGGBB)")
+		.default("#60A5FA"),
+	notes: z.string().max(500).optional(),
+});
+export type CreateVenueInput = z.infer<typeof CreateVenueSchema>;
+
+export const UpdateVenueSchema = CreateVenueSchema.partial().omit({ organizationId: true });
+export type UpdateVenueInput = z.infer<typeof UpdateVenueSchema>;
+
+const VenueWindowBaseSchema = z.object({
+	venueId: z.string().uuid(),
+	dayOfWeek: z.enum(DAYS_OF_WEEK),
+	startTime: z.string().regex(/^\d{2}:\d{2}$/, "Formato HH:MM requerido"),
+	endTime: z.string().regex(/^\d{2}:\d{2}$/, "Formato HH:MM requerido"),
+});
+
+export const CreateVenueWindowSchema = VenueWindowBaseSchema.refine(
+	(v) => v.startTime < v.endTime,
+	{ message: "startTime debe ser anterior a endTime", path: ["startTime"] },
+);
+export type CreateVenueWindowInput = z.infer<typeof CreateVenueWindowSchema>;
+
+export const UpdateVenueWindowSchema = VenueWindowBaseSchema.omit({ venueId: true })
+	.partial()
+	.extend({ isActive: z.boolean().optional() });
+export type UpdateVenueWindowInput = z.infer<typeof UpdateVenueWindowSchema>;
+
+export const RestRequestSchema = z.object({
+	teamId: z.string().uuid(),
+	matchdayNumber: z.number().int().min(1),
+	reason: z.string().max(500).optional(),
+});
+export type RestRequestInput = z.infer<typeof RestRequestSchema>;
+
+export const CreatePurchasedTimeslotSchema = z.object({
+	teamId: z.string().uuid(),
+	leagueId: z.string().uuid(),
+	startTime: z.string().regex(/^\d{2}:\d{2}$/, "Formato HH:MM requerido"),
+	venueId: z.string().uuid().nullable().optional(),
+	activeFromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato YYYY-MM-DD requerido"),
+	endMatchdayNumber: z.number().int().min(1).optional(),
+	notes: z.string().max(500).optional(),
+});
+export type CreatePurchasedTimeslotInput = z.infer<typeof CreatePurchasedTimeslotSchema>;
+
+export const UpdatePurchasedTimeslotSchema = CreatePurchasedTimeslotSchema.omit({
+	teamId: true,
+	leagueId: true,
+}).partial();
+export type UpdatePurchasedTimeslotInput = z.infer<typeof UpdatePurchasedTimeslotSchema>;
+
+export const GenerateScheduleSchema = z.object({
+	startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Formato YYYY-MM-DD requerido"),
+	// Fechas explícitas opcionales; si vacío se calculan por dayOfWeek desde startDate
+	matchdayDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+});
+export type GenerateScheduleInput = z.infer<typeof GenerateScheduleSchema>;
+
+export const ChangeKickoffSchema = z.object({
+	kickoffAt: z.string().datetime({ message: "Se requiere datetime ISO 8601 con timezone" }),
+	reason: z.string().max(500).optional(),
+});
+export type ChangeKickoffInput = z.infer<typeof ChangeKickoffSchema>;
+
+export const ChangeVenueSchema = z.object({
+	venueId: z.string().uuid(),
+	kickoffAt: z.string().datetime().optional(),
+	reason: z.string().max(500).optional(),
+});
+export type ChangeVenueInput = z.infer<typeof ChangeVenueSchema>;
+
+export const SwapTeamSchema = z.object({
+	oldTeamId: z.string().uuid(),
+	newTeamId: z.string().uuid(),
+	reason: z.string().max(500).optional(),
+});
+export type SwapTeamInput = z.infer<typeof SwapTeamSchema>;
+
+export const MakeupBuildSchema = z.object({
+	// Si vacío, genera makeups para todos los equipos con déficit
+	teamIds: z.array(z.string().uuid()).optional(),
+	maxFutureMatchdays: z.number().int().min(1).max(20).default(5),
+});
+export type MakeupBuildInput = z.infer<typeof MakeupBuildSchema>;
+
+// ===========================================================================
+// MÓDULO DE CALENDARIO DE CANCHAS — Schemas Zod (T_VC)
+// ===========================================================================
+
+export const CreateRentalSchema = z.object({
+	title: z.string().min(1).max(200),
+	startAt: z.string().datetime({ message: "Se requiere datetime ISO 8601 con timezone" }),
+	endAt: z.string().datetime({ message: "Se requiere datetime ISO 8601 con timezone" }),
+	status: z.enum(["confirmed", "tentative"]).default("confirmed"),
+	price: z.number().positive().nullable().optional(),
+	notes: z.string().max(1000).nullable().optional(),
+});
+export type CreateRentalInput = z.infer<typeof CreateRentalSchema>;
+
+export const UpdateRentalSchema = z.object({
+	title: z.string().min(1).max(200).optional(),
+	startAt: z.string().datetime().optional(),
+	endAt: z.string().datetime().optional(),
+	status: z.enum(["confirmed", "tentative", "cancelled"]).optional(),
+	price: z.number().positive().nullable().optional(),
+	notes: z.string().max(1000).nullable().optional(),
+});
+export type UpdateRentalInput = z.infer<typeof UpdateRentalSchema>;

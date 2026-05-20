@@ -134,6 +134,104 @@
 			"when": 1747180800000,
 			"tag": "0019_drop_legacy_not_null",
 			"breakpoints": true
+		},
+		{
+			"idx": 19,
+			"version": "7",
+			"when": 1778693032008,
+			"tag": "0019_good_brother_voodoo",
+			"breakpoints": true
+		},
+		{
+			"idx": 20,
+			"version": "7",
+			"when": 1778693608111,
+			"tag": "0020_jazzy_wiccan",
+			"breakpoints": true
+		},
+		{
+			"idx": 21,
+			"version": "7",
+			"when": 1778883912409,
+			"tag": "0021_past_earthquake",
+			"breakpoints": true
+		},
+		{
+			"idx": 22,
+			"version": "7",
+			"when": 1778898751345,
+			"tag": "0022_parallel_malcolm_colcord",
+			"breakpoints": true
+		},
+		{
+			"idx": 23,
+			"version": "7",
+			"when": 1779033817743,
+			"tag": "0023_chunky_aaron_stack",
+			"breakpoints": true
+		},
+		{
+			"idx": 24,
+			"version": "7",
+			"when": 1779072478966,
+			"tag": "0024_messy_quasimodo",
+			"breakpoints": true
+		},
+		{
+			"idx": 25,
+			"version": "7",
+			"when": 1779090120494,
+			"tag": "0025_nervous_ronan",
+			"breakpoints": true
+		},
+		{
+			"idx": 26,
+			"version": "7",
+			"when": 1779217999722,
+			"tag": "0026_useful_triathlon",
+			"breakpoints": true
+		},
+		{
+			"idx": 27,
+			"version": "7",
+			"when": 1779218963464,
+			"tag": "0027_careful_slipstream",
+			"breakpoints": true
+		},
+		{
+			"idx": 28,
+			"version": "7",
+			"when": 1779223097942,
+			"tag": "0028_smart_mongu",
+			"breakpoints": true
+		},
+		{
+			"idx": 29,
+			"version": "7",
+			"when": 1747699200000,
+			"tag": "0029_league_playoff_zones",
+			"breakpoints": true
+		},
+		{
+			"idx": 30,
+			"version": "7",
+			"when": 1779255831715,
+			"tag": "0030_burly_warpath",
+			"breakpoints": true
+		},
+		{
+			"idx": 31,
+			"version": "7",
+			"when": 1747785600000,
+			"tag": "0031_playoff_brackets_and_slots",
+			"breakpoints": true
+		},
+		{
+			"idx": 32,
+			"version": "7",
+			"when": 1779258275100,
+			"tag": "0032_parched_iron_lad",
+			"breakpoints": true
 		}
 	]
 }

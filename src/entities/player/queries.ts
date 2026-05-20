@@ -7,7 +7,7 @@
  *  2. match_events          → fallback si no hay import para esa liga
  */
 
-import { eq, and, inArray, desc, sql } from "drizzle-orm";
+import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
 import {
 	db,
 	players,
@@ -628,4 +628,492 @@ export async function listTopScorers(opts: {
 		totalRedCards: r.totalRedCards,
 		lastUpdatedAt: r.lastUpdatedAt,
 	}));
+}
+
+// ===========================================================================
+// BREAKING CHANGE — Ecosistema de identidad global (admin-ecosystem branch)
+//
+// Queries para las tres nuevas entidades:
+//   GlobalPlayer / LeagueMember / Inscription
+//
+// Todas las funciones tienen tipos de retorno explícitos (regla TypeScript strict).
+// Las que pueden no encontrar un registro retornan null, nunca lanzan.
+// ===========================================================================
+
+import { globalPlayers, leagueMembers, inscriptions } from "@/db/schema";
+import type {
+	GlobalPlayer,
+	CreateGlobalPlayer,
+	LeagueMember,
+	CreateLeagueMember,
+	Inscription,
+	CreateInscription,
+	LeagueMemberView,
+} from "./model";
+
+// ---------------------------------------------------------------------------
+// GlobalPlayer
+// ---------------------------------------------------------------------------
+
+/**
+ * Cuenta cuántas ligas (league_members) tiene un global_player.
+ * Usado en el lookup para mostrar historial en la ventanilla de registro.
+ */
+export async function countGlobalPlayerLeagueMemberships(globalPlayerId: string): Promise<number> {
+	const rows = await db
+		.select({ count: sql<number>`count(*)::int` })
+		.from(leagueMembers)
+		.where(eq(leagueMembers.globalPlayerId, globalPlayerId));
+	return rows[0]?.count ?? 0;
+}
+
+/**
+ * Busca un jugador global por su curp_hash.
+ * Es la query central del flujo de registro: el oficinista ingresa el CURP,
+ * el feature genera el hash y llama a esta función.
+ *
+ * Retorna null si el jugador nunca ha sido registrado en el sistema.
+ */
+export async function findGlobalPlayerByHash(curpHash: string): Promise<GlobalPlayer | null> {
+	const row = await db.query.globalPlayers.findFirst({
+		where: eq(globalPlayers.curpHash, curpHash),
+	});
+	if (!row) return null;
+
+	return {
+		id: row.id,
+		curpHash: row.curpHash,
+		fullName: row.fullName,
+		birthDate: row.birthDate,
+		avatarUrl: row.avatarUrl ?? null,
+		createdAt: row.createdAt,
+	};
+}
+
+/**
+ * Inserta un nuevo jugador global y retorna la fila creada.
+ * El caller debe asegurarse de que el curpHash no exista previamente
+ * (usar findGlobalPlayerByHash antes de llamar a esta función).
+ */
+export async function createGlobalPlayer(data: CreateGlobalPlayer): Promise<GlobalPlayer> {
+	const rows = await db
+		.insert(globalPlayers)
+		.values({
+			curpHash: data.curpHash,
+			fullName: data.fullName,
+			birthDate: data.birthDate,
+			avatarUrl: data.avatarUrl ?? null,
+		})
+		.returning();
+
+	const row = rows[0];
+	if (!row) throw new Error("createGlobalPlayer: insert no retornó ninguna fila");
+
+	return {
+		id: row.id,
+		curpHash: row.curpHash,
+		fullName: row.fullName,
+		birthDate: row.birthDate,
+		avatarUrl: row.avatarUrl ?? null,
+		createdAt: row.createdAt,
+	};
+}
+
+// ---------------------------------------------------------------------------
+// LeagueMember
+// ---------------------------------------------------------------------------
+
+/**
+ * Busca la membresía de un jugador en una liga específica.
+ * Usado para verificar si el jugador ya está inscrito antes de crear
+ * una nueva membresía (evitar duplicados en el flujo de registro).
+ */
+export async function findLeagueMember(
+	globalPlayerId: string,
+	leagueId: string,
+): Promise<LeagueMember | null> {
+	const row = await db.query.leagueMembers.findFirst({
+		where: and(
+			eq(leagueMembers.globalPlayerId, globalPlayerId),
+			eq(leagueMembers.leagueId, leagueId),
+		),
+	});
+	if (!row) return null;
+
+	return {
+		id: row.id,
+		globalPlayerId: row.globalPlayerId,
+		leagueId: row.leagueId,
+		status: row.status,
+		dorsal: row.dorsal ?? null,
+		inscriptionDate: row.inscriptionDate,
+		institutionPhotoUrl: row.institutionPhotoUrl ?? null,
+		internalNotes: row.internalNotes ?? null,
+		createdAt: row.createdAt,
+	};
+}
+
+/**
+ * Crea una nueva membresía (global_player ↔ liga).
+ * La constraint UNIQUE(global_player_id, league_id) en la DB es el
+ * último guardia — pero el caller debe verificar con findLeagueMember primero
+ * para retornar un error legible al usuario.
+ */
+export async function createLeagueMember(data: CreateLeagueMember): Promise<LeagueMember> {
+	const today = new Date().toISOString().slice(0, 10);
+
+	const rows = await db
+		.insert(leagueMembers)
+		.values({
+			globalPlayerId: data.globalPlayerId,
+			leagueId: data.leagueId,
+			status: data.status ?? "active",
+			dorsal: data.dorsal ?? null,
+			inscriptionDate: data.inscriptionDate ?? today,
+			institutionPhotoUrl: data.institutionPhotoUrl ?? null,
+			internalNotes: data.internalNotes ?? null,
+		})
+		.returning();
+
+	const row = rows[0];
+	if (!row) throw new Error("createLeagueMember: insert no retornó ninguna fila");
+
+	return {
+		id: row.id,
+		globalPlayerId: row.globalPlayerId,
+		leagueId: row.leagueId,
+		status: row.status,
+		dorsal: row.dorsal ?? null,
+		inscriptionDate: row.inscriptionDate,
+		institutionPhotoUrl: row.institutionPhotoUrl ?? null,
+		internalNotes: row.internalNotes ?? null,
+		createdAt: row.createdAt,
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Inscription
+// ---------------------------------------------------------------------------
+
+/**
+ * Inscribe un league_member en un equipo.
+ * La constraint UNIQUE(league_member_id) garantiza un solo equipo por jugador
+ * por liga. Si ya existe inscripción para ese member, la DB lanzará un error
+ * de constraint — el caller (feature) debe manejarlo con onConflict o precheck.
+ */
+export async function createInscription(data: CreateInscription): Promise<Inscription> {
+	const rows = await db
+		.insert(inscriptions)
+		.values({
+			leagueMemberId: data.leagueMemberId,
+			teamId: data.teamId,
+		})
+		.returning();
+
+	const row = rows[0];
+	if (!row) throw new Error("createInscription: insert no retornó ninguna fila");
+
+	return {
+		id: row.id,
+		leagueMemberId: row.leagueMemberId,
+		teamId: row.teamId,
+		createdAt: row.createdAt,
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Vista combinada — usada por la UI del panel de registro
+// ---------------------------------------------------------------------------
+
+/**
+ * Retorna la vista combinada de un jugador en el contexto de una liga:
+ * datos globales + membresía + equipo asignado (si existe).
+ *
+ * Data siloing: institution_photo_url e internal_notes solo se devuelven
+ * aquí porque la query ya está scoped a una liga específica.
+ *
+ * Retorna null si el jugador no es miembro de la liga.
+ */
+export async function findLeagueMemberView(
+	globalPlayerId: string,
+	leagueId: string,
+): Promise<LeagueMemberView | null> {
+	const rows = await db
+		.select({
+			// Campos globales
+			id: globalPlayers.id,
+			fullName: globalPlayers.fullName,
+			birthDate: globalPlayers.birthDate,
+			avatarUrl: globalPlayers.avatarUrl,
+			// Membresía
+			memberId: leagueMembers.id,
+			leagueId: leagueMembers.leagueId,
+			status: leagueMembers.status,
+			dorsal: leagueMembers.dorsal,
+			inscriptionDate: leagueMembers.inscriptionDate,
+			// Equipo (nullable — puede no estar inscrito aún)
+			teamId: inscriptions.teamId,
+			teamName: teams.name,
+		})
+		.from(globalPlayers)
+		.innerJoin(
+			leagueMembers,
+			and(eq(leagueMembers.globalPlayerId, globalPlayers.id), eq(leagueMembers.leagueId, leagueId)),
+		)
+		.leftJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.leftJoin(teams, eq(teams.id, inscriptions.teamId))
+		.where(eq(globalPlayers.id, globalPlayerId))
+		.limit(1);
+
+	const row = rows[0];
+	if (!row) return null;
+
+	return {
+		id: row.id,
+		fullName: row.fullName,
+		birthDate: row.birthDate,
+		avatarUrl: row.avatarUrl ?? null,
+		memberId: row.memberId,
+		leagueId: row.leagueId,
+		status: row.status,
+		dorsal: row.dorsal ?? null,
+		inscriptionDate: row.inscriptionDate,
+		teamId: row.teamId ?? null,
+		teamName: row.teamName ?? null,
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Roster de equipo — jugadores inscritos via tablas V2
+// ---------------------------------------------------------------------------
+
+export type TeamRosterEntry = {
+	inscriptionId: string;
+	memberId: string;
+	globalPlayerId: string;
+	fullName: string;
+	birthDate: string;
+	avatarUrl: string | null;
+	dorsal: number | null;
+	status: "active" | "suspended" | "inactive";
+	inscriptionDate: string;
+};
+
+/**
+ * Devuelve el roster completo de un equipo usando las tablas V2:
+ *   inscriptions → league_members → global_players
+ *
+ * Ordenado por dorsal (nulls al final, comportamiento por defecto en PG para ASC)
+ * y luego por nombre alfabético.
+ */
+export async function getTeamRoster(teamId: string): Promise<TeamRosterEntry[]> {
+	const rows = await db
+		.select({
+			inscriptionId: inscriptions.id,
+			memberId: leagueMembers.id,
+			globalPlayerId: globalPlayers.id,
+			fullName: globalPlayers.fullName,
+			birthDate: globalPlayers.birthDate,
+			avatarUrl: globalPlayers.avatarUrl,
+			dorsal: leagueMembers.dorsal,
+			status: leagueMembers.status,
+			inscriptionDate: leagueMembers.inscriptionDate,
+		})
+		.from(inscriptions)
+		.innerJoin(leagueMembers, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.innerJoin(globalPlayers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+		.where(eq(inscriptions.teamId, teamId))
+		.orderBy(asc(leagueMembers.dorsal), asc(globalPlayers.fullName));
+
+	return rows.map((r) => ({
+		inscriptionId: r.inscriptionId,
+		memberId: r.memberId,
+		globalPlayerId: r.globalPlayerId,
+		fullName: r.fullName,
+		birthDate: r.birthDate,
+		avatarUrl: r.avatarUrl ?? null,
+		dorsal: r.dorsal ?? null,
+		status: r.status as TeamRosterEntry["status"],
+		inscriptionDate: r.inscriptionDate,
+	}));
+}
+
+// ---------------------------------------------------------------------------
+// Lista de jugadores por organización — para /admin/players
+// ---------------------------------------------------------------------------
+
+export type OrgPlayerRow = {
+	globalPlayerId: string;
+	fullName: string;
+	birthDate: string;
+	avatarUrl: string | null;
+	leagueCount: number;
+	// Liga más reciente en la org
+	latestLeagueName: string | null;
+	latestStatus: "active" | "suspended" | "inactive" | null;
+	latestDorsal: number | null;
+};
+
+/**
+ * Lista paginada de jugadores que tienen al menos un league_member
+ * en alguna liga de la organización dada.
+ *
+ * Devuelve jugadores únicos (una fila por global_player).
+ */
+export async function listOrgPlayers(
+	organizationId: string,
+	opts: { page: number; pageSize: number; search?: string },
+): Promise<{ rows: OrgPlayerRow[]; total: number }> {
+	const { page, pageSize, search } = opts;
+	const offset = (page - 1) * pageSize;
+
+	// Subquery: IDs de ligas que pertenecen a esta org
+	// Usamos un join en la query principal para filtrar
+
+	// Query principal: un global_player por fila, con datos agregados
+	const baseFilter = and(
+		eq(leagues.organizationId, organizationId),
+		search
+			? sql`LOWER(${globalPlayers.fullName}) LIKE ${"%" + search.toLowerCase() + "%"}`
+			: undefined,
+	);
+
+	const [rowsResult, countResult] = await Promise.all([
+		db
+			.selectDistinctOn([globalPlayers.id], {
+				globalPlayerId: globalPlayers.id,
+				fullName: globalPlayers.fullName,
+				birthDate: globalPlayers.birthDate,
+				avatarUrl: globalPlayers.avatarUrl,
+				leagueCount: sql<number>`COUNT(${leagueMembers.id}) OVER (PARTITION BY ${globalPlayers.id})::int`,
+				latestLeagueName: leagues.name,
+				latestStatus: leagueMembers.status,
+				latestDorsal: leagueMembers.dorsal,
+			})
+			.from(globalPlayers)
+			.innerJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+			.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+			.where(baseFilter)
+			.orderBy(asc(globalPlayers.id), desc(leagues.createdAt))
+			.limit(pageSize)
+			.offset(offset),
+
+		db
+			.select({ total: sql<number>`COUNT(DISTINCT ${globalPlayers.id})::int` })
+			.from(globalPlayers)
+			.innerJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+			.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+			.where(baseFilter),
+	]);
+
+	return {
+		rows: rowsResult.map((r) => ({
+			globalPlayerId: r.globalPlayerId,
+			fullName: r.fullName,
+			birthDate: r.birthDate,
+			avatarUrl: r.avatarUrl ?? null,
+			leagueCount: r.leagueCount,
+			latestLeagueName: r.latestLeagueName ?? null,
+			latestStatus: (r.latestStatus as OrgPlayerRow["latestStatus"]) ?? null,
+			latestDorsal: r.latestDorsal ?? null,
+		})),
+		total: countResult[0]?.total ?? 0,
+	};
+}
+
+// ---------------------------------------------------------------------------
+// GlobalPlayerLeagueMembers — detalle de membresías V2 para pantalla de admin
+//
+// Devuelve todas las ligas en las que el global_player está inscrito, con los
+// campos editables (status, dorsal, internalNotes, institutionPhotoUrl).
+//
+// Si se pasa organizationId, filtra solo las ligas de esa organización.
+// Los campos sensibles (internalNotes, institutionPhotoUrl) solo se incluyen
+// cuando la query ya está scoped a la organización del usuario.
+// ---------------------------------------------------------------------------
+
+export type GlobalPlayerLeagueMember = {
+	memberId: string;
+	leagueId: string;
+	leagueName: string;
+	organizationId: string;
+	teamId: string | null;
+	teamName: string | null;
+	dorsal: number | null;
+	status: "active" | "suspended" | "inactive";
+	inscriptionDate: string;
+	internalNotes: string | null;
+	institutionPhotoUrl: string | null;
+};
+
+export async function getGlobalPlayerLeagueMembers(
+	globalPlayerId: string,
+	organizationId?: string,
+): Promise<GlobalPlayerLeagueMember[]> {
+	const rows = await db
+		.select({
+			memberId: leagueMembers.id,
+			leagueId: leagueMembers.leagueId,
+			leagueName: leagues.name,
+			organizationId: leagues.organizationId,
+			teamId: inscriptions.teamId,
+			teamName: teams.name,
+			dorsal: leagueMembers.dorsal,
+			status: leagueMembers.status,
+			inscriptionDate: leagueMembers.inscriptionDate,
+			internalNotes: leagueMembers.internalNotes,
+			institutionPhotoUrl: leagueMembers.institutionPhotoUrl,
+		})
+		.from(leagueMembers)
+		.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+		.leftJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.leftJoin(teams, eq(teams.id, inscriptions.teamId))
+		.where(
+			and(
+				eq(leagueMembers.globalPlayerId, globalPlayerId),
+				organizationId ? eq(leagues.organizationId, organizationId) : undefined,
+			),
+		)
+		.orderBy(desc(leagues.createdAt));
+
+	return rows.map((r) => ({
+		memberId: r.memberId,
+		leagueId: r.leagueId,
+		leagueName: r.leagueName,
+		organizationId: r.organizationId!,
+		teamId: r.teamId ?? null,
+		teamName: r.teamName ?? null,
+		dorsal: r.dorsal ?? null,
+		status: r.status as GlobalPlayerLeagueMember["status"],
+		inscriptionDate: r.inscriptionDate,
+		internalNotes: organizationId ? (r.internalNotes ?? null) : null,
+		institutionPhotoUrl: organizationId ? (r.institutionPhotoUrl ?? null) : null,
+	}));
+}
+
+// ---------------------------------------------------------------------------
+// getGlobalPlayerBasic — datos básicos de un global_player (nombre, fecha nac.)
+// Para la pantalla de detalle cuando no hay perfil V1 disponible.
+// ---------------------------------------------------------------------------
+
+export type GlobalPlayerBasic = {
+	id: string;
+	fullName: string;
+	birthDate: string | null;
+	avatarUrl: string | null;
+};
+
+export async function getGlobalPlayerBasic(
+	globalPlayerId: string,
+): Promise<GlobalPlayerBasic | null> {
+	const row = await db.query.globalPlayers.findFirst({
+		where: eq(globalPlayers.id, globalPlayerId),
+	});
+	if (!row) return null;
+	return {
+		id: row.id,
+		fullName: row.fullName,
+		birthDate: row.birthDate ?? null,
+		avatarUrl: row.avatarUrl ?? null,
+	};
 }
