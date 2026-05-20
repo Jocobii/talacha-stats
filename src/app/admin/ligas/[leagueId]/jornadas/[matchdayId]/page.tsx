@@ -5,15 +5,26 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
+import { Lock } from "lucide-react";
 import { db } from "@/db";
 import { matchdays, leagues } from "@/db/schema";
 import { getSessionUser } from "@/shared/lib/auth";
 import { listMatchesByRound } from "@/entities/match/queries";
 import { CedulaSearch } from "./CedulaSearch";
+import { CloseMatchdayButton } from "./CloseMatchdayButton";
 import { STATUS_LABELS } from "@/features/match-resolution/constants";
 import type { ResolutionStatus } from "@/db/schema";
 
 type Params = { params: Promise<{ leagueId: string; matchdayId: string }> };
+
+const CAPTURED_STATUSES = new Set([
+	"played",
+	"walkover_home",
+	"walkover_away",
+	"suspended",
+	"postponed",
+	"completed",
+]);
 
 const STATUS_PILL: Record<string, string> = {
 	scheduled: "bg-surface-2 text-ink-3",
@@ -32,7 +43,7 @@ export default async function JornadaDashboardPage({ params }: Params) {
 	const [matchday, league] = await Promise.all([
 		db.query.matchdays.findFirst({
 			where: eq(matchdays.id, matchdayId),
-			columns: { id: true, number: true, scheduledDate: true },
+			columns: { id: true, number: true, scheduledDate: true, status: true },
 		}),
 		db.query.leagues.findFirst({
 			where: eq(leagues.id, leagueId),
@@ -48,7 +59,9 @@ export default async function JornadaDashboardPage({ params }: Params) {
 	if (!canManage) redirect("/admin/leagues");
 
 	const matches = await listMatchesByRound(matchdayId);
-	const played = matches.filter((m) => m.status === "played" || m.status === "completed").length;
+	const capturedCount = matches.filter((m) => CAPTURED_STATUSES.has(m.status)).length;
+	const isClosed = matchday.status === "completed";
+	const allCaptured = matches.length > 0 && capturedCount === matches.length;
 	const firstScheduled = matches.find((m) => m.status === "scheduled");
 
 	return (
@@ -58,7 +71,7 @@ export default async function JornadaDashboardPage({ params }: Params) {
 				<div className="mb-6">
 					<p className="text-xs text-ink-3 mb-2">
 						<Link
-							href={`/admin/leagues/${leagueId}`}
+							href={`/admin/leagues/${leagueId}/calendario`}
 							className="hover:text-ink-2 transition-colors"
 						>
 							{league.name}
@@ -70,30 +83,70 @@ export default async function JornadaDashboardPage({ params }: Params) {
 					</p>
 					<div className="flex items-start justify-between gap-4 flex-wrap">
 						<div>
-							<h1 className="font-display text-3xl text-ink font-bold tracking-tight">
-								Captura de resultados
-							</h1>
+							<div className="flex items-center gap-2">
+								<h1 className="font-display text-3xl text-ink font-bold tracking-tight">
+									Captura de resultados
+								</h1>
+								{isClosed && (
+									<span className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-600/10 border border-green-600/20 px-2 py-0.5 rounded-full">
+										<Lock size={11} strokeWidth={2.5} />
+										Cerrada
+									</span>
+								)}
+							</div>
 							<p className="text-sm text-ink-2 mt-1">
-								Progreso:{" "}
-								<span className="font-semibold text-ink">
-									{played}/{matches.length}
-								</span>{" "}
-								partidos capturados
+								{isClosed ? (
+									<span className="text-green-600 font-medium">
+										✓ Jornada cerrada — {capturedCount}/{matches.length} partidos capturados
+									</span>
+								) : (
+									<>
+										Progreso:{" "}
+										<span className="font-semibold text-ink">
+											{capturedCount}/{matches.length}
+										</span>{" "}
+										partidos capturados
+									</>
+								)}
 							</p>
 						</div>
-						<div className="flex items-center gap-3">
-							<CedulaSearch leagueId={leagueId} matchdayId={matchdayId} />
-							{firstScheduled && (
-								<Link
-									href={`/admin/ligas/${leagueId}/jornadas/${matchdayId}/partidos/${firstScheduled.id}`}
-									className="bg-brand hover:bg-brand-dim text-pitch text-sm font-bold px-4 py-2 rounded transition-colors"
-								>
-									Continuar →
-								</Link>
+
+						{/* Acciones */}
+						<div className="flex items-center gap-3 flex-wrap justify-end">
+							{!isClosed && (
+								<>
+									<CedulaSearch leagueId={leagueId} matchdayId={matchdayId} />
+									{firstScheduled && (
+										<Link
+											href={`/admin/ligas/${leagueId}/jornadas/${matchdayId}/partidos/${firstScheduled.id}`}
+											className="bg-brand hover:bg-brand-dim text-pitch text-sm font-bold px-4 py-2 rounded transition-colors"
+										>
+											Continuar →
+										</Link>
+									)}
+								</>
+							)}
+							{allCaptured && !isClosed && (
+								<CloseMatchdayButton
+									matchdayId={matchdayId}
+									leagueId={leagueId}
+									matchdayNumber={matchday.number}
+								/>
 							)}
 						</div>
 					</div>
 				</div>
+
+				{/* Banner de jornada cerrada */}
+				{isClosed && (
+					<div className="mb-4 flex items-center gap-3 bg-green-600/10 border border-green-600/20 text-green-700 rounded-lg px-4 py-3 text-sm">
+						<Lock size={16} strokeWidth={2} className="shrink-0" />
+						<div>
+							<span className="font-semibold">Jornada cerrada.</span> Los resultados están
+							bloqueados. La tabla de posiciones ya fue actualizada.
+						</div>
+					</div>
+				)}
 
 				{/* Tabla de partidos */}
 				<div className="bg-surface rounded-lg border border-line overflow-hidden">
@@ -112,9 +165,11 @@ export default async function JornadaDashboardPage({ params }: Params) {
 								<th className="px-4 py-3 text-left text-xs text-ink-3 font-medium uppercase tracking-wider">
 									Marcador
 								</th>
-								<th className="px-4 py-3 text-right text-xs text-ink-3 font-medium uppercase tracking-wider">
-									Acción
-								</th>
+								{!isClosed && (
+									<th className="px-4 py-3 text-right text-xs text-ink-3 font-medium uppercase tracking-wider">
+										Acción
+									</th>
+								)}
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-line">
@@ -122,7 +177,7 @@ export default async function JornadaDashboardPage({ params }: Params) {
 								const label = STATUS_LABELS[m.status as ResolutionStatus] ?? m.status;
 								const pillClass = STATUS_PILL[m.status] ?? "bg-surface-2 text-ink-3";
 								return (
-									<tr key={m.id} className="hover:bg-surface-2 transition-colors">
+									<tr key={m.id} className={isClosed ? "" : "hover:bg-surface-2 transition-colors"}>
 										<td className="px-4 py-3 font-mono text-blue text-xs">{m.cedula ?? "—"}</td>
 										<td className="px-4 py-3">
 											<span className="font-medium text-ink">{m.homeTeam.name}</span>
@@ -139,14 +194,16 @@ export default async function JornadaDashboardPage({ params }: Params) {
 												? `${m.homeScore} – ${m.awayScore}`
 												: "—"}
 										</td>
-										<td className="px-4 py-3 text-right">
-											<Link
-												href={`/admin/ligas/${leagueId}/jornadas/${matchdayId}/partidos/${m.id}`}
-												className="text-xs font-semibold text-brand hover:text-brand-dim transition-colors"
-											>
-												{m.status === "scheduled" ? "Capturar →" : "Editar →"}
-											</Link>
-										</td>
+										{!isClosed && (
+											<td className="px-4 py-3 text-right">
+												<Link
+													href={`/admin/ligas/${leagueId}/jornadas/${matchdayId}/partidos/${m.id}`}
+													className="text-xs font-semibold text-brand hover:text-brand-dim transition-colors"
+												>
+													{m.status === "scheduled" ? "Capturar →" : "Editar →"}
+												</Link>
+											</td>
+										)}
 									</tr>
 								);
 							})}

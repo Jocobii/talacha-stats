@@ -55,6 +55,25 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 		try {
 			const data = await fetchCurrent(leagueId);
 			if (!data) return;
+
+			// Auto-crear la siguiente jornada si no hay activa pero sí hay fecha sugerida.
+			// Esto ocurre al cerrar una jornada: evita mostrar el form de fecha al usuario.
+			if (!data.matchday && data.suggestedNextDate) {
+				const created = await postCreateMatchday(leagueId, data.suggestedNextDate);
+				if (created) {
+					// Nueva carga — la jornada recién creada aparece como draft y entra al flujo normal
+					const fresh = await fetchCurrent(leagueId);
+					if (fresh) {
+						setMatchday(fresh.matchday);
+						setTotalMatchdays(fresh.totalMatchdays);
+						setLeagueName(fresh.leagueName);
+						setVenues(fresh.venues);
+						setConfig(fresh.config);
+					}
+					return;
+				}
+			}
+
 			setMatchday(data.matchday);
 			setTotalMatchdays(data.totalMatchdays);
 			setLeagueName(data.leagueName);

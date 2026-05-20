@@ -17,7 +17,7 @@ import {
 	venues,
 	venueTimeWindows,
 } from "@/db/schema";
-import { eq, and, inArray, asc, count } from "drizzle-orm";
+import { eq, and, inArray, asc, desc, count } from "drizzle-orm";
 import { MATCHDAY_STATUSES } from "@/features/scheduling/constants";
 import {
 	buildSlotsForDay,
@@ -61,6 +61,25 @@ export async function GET(request: Request, { params }: Params) {
 	]);
 
 	const currentMatchday = activeDays[0] ?? null;
+
+	// Si no hay jornada activa, buscar la última completada para sugerir la fecha siguiente (+7 días)
+	let suggestedNextDate: string | null = null;
+	if (!currentMatchday) {
+		const lastCompleted = await db.query.matchdays.findFirst({
+			where: and(eq(matchdays.leagueId, id), eq(matchdays.status, "completed")),
+			orderBy: [desc(matchdays.number)],
+			columns: { scheduledDate: true },
+		});
+		if (lastCompleted?.scheduledDate) {
+			const [y, m, d] = lastCompleted.scheduledDate.split("-").map(Number);
+			const next = new Date(y, m - 1, d + 7);
+			suggestedNextDate = [
+				next.getFullYear(),
+				String(next.getMonth() + 1).padStart(2, "0"),
+				String(next.getDate()).padStart(2, "0"),
+			].join("-");
+		}
+	}
 
 	let matchCount = 0;
 	if (currentMatchday) {
@@ -128,6 +147,7 @@ export async function GET(request: Request, { params }: Params) {
 					matchCount,
 				}
 			: null,
+		suggestedNextDate,
 		totalMatchdays: config?.regularMatchdays ?? 0,
 		leagueName: league.name,
 		venues: venuesOut,

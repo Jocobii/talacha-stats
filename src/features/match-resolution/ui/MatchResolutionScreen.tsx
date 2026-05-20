@@ -9,6 +9,7 @@ import { ScoreHeader } from "./ScoreHeader";
 import { TeamPanel } from "./TeamPanel";
 import { AdHocPlayerModal } from "./AdHocPlayerModal";
 import { ResolutionFooter } from "./ResolutionFooter";
+import { MatchdaySidebar } from "./MatchdaySidebar";
 import { useMatchResolution } from "../model/use-match-resolution";
 import { useKeyboardNav, focusFirstStatInput } from "../model/use-keyboard-nav";
 import { validateResolution } from "../lib/validate-resolution";
@@ -16,13 +17,40 @@ import type { MatchResolutionData } from "@/entities/match/model";
 import type { TeamSide, PlayerStatDraft } from "../types";
 import type { ResolutionStatus } from "@/db/schema";
 
+type SidebarMatch = {
+	id: string;
+	homeTeamName: string;
+	awayTeamName: string;
+	status: string;
+	homeScore: number | null;
+	awayScore: number | null;
+};
+
 type Props = {
 	initialData: MatchResolutionData;
 	leagueId: string;
 	matchdayId: string;
+	matchdayNumber: number;
+	sidebarMatches: SidebarMatch[];
 };
 
-export function MatchResolutionScreen({ initialData, leagueId, matchdayId }: Props) {
+const CAPTURED_STATUSES = new Set([
+	"played",
+	"walkover_home",
+	"walkover_away",
+	"suspended",
+	"postponed",
+	"completed",
+]);
+
+export function MatchResolutionScreen({
+	initialData,
+	leagueId,
+	matchdayId,
+	matchdayNumber,
+	sidebarMatches,
+}: Props) {
+	const capturedCount = sidebarMatches.filter((m) => CAPTURED_STATUSES.has(m.status)).length;
 	const router = useRouter();
 	const { state, saveStatus, lastSavedAt, updatePlayerStat, updateMatchField, addPlayer, saveAll } =
 		useMatchResolution(initialData);
@@ -98,44 +126,59 @@ export function MatchResolutionScreen({ initialData, leagueId, matchdayId }: Pro
 	);
 
 	return (
-		<div className="flex flex-col min-h-screen bg-pitch">
-			<ScoreHeader
-				data={initialData}
-				state={state}
-				saveStatus={saveStatus}
-				lastSavedAt={lastSavedAt}
-				onScoreChange={(side, v) =>
-					updateMatchField(side === "home" ? "homeScore" : "awayScore", v)
-				}
-				onStatusChange={(s) => updateMatchField("status", s)}
-				onSaveNext={handleSaveNext}
+		<div className="flex min-h-screen bg-pitch">
+			{/* ── Sidebar de jornada ──────────────────────────────────────────── */}
+			<MatchdaySidebar
+				matches={sidebarMatches}
+				currentMatchId={initialData.match.id}
+				leagueId={leagueId}
+				matchdayId={matchdayId}
+				matchdayNumber={matchdayNumber}
+				capturedCount={capturedCount}
 			/>
-			<main className="flex-1 grid grid-cols-2 gap-3 p-3">
-				<TeamPanel
-					side="home"
-					teamName={initialData.homeTeam.name}
-					players={state.homePlayers}
-					bonusGoals={state.homeBonusGoals}
-					disabled={isLocked}
-					onStatChange={(id, field, val) => updatePlayerStat("home", id, field, val)}
-					onBonusChange={(v) => updateMatchField("homeBonusGoals", v)}
-					onAddPlayer={() => setAdHocSide("home")}
+
+			{/* ── Contenido principal ─────────────────────────────────────────── */}
+			<div className="flex flex-col flex-1 min-w-0">
+				<ScoreHeader
+					data={initialData}
+					state={state}
+					saveStatus={saveStatus}
+					lastSavedAt={lastSavedAt}
+					capturedCount={capturedCount}
+					totalMatches={sidebarMatches.length}
+					onScoreChange={(side, v) =>
+						updateMatchField(side === "home" ? "homeScore" : "awayScore", v)
+					}
+					onStatusChange={(s) => updateMatchField("status", s)}
+					onSaveNext={handleSaveNext}
 				/>
-				<TeamPanel
-					side="away"
-					teamName={initialData.awayTeam.name}
-					players={state.awayPlayers}
-					bonusGoals={state.awayBonusGoals}
-					disabled={isLocked}
-					onStatChange={(id, field, val) => updatePlayerStat("away", id, field, val)}
-					onBonusChange={(v) => updateMatchField("awayBonusGoals", v)}
-					onAddPlayer={() => setAdHocSide("away")}
+				<main className="flex-1 grid grid-cols-2 gap-3 p-3">
+					<TeamPanel
+						side="home"
+						teamName={initialData.homeTeam.name}
+						players={state.homePlayers}
+						bonusGoals={state.homeBonusGoals}
+						disabled={isLocked}
+						onStatChange={(id, field, val) => updatePlayerStat("home", id, field, val)}
+						onBonusChange={(v) => updateMatchField("homeBonusGoals", v)}
+						onAddPlayer={() => setAdHocSide("home")}
+					/>
+					<TeamPanel
+						side="away"
+						teamName={initialData.awayTeam.name}
+						players={state.awayPlayers}
+						bonusGoals={state.awayBonusGoals}
+						disabled={isLocked}
+						onStatChange={(id, field, val) => updatePlayerStat("away", id, field, val)}
+						onBonusChange={(v) => updateMatchField("awayBonusGoals", v)}
+						onAddPlayer={() => setAdHocSide("away")}
+					/>
+				</main>
+				<ResolutionFooter
+					state={state}
+					onObservationsChange={(v) => updateMatchField("refereeObservations", v)}
 				/>
-			</main>
-			<ResolutionFooter
-				state={state}
-				onObservationsChange={(v) => updateMatchField("refereeObservations", v)}
-			/>
+			</div>
 			{adHocSide && (
 				<AdHocPlayerModal
 					matchId={state.matchId}

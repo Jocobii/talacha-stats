@@ -14,6 +14,8 @@ type Props = {
 	state: ResolutionState;
 	saveStatus: SaveStatus;
 	lastSavedAt: Date | null;
+	capturedCount: number;
+	totalMatches: number;
 	onScoreChange: (side: "home" | "away", value: number | null) => void;
 	onStatusChange: (status: ResolutionStatus) => void;
 	onSaveNext: () => void;
@@ -32,6 +34,8 @@ export function ScoreHeader({
 	state,
 	saveStatus,
 	lastSavedAt,
+	capturedCount,
+	totalMatches,
 	onScoreChange,
 	onStatusChange,
 	onSaveNext,
@@ -88,26 +92,43 @@ export function ScoreHeader({
 					</span>
 				</div>
 
-				{/* Status + Guardar */}
-				<div className="flex items-center gap-2 ml-auto">
-					<StatusDropdown value={state.status} onChange={onStatusChange} />
-					<button
-						onClick={onSaveNext}
-						className="flex items-center gap-1.5 bg-brand hover:bg-brand-dim text-pitch text-sm font-bold px-3 py-1.5 rounded transition-colors"
-					>
-						<Save size={14} />
-						Guardar y siguiente
-					</button>
-				</div>
-			</div>
+				{/* Status + Guardar + Progreso */}
+				<div className="flex flex-col items-end gap-1 ml-auto">
+					<div className="flex items-center gap-2">
+						<StatusDropdown value={state.status} onChange={onStatusChange} />
+						<button
+							onClick={onSaveNext}
+							className="flex items-center gap-1.5 bg-brand hover:bg-brand-dim text-pitch text-sm font-bold px-3 py-1.5 rounded transition-colors"
+						>
+							<Save size={14} />
+							Guardar y siguiente
+						</button>
+					</div>
 
-			{/* Indicador de autosave */}
-			<div className="mt-1 text-xs text-ink-3 text-right h-4">
-				{saveStatus === "saving" && "Guardando…"}
-				{saveStatus === "saved" && lastSavedAt && `Guardado a las ${formatTime(lastSavedAt)}`}
-				{saveStatus === "error" && (
-					<span className="text-rose">Error al guardar — revisa tu conexión</span>
-				)}
+					{/* Barra de progreso de jornada */}
+					{totalMatches > 0 && (
+						<div className="flex items-center gap-2 w-full">
+							<div className="flex-1 bg-surface-2 rounded-full h-1.5 border border-line">
+								<div
+									className={`h-1.5 rounded-full transition-all ${capturedCount === totalMatches ? "bg-green-500" : "bg-brand"}`}
+									style={{ width: `${Math.round((capturedCount / totalMatches) * 100)}%` }}
+								/>
+							</div>
+							<span
+								className={`text-xs font-semibold shrink-0 tabular-nums ${capturedCount === totalMatches ? "text-green-600" : "text-ink-2"}`}
+							>
+								{capturedCount}/{totalMatches}
+							</span>
+						</div>
+					)}
+
+					{/* Autosave */}
+					<div className="text-xs text-ink-3 h-3.5 self-end">
+						{saveStatus === "saving" && "Guardando…"}
+						{saveStatus === "saved" && lastSavedAt && `Guardado ${formatTime(lastSavedAt)}`}
+						{saveStatus === "error" && <span className="text-rose">Error al guardar</span>}
+					</div>
+				</div>
 			</div>
 		</header>
 	);

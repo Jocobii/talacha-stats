@@ -8,6 +8,7 @@ import type {
 
 type CurrentResponse = {
 	matchday: CockpitMatchday | null;
+	suggestedNextDate: string | null;
 	totalMatchdays: number;
 	leagueName: string;
 	venues: VenueOption[];

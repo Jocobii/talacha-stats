@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutList, Shuffle, CalendarDays, Settings, MapPin, ClipboardList } from "lucide-react";
+import { LayoutList, Shuffle, CalendarDays, Settings, MapPin } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 
 type Tab = {
@@ -46,11 +46,6 @@ export function LeagueTabBar({ leagueId, schedulingEnabled }: Props) {
 			label: "Calendario",
 			href: `/admin/leagues/${leagueId}/calendario`,
 			icon: CalendarDays,
-		},
-		{
-			label: "Captura",
-			href: `/admin/leagues/${leagueId}/captura`,
-			icon: ClipboardList,
 		},
 		{
 			label: "Configuración",

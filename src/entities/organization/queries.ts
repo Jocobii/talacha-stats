@@ -164,32 +164,127 @@ export async function getPublicLeague(orgSlug: string, leagueSlug: string) {
 }
 
 /**
- * Obtiene la tabla de posiciones del último snapshot disponible para una liga.
+ * Obtiene la tabla de posiciones para la vista pública de una liga.
+ *
+ * Prioridad 1 — snapshots importados desde Excel (V1 legacy):
+ *   Devuelve la jornada más reciente disponible en teamStandingsSnapshot.
+ *
+ * Prioridad 2 — cálculo en vivo desde partidos capturados (V2):
+ *   Se activa cuando no hay snapshots. Cuenta played + walkover_home +
+ *   walkover_away. Los W.O. se contabilizan como 3-0 para el ganador.
+ *   Devuelve filas con la misma forma que los snapshots ({ team: { id, name }, ... })
+ *   para que la plantilla pública no necesite cambios.
  */
 export async function getLatestStandings(leagueId: string) {
-	// Encontrar la última jornada con datos
+	// ── Prioridad 1: snapshots Excel ──────────────────────────────────────────
 	const lastJornada = await db
 		.select({ jornada: sql<number>`max(${teamStandingsSnapshot.jornada})` })
 		.from(teamStandingsSnapshot)
 		.where(eq(teamStandingsSnapshot.leagueId, leagueId));
 
 	const jornada = lastJornada[0]?.jornada ?? null;
-	if (!jornada) return { standings: [], jornada: null };
 
-	const rows = await db.query.teamStandingsSnapshot.findMany({
-		where: and(
-			eq(teamStandingsSnapshot.leagueId, leagueId),
-			eq(teamStandingsSnapshot.jornada, jornada),
-		),
-		with: { team: { columns: { id: true, name: true } } },
-		orderBy: [
-			desc(teamStandingsSnapshot.points),
-			desc(sql`${teamStandingsSnapshot.goalsFor} - ${teamStandingsSnapshot.goalsAgainst}`),
-			desc(teamStandingsSnapshot.goalsFor),
-		],
+	if (jornada) {
+		const rows = await db.query.teamStandingsSnapshot.findMany({
+			where: and(
+				eq(teamStandingsSnapshot.leagueId, leagueId),
+				eq(teamStandingsSnapshot.jornada, jornada),
+			),
+			with: { team: { columns: { id: true, name: true } } },
+			orderBy: [
+				desc(teamStandingsSnapshot.points),
+				desc(sql`${teamStandingsSnapshot.goalsFor} - ${teamStandingsSnapshot.goalsAgainst}`),
+				desc(teamStandingsSnapshot.goalsFor),
+			],
+		});
+		return { standings: rows, jornada };
+	}
+
+	// ── Prioridad 2: cálculo en vivo desde partidos capturados (V2) ───────────
+	const COUNTED_STATUSES = ["played", "walkover_home", "walkover_away", "completed"] as const;
+
+	const [leagueTeams, countedMatches] = await Promise.all([
+		db.query.teams.findMany({
+			where: eq(teams.leagueId, leagueId),
+			columns: { id: true, name: true },
+		}),
+		db.query.matches.findMany({
+			where: and(eq(matches.leagueId, leagueId), inArray(matches.status, [...COUNTED_STATUSES])),
+			columns: {
+				id: true,
+				homeTeamId: true,
+				awayTeamId: true,
+				homeScore: true,
+				awayScore: true,
+				status: true,
+			},
+		}),
+	]);
+
+	if (countedMatches.length === 0) return { standings: [], jornada: null };
+
+	const rows = leagueTeams.map((team) => {
+		let wins = 0,
+			draws = 0,
+			losses = 0,
+			goalsFor = 0,
+			goalsAgainst = 0;
+
+		for (const m of countedMatches) {
+			const isHome = m.homeTeamId === team.id;
+			const isAway = m.awayTeamId === team.id;
+			if (!isHome && !isAway) continue;
+
+			// Goles efectivos: W.O. = 3-0 para el ganador
+			let homeGoals: number, awayGoals: number;
+			if (m.status === "walkover_home") {
+				homeGoals = 3;
+				awayGoals = 0;
+			} else if (m.status === "walkover_away") {
+				homeGoals = 0;
+				awayGoals = 3;
+			} else {
+				homeGoals = m.homeScore ?? 0;
+				awayGoals = m.awayScore ?? 0;
+			}
+
+			const myGoals = isHome ? homeGoals : awayGoals;
+			const theirGoals = isHome ? awayGoals : homeGoals;
+			goalsFor += myGoals;
+			goalsAgainst += theirGoals;
+
+			if (myGoals > theirGoals) wins++;
+			else if (myGoals === theirGoals) draws++;
+			else losses++;
+		}
+
+		const played = wins + draws + losses;
+		const points = wins * 3 + draws;
+
+		// Forma idéntica a los snapshot rows para que la plantilla pública no cambie
+		return {
+			id: team.id,
+			team: { id: team.id, name: team.name },
+			played,
+			wins,
+			draws,
+			losses,
+			goalsFor,
+			goalsAgainst,
+			points,
+		};
 	});
 
-	return { standings: rows, jornada };
+	const sorted = rows.sort((a, b) => {
+		if (b.points !== a.points) return b.points - a.points;
+		const aDiff = a.goalsFor - a.goalsAgainst;
+		const bDiff = b.goalsFor - b.goalsAgainst;
+		if (bDiff !== aDiff) return bDiff - aDiff;
+		if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+		return a.team.name.localeCompare(b.team.name);
+	});
+
+	return { standings: sorted, jornada: null };
 }
 
 /**
