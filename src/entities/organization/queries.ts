@@ -10,6 +10,7 @@ import {
 	matchdays,
 	matches,
 	venues,
+	leaguePlayoffZones,
 } from "@/db/schema";
 import { eq, asc, desc, and, sql, inArray, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -659,6 +660,37 @@ export async function getLeagueSnapshot(leagueId: string): Promise<LeagueSnapsho
 				}
 			: null,
 	};
+}
+
+// ---------------------------------------------------------------------------
+// Zonas de clasificación pública
+// ---------------------------------------------------------------------------
+
+export type PublicZone = {
+	id: string;
+	name: string;
+	fromPosition: number;
+	toPosition: number;
+	color: string;
+};
+
+/**
+ * Retorna las zonas de clasificación de una liga, ordenadas por `order` y posición.
+ * Se usa tanto en la página pública como en la admin.
+ */
+export async function getLeagueZones(leagueId: string): Promise<PublicZone[]> {
+	const rows = await db.query.leaguePlayoffZones.findMany({
+		where: eq(leaguePlayoffZones.leagueId, leagueId),
+		orderBy: [asc(leaguePlayoffZones.order), asc(leaguePlayoffZones.fromPosition)],
+	});
+
+	return rows.map((z) => ({
+		id: z.id,
+		name: z.name,
+		fromPosition: z.fromPosition,
+		toPosition: z.toPosition,
+		color: z.color,
+	}));
 }
 
 /**

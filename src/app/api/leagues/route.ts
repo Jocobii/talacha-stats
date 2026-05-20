@@ -1,4 +1,4 @@
-import { db, leagues } from "@/db";
+import { db, leagues, leaguePlayoffZones } from "@/db";
 import { eq, desc, and } from "drizzle-orm";
 import { CreateLeagueSchema, apiSuccess, apiError } from "@/types";
 import { getActiveCity, getRequestCity } from "@/shared/lib/active-city";
@@ -79,20 +79,34 @@ export async function POST(request: Request) {
 	const existingCodes = new Set(existingRows.map((r) => r.code).filter(Boolean) as string[]);
 	const code = resolveUniqueCode(baseCode, existingCodes);
 
-	const [league] = await db
-		.insert(leagues)
-		.values({
-			name: parsed.data.name,
-			nameCanonical: sanitizeToCanonical(parsed.data.name),
-			slug,
-			category: parsed.data.category ?? null,
-			dayOfWeek: parsed.data.dayOfWeek,
-			season: parsed.data.season,
-			city,
-			organizationId,
-			code,
-		})
-		.returning();
+	const league = await db.transaction(async (tx) => {
+		const [created] = await tx
+			.insert(leagues)
+			.values({
+				name: parsed.data.name,
+				nameCanonical: sanitizeToCanonical(parsed.data.name),
+				slug,
+				category: parsed.data.category ?? null,
+				dayOfWeek: parsed.data.dayOfWeek,
+				season: parsed.data.season,
+				city,
+				organizationId,
+				code,
+			})
+			.returning();
+
+		// Zona por default: Liguilla del 1 al 8
+		await tx.insert(leaguePlayoffZones).values({
+			leagueId: created.id,
+			name: "Liguilla",
+			fromPosition: 1,
+			toPosition: 8,
+			color: "green",
+			order: 0,
+		});
+
+		return created;
+	});
 
 	return apiSuccess(league, 201);
 }

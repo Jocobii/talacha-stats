@@ -7,9 +7,14 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { eq, asc } from "drizzle-orm";
 import { serverFetch } from "@/shared/lib/server-fetch";
 import { getSessionUser } from "@/shared/lib/auth";
+import { db } from "@/db";
+import { leaguePlayoffZones } from "@/db/schema";
 import { listOrganizations } from "@/entities/organization";
+import { findZone, isZoneStart, getZoneTokens } from "@/shared/lib/zone-colors";
+import type { ZoneInfo } from "@/shared/lib/zone-colors";
 import OrganizationSection from "../OrganizerSection";
 import LeagueEmptyState from "../LeagueEmptyState";
 
@@ -52,13 +57,27 @@ type ScorerRow = {
 
 export default async function PosicionesPage({ params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
-	const [data, session] = await Promise.all([getLeagueData(id), getSessionUser()]);
+	const [data, session, zoneRows] = await Promise.all([
+		getLeagueData(id),
+		getSessionUser(),
+		db.query.leaguePlayoffZones.findMany({
+			where: eq(leaguePlayoffZones.leagueId, id),
+			orderBy: [asc(leaguePlayoffZones.order), asc(leaguePlayoffZones.fromPosition)],
+		}),
+	]);
 	if (!data) notFound();
 
 	const { league, standings, topScorers } = data;
 	const isOwner = session?.role === "owner";
 	const isLeagueEmpty = standings.length === 0 && topScorers.length === 0;
 	const allOrganizations = isOwner ? await listOrganizations() : [];
+	const zones: ZoneInfo[] = zoneRows.map((z) => ({
+		id: z.id,
+		name: z.name,
+		fromPosition: z.fromPosition,
+		toPosition: z.toPosition,
+		color: z.color,
+	}));
 
 	return (
 		<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -86,25 +105,46 @@ export default async function PosicionesPage({ params }: { params: Promise<{ id:
 											<th className="px-3 py-2 text-center">GC</th>
 											<th className="px-3 py-2 text-center">DG</th>
 											<th className="px-3 py-2 text-center font-bold">Pts</th>
+											{zones.length > 0 && <th className="px-3 py-2 text-left">Zona</th>}
 										</tr>
 									</thead>
 									<tbody className="divide-y divide-line">
-										{standings.map((s: StandingRow, i: number) => (
-											<tr key={s.teamId} className={i === 0 ? "bg-brand/10" : "hover:bg-surface-2"}>
-												<td className="px-3 py-2 text-ink-2">{i + 1}</td>
-												<td className="px-3 py-2 font-medium text-ink">{s.teamName}</td>
-												<td className="px-3 py-2 text-center text-ink">{s.played}</td>
-												<td className="px-3 py-2 text-center text-brand">{s.wins}</td>
-												<td className="px-3 py-2 text-center text-ink-2">{s.draws}</td>
-												<td className="px-3 py-2 text-center text-red-500">{s.losses}</td>
-												<td className="px-3 py-2 text-center text-ink">{s.goalsFor}</td>
-												<td className="px-3 py-2 text-center text-ink">{s.goalsAgainst}</td>
-												<td className="px-3 py-2 text-center text-ink">
-													{s.goalDifference > 0 ? `+${s.goalDifference}` : s.goalDifference}
-												</td>
-												<td className="px-3 py-2 text-center font-bold text-ink">{s.points}</td>
-											</tr>
-										))}
+										{standings.map((s: StandingRow, i: number) => {
+											const pos = i + 1;
+											const zone = findZone(zones, pos);
+											const tokens = zone ? getZoneTokens(zone.color) : null;
+											const isFirst = isZoneStart(zone, pos);
+											return (
+												<tr
+													key={s.teamId}
+													className={`border-l-4 ${tokens ? `${tokens.leftBorder} ${tokens.rowBg}` : "border-l-transparent"} ${i === 0 && !zone ? "bg-brand/10" : "hover:bg-surface-2"}`}
+												>
+													<td className="px-3 py-2 text-ink-2">{pos}</td>
+													<td className="px-3 py-2 font-medium text-ink">{s.teamName}</td>
+													<td className="px-3 py-2 text-center text-ink">{s.played}</td>
+													<td className="px-3 py-2 text-center text-brand">{s.wins}</td>
+													<td className="px-3 py-2 text-center text-ink-2">{s.draws}</td>
+													<td className="px-3 py-2 text-center text-red-500">{s.losses}</td>
+													<td className="px-3 py-2 text-center text-ink">{s.goalsFor}</td>
+													<td className="px-3 py-2 text-center text-ink">{s.goalsAgainst}</td>
+													<td className="px-3 py-2 text-center text-ink">
+														{s.goalDifference > 0 ? `+${s.goalDifference}` : s.goalDifference}
+													</td>
+													<td className="px-3 py-2 text-center font-bold text-ink">{s.points}</td>
+													{zones.length > 0 && (
+														<td className="px-3 py-2">
+															{isFirst && tokens && zone && (
+																<span
+																	className={`inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded border ${tokens.badgeBg} ${tokens.badgeText} ${tokens.badgeBorder} whitespace-nowrap`}
+																>
+																	{zone.name}
+																</span>
+															)}
+														</td>
+													)}
+												</tr>
+											);
+										})}
 									</tbody>
 								</table>
 							</div>

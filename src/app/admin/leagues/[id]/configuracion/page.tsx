@@ -14,6 +14,7 @@ import {
 	leagues,
 	teams,
 	leagueVenues,
+	leaguePlayoffZones,
 	leagueSchedulingConfig,
 	venueTimeWindows,
 	teamPurchasedTimeslots,
@@ -24,6 +25,8 @@ import NewSeasonButton from "../NewSeasonButton";
 import { SchedulingToggle } from "../sorteo/SchedulingToggle";
 import { SlotsFijosSection } from "./SlotsFijosSection";
 import type { SlotRow } from "./SlotsFijosSection";
+import { PlayoffZonesSection } from "./PlayoffZonesSection";
+import type { ZoneRow } from "./PlayoffZonesSection";
 import { buildSlotsFromWindow } from "@/features/scheduling/slot-assigner/build-slots";
 
 export const metadata = { title: "Configuración · TalachaStats" };
@@ -126,19 +129,33 @@ export default async function ConfiguracionPage({ params }: Params) {
 	if (!canManage) redirect("/admin/leagues");
 
 	const isOwner = user.role === "owner";
-	const [allOrganizations, leagueTeams, leagueVenuesList, purchasedSlots] = await Promise.all([
-		isOwner ? listOrganizations() : Promise.resolve([]),
-		league.schedulingEnabled
-			? db.query.teams.findMany({
-					where: eq(teams.leagueId, id),
-					columns: { id: true, name: true, color: true },
-				})
-			: Promise.resolve([]),
-		league.schedulingEnabled
-			? fetchVenuesForLeague(id, league.dayOfWeek ?? "")
-			: Promise.resolve([]),
-		league.schedulingEnabled ? fetchPurchasedSlots(id) : Promise.resolve([]),
-	]);
+	const [allOrganizations, leagueTeams, leagueVenuesList, purchasedSlots, leagueZones] =
+		await Promise.all([
+			isOwner ? listOrganizations() : Promise.resolve([]),
+			league.schedulingEnabled
+				? db.query.teams.findMany({
+						where: eq(teams.leagueId, id),
+						columns: { id: true, name: true, color: true },
+					})
+				: Promise.resolve([]),
+			league.schedulingEnabled
+				? fetchVenuesForLeague(id, league.dayOfWeek ?? "")
+				: Promise.resolve([]),
+			league.schedulingEnabled ? fetchPurchasedSlots(id) : Promise.resolve([]),
+			db.query.leaguePlayoffZones.findMany({
+				where: eq(leaguePlayoffZones.leagueId, id),
+				orderBy: [asc(leaguePlayoffZones.order), asc(leaguePlayoffZones.fromPosition)],
+			}),
+		]);
+
+	const initialZones: ZoneRow[] = leagueZones.map((z) => ({
+		id: z.id,
+		name: z.name,
+		fromPosition: z.fromPosition,
+		toPosition: z.toPosition,
+		color: z.color,
+		order: z.order,
+	}));
 
 	return (
 		<div className="max-w-xl space-y-6">
@@ -173,6 +190,9 @@ export default async function ConfiguracionPage({ params }: Params) {
 					initialSlots={purchasedSlots}
 				/>
 			)}
+
+			{/* ── Zonas de clasificación ───────────────────────────────────── */}
+			<PlayoffZonesSection leagueId={id} initialZones={initialZones} />
 
 			{/* ── Nueva temporada ───────────────────────────────────────────── */}
 			<div className="bg-surface rounded-lg shadow p-4">

@@ -209,6 +209,34 @@ export const leagues = pgTable("leagues", {
 });
 
 // ---------------------------------------------------------------------------
+// LEAGUE_PLAYOFF_ZONES — Zonas de clasificación configurables por liga
+//
+// Permite definir grupos de posiciones con nombre y color para mostrar
+// en la tabla pública y de admin (Liguilla 1-8, Copa 9-16, Recopa 17-24…).
+// Las zonas no se solapan — la lógica de validación se aplica en el API.
+// color: "green" | "blue" | "amber" | "rose" | "purple" | "orange" | "cyan"
+// ---------------------------------------------------------------------------
+export const leaguePlayoffZones = pgTable(
+	"league_playoff_zones",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		leagueId: uuid("league_id")
+			.notNull()
+			.references(() => leagues.id, { onDelete: "cascade" }),
+		name: text("name").notNull(), // "Liguilla", "Copa", "Recopa", "Descenso"
+		fromPosition: integer("from_position").notNull(), // 1-based, inclusive
+		toPosition: integer("to_position").notNull(), // 1-based, inclusive
+		color: text("color").notNull().default("green"), // Tailwind color key
+		order: integer("order").notNull().default(0), // sorting order in config UI
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("league_playoff_zones_league_idx").on(t.leagueId)],
+);
+
+export type LeaguePlayoffZone = typeof leaguePlayoffZones.$inferSelect;
+export type NewLeaguePlayoffZone = typeof leaguePlayoffZones.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // TEAMS — Equipo SIEMPRE scoped a una liga (Pepe Lunes ≠ Pepe Martes)
 // ---------------------------------------------------------------------------
 export const teams = pgTable(
@@ -569,6 +597,14 @@ export const leaguesRelations = relations(leagues, ({ one, many }) => ({
 	matchdays: many(matchdays),
 	restRequests: many(teamRestRequests),
 	purchasedTimeslots: many(teamPurchasedTimeslots),
+	playoffZones: many(leaguePlayoffZones),
+}));
+
+export const leaguePlayoffZonesRelations = relations(leaguePlayoffZones, ({ one }) => ({
+	league: one(leagues, {
+		fields: [leaguePlayoffZones.leagueId],
+		references: [leagues.id],
+	}),
 }));
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({

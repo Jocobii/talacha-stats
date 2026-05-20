@@ -7,8 +7,10 @@ import {
 	getLatestStandings,
 	getLatestTopScorers,
 	getPublicMatchdays,
+	getLeagueZones,
 } from "@/entities/organization";
 import { titleCase } from "@/shared/lib/normalize";
+import { findZone, getZoneTokens } from "@/shared/lib/zone-colors";
 import ShareLeagueButton from "./ShareLeagueButton";
 import ScorerCard from "./ScorerCard";
 import TrialWarning from "./TrialWarning";
@@ -63,10 +65,11 @@ export default async function LeaguePublicPage({ params }: Props) {
 	const { org, league } = result;
 
 	// Fetch paralelo — matchdays solo si schedulingEnabled
-	const [{ standings, jornada }, scorers, matchdays] = await Promise.all([
+	const [{ standings, jornada }, scorers, matchdays, zones] = await Promise.all([
 		getLatestStandings(league.id),
 		getLatestTopScorers(league.id, 10),
 		league.schedulingEnabled ? getPublicMatchdays(league.id) : Promise.resolve([]),
+		getLeagueZones(league.id),
 	]);
 
 	const hasStandings = standings.length > 0;
@@ -95,43 +98,67 @@ export default async function LeaguePublicPage({ params }: Props) {
 					</div>
 
 					{standings.map((row, idx) => {
+						const pos = idx + 1;
+						const zone = findZone(zones, pos);
+						const tokens = zone ? getZoneTokens(zone.color) : null;
+						const isZoneFirstRow = zone !== null && pos === zone.fromPosition;
 						const isTop3 = idx < 3;
 						return (
-							<div
-								key={row.id}
-								className={`grid grid-cols-[2rem_1fr_2rem_2rem_2rem_2rem_2.5rem] gap-1 px-3 py-2.5 border-b border-line last:border-0 ${
-									isTop3 ? "bg-brand/4" : ""
-								}`}
-							>
-								{/* Pos */}
-								<div className="flex items-center justify-center">
-									{isTop3 ? (
-										<span className="w-5 h-5 rounded-md bg-brand/15 border border-brand/25 flex items-center justify-center font-display font-black text-[11px] text-brand">
-											{idx + 1}
-										</span>
-									) : (
-										<span className="font-display font-black text-sm text-ink-3">{idx + 1}</span>
-									)}
-								</div>
-
-								{/* Equipo */}
-								<div className="flex items-center min-w-0">
-									<span
-										className={`text-sm font-semibold truncate ${isTop3 ? "text-ink" : "text-ink-2"}`}
+							<div key={row.id}>
+								{/* Zone label — shown once at the start of each zone */}
+								{isZoneFirstRow && tokens && zone && (
+									<div
+										className={`flex items-center gap-1.5 px-3 py-1 border-b border-line ${tokens.rowBg}`}
 									>
-										{row.team.name}
+										<span className={`w-1.5 h-1.5 rounded-full ${tokens.dot}`} />
+										<span
+											className={`text-[10px] font-bold uppercase tracking-wider ${tokens.badgeText}`}
+										>
+											{zone.name}
+										</span>
+									</div>
+								)}
+								<div
+									className={`grid grid-cols-[2rem_1fr_2rem_2rem_2rem_2rem_2.5rem] gap-1 px-3 py-2.5 border-b border-line last:border-0 border-l-4 ${
+										tokens
+											? `${tokens.leftBorder} ${tokens.rowBg}`
+											: `border-l-transparent ${isTop3 ? "bg-brand/4" : ""}`
+									}`}
+								>
+									{/* Pos */}
+									<div className="flex items-center justify-center">
+										{isTop3 && !zone ? (
+											<span className="w-5 h-5 rounded-md bg-brand/15 border border-brand/25 flex items-center justify-center font-display font-black text-[11px] text-brand">
+												{pos}
+											</span>
+										) : (
+											<span
+												className={`font-display font-black text-sm ${tokens ? tokens.badgeText : "text-ink-3"}`}
+											>
+												{pos}
+											</span>
+										)}
+									</div>
+
+									{/* Equipo */}
+									<div className="flex items-center min-w-0">
+										<span
+											className={`text-sm font-semibold truncate ${isTop3 && !zone ? "text-ink" : "text-ink-2"}`}
+										>
+											{row.team.name}
+										</span>
+									</div>
+
+									<span className="text-xs text-ink-3 text-center self-center">{row.played}</span>
+									<span className="text-xs text-ink-3 text-center self-center">{row.wins}</span>
+									<span className="text-xs text-ink-3 text-center self-center">{row.draws}</span>
+									<span className="text-xs text-ink-3 text-center self-center">{row.losses}</span>
+									<span
+										className={`text-sm font-black text-right self-center ${isTop3 && !zone ? "text-brand" : "text-ink"}`}
+									>
+										{row.points}
 									</span>
 								</div>
-
-								<span className="text-xs text-ink-3 text-center self-center">{row.played}</span>
-								<span className="text-xs text-ink-3 text-center self-center">{row.wins}</span>
-								<span className="text-xs text-ink-3 text-center self-center">{row.draws}</span>
-								<span className="text-xs text-ink-3 text-center self-center">{row.losses}</span>
-								<span
-									className={`text-sm font-black text-right self-center ${isTop3 ? "text-brand" : "text-ink"}`}
-								>
-									{row.points}
-								</span>
 							</div>
 						);
 					})}

@@ -204,6 +204,20 @@
 			"when": 1779223097942,
 			"tag": "0028_smart_mongu",
 			"breakpoints": true
+		},
+		{
+			"idx": 29,
+			"version": "7",
+			"when": 1747699200000,
+			"tag": "0029_league_playoff_zones",
+			"breakpoints": true
+		},
+		{
+			"idx": 30,
+			"version": "7",
+			"when": 1779255831715,
+			"tag": "0030_burly_warpath",
+			"breakpoints": true
 		}
 	]
 }
