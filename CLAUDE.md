@@ -37,24 +37,33 @@ src/
 ├── app/                        # Next.js routing — solo rutas y layouts
 │   ├── (admin)/
 │   │   ├── layout.tsx
+│   │   ├── registro/page.tsx   # Terminal de registro CURP (Client Component)
 │   │   └── [sección]/page.tsx  # Server Components por defecto
 │   └── api/
-│       └── [recurso]/route.ts  # Controladores HTTP delgados
+│       ├── players/
+│       │   ├── lookup/route.ts   # GET ?curp_hash=...
+│       │   └── register/route.ts # POST — transacción global_player + league_member + inscription
+│       └── [recurso]/route.ts    # Controladores HTTP delgados
 │
 ├── features/                   # Casos de uso completos
-│   ├── import-excel/           # Una carpeta por feature
-│   │   ├── parser.ts           # Leer y normalizar Excel
-│   │   ├── preview.ts          # Generar vista previa
-│   │   ├── confirm.ts          # Persistir datos importados
-│   │   └── index.ts            # Exportaciones públicas del feature
+│   ├── admin-registration/     # Terminal de registro de alta velocidad (CURP)
+│   │   ├── lookup.ts           # Buscar jugador por curp_hash
+│   │   ├── register.ts         # Crear global_player + league_member + inscription (tx atómica)
+│   │   ├── hash.ts             # sha256(CURP) — solo se ejecuta en servidor
+│   │   └── index.ts
+│   ├── import-excel/           # Flujo V1 — importación bulk desde Excel
+│   │   ├── parser.ts
+│   │   ├── preview.ts
+│   │   ├── confirm.ts
+│   │   └── index.ts
 │   ├── narrator-analysis/
 │   ├── standings/
 │   └── player-stats/
 │
 ├── entities/                   # Entidades de negocio
 │   ├── player/
-│   │   ├── model.ts            # Tipos + schema Zod
-│   │   ├── queries.ts          # Acceso a DB (get, list, search, upsert)
+│   │   ├── model.ts            # GlobalPlayerSchema, LeagueMemberSchema, InscriptionSchema
+│   │   ├── queries.ts          # findByHash, upsertGlobal, createMember, createInscription
 │   │   └── index.ts
 │   ├── league/
 │   ├── team/
@@ -62,7 +71,7 @@ src/
 │
 └── shared/                     # Primitivos reutilizables
     ├── db/
-    │   ├── schema.ts
+    │   ├── schema.ts           # global_players, league_members, inscriptions + tablas V1
     │   └── index.ts
     ├── ui/                     # Componentes base sin lógica de negocio
     │   ├── Button.tsx
@@ -71,10 +80,10 @@ src/
     ├── api/
     │   └── response.ts         # apiSuccess, apiError
     └── lib/
-        └── normalize.ts        # Utilitarios puros (strings, fechas, etc.)
+        └── normalize.ts        # sanitizeToCanonical, titleCase — no reimplementar
 ```
 
-> **Estado actual:** El proyecto usa `lib/` en lugar de `features/` y `entities/`. Los archivos nuevos deben seguir la estructura objetivo. Los existentes se migran cuando se toquen, no en un refactor masivo.
+> **Estado actual:** El proyecto usa `lib/` en lugar de `features/` y `entities/`. Los archivos nuevos deben seguir la estructura objetivo. Los existentes se migran cuando se toquen, no en un refactor masivo. Las tablas V1 (`players`, `player_registrations`) coexisten con las V2 (`global_players`, `league_members`, `inscriptions`) hasta la convergencia en v3.
 
 ---
 
@@ -487,8 +496,30 @@ Cuando se pida una nueva funcionalidad, seguir este orden:
 
 ## Contexto del dominio
 
-- Los jugadores tienen identidad global (tabla `players`) pero participan en múltiples ligas con diferentes equipos
-- `player_registrations` es la tabla pivote: un jugador, un equipo por liga (`UNIQUE player_id + league_id`)
-- Las stats vienen de dos fuentes: `player_season_stats` (importadas desde Excel, prioridad) y `match_events` (partido a partido, fallback)
-- Los equipos están siempre scoped a una liga — "Deportivo" en Liga Lunes ≠ "Deportivo" en Liga Martes
-- El narrador del Facebook Live es un usuario clave — las features de análisis pre-partido son críticas
+### Visión y enfoque nuevo
+
+TalachaStats está evolucionando hacia una **plataforma de identidad global para fútbol amateur a nivel ciudad**. La apuesta es: si varias ligas de la misma ciudad adoptan la app, la identidad de cada jugador anclada al CURP se vuelve incorruptible — no hay manera de que el mismo jugador aparezca como dos personas distintas. El dato mejora solo conforme crece la adopción.
+
+### Modelo de identidad (V2 — nuevo)
+
+- **`global_players`** es la fuente de verdad permanente. Una vez registrado con CURP real, ese jugador existe para siempre en la plataforma con su identidad verificada.
+- **`league_members`** conecta un `global_player` con una liga específica. Tiene datos privados de la institución (`internal_notes`, `institution_photo_url`) que no se comparten entre ligas.
+- **`inscriptions`** asigna a un `league_member` a un equipo. Un jugador solo puede estar en un equipo por liga.
+- El `curp_hash` es `sha256(CURP)` calculado **solo en el servidor**. Nunca llega texto plano de CURP a la DB.
+
+### Coexistencia V1 / V2
+
+- **V1 (legacy):** tablas `players` + `player_registrations` + `player_season_stats`. Ligas que usan solo Excel siguen funcionando con estas tablas. No eliminarlas.
+- **V2 (nuevo):** tablas `global_players` + `league_members` + `inscriptions`. Ligas con registro presencial usan este flujo.
+- **Regla de routing:** feature toca stats de Excel → V1; feature toca registro/inscripción → V2.
+
+### Otros conceptos clave
+
+- **Liga = torneo.** No existe tabla `tournaments`. El scope de unicidad de una inscripción ya está dado por `league_member_id`.
+- Los **equipos están siempre scoped a una liga** — "Deportivo" en Liga Lunes ≠ "Deportivo" en Liga Martes.
+- **Stats tienen dos fuentes:** `player_season_stats` (Excel, prioridad 1) y `match_events` (partido a partido, fallback). Un jugador puede tener stats de ambas fuentes en ligas distintas.
+- El **narrador del Facebook Live** es un usuario clave — las features de análisis pre-partido son críticas y se usan en vivo.
+
+### Documento de referencia completo
+
+`docs/player-identity-admin-ecosystem.md` — diseño cerrado, listo para implementación. Incluye el flujo completo de registro, estrategia de migración y decisiones de diseño.
