@@ -5,6 +5,10 @@ import { getActiveCity, getRequestCity } from "@/shared/lib/active-city";
 import { getSessionUserFromRequest } from "@/shared/lib/auth";
 import { generateSlug } from "@/entities/organization";
 import { sanitizeToCanonical } from "@/shared/lib/normalize";
+import {
+	generateLeagueCode,
+	resolveUniqueCode,
+} from "@/features/league-management/lib/generate-league-code";
 
 // GET /api/leagues?city=Tijuana
 // Sin sesión (público) → solo ligas activas de la ciudad
@@ -64,6 +68,17 @@ export async function POST(request: Request) {
 	// Auto-generar slug desde nombre + día si no viene explícito
 	const slug = parsed.data.slug ?? generateSlug(`${parsed.data.name} ${parsed.data.dayOfWeek}`);
 
+	// Auto-generar código de liga para prefijo de cédula
+	const baseCode = generateLeagueCode(parsed.data.name);
+	const existingRows = organizationId
+		? await db.query.leagues.findMany({
+				where: eq(leagues.organizationId, organizationId),
+				columns: { code: true },
+			})
+		: [];
+	const existingCodes = new Set(existingRows.map((r) => r.code).filter(Boolean) as string[]);
+	const code = resolveUniqueCode(baseCode, existingCodes);
+
 	const [league] = await db
 		.insert(leagues)
 		.values({
@@ -75,6 +90,7 @@ export async function POST(request: Request) {
 			season: parsed.data.season,
 			city,
 			organizationId,
+			code,
 		})
 		.returning();
 

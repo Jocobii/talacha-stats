@@ -243,7 +243,7 @@ export function CalendarGrid({
 								ref={(el) => {
 									colRefs.current[dayIdx] = el;
 								}}
-								className={`relative border-r border-line last:border-r-0 select-none ${isToday ? "bg-brand/[0.025]" : isWeekend ? "bg-white/[0.012]" : "bg-surface"}`}
+								className={`relative border-r border-line last:border-r-0 select-none ${isToday ? "bg-brand/[0.025]" : isWeekend ? "bg-surface-2/40" : "bg-surface"}`}
 								style={{ height: TOTAL_HEIGHT }}
 								onMouseDown={(e) => onMouseDownSlot(e, dayIdx)}
 								onMouseMove={(e) => onMouseMoveCol(e, dayIdx)}

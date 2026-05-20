@@ -58,6 +58,7 @@ async function fetchCalendar(leagueId: string): Promise<MatchdayWithMatches[]> {
 		scheduledDate: md.scheduledDate,
 		phase: md.phase,
 		status: md.status,
+		leagueId,
 		matches: byMatchday.get(md.id) ?? [],
 	}));
 }

@@ -3,7 +3,9 @@
  * Tipos de dominio para la entidad Match.
  */
 
+import { z } from "zod";
 import type { Match } from "@/db/schema";
+import { RESOLUTION_STATUSES } from "@/db/schema";
 
 export type { Match };
 
@@ -15,4 +17,106 @@ export type { Match };
 export type MatchWithRelations = Match & {
 	matchday: { id: string; number: number; phase: string; scheduledDate: string } | null;
 	venue: { id: string; name: string; city: string | null } | null;
+};
+
+// ---------------------------------------------------------------------------
+// Schemas del módulo de Resolución de Partidos
+// ---------------------------------------------------------------------------
+
+export const MatchStatusSchema = z.enum(RESOLUTION_STATUSES);
+export type MatchStatus = z.infer<typeof MatchStatusSchema>;
+
+export const MatchPlayerStatSchema = z.object({
+	playerRegistrationId: z.string().uuid(),
+	isPresent: z.boolean(),
+	shirtNumber: z.number().int().min(1).max(99).nullable(),
+	goals: z.number().int().min(0).max(20),
+	assists: z.number().int().min(0).max(20),
+	yellowCards: z.number().int().min(0).max(3),
+	blueCards: z.number().int().min(0).max(3),
+	redCards: z.number().int().min(0).max(1),
+});
+export type MatchPlayerStatInput = z.infer<typeof MatchPlayerStatSchema>;
+
+export const ResolveMatchSchema = z.object({
+	status: MatchStatusSchema,
+	homeScore: z.number().int().min(0).max(99).nullable(),
+	awayScore: z.number().int().min(0).max(99).nullable(),
+	homeBonusGoals: z.number().int().min(0).max(99).default(0),
+	awayBonusGoals: z.number().int().min(0).max(99).default(0),
+	refereeObservations: z.string().max(2000).nullable(),
+	homePlayers: z.array(MatchPlayerStatSchema),
+	awayPlayers: z.array(MatchPlayerStatSchema),
+});
+export type ResolveMatchInput = z.infer<typeof ResolveMatchSchema>;
+
+export const AutosaveStatSchema = MatchPlayerStatSchema.partial().omit({
+	playerRegistrationId: true,
+});
+export type AutosaveStatInput = z.infer<typeof AutosaveStatSchema>;
+
+export const AutosaveMatchFieldsSchema = z.object({
+	homeScore: z.number().int().min(0).max(99).nullable().optional(),
+	awayScore: z.number().int().min(0).max(99).nullable().optional(),
+	homeBonusGoals: z.number().int().min(0).max(99).optional(),
+	awayBonusGoals: z.number().int().min(0).max(99).optional(),
+	refereeObservations: z.string().max(2000).nullable().optional(),
+});
+export type AutosaveMatchFieldsInput = z.infer<typeof AutosaveMatchFieldsSchema>;
+
+/** Datos completos para la pantalla de captura de un partido */
+export type MatchResolutionData = {
+	match: {
+		id: string;
+		cedula: string | null;
+		status: string;
+		homeScore: number | null;
+		awayScore: number | null;
+		homeBonusGoals: number;
+		awayBonusGoals: number;
+		refereeObservations: string | null;
+		matchDate: string;
+		kickoffAt: Date | null;
+	};
+	matchday: {
+		id: string;
+		number: number;
+		scheduledDate: string;
+	} | null;
+	league: {
+		id: string;
+		name: string;
+		code: string | null;
+	};
+	homeTeam: {
+		id: string;
+		name: string;
+		color: string | null;
+	};
+	awayTeam: {
+		id: string;
+		name: string;
+		color: string | null;
+	};
+	homePlayers: PlayerResolutionRow[];
+	awayPlayers: PlayerResolutionRow[];
+};
+
+export type PlayerResolutionRow = {
+	registrationId: string;
+	playerProfileId: string | null;
+	fullName: string;
+	jerseyNumber: number | null;
+	isAdHoc: boolean;
+	/** Stats existentes, null si el partido nunca fue capturado */
+	stat: {
+		id: string;
+		isPresent: boolean;
+		shirtNumber: number | null;
+		goals: number;
+		assists: number;
+		yellowCards: number;
+		blueCards: number;
+		redCards: number;
+	} | null;
 };

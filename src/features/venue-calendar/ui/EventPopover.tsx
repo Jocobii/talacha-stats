@@ -48,7 +48,7 @@ function fmtDate(iso: string): string {
 const STATUS_BADGE: Record<string, string> = {
 	confirmed: "bg-emerald-500/15 text-emerald-400",
 	tentative: "bg-amber-500/15  text-amber-400",
-	cancelled: "bg-gray-500/15   text-gray-400",
+	cancelled: "bg-surface-2 text-ink-3",
 };
 
 export function EventPopover({ event, anchorEl, isOpen, onClose, onEdit, onDelete }: Props) {
@@ -115,7 +115,7 @@ export function EventPopover({ event, anchorEl, isOpen, onClose, onEdit, onDelet
 			? "bg-emerald-500/18 text-emerald-300"
 			: event.status === "tentative"
 				? "bg-amber-500/18 text-amber-300"
-				: "bg-gray-500/15 text-gray-300";
+				: "bg-surface-2 text-ink-3";
 
 	return (
 		<div

@@ -3,11 +3,13 @@
  *
  * Persiste los pairings editados de una jornada en DB dentro de una transacción.
  * Borra los matches existentes de la jornada antes de reinsertar (idempotente).
+ * Asigna cédula única a cada partido dentro de la transacción.
  */
 
 import { db } from "@/db";
 import { matches } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { assignNextCedula } from "@/features/match-resolution/lib/assign-cedula";
 
 export type ConfirmPairing = {
 	homeTeamId: string;
@@ -35,8 +37,13 @@ export async function confirmSingleRound(input: ConfirmSingleRoundInput): Promis
 
 		if (realPairings.length === 0) return;
 
-		await tx.insert(matches).values(
-			realPairings.map((p) => ({
+		// Insertar un partido por iteración para que cada llamada a assignNextCedula
+		// vea el MAX() actualizado con los inserts previos de la misma transacción.
+		// (Si acumuláramos en un array y luego insertáramos en batch, todas las
+		// llamadas leerían el mismo MAX() y generarían la misma cédula.)
+		for (const p of realPairings) {
+			const cedula = await assignNextCedula(tx, leagueId);
+			await tx.insert(matches).values({
 				leagueId,
 				homeTeamId: p.homeTeamId,
 				awayTeamId: p.awayTeamId!,
@@ -45,8 +52,9 @@ export async function confirmSingleRound(input: ConfirmSingleRoundInput): Promis
 				venueId: p.venueId ?? null,
 				kickoffAt: buildKickoffAt(scheduledDate, p.startTime),
 				status: "scheduled" as const,
-			})),
-		);
+				cedula,
+			});
+		}
 	});
 }
 

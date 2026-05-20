@@ -15,7 +15,7 @@ import {
 	REGISTER_API_URL,
 	TEAMS_API_URL,
 } from "../constants";
-import { normalizeCurp } from "../lib/registration-utils";
+import { normalizeCurp, birthDateFromCurp } from "../lib/registration-utils";
 import type { League, Team, GlobalPlayerData, RegistrationStep, RegistrationStage } from "../types";
 
 // ── Tipos internos ─────────────────────────────────────────────────────────────
@@ -157,6 +157,13 @@ export function useRegistrationForm(
 	function setCurpInput(val: string): void {
 		const up = val.toUpperCase().slice(0, CURP_LENGTH);
 		setCurp(up);
+
+		// Auto-rellenar fecha de nacimiento cuando la CURP está completa
+		if (up.length === CURP_LENGTH) {
+			const extracted = birthDateFromCurp(up);
+			if (extracted) setBirthDate((prev) => prev || extracted);
+		}
+
 		if (up.length < CURP_LENGTH && step.type !== "idle") {
 			setStep({ type: "idle" });
 		}

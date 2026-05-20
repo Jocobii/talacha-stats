@@ -17,9 +17,9 @@ function scoreLabel(score: number): string {
 }
 
 function scoreColor(score: number): string {
-	if (score >= 80) return "text-green-700 bg-green-100";
-	if (score >= 50) return "text-orange-700 bg-orange-100";
-	return "text-gray-600 bg-gray-100";
+	if (score >= 80) return "text-brand bg-brand/10";
+	if (score >= 50) return "text-amber bg-amber/10";
+	return "text-ink-3 bg-surface-2";
 }
 
 export function DoubtCard({ row, candidates, decision, onDecide }: Props) {
@@ -34,20 +34,20 @@ export function DoubtCard({ row, candidates, decision, onDecide }: Props) {
 		<div
 			className={[
 				"rounded-2xl border-2 overflow-hidden transition-all duration-200",
-				isResolved ? "border-brand/30" : "border-orange-300",
+				isResolved ? "border-brand/30" : "border-amber/40",
 			].join(" ")}
 		>
 			{/* Header */}
 			<div
 				className={[
 					"px-4 py-3 flex items-center gap-3 border-b",
-					isResolved ? "bg-brand/5 border-brand/10" : "bg-orange-50 border-orange-100",
+					isResolved ? "bg-brand/5 border-brand/10" : "bg-amber/10 border-amber/20",
 				].join(" ")}
 			>
 				<div
 					className={[
 						"w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-base",
-						isResolved ? "bg-brand/15" : "bg-orange-100",
+						isResolved ? "bg-brand/15" : "bg-amber/15",
 					].join(" ")}
 				>
 					{isResolved ? "✓" : "?"}

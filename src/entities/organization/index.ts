@@ -18,6 +18,7 @@ export {
 	getLatestStandings,
 	getLatestTopScorers,
 	getStandingsHistory,
+	getPublicMatchdays,
 	// Público — hub
 	getLeagueSnapshot,
 	getOrgHubStats,
@@ -37,4 +38,6 @@ export type {
 	OrgHubStats,
 	LeagueShowcaseItem,
 	PendingVerification,
+	PublicMatchday,
+	PublicMatchInfo,
 } from "./queries";

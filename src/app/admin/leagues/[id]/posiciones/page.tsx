@@ -72,40 +72,42 @@ export default async function PosicionesPage({ params }: { params: Promise<{ id:
 					<>
 						<h2 className="text-lg font-semibold text-ink mb-3">Tabla de posiciones</h2>
 						<div className="bg-surface rounded-lg shadow overflow-hidden">
-							<table className="w-full text-sm">
-								<thead className="bg-surface-2 text-ink-2 uppercase text-xs">
-									<tr>
-										<th className="px-3 py-2 text-left">#</th>
-										<th className="px-3 py-2 text-left">Equipo</th>
-										<th className="px-3 py-2 text-center">PJ</th>
-										<th className="px-3 py-2 text-center">G</th>
-										<th className="px-3 py-2 text-center">E</th>
-										<th className="px-3 py-2 text-center">P</th>
-										<th className="px-3 py-2 text-center">GF</th>
-										<th className="px-3 py-2 text-center">GC</th>
-										<th className="px-3 py-2 text-center">DG</th>
-										<th className="px-3 py-2 text-center font-bold">Pts</th>
-									</tr>
-								</thead>
-								<tbody className="divide-y divide-line">
-									{standings.map((s: StandingRow, i: number) => (
-										<tr key={s.teamId} className={i === 0 ? "bg-brand/10" : "hover:bg-surface-2"}>
-											<td className="px-3 py-2 text-ink-2">{i + 1}</td>
-											<td className="px-3 py-2 font-medium text-ink">{s.teamName}</td>
-											<td className="px-3 py-2 text-center text-ink">{s.played}</td>
-											<td className="px-3 py-2 text-center text-brand">{s.wins}</td>
-											<td className="px-3 py-2 text-center text-ink-2">{s.draws}</td>
-											<td className="px-3 py-2 text-center text-red-500">{s.losses}</td>
-											<td className="px-3 py-2 text-center text-ink">{s.goalsFor}</td>
-											<td className="px-3 py-2 text-center text-ink">{s.goalsAgainst}</td>
-											<td className="px-3 py-2 text-center text-ink">
-												{s.goalDifference > 0 ? `+${s.goalDifference}` : s.goalDifference}
-											</td>
-											<td className="px-3 py-2 text-center font-bold text-ink">{s.points}</td>
+							<div className="overflow-x-auto">
+								<table className="w-full text-sm min-w-[560px]">
+									<thead className="bg-surface-2 text-ink-2 uppercase text-xs">
+										<tr>
+											<th className="px-3 py-2 text-left">#</th>
+											<th className="px-3 py-2 text-left">Equipo</th>
+											<th className="px-3 py-2 text-center">PJ</th>
+											<th className="px-3 py-2 text-center">G</th>
+											<th className="px-3 py-2 text-center">E</th>
+											<th className="px-3 py-2 text-center">P</th>
+											<th className="px-3 py-2 text-center">GF</th>
+											<th className="px-3 py-2 text-center">GC</th>
+											<th className="px-3 py-2 text-center">DG</th>
+											<th className="px-3 py-2 text-center font-bold">Pts</th>
 										</tr>
-									))}
-								</tbody>
-							</table>
+									</thead>
+									<tbody className="divide-y divide-line">
+										{standings.map((s: StandingRow, i: number) => (
+											<tr key={s.teamId} className={i === 0 ? "bg-brand/10" : "hover:bg-surface-2"}>
+												<td className="px-3 py-2 text-ink-2">{i + 1}</td>
+												<td className="px-3 py-2 font-medium text-ink">{s.teamName}</td>
+												<td className="px-3 py-2 text-center text-ink">{s.played}</td>
+												<td className="px-3 py-2 text-center text-brand">{s.wins}</td>
+												<td className="px-3 py-2 text-center text-ink-2">{s.draws}</td>
+												<td className="px-3 py-2 text-center text-red-500">{s.losses}</td>
+												<td className="px-3 py-2 text-center text-ink">{s.goalsFor}</td>
+												<td className="px-3 py-2 text-center text-ink">{s.goalsAgainst}</td>
+												<td className="px-3 py-2 text-center text-ink">
+													{s.goalDifference > 0 ? `+${s.goalDifference}` : s.goalDifference}
+												</td>
+												<td className="px-3 py-2 text-center font-bold text-ink">{s.points}</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
 						</div>
 					</>
 				)}

@@ -2,6 +2,7 @@
  * MatchdayCard — Tarjeta de una jornada con su lista de partidos.
  * Sub-componente de la página de calendario (Server Component).
  */
+import Link from "next/link";
 
 type MatchRow = {
 	id: string;
@@ -20,14 +21,15 @@ export type MatchdayWithMatches = {
 	scheduledDate: string;
 	phase: string;
 	status: string;
+	leagueId: string;
 	matches: MatchRow[];
 };
 
 const STATUS_BADGE: Record<string, string> = {
 	draft: "bg-surface-2 text-ink-3",
-	published: "bg-blue-100 text-blue-700",
-	in_progress: "bg-amber-100 text-amber-700",
-	completed: "bg-green-100 text-green-700",
+	published: "bg-blue/10 text-blue",
+	in_progress: "bg-amber/10 text-amber",
+	completed: "bg-brand/10 text-brand",
 };
 
 function formatTime(kickoffAt: Date | null): string {
@@ -65,7 +67,15 @@ export function MatchdayCard({
 						{md.status}
 					</span>
 				</div>
-				<span className="text-xs text-ink-2 capitalize">{formatDate(md.scheduledDate)}</span>
+				<div className="flex items-center gap-3">
+					<span className="text-xs text-ink-2 capitalize">{formatDate(md.scheduledDate)}</span>
+					<Link
+						href={`/admin/ligas/${md.leagueId}/jornadas/${md.id}`}
+						className="text-xs font-semibold text-brand hover:text-brand-dim bg-brand/10 hover:bg-brand/20 border border-brand/20 px-2.5 py-1 rounded transition-colors"
+					>
+						Capturar →
+					</Link>
+				</div>
 			</div>
 
 			{md.matches.length === 0 ? (
@@ -99,17 +109,17 @@ export function MatchdayCard({
 								<span
 									className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
 										m.status === "completed"
-											? "bg-green-100 text-green-700"
+											? "bg-brand/10 text-brand"
 											: m.status === "cancelled"
-												? "bg-red-100 text-red-500"
-												: "bg-amber-100 text-amber-700"
+												? "bg-rose/10 text-rose"
+												: "bg-amber/10 text-amber"
 									}`}
 								>
 									{m.status}
 								</span>
 							)}
 							{m.isMakeup && (
-								<span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded shrink-0">
+								<span className="text-xs bg-blue/10 text-blue px-1.5 py-0.5 rounded shrink-0">
 									recuperación
 								</span>
 							)}

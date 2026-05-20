@@ -22,12 +22,12 @@ const VARIANTS: Record<Variant, { idle: string; selected: string }> = {
 		selected: "border-brand bg-brand/10 text-brand",
 	},
 	secondary: {
-		idle: "border-line bg-surface text-ink-2 hover:border-blue-400/40 hover:bg-blue-50",
-		selected: "border-blue-400 bg-blue-50 text-blue-700",
+		idle: "border-line bg-surface text-ink-2 hover:border-blue/40 hover:bg-blue/5",
+		selected: "border-blue/60 bg-blue/10 text-blue",
 	},
 	danger: {
-		idle: "border-line bg-surface text-ink-3 hover:border-red-300 hover:bg-red-50",
-		selected: "border-red-300 bg-red-50 text-red-600",
+		idle: "border-line bg-surface text-ink-3 hover:border-rose/30 hover:bg-rose/5",
+		selected: "border-rose/40 bg-rose/10 text-rose",
 	},
 };
 
@@ -60,7 +60,7 @@ export function CandidateButton({
 						selected ? "border-current bg-current" : "border-ink-3",
 					].join(" ")}
 				>
-					{selected && <span className="w-1.5 h-1.5 rounded-full bg-white block" />}
+					{selected && <span className="w-1.5 h-1.5 rounded-full bg-pitch block" />}
 				</span>
 				<span className="flex-1">{children}</span>
 			</span>

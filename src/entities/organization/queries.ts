@@ -7,8 +7,12 @@ import {
 	playerSeasonStats,
 	teams,
 	players,
+	matchdays,
+	matches,
+	venues,
 } from "@/db/schema";
 import { eq, asc, desc, and, sql, inArray, isNotNull } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
 
 // ---------------------------------------------------------------------------
@@ -221,6 +225,129 @@ export async function getStandingsHistory(leagueId: string) {
 		orderBy: [asc(teamStandingsSnapshot.jornada)],
 	});
 	return rows;
+}
+
+// ---------------------------------------------------------------------------
+// Público — jornadas (sorteo)
+// ---------------------------------------------------------------------------
+
+export type PublicMatchInfo = {
+	matchId: string;
+	homeTeamName: string;
+	awayTeamName: string;
+	venueName: string | null;
+	/** ISO string, null si no hay hora definida */
+	kickoffAt: string | null;
+};
+
+export type PublicMatchday = {
+	id: string;
+	number: number;
+	phase: string;
+	scheduledDate: string;
+	status: string;
+	matches: PublicMatchInfo[];
+	/** true si el sorteo fue confirmado/actualizado en las últimas 48h */
+	recentlyUpdated: boolean;
+	/** ISO string del último insert de partido en esta jornada, o null */
+	lastConfirmedAt: string | null;
+};
+
+/**
+ * Devuelve las jornadas publicadas/en progreso/completadas de una liga,
+ * con sus partidos y metadatos de actualización reciente.
+ * Usada en la página pública /org/[slug]/[leagueSlug].
+ */
+export async function getPublicMatchdays(leagueId: string): Promise<PublicMatchday[]> {
+	// 1. Traer jornadas visibles con MAX(matches.createdAt) por jornada
+	const jornadasRows = await db
+		.select({
+			id: matchdays.id,
+			number: matchdays.number,
+			phase: matchdays.phase,
+			scheduledDate: matchdays.scheduledDate,
+			status: matchdays.status,
+			lastConfirmedAt: sql<Date | null>`max(${matches.createdAt})`,
+		})
+		.from(matchdays)
+		.leftJoin(matches, eq(matches.matchdayId, matchdays.id))
+		.where(
+			and(
+				eq(matchdays.leagueId, leagueId),
+				sql`${matchdays.status} IN ('published', 'in_progress', 'completed')`,
+			),
+		)
+		.groupBy(matchdays.id)
+		.orderBy(asc(matchdays.number));
+
+	if (jornadasRows.length === 0) return [];
+
+	const matchdayIds = jornadasRows.map((j) => j.id);
+
+	// 2. Traer todos los partidos de estas jornadas con nombres de equipo y cancha
+	const homeTeams = alias(teams, "home_teams");
+	const awayTeams = alias(teams, "away_teams");
+
+	const matchRows = await db
+		.select({
+			matchId: matches.id,
+			matchdayId: matches.matchdayId,
+			homeTeamName: homeTeams.name,
+			awayTeamName: awayTeams.name,
+			venueName: venues.name,
+			kickoffAt: matches.kickoffAt,
+		})
+		.from(matches)
+		.innerJoin(homeTeams, eq(homeTeams.id, matches.homeTeamId))
+		.innerJoin(awayTeams, eq(awayTeams.id, matches.awayTeamId))
+		.leftJoin(venues, eq(venues.id, matches.venueId))
+		.where(inArray(matches.matchdayId, matchdayIds))
+		.orderBy(asc(matches.kickoffAt));
+
+	// 3. Agrupar partidos por jornada (kickoffAt todavía como Date | null aquí)
+	type MatchRaw = {
+		matchId: string;
+		homeTeamName: string;
+		awayTeamName: string;
+		venueName: string | null;
+		kickoffAt: Date | null;
+	};
+	const matchesByMatchday = new Map<string, MatchRaw[]>();
+	for (const row of matchRows) {
+		if (!row.matchdayId) continue;
+		const list = matchesByMatchday.get(row.matchdayId) ?? [];
+		list.push({
+			matchId: row.matchId,
+			homeTeamName: row.homeTeamName,
+			awayTeamName: row.awayTeamName,
+			venueName: row.venueName ?? null,
+			kickoffAt: row.kickoffAt ?? null,
+		});
+		matchesByMatchday.set(row.matchdayId, list);
+	}
+
+	const now = Date.now();
+	const MS_48H = 48 * 60 * 60 * 1000;
+
+	// 4. Construir resultado final — serializar fechas a ISO string para la
+	//    frontera Server → Client Component (Next.js no acepta Date como prop)
+	return jornadasRows.map((j) => {
+		const lastConfirmedAt = j.lastConfirmedAt ? new Date(j.lastConfirmedAt) : null;
+		const recentlyUpdated = lastConfirmedAt ? now - lastConfirmedAt.getTime() <= MS_48H : false;
+		return {
+			id: j.id,
+			number: j.number,
+			phase: j.phase,
+			scheduledDate: j.scheduledDate,
+			status: j.status,
+			matches: (matchesByMatchday.get(j.id) ?? []).map((m) => ({
+				...m,
+				kickoffAt: m.kickoffAt ? new Date(m.kickoffAt).toISOString() : null,
+			})),
+			recentlyUpdated,
+			lastConfirmedAt: lastConfirmedAt ? lastConfirmedAt.toISOString() : null,
+		};
+	});
 }
 
 // ---------------------------------------------------------------------------

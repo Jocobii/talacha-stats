@@ -8,6 +8,7 @@ import {
 	date,
 	timestamp,
 	unique,
+	uniqueIndex,
 	index,
 	jsonb,
 	check,
@@ -201,6 +202,9 @@ export const leagues = pgTable("leagues", {
 	// Módulo de sorteo opt-in por liga (Opción 2 — feature premium).
 	// Si false, los endpoints de /scheduling/* retornan 400 y la UI no lo muestra.
 	schedulingEnabled: boolean("scheduling_enabled").notNull().default(false),
+	// Código corto de liga (3-8 letras) usado para prefijo de cédula: "LCN-0001"
+	// Auto-generado desde el nombre, editable por el organizador.
+	code: text("code"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -358,9 +362,12 @@ export const matches = pgTable(
 			.references(() => teams.id),
 		matchDate: date("match_date").notNull(),
 		matchday: integer("matchday"), // jornada
-		status: text("status").notNull().default("scheduled"), // scheduled | completed | cancelled
-		homeScore: integer("home_score").notNull().default(0),
-		awayScore: integer("away_score").notNull().default(0),
+		// Valores: scheduled | played | suspended | walkover_home | walkover_away | postponed
+		// legacy: completed | cancelled (mantenidos para retrocompatibilidad)
+		status: text("status").notNull().default("scheduled"),
+		// Nullable para partidos aún no capturados (scheduled)
+		homeScore: integer("home_score"),
+		awayScore: integer("away_score"),
 		notes: text("notes"),
 		// --- Módulo de sorteo (campos nuevos) ---
 		// FK a matchdays.id. Nullable durante transición desde legacy.
@@ -371,6 +378,15 @@ export const matches = pgTable(
 		kickoffAt: timestamp("kickoff_at", { withTimezone: true }),
 		// true = partido de recuperación generado por makeup-builder
 		isMakeup: boolean("is_makeup").notNull().default(false),
+		// --- Módulo de resolución de partidos ---
+		// Identificador único por liga: "{LEAGUE_CODE}-{NNNN}" p.ej. "LCN-0001"
+		cedula: text("cedula"),
+		// Goles no atribuibles a jugador (ej: gol por llegada tardía del rival)
+		homeBonusGoals: integer("home_bonus_goals").notNull().default(0),
+		awayBonusGoals: integer("away_bonus_goals").notNull().default(0),
+		refereeObservations: text("referee_observations"),
+		resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+		resolvedBy: uuid("resolved_by").references(() => users.id, { onDelete: "set null" }),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
@@ -380,6 +396,8 @@ export const matches = pgTable(
 		index("matches_matchday_idx").on(t.matchdayId),
 		index("matches_venue_idx").on(t.venueId),
 		index("matches_kickoff_idx").on(t.kickoffAt),
+		uniqueIndex("uniq_cedula_per_league").on(t.leagueId, t.cedula),
+		index("idx_matches_cedula").on(t.cedula),
 	],
 );
 
@@ -425,6 +443,50 @@ export const matchEvents = pgTable(
 		index("events_type_idx").on(t.eventType),
 	],
 );
+
+// ---------------------------------------------------------------------------
+// MATCH_PLAYER_STATS — Estadísticas agregadas por jugador por partido
+//
+// Tabla creada para el módulo de Resolución de Partidos.
+// Complementa match_events (event-stream individual) con un agregado editable
+// por partido que el árbitro/oficinista captura directamente desde el papel.
+//
+// Fuente de verdad para el módulo de resolución; match_events sigue siendo
+// la fuente legacy para stats importadas desde Excel o capturadas por evento.
+// ---------------------------------------------------------------------------
+export const matchPlayerStats = pgTable(
+	"match_player_stats",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		matchId: uuid("match_id")
+			.notNull()
+			.references(() => matches.id, { onDelete: "cascade" }),
+		// FK a inscriptions (jugador × equipo × liga — sistema nuevo)
+		playerRegistrationId: uuid("player_registration_id")
+			.notNull()
+			.references(() => inscriptions.id, { onDelete: "cascade" }),
+		// "home" | "away" — denormalizado para queries de rendimiento
+		teamSide: text("team_side").notNull().$type<"home" | "away">(),
+		isPresent: boolean("is_present").notNull().default(false),
+		shirtNumber: integer("shirt_number"),
+		goals: integer("goals").notNull().default(0),
+		assists: integer("assists").notNull().default(0),
+		yellowCards: integer("yellow_cards").notNull().default(0),
+		blueCards: integer("blue_cards").notNull().default(0),
+		redCards: integer("red_cards").notNull().default(0),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		uniqueIndex("uniq_match_player").on(t.matchId, t.playerRegistrationId),
+		index("idx_mps_match").on(t.matchId),
+		index("idx_mps_registration").on(t.playerRegistrationId),
+		check("chk_mps_team_side", drizzleSql`${t.teamSide} IN ('home','away')`),
+	],
+);
+
+export type MatchPlayerStat = typeof matchPlayerStats.$inferSelect;
+export type NewMatchPlayerStat = typeof matchPlayerStats.$inferInsert;
 
 // ---------------------------------------------------------------------------
 // RELATIONS (para queries con Drizzle relational API)
@@ -554,6 +616,7 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
 		relationName: "awayTeam",
 	}),
 	events: many(matchEvents),
+	playerStats: many(matchPlayerStats),
 	// Módulo de sorteo
 	matchday: one(matchdays, {
 		fields: [matches.matchdayId],
@@ -585,6 +648,17 @@ export const matchEventsRelations = relations(matchEvents, ({ one }) => ({
 		references: [players.id],
 	}),
 	team: one(teams, { fields: [matchEvents.teamId], references: [teams.id] }),
+}));
+
+export const matchPlayerStatsRelations = relations(matchPlayerStats, ({ one }) => ({
+	match: one(matches, {
+		fields: [matchPlayerStats.matchId],
+		references: [matches.id],
+	}),
+	inscription: one(inscriptions, {
+		fields: [matchPlayerStats.playerRegistrationId],
+		references: [inscriptions.id],
+	}),
 }));
 
 // ---------------------------------------------------------------------------
@@ -1262,8 +1336,29 @@ export const EVENT_TYPES = [
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
-export const MATCH_STATUSES = ["scheduled", "completed", "cancelled"] as const;
+export const MATCH_STATUSES = [
+	"scheduled",
+	"played",
+	"suspended",
+	"walkover_home",
+	"walkover_away",
+	"postponed",
+	// legacy — mantenidos para retrocompatibilidad con datos existentes
+	"completed",
+	"cancelled",
+] as const;
 export type MatchStatus = (typeof MATCH_STATUSES)[number];
+
+// Subset de statuses activos del módulo de resolución (excluye legacy)
+export const RESOLUTION_STATUSES = [
+	"scheduled",
+	"played",
+	"suspended",
+	"walkover_home",
+	"walkover_away",
+	"postponed",
+] as const;
+export type ResolutionStatus = (typeof RESOLUTION_STATUSES)[number];
 
 export const DAYS_OF_WEEK = [
 	"lunes",
@@ -1325,7 +1420,10 @@ export const playerGlobalStats = pgView("player_global_stats").as((qb) =>
 			playerProfiles,
 			drizzleSql`${playerProfiles.claimedPlayerId} = ${players.id} AND ${playerProfiles.claimStatus} = 'verified'`,
 		)
-		.leftJoin(drizzleSql`${playerRegistrations.playerProfileId} = ${playerProfiles.id}`)
+		.leftJoin(
+			playerRegistrations,
+			drizzleSql`${playerRegistrations.playerProfileId} = ${playerProfiles.id}`,
+		)
 		.leftJoin(
 			playerSeasonStats,
 			drizzleSql`${playerSeasonStats.playerProfileId} = ${playerProfiles.id}`,
