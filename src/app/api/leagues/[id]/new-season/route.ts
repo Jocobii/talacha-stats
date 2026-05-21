@@ -100,7 +100,7 @@ export async function POST(request: Request, { params }: Params) {
 	// ── Cargar datos a copiar ─────────────────────────────────────────────────
 	const [sourceTeams, sourceZones, sourceConfig, sourceVenues, sourceWindows] = await Promise.all([
 		db.query.teams.findMany({
-			where: eq(teams.leagueId, sourceId),
+			where: and(eq(teams.leagueId, sourceId), eq(teams.status, "active")),
 			columns: { name: true, nameCanonical: true, color: true },
 		}),
 		db.query.leaguePlayoffZones.findMany({

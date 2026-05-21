@@ -1,3 +1,4 @@
+import { apiFetch } from "@/shared/api/client";
 import type {
 	CockpitMatchday,
 	TeamWithAttendance,
@@ -5,6 +6,8 @@ import type {
 	VenueOption,
 	CockpitConfig,
 } from "../types";
+
+// ── Tipos de respuesta ────────────────────────────────────────────────────────
 
 type CurrentResponse = {
 	matchday: CockpitMatchday | null;
@@ -15,35 +18,10 @@ type CurrentResponse = {
 	config: CockpitConfig | null;
 };
 
-type ApiResult<T> = { ok: boolean; data?: T };
-
-/** Fetch con timeout para evitar que el spinner quede colgado indefinidamente. */
-const COCKPIT_FETCH_TIMEOUT_MS = 15_000;
-
-async function timedFetch(url: string, init?: RequestInit): Promise<Response> {
-	const controller = new AbortController();
-	const id = setTimeout(() => controller.abort(), COCKPIT_FETCH_TIMEOUT_MS);
-	try {
-		return await fetch(url, { ...init, signal: controller.signal });
-	} finally {
-		clearTimeout(id);
-	}
-}
-
-export async function fetchCurrent(leagueId: string): Promise<CurrentResponse | null> {
-	const res = await timedFetch(`/api/leagues/${leagueId}/sorteo/current`);
-	const json = (await res.json()) as ApiResult<CurrentResponse>;
-	return json.ok && json.data ? json.data : null;
-}
-
-export async function fetchRoster(
-	leagueId: string,
-	matchdayNumber: number,
-): Promise<TeamWithAttendance[]> {
-	const res = await timedFetch(`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/roster`);
-	const json = (await res.json()) as ApiResult<{ teams: TeamWithAttendance[] }>;
-	return json.ok && json.data ? json.data.teams : [];
-}
+type RosterResponse = {
+	teams: TeamWithAttendance[];
+	allRecentPairKeys: string[];
+};
 
 type SortearResponse = {
 	seed: number;
@@ -56,19 +34,45 @@ type SortearResponse = {
 	}>;
 };
 
+type PairingsResponse = { pairings: CockpitPairing[] };
+
+// ── Helpers internos ──────────────────────────────────────────────────────────
+
+/** Lanza si la respuesta es error — permite usar try/catch en el hook. */
+function unwrap<T>(result: Awaited<ReturnType<typeof apiFetch<T>>>): T {
+	if (!result.ok) throw new Error(result.error);
+	return result.data;
+}
+
+// ── Funciones públicas ────────────────────────────────────────────────────────
+
+export async function fetchCurrent(leagueId: string): Promise<CurrentResponse | null> {
+	const result = await apiFetch<CurrentResponse>(`/api/leagues/${leagueId}/sorteo/current`);
+	return result.ok ? result.data : null;
+}
+
+export async function fetchRoster(
+	leagueId: string,
+	matchdayNumber: number,
+): Promise<{ teams: TeamWithAttendance[]; allRecentPairKeys: string[] }> {
+	const result = await apiFetch<RosterResponse>(
+		`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/roster`,
+	);
+	return result.ok
+		? { teams: result.data.teams, allRecentPairKeys: result.data.allRecentPairKeys }
+		: { teams: [], allRecentPairKeys: [] };
+}
+
 export async function fetchSortear(
 	leagueId: string,
 	matchdayNumber: number,
 	seed?: number,
 ): Promise<SortearResponse | null> {
-	const body: { seed?: number } = seed !== undefined ? { seed } : {};
-	const res = await fetch(`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/sortear`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(body),
-	});
-	const json = (await res.json()) as ApiResult<SortearResponse>;
-	return json.ok && json.data ? json.data : null;
+	const result = await apiFetch<SortearResponse>(
+		`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/sortear`,
+		{ method: "POST", body: seed !== undefined ? { seed } : {} },
+	);
+	return result.ok ? result.data : null;
 }
 
 export async function postConfirm(
@@ -77,19 +81,22 @@ export async function postConfirm(
 	seed: number,
 	pairings: CockpitPairing[],
 ): Promise<void> {
-	await fetch(`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/confirm`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({
-			seed,
-			pairings: pairings.map((p) => ({
-				homeTeamId: p.homeTeamId,
-				awayTeamId: p.awayTeamId,
-				venueId: p.venueId,
-				startTime: p.startTime,
-			})),
-		}),
-	});
+	const result = await apiFetch<unknown>(
+		`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/confirm`,
+		{
+			method: "POST",
+			body: {
+				seed,
+				pairings: pairings.map((p) => ({
+					homeTeamId: p.homeTeamId,
+					awayTeamId: p.awayTeamId,
+					venueId: p.venueId,
+					startTime: p.startTime,
+				})),
+			},
+		},
+	);
+	unwrap(result);
 }
 
 export async function postAttendance(
@@ -98,10 +105,9 @@ export async function postAttendance(
 	teamId: string,
 	status: "presente" | "ausente",
 ): Promise<void> {
-	await fetch(`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/attendance`, {
+	await apiFetch<unknown>(`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/attendance`, {
 		method: "PATCH",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ teamId, status }),
+		body: { teamId, status },
 	});
 }
 
@@ -109,26 +115,27 @@ export async function postCreateMatchday(
 	leagueId: string,
 	scheduledDate: string,
 ): Promise<boolean> {
-	const res = await fetch(`/api/leagues/${leagueId}/jornadas`, {
+	const result = await apiFetch<unknown>(`/api/leagues/${leagueId}/jornadas`, {
 		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ scheduledDate }),
+		body: { scheduledDate },
 	});
-	const json = (await res.json()) as { ok: boolean };
-	return json.ok;
+	return result.ok;
 }
 
 export async function postPublish(leagueId: string, matchdayNumber: number): Promise<void> {
-	await fetch(`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/publish`, {
-		method: "POST",
-	});
+	const result = await apiFetch<unknown>(
+		`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/publish`,
+		{ method: "POST" },
+	);
+	unwrap(result);
 }
 
 export async function fetchPairings(
 	leagueId: string,
 	matchdayNumber: number,
 ): Promise<CockpitPairing[]> {
-	const res = await timedFetch(`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/pairings`);
-	const json = (await res.json()) as ApiResult<{ pairings: CockpitPairing[] }>;
-	return json.ok && json.data ? json.data.pairings : [];
+	const result = await apiFetch<PairingsResponse>(
+		`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/pairings`,
+	);
+	return result.ok ? result.data.pairings : [];
 }

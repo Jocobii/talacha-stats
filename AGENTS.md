@@ -354,6 +354,7 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 - **No uses `sql.raw()`** salvo que Drizzle no soporte la operación
 - **No uses Redux, Zustand** ni estado global — no hay necesidad
 - **No uses react-hook-form ni formik**
+- **No uses `fetch()` directamente en Client Components** — siempre `apiFetch<T>` de `@/shared/api/client` (serializa body, respeta errores del backend, devuelve `ApiResult<T>` tipado)
 - **No hagas queries a la DB** desde componentes de presentación
 - **No dupliques tipos** si Zod puede inferirlos
 - **No uses CSS custom** cuando Tailwind lo puede hacer
@@ -369,6 +370,7 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 - [ ] ¿Los nombres que se insertan en DB pasan por `sanitizeName()` / `sanitizeToCanonical()`?
 - [ ] ¿Los API routes solo validan + llaman feature/entity + responden?
 - [ ] ¿Usé `apiSuccess` / `apiError` en lugar de `Response.json()` directo?
+- [ ] ¿Si el componente es Client y hace una petición interna, usé `apiFetch<T>` en vez de `fetch()` desnudo?
 - [ ] ¿Los tipos de DB se infieren con `$inferSelect` / `$inferInsert`?
 - [ ] ¿No agregué `any` ni `as SomeType` sin documentar por qué?
 - [ ] ¿Las transacciones están en `features/`, no en `route.ts`?

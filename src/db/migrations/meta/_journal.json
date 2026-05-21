@@ -8,6 +8,20 @@
 			"when": 1779320229419,
 			"tag": "0000_slim_reaper",
 			"breakpoints": true
+		},
+		{
+			"idx": 33,
+			"version": "7",
+			"when": 1747872000000,
+			"tag": "0033_teams_status",
+			"breakpoints": true
+		},
+		{
+			"idx": 34,
+			"version": "7",
+			"when": 1779326463433,
+			"tag": "0034_dry_skrulls",
+			"breakpoints": true
 		}
 	]
 }

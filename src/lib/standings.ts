@@ -83,7 +83,7 @@ export async function getLeagueStandings(leagueId: string): Promise<TeamStanding
 	// ── Prioridad 2: cálculo en vivo desde partidos capturados (V2) ───────────
 	const [leagueTeams, countedMatches] = await Promise.all([
 		db.query.teams.findMany({
-			where: eq(teams.leagueId, leagueId),
+			where: and(eq(teams.leagueId, leagueId), eq(teams.status, "active")),
 			with: { league: true },
 		}),
 		db.query.matches.findMany({

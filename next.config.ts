@@ -53,10 +53,53 @@ if (NODE_ENV !== "production" && PROD_DB_PATTERNS.some((p) => p.test(DATABASE_UR
 	);
 }
 
+// ── Cabeceras HTTP de seguridad ───────────────────────────────────────────────
+// Ver SECURITY_RULES.md §6 — no eliminar ni debilitar estos valores.
+
+const SECURITY_HEADERS = [
+	{
+		// Desactiva el prefetch de DNS para evitar filtración de recursos internos.
+		key: "X-DNS-Prefetch-Control",
+		value: "off",
+	},
+	{
+		// Fuerza HTTPS por 2 años en el dominio y subdominios.
+		// Solo efectivo en producción (los navegadores ignoran HSTS en HTTP).
+		key: "Strict-Transport-Security",
+		value: "max-age=63072000; includeSubDomains; preload",
+	},
+	{
+		// Bloquea que la app sea embebida en un <iframe> — previene clickjacking.
+		key: "X-Frame-Options",
+		value: "DENY",
+	},
+	{
+		// Bloquea el "MIME sniffing": el navegador respeta el Content-Type declarado.
+		key: "X-Content-Type-Options",
+		value: "nosniff",
+	},
+	{
+		// En cross-origin solo envía el origen (sin path ni query string).
+		// En same-origin envía la URL completa.
+		key: "Referrer-Policy",
+		value: "strict-origin-when-cross-origin",
+	},
+];
+
 // ── Configuración de Next.js ──────────────────────────────────────────────────
 
 const nextConfig: NextConfig = {
 	serverExternalPackages: ["pdfkit"],
+
+	async headers() {
+		return [
+			{
+				// Aplica a todas las rutas del proyecto.
+				source: "/(.*)",
+				headers: SECURITY_HEADERS,
+			},
+		];
+	},
 };
 
 export default nextConfig;
