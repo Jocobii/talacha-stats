@@ -102,6 +102,44 @@ body {
 	animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+/* ── Toast animations ─────────────────────────────────────────── */
+@keyframes toastIn {
+	0% {
+		opacity: 0;
+		transform: translateX(calc(100% + 2rem));
+	}
+	60% {
+		opacity: 1;
+		transform: translateX(-8px);
+	}
+	80% {
+		transform: translateX(4px);
+	}
+	100% {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes toastOut {
+	0% {
+		opacity: 1;
+		transform: translateX(0);
+	}
+	100% {
+		opacity: 0;
+		transform: translateX(calc(100% + 2rem));
+	}
+}
+
+.toast-enter {
+	animation: toastIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.toast-exit {
+	animation: toastOut 0.45s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+
 .animate-glow-pulse {
 	animation: glowPulse 2.5s ease-in-out infinite;
 }

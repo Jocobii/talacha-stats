@@ -81,6 +81,9 @@ export default async function LeagueLayout({ children, params }: Props) {
 
 			{/* ── Contenido del tab activo ──────────────────────────────────────── */}
 			<div className="mt-4">{children}</div>
+
+			{/* ── Toasts globales ───────────────────────────────────────────────── */}
+			<ToastContainer />
 		</div>
 	);
 }
