@@ -9,9 +9,12 @@ import { getLeaguesShowcase } from "@/entities/organization";
 import { getActiveCity } from "@/shared/lib/active-city";
 
 export const metadata: Metadata = {
-	title: "TalachaStats — Tu historial de goles en todas las ligas",
+	title: "TalachaStats | Sistema de gestión de ligas de fútbol gratis en Tijuana",
 	description:
-		"Estadísticas cross-liga para jugadores amateurs de fútbol 7 en Tijuana. Todos tus goles, todas tus ligas, un solo perfil.",
+		"Administra tu liga de fútbol amateur gratis en Tijuana. Tabla de posiciones automática, goleadores, sorteo de jornadas y perfil público para cada jugador. Sin cuotas.",
+	alternates: {
+		canonical: "/",
+	},
 };
 
 export default async function HomePage() {
