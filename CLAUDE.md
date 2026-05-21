@@ -78,7 +78,8 @@ src/
     │   ├── Table.tsx
     │   └── Badge.tsx
     ├── api/
-    │   └── response.ts         # apiSuccess, apiError
+    │   ├── response.ts         # apiSuccess, apiError — lado servidor
+    │   └── client.ts           # apiFetch<T> — lado cliente (OBLIGATORIO)
     └── lib/
         └── normalize.ts        # sanitizeToCanonical, titleCase — no reimplementar
 ```
@@ -423,6 +424,49 @@ const [step, setStep] = useState<Step>("upload");
 // ❌ Redux — no hay necesidad en este proyecto
 ```
 
+### Peticiones HTTP desde el cliente — `apiFetch` (OBLIGATORIO)
+
+Todo Client Component que haga una petición a una API Route interna **debe** usar
+`apiFetch<T>` de `@/shared/api/client`. Está prohibido usar `fetch()` directamente.
+
+```typescript
+import { apiFetch } from "@/shared/api/client";
+
+// ✅ CORRECTO
+const result = await apiFetch<SeedResult>("/api/seed-liga", {
+	method: "POST",
+	body: { ...form, organizationId: form.organizationId || undefined },
+});
+
+if (!result.ok) {
+	setError(result.error); // mensaje viene del backend, sin hardcoding
+} else {
+	setResult(result.data); // tipado como SeedResult
+}
+
+// ❌ INCORRECTO — fetch desnudo, boilerplate repetido, manejo de error frágil
+const res = await fetch("/api/seed-liga", {
+	method: "POST",
+	headers: { "Content-Type": "application/json" },
+	body: JSON.stringify(body),
+});
+const data = await res.json();
+if (!res.ok || !data.ok) {
+	setError(data.error ?? "Error al generar la liga.");
+}
+```
+
+**Reglas derivadas:**
+
+- `apiFetch` serializa el `body` automáticamente — no llamar `JSON.stringify()` antes.
+- El tipo genérico `<T>` debe ser el tipo del campo `data` del response exitoso.
+- Errores de red (sin conexión, CORS) se propagan como excepción — envolver en `try/catch`
+  solo si el componente necesita manejarlos distinto a un error de negocio.
+- Para Server Components que llaman rutas internas autenticadas usar `serverFetch`
+  de `@/shared/lib/server-fetch` — nunca `apiFetch` (es solo para el cliente).
+
+---
+
 ### Formularios
 
 - Sin react-hook-form ni formik — el proyecto es suficientemente simple
@@ -491,6 +535,7 @@ Cuando se pida una nueva funcionalidad, seguir este orden:
 - No poner lógica de estado/efectos en el cuerpo del componente si supera 20 líneas — va en un Custom Hook
 - No usar `any` ni casts sin documentar
 - No importar entre features del mismo nivel — solo a través de una capa superior
+- No usar `fetch()` directamente en Client Components — siempre `apiFetch<T>` de `@/shared/api/client`
 
 ---
 
