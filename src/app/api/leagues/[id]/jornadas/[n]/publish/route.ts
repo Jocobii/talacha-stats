@@ -36,7 +36,8 @@ export async function POST(request: Request, { params }: Params) {
 	});
 	if (!matchday) return apiError("Jornada no encontrada", 404);
 
-	if (matchday.status !== "draft") {
+	// Permitir draft y published (re-publicar tras cambios de autosave es idempotente)
+	if (matchday.status !== "draft" && matchday.status !== "published") {
 		return apiError(`No se puede publicar: la jornada está en estado "${matchday.status}"`, 409);
 	}
 
@@ -52,11 +53,10 @@ export async function POST(request: Request, { params }: Params) {
 		);
 	}
 
-	const [updated] = await db
-		.update(matchdays)
-		.set({ status: "published" })
-		.where(eq(matchdays.id, matchday.id))
-		.returning({ id: matchdays.id, status: matchdays.status });
+	// Solo actualizar si estaba en draft (si ya está published, los cambios ya son visibles)
+	if (matchday.status === "draft") {
+		await db.update(matchdays).set({ status: "published" }).where(eq(matchdays.id, matchday.id));
+	}
 
-	return apiSuccess({ matchdayId: updated?.id, status: updated?.status });
+	return apiSuccess({ matchdayId: matchday.id, status: "published" });
 }

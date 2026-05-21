@@ -17,6 +17,8 @@ type PairingDraft = {
 
 type TeamPickerProps = {
 	value: string;
+	/** Si true, el slot actual está vacío → asignar un equipo ya usado crea doble jornada (no swap) */
+	slotIsEmpty?: boolean;
 	onChange: (teamId: string) => void;
 	presentTeams: Team[];
 	pairings: PairingDraft[];
@@ -55,6 +57,7 @@ export function TeamPicker({
 	currentPairingIdx,
 	recentPairKeys,
 	opponentId,
+	slotIsEmpty = false,
 	align = "left",
 	disabled = false,
 }: TeamPickerProps) {
@@ -195,15 +198,17 @@ export function TeamPicker({
 										style={{
 											fontSize: 10,
 											fontWeight: 600,
-											color: "var(--color-ink-3)",
-											background: "rgba(255,255,255,0.06)",
-											border: "1px solid var(--color-line)",
+											color: slotIsEmpty ? "var(--color-brand)" : "var(--color-ink-3)",
+											background: slotIsEmpty ? "rgba(0,230,118,0.1)" : "rgba(255,255,255,0.06)",
+											border: slotIsEmpty
+												? "1px solid rgba(0,230,118,0.25)"
+												: "1px solid var(--color-line)",
 											borderRadius: 4,
 											padding: "1px 5px",
 											whiteSpace: "nowrap",
 										}}
 									>
-										→ swap
+										{slotIsEmpty ? "2x" : "→ swap"}
 									</span>
 								)}
 								{s4Conflict && (

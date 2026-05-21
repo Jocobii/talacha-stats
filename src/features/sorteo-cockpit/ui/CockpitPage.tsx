@@ -192,7 +192,9 @@ export function CockpitPage({ leagueId, leagueName }: CockpitPageProps) {
 							onDelete={state.deletePairing}
 							onVenueChange={state.changeVenue}
 							onTimeChange={state.changeTime}
+							saveStatus={state.saveStatus}
 							onSortear={state.sortear}
+							onAddManual={state.addManualPairing}
 							onOpenSettings={state.openDrawer}
 						/>
 						<ContextPanel
@@ -209,7 +211,7 @@ export function CockpitPage({ leagueId, leagueName }: CockpitPageProps) {
 						status={state.matchday.status}
 						hasMatches={state.pairings.length > 0}
 						onPublish={state.publishMatchday}
-						loading={state.confirmLoading}
+						loading={state.publishLoading}
 						leagueId={leagueId}
 					/>
 					{state.drawerOpen && (

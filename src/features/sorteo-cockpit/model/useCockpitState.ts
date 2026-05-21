@@ -2,7 +2,16 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { CockpitMatchday, CockpitPairing, CockpitConfig, CockpitHookReturn } from "../types";
+import type {
+	CockpitMatchday,
+	CockpitPairing,
+	CockpitConfig,
+	CockpitHookReturn,
+	AddPairingResult,
+	SaveStatus,
+} from "../types";
+import { pairKey } from "@/features/scheduling/lib/pair-key";
+import { useToastStore } from "@/shared/store/toast-store";
 import { COCKPIT_DEBOUNCE_MS } from "../constants";
 import {
 	fetchCurrent,
@@ -39,7 +48,9 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 	const [loading, setLoading] = useState(false);
 	const [loadError, setLoadError] = useState<string | null>(null);
 	const [sortearLoading, setSortearLoading] = useState(false);
-	const [confirmLoading, setConfirmLoading] = useState(false);
+	const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+	const [publishLoading, setPublishLoading] = useState(false);
+	const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [activeDrawerTab, setActiveDrawerTab] = useState("canchas");
 	const [lastSeed, setLastSeed] = useState<number | null>(null);
@@ -71,8 +82,9 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 						setConfig(fresh.config);
 						// Cargar el roster de la jornada recién creada
 						if (fresh.matchday) {
-							const roster = await fetchRoster(leagueId, fresh.matchday.number);
-							setTeams(roster);
+							const rosterData = await fetchRoster(leagueId, fresh.matchday.number);
+							setTeams(rosterData.teams);
+							setRecentPairKeys(new Set(rosterData.allRecentPairKeys));
 						}
 					}
 					return;
@@ -86,13 +98,14 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 			setConfig(data.config);
 
 			if (data.matchday) {
-				const [roster, existingPairings] = await Promise.all([
+				const [rosterData, existingPairings] = await Promise.all([
 					fetchRoster(leagueId, data.matchday.number),
 					data.matchday.matchCount > 0
 						? fetchPairings(leagueId, data.matchday.number)
 						: Promise.resolve([] as import("../types").CockpitPairing[]),
 				]);
-				setTeams(roster);
+				setTeams(rosterData.teams);
+				setRecentPairKeys(new Set(rosterData.allRecentPairKeys));
 				if (existingPairings.length > 0) {
 					setPairings(sortByTime(existingPairings));
 					// Synthetic seed so the debounce auto-save wires up correctly
@@ -156,16 +169,24 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 			const cur = np[pairingIdx];
 			const oldId = role === "home" ? cur.homeTeamId : cur.awayTeamId;
 			if (newTeamId === oldId) return prev;
+
+			// Buscar si el equipo nuevo ya está en otro partido
 			const otherIdx = np.findIndex(
 				(p, i) => i !== pairingIdx && (p.homeTeamId === newTeamId || p.awayTeamId === newTeamId),
 			);
-			if (otherIdx >= 0) {
+
+			// Solo hacer swap si el slot actual tiene un equipo real.
+			// Si el slot está vacío (BYE o sin asignar), el equipo se mantiene en su partido
+			// original y también aparece aquí → doble jornada.
+			const slotIsEmpty = !oldId || oldId === "";
+			if (otherIdx >= 0 && !slotIsEmpty) {
 				const other = np[otherIdx];
 				np[otherIdx] = {
 					...other,
 					[other.homeTeamId === newTeamId ? "homeTeamId" : "awayTeamId"]: oldId ?? "",
 				};
 			}
+
 			np[pairingIdx] = { ...cur, [role === "home" ? "homeTeamId" : "awayTeamId"]: newTeamId };
 			return np;
 		});
@@ -205,24 +226,78 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 		setIsDirty(true);
 	}, []);
 
+	const addManualPairing = useCallback(
+		(homeTeamId: string, awayTeamId: string): AddPairingResult => {
+			if (homeTeamId === awayTeamId)
+				return { ok: false, error: "Un equipo no puede jugar contra sí mismo." };
+
+			const key = pairKey(homeTeamId, awayTeamId);
+
+			const alreadyInJornada = pairings.some(
+				(p) => p.awayTeamId !== null && pairKey(p.homeTeamId, p.awayTeamId) === key,
+			);
+			if (alreadyInJornada)
+				return { ok: false, error: "Estos equipos ya se enfrentan en esta jornada." };
+
+			if (recentPairKeys.has(key))
+				return { ok: false, error: "Estos equipos se enfrentaron en una jornada reciente." };
+
+			const uid = `manual-${Date.now()}`;
+			setPairings((prev) =>
+				sortByTime([
+					...prev,
+					{ uid, homeTeamId, awayTeamId, venueId: null, startTime: null, isConflict: false },
+				]),
+			);
+			setIsDirty(true);
+			return { ok: true };
+		},
+		[pairings, recentPairKeys],
+	);
+
+	const addToast = useToastStore((s) => s.add);
+
 	const confirmPairings = useCallback(async () => {
 		const md = matchdayRef.current;
 		if (!md || lastSeed === null) return;
-		setConfirmLoading(true);
+		// Limpiar timer "saved" previo para evitar que se oculte antes de que el nuevo ciclo termine
+		if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+		setSaveStatus("saving");
 		try {
 			await postConfirm(leagueId, md.number, lastSeed, pairings);
 			setIsDirty(false);
-		} finally {
-			setConfirmLoading(false);
+			setSaveStatus("saved");
+			// Volver a idle después de 2s para que el indicador no quede permanente
+			savedTimerRef.current = setTimeout(() => setSaveStatus("idle"), 2000);
+		} catch {
+			setSaveStatus("error");
+			addToast({
+				type: "error",
+				message: "No se pudieron guardar los cambios. Intenta de nuevo.",
+				duration: 5000,
+			});
 		}
-	}, [leagueId, pairings, lastSeed]);
+	}, [leagueId, pairings, lastSeed, addToast]);
 
 	const publishMatchday = useCallback(async () => {
 		const md = matchdayRef.current;
 		if (!md) return;
-		await postPublish(leagueId, md.number);
-		await loadCurrent();
-	}, [leagueId, loadCurrent]);
+		setPublishLoading(true);
+		try {
+			await postPublish(leagueId, md.number);
+			// Actualizar estado local sin recargar toda la página (evita el parpadeo del spinner)
+			setMatchday((prev) => (prev ? { ...prev, status: "published" as const } : prev));
+			addToast({ type: "success", message: "Jornada publicada correctamente.", duration: 4000 });
+		} catch {
+			addToast({
+				type: "error",
+				message: "Error al publicar la jornada. Intenta de nuevo.",
+				duration: 5000,
+			});
+		} finally {
+			setPublishLoading(false);
+		}
+	}, [leagueId, addToast]);
 
 	useEffect(() => {
 		if (!isDirty || pairings.length === 0 || lastSeed === null) return;
@@ -257,7 +332,8 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 		loading,
 		loadError,
 		sortearLoading,
-		confirmLoading,
+		saveStatus,
+		publishLoading,
 		drawerOpen,
 		activeDrawerTab,
 		lastSeed,
@@ -266,6 +342,7 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 		createMatchday,
 		toggleAttendance,
 		sortear,
+		addManualPairing,
 		changeTeam,
 		swapHomeAway,
 		changeVenue,

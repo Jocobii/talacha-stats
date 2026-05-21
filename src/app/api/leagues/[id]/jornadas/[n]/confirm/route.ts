@@ -64,13 +64,25 @@ export async function POST(request: Request, { params }: Params) {
 
 	const { seed, pairings } = parsed.data;
 
-	// Invariante: ningún teamId aparece dos veces
+	// Invariante: ningún equipo juega contra sí mismo, y ningún par (A,B) aparece dos veces
+	// (permite doble jornada: un equipo puede aparecer en varios partidos contra distintos rivales)
+	const pairKeys = new Set<string>();
+	for (const p of pairings) {
+		if (p.awayTeamId && p.homeTeamId === p.awayTeamId) {
+			return apiError("Invariante violada: equipo contra sí mismo", 422);
+		}
+		if (p.awayTeamId) {
+			const key = [p.homeTeamId, p.awayTeamId].sort().join("|");
+			if (pairKeys.has(key)) {
+				return apiError("Invariante violada: rival duplicado en la misma jornada", 422);
+			}
+			pairKeys.add(key);
+		}
+	}
+
 	const teamIds = pairings.flatMap((p) =>
 		p.awayTeamId ? [p.homeTeamId, p.awayTeamId] : [p.homeTeamId],
 	);
-	if (new Set(teamIds).size !== teamIds.length) {
-		return apiError("Invariante violada: equipo duplicado en los pairings", 422);
-	}
 
 	// Todos los equipos son presentes (sin rest_request)
 	const restRows = await db.query.teamRestRequests.findMany({
@@ -81,7 +93,9 @@ export async function POST(request: Request, { params }: Params) {
 		columns: { teamId: true },
 	});
 	const absentSet = new Set(restRows.map((r) => r.teamId));
-	const absentInPairings = teamIds.filter((tid) => absentSet.has(tid));
+	// Deduplicar teamIds antes de verificar ausentes (un equipo puede aparecer en múltiples partidos)
+	const uniqueTeamIds = [...new Set(teamIds)];
+	const absentInPairings = uniqueTeamIds.filter((tid) => absentSet.has(tid));
 	if (absentInPairings.length > 0) {
 		return apiError(`Equipos ausentes incluidos en pairings: ${absentInPairings.join(", ")}`, 422);
 	}

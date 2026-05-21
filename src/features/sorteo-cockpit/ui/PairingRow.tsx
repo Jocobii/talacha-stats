@@ -85,6 +85,7 @@ export function PairingRow({
 					currentPairingIdx={idx}
 					recentPairKeys={recentPairKeys}
 					opponentId={pairing.awayTeamId}
+					slotIsEmpty={!pairing.homeTeamId}
 					align="right"
 					disabled={disabled}
 				/>
@@ -101,6 +102,7 @@ export function PairingRow({
 					currentPairingIdx={idx}
 					recentPairKeys={recentPairKeys}
 					opponentId={pairing.homeTeamId}
+					slotIsEmpty={!pairing.awayTeamId}
 					disabled={disabled}
 				/>
 			</td>

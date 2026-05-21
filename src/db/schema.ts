@@ -202,7 +202,7 @@ export const leagues = pgTable("leagues", {
 	status: text("status").notNull().default("active"), // "active" | "finished"
 	// Módulo de sorteo opt-in por liga (Opción 2 — feature premium).
 	// Si false, los endpoints de /scheduling/* retornan 400 y la UI no lo muestra.
-	schedulingEnabled: boolean("scheduling_enabled").notNull().default(false),
+	schedulingEnabled: boolean("scheduling_enabled").notNull().default(true),
 	// Código corto de liga (3-8 letras) usado para prefijo de cédula: "LCN-0001"
 	// Auto-generado desde el nombre, editable por el organizador.
 	code: text("code"),

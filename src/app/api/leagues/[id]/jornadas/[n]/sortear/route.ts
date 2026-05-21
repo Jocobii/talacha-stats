@@ -66,7 +66,10 @@ export async function POST(request: Request, { params }: Params) {
 		db.query.leagueSchedulingConfig.findFirst({
 			where: eq(leagueSchedulingConfig.leagueId, id),
 		}),
-		db.select({ id: teams.id }).from(teams).where(eq(teams.leagueId, id)),
+		db
+			.select({ id: teams.id })
+			.from(teams)
+			.where(and(eq(teams.leagueId, id), eq(teams.status, "active"))),
 		db.query.teamRestRequests.findMany({
 			where: and(
 				eq(teamRestRequests.leagueId, id),
