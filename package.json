@@ -25,7 +25,8 @@
 		"db:seed": "npx tsx src/db/seed.ts",
 		"db:reset": "npx tsx src/db/seed.ts --reset",
 		"dev:setup": "pnpm db:migrate:run && pnpm db:seed && pnpm dev",
-		"prepare": "husky"
+		"prepare": "husky",
+		"audit:strict": "pnpm audit --audit-level=high"
 	},
 	"dependencies": {
 		"@commitlint/types": "^20.5.0",
