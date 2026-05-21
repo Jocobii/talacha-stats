@@ -253,6 +253,8 @@ export const teams = pgTable(
 			.notNull()
 			.references(() => leagues.id, { onDelete: "cascade" }),
 		color: text("color"),
+		// 'active' | 'disbanded' — disbanded teams are excluded from standings, sorteo, and new-season copy
+		status: text("status").notNull().default("active"),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [

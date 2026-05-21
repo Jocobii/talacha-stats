@@ -44,7 +44,7 @@ export async function GET(request: Request, { params }: Params) {
 
 	const [teamRows, restRows, purchasedRows] = await Promise.all([
 		db.query.teams.findMany({
-			where: eq(teams.leagueId, id),
+			where: and(eq(teams.leagueId, id), eq(teams.status, "active")),
 			columns: { id: true, name: true, color: true },
 		}),
 		db.query.teamRestRequests.findMany({
