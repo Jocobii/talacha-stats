@@ -479,7 +479,128 @@ export async function registerPlayer(data: RegistrationInput) {
 
 ---
 
-## 15. Módulo de sorteo — reglas para agentes
+## 15. Migraciones de base de datos — reglas no negociables
+
+> **FALLA CRÍTICA** romper cualquiera de estas reglas. No hay excepciones.
+
+### Filosofía
+
+Las migraciones son **registros históricos inmutables**. Una vez que un archivo de migración ha sido commiteado, pusheado o aplicado a cualquier entorno compartido, staging o producción:
+
+- **NUNCA** editarlo
+- **NUNCA** renombrarlo
+- **NUNCA** reordenarlo
+- **NUNCA** eliminarlo
+- **NUNCA** regenerarlo
+- **NUNCA** cambiar su SQL
+- **NUNCA** modificar snapshots ni meta history anteriores
+
+Todo cambio de schema **DEBE** hacerse mediante migraciones nuevas, append-only.
+
+### Workflow obligatorio
+
+Para CUALQUIER cambio de schema:
+
+1. Modificar únicamente los archivos de schema de Drizzle
+2. Generar una NUEVA migración
+3. Aplicar la migración
+4. Nunca tocar migraciones previas
+
+**Permitido:**
+
+- Crear nueva migración
+- Agregar columnas nuevas
+- Crear tablas nuevas
+- Agregar índices o constraints
+- Crear data migrations
+- Crear views/functions/triggers vía nueva migración
+
+**Prohibido:**
+
+- Editar SQL de migración anterior
+- Mergear migraciones
+- Squash sin instrucción explícita del dev
+- Cambiar hashes históricos
+- Eliminar historial de migraciones
+- Modificar `_journal.json`
+- Editar manualmente snapshots de Drizzle
+- Regenerar migraciones baseline en entornos existentes
+
+### Seguridad antes de generar
+
+Antes de generar cualquier migración:
+
+- Inspeccionar las migraciones existentes
+- Preservar el orden de migraciones
+- Asegurarse de que el número/tag de la nueva migración es único
+- Verificar que ninguna migración anterior fue modificada
+
+Si las migraciones existentes parecen inconsistentes: **DETENER**, explicar el problema, **NO auto-corregir reescribiendo el historial**.
+
+### Reglas de producción
+
+**NUNCA** asumir que la base de datos es desechable. Jamás:
+
+- Hacer `DROP SCHEMA`
+- Hacer `TRUNCATE` en tablas de producción
+- Resetear migraciones
+- Recrear el historial de migraciones
+- Eliminar `__drizzle_migrations`
+- Ejecutar SQL destructivo
+
+...salvo instrucción explícita y documentada del dev.
+
+### Conexión para migraciones
+
+Para correr migraciones usar **siempre** conexión directa a PostgreSQL.
+
+```
+# ✅ CORRECTO — conexión directa
+db.<project>.supabase.co
+
+# ❌ PROHIBIDO para migraciones — pooler/pgbouncer
+pooler.supabase.com
+```
+
+### Baseline (onboarding de DB existente)
+
+Si se incorpora una base de datos de producción existente:
+
+- Crear **UNA** migración baseline limpia
+- Marcarla como aplicada
+- Continuar con migraciones append-only desde ahí
+
+**NUNCA** crear múltiples migraciones baseline compitiendo.
+
+### Manejo de errores y drift
+
+Si ocurre alguna de estas situaciones:
+
+- Tablas que ya existen
+- Hashes de migraciones faltantes
+- Historial de migraciones inconsistente
+- Drift de schema detectado
+
+**NO** reescribir migraciones antiguas, **NO** modificar el historial silenciosamente, **NO** auto-eliminar registros de migraciones.
+
+En cambio:
+
+1. Explicar la inconsistencia
+2. Proponer migraciones correctivas append-only
+3. Pedir confirmación antes de cualquier acción destructiva
+
+### Checklist antes de cualquier migración
+
+- [ ] ¿Revisé las migraciones existentes antes de generar?
+- [ ] ¿La nueva migración tiene un número/tag único que no existe aún?
+- [ ] ¿No modifiqué ningún archivo de migración anterior?
+- [ ] ¿Usé conexión directa (no pooler) para aplicar?
+- [ ] ¿Si hay inconsistencia, la reporté en lugar de auto-corregirla?
+- [ ] ¿La migración es forward-only y no destruye datos existentes?
+
+---
+
+## 16. Módulo de sorteo — reglas para agentes
 
 > Ver `docs/PRODUCT-STRATEGY.md §11` para el contexto de producto y `src/features/scheduling/README.md` para la arquitectura técnica detallada.
 
