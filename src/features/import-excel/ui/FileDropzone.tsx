@@ -50,10 +50,10 @@ export function FileDropzone({ file, onFileChange }: Props) {
 					<div className="flex items-center justify-center gap-3">
 						<span className="text-3xl">📄</span>
 						<div className="text-left">
-							<p className="text-[15px] font-bold text-brand">{file.name}</p>
+							<p className="text-[15px] font-bold text-brand-ink">{file.name}</p>
 							<p className="text-xs text-ink-2 mt-0.5">Archivo listo · Toca para cambiar</p>
 						</div>
-						<span className="text-2xl text-brand ml-2">✓</span>
+						<span className="text-2xl text-brand-ink ml-2">✓</span>
 					</div>
 				) : (
 					<div>

@@ -13,14 +13,14 @@ export default async function LeaguesTeaser() {
 			{/* Header de sección */}
 			<div className="flex items-center justify-between mb-4">
 				<div className="flex items-center gap-2">
-					<Building2 size={18} strokeWidth={2} className="text-brand" />
+					<Building2 size={18} strokeWidth={2} className="text-brand-ink" />
 					<h2 className="font-display font-black text-lg uppercase tracking-tight">
 						Ligas activas
 					</h2>
 				</div>
 				<Link
 					href="/ligas"
-					className="flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand/70 transition-colors"
+					className="flex items-center gap-1 text-xs font-semibold text-brand-ink hover:text-brand-ink/70 transition-colors"
 				>
 					Ver todas
 					<ChevronRight size={14} strokeWidth={2} />
@@ -45,14 +45,14 @@ export default async function LeaguesTeaser() {
 							/>
 						) : (
 							<div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
-								<span className="font-display font-black text-lg text-brand">
+								<span className="font-display font-black text-lg text-brand-ink">
 									{org.name.charAt(0).toUpperCase()}
 								</span>
 							</div>
 						)}
 
 						<div className="flex-1 min-w-0">
-							<p className="font-semibold text-sm text-ink group-hover:text-brand transition-colors truncate">
+							<p className="font-semibold text-sm text-ink group-hover:text-brand-ink transition-colors truncate">
 								{org.name}
 							</p>
 							<div className="flex items-center gap-1 mt-0.5">
@@ -66,7 +66,7 @@ export default async function LeaguesTeaser() {
 						<ChevronRight
 							size={14}
 							strokeWidth={2}
-							className="text-ink-3 group-hover:text-brand transition-colors shrink-0"
+							className="text-ink-3 group-hover:text-brand-ink transition-colors shrink-0"
 						/>
 					</Link>
 				))}
@@ -75,7 +75,7 @@ export default async function LeaguesTeaser() {
 			{orgs.filter((o) => o.leagues.length > 0).length > 3 && (
 				<Link
 					href="/ligas"
-					className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-line text-xs font-semibold text-ink-3 hover:border-brand/40 hover:text-brand transition-colors"
+					className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-line text-xs font-semibold text-ink-3 hover:border-brand/40 hover:text-brand-ink transition-colors"
 				>
 					Ver {orgs.filter((o) => o.leagues.length > 0).length - 3} más
 					<ChevronRight size={12} strokeWidth={2} />

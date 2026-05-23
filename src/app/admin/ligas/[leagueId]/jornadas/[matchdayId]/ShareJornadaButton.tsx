@@ -59,7 +59,7 @@ export function ShareJornadaButton({ leagueId, jornadaNumber }: Props) {
 			<a
 				href={buildImageUrl(leagueId, jornadaNumber, "both")}
 				download={`jornada-${jornadaNumber}.png`}
-				className="inline-flex items-center gap-1.5 h-9 px-3 text-xs font-semibold rounded-md border border-line bg-surface-2 text-ink-2 hover:text-brand hover:border-brand/40 transition-colors"
+				className="inline-flex items-center gap-1.5 h-9 px-3 text-xs font-semibold rounded-md border border-line bg-surface-2 text-ink-2 hover:text-brand-ink hover:border-brand/40 transition-colors"
 				title="Descargar imagen"
 			>
 				<Download size={13} strokeWidth={2} />
@@ -72,7 +72,7 @@ export function ShareJornadaButton({ leagueId, jornadaNumber }: Props) {
 				disabled={state === "sharing"}
 				className={`inline-flex items-center gap-2 h-9 px-4 text-sm font-semibold rounded-md transition-colors ${
 					isCopied
-						? "bg-brand/10 border border-brand/30 text-brand"
+						? "bg-brand/10 border border-brand/30 text-brand-ink"
 						: "bg-brand text-pitch hover:bg-brand-dim"
 				}`}
 			>

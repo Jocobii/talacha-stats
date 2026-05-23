@@ -24,12 +24,12 @@ export function DoneStep({ result, leagueId, copiedIdx, onCopy, onReset }: Props
 					🎉
 				</div>
 				<h2
-					className="text-2xl font-black text-brand mb-1"
+					className="text-2xl font-black text-brand-ink mb-1"
 					style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
 				>
 					¡Importación completada{result.content ? ` · Jornada ${result.content.jornada}` : ""}!
 				</h2>
-				<p className="text-sm text-brand mb-6">
+				<p className="text-sm text-brand-ink mb-6">
 					{result.upserted} registros actualizados
 					{result.created > 0 ? ` · ${result.created} nuevos` : ""}
 				</p>
@@ -41,7 +41,7 @@ export function DoneStep({ result, leagueId, copiedIdx, onCopy, onReset }: Props
 						<div key={s.label} className="text-center">
 							<div className="text-base mb-1">{s.icon}</div>
 							<div
-								className="text-3xl font-black text-brand"
+								className="text-3xl font-black text-brand-ink"
 								style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
 							>
 								{s.value}
@@ -97,8 +97,10 @@ export function DoneStep({ result, leagueId, copiedIdx, onCopy, onReset }: Props
 								2
 							</span>
 							<div className="min-w-0">
-								<p className="text-sm font-bold text-brand leading-tight">Importar goleadores</p>
-								<p className="text-xs text-brand/60 mt-0.5">
+								<p className="text-sm font-bold text-brand-ink leading-tight">
+									Importar goleadores
+								</p>
+								<p className="text-xs text-brand-ink/60 mt-0.5">
 									Paso 2 — sube las estadísticas de jugadores
 								</p>
 							</div>
@@ -106,7 +108,7 @@ export function DoneStep({ result, leagueId, copiedIdx, onCopy, onReset }: Props
 						<Upload
 							size={15}
 							strokeWidth={2.5}
-							className="relative text-brand shrink-0 ml-3 group-hover:translate-x-0.5 transition-transform"
+							className="relative text-brand-ink shrink-0 ml-3 group-hover:translate-x-0.5 transition-transform"
 						/>
 					</Link>
 
@@ -123,7 +125,7 @@ export function DoneStep({ result, leagueId, copiedIdx, onCopy, onReset }: Props
 							<ArrowRight
 								size={14}
 								strokeWidth={2}
-								className="text-ink-3 group-hover:text-brand transition shrink-0"
+								className="text-ink-3 group-hover:text-brand-ink transition shrink-0"
 							/>
 						</Link>
 					)}

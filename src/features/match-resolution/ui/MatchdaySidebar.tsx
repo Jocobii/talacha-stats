@@ -106,7 +106,7 @@ export function MatchdaySidebar({
 								<span
 									className={cn(
 										"text-xs font-medium leading-tight truncate",
-										isCurrent ? "text-brand" : "text-ink",
+										isCurrent ? "text-brand-ink" : "text-ink",
 									)}
 								>
 									{m.homeTeamName}

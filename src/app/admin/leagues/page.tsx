@@ -49,7 +49,7 @@ function LeagueCard({ league, finished = false }: { league: LeagueRow; finished?
 					</p>
 				</div>
 				<div className="flex flex-col items-end gap-1">
-					<span className="bg-brand/15 text-brand text-xs font-medium px-2 py-0.5 rounded-full">
+					<span className="bg-brand/15 text-brand-ink text-xs font-medium px-2 py-0.5 rounded-full">
 						{(league.teams as unknown[])?.length ?? 0} equipos
 					</span>
 					{finished && (
@@ -59,7 +59,7 @@ function LeagueCard({ league, finished = false }: { league: LeagueRow; finished?
 					)}
 				</div>
 			</div>
-			<p className="text-xs text-brand font-medium">Ver liga →</p>
+			<p className="text-xs text-brand-ink font-medium">Ver liga →</p>
 		</Link>
 	);
 }

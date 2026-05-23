@@ -24,7 +24,7 @@
  *  └────────────────────────────────────────────────────────────┘
  *
  *  ┌─ COLOR (className) ────────────────────────────────────────┐
- *  │  text-brand   #00E676  → activo, primario, énfasis        │
+ *  │  text-brand-ink   #00E676  → activo, primario, énfasis        │
  *  │  text-ink-2   #999999  → reposo, nav inactivo             │
  *  │  text-ink-3   #555555  → sutil, decorativo, deshabilitado │
  *  │  text-ink     #F5F5F5  → sobre superficies de color       │
@@ -49,7 +49,7 @@
  *    import { Trophy } from "lucide-react";
  *
  *    // Icono suelto
- *    <Trophy size={20} strokeWidth={2} className="text-brand" />
+ *    <Trophy size={20} strokeWidth={2} className="text-brand-ink" />
  *
  *    // Icono en contenedor neutro
  *    <IconBox><Trophy /></IconBox>
@@ -98,7 +98,7 @@ export function IconBox({ children, accent = false, size = "md" }: IconBoxProps)
 				BOX_SIZE[size],
 				"flex items-center justify-center shrink-0",
 				accent
-					? "bg-brand/10 border border-brand/20 text-brand"
+					? "bg-brand/10 border border-brand/20 text-brand-ink"
 					: "bg-surface-2 border border-line text-ink-2",
 			].join(" ")}
 		>

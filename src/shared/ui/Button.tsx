@@ -36,7 +36,7 @@ export function Button({
 		secondary: "bg-surface-2 text-ink border border-line hover:border-ink-3 hover:bg-surface",
 		ghost: "text-ink-2 hover:text-ink hover:bg-surface",
 		danger: "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20",
-		link: "text-brand hover:text-brand-dim",
+		link: "text-brand-ink hover:text-brand-dim",
 	};
 
 	return (

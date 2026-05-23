@@ -103,7 +103,9 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 							{profile.fullName}
 						</h1>
 						{profile.alias && (
-							<p className="text-brand text-sm font-semibold mt-1">&quot;{profile.alias}&quot;</p>
+							<p className="text-brand-ink text-sm font-semibold mt-1">
+								&quot;{profile.alias}&quot;
+							</p>
 						)}
 					</div>
 				</div>

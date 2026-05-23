@@ -22,7 +22,7 @@ export const ROSTER_STATUS_LABEL: Record<string, string> = {
 };
 
 export const ROSTER_STATUS_CLASS: Record<string, string> = {
-	active: "bg-brand/15 text-brand",
+	active: "bg-brand/15 text-brand-ink",
 	suspended: "bg-yellow-900/40 text-yellow-400",
 	inactive: "bg-surface-2 text-ink-3",
 };

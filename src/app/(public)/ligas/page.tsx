@@ -59,7 +59,7 @@ export default async function LigasPage() {
 
 				<div className="relative z-10 pb-6">
 					<div className="flex items-center gap-2 mb-1">
-						<Building2 size={24} className="text-brand" strokeWidth={2} />
+						<Building2 size={24} className="text-brand-ink" strokeWidth={2} />
 						<h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">
 							Ligas
 						</h1>
@@ -111,13 +111,13 @@ function OrgCard({ org }: { org: OrgWithLeagues }) {
 					/>
 				) : (
 					<div className="w-12 h-12 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
-						<span className="font-display font-black text-xl text-brand">
+						<span className="font-display font-black text-xl text-brand-ink">
 							{org.name.charAt(0).toUpperCase()}
 						</span>
 					</div>
 				)}
 				<div className="flex-1 min-w-0">
-					<h2 className="font-display font-black text-lg text-ink uppercase tracking-tight leading-tight truncate group-hover:text-brand transition-colors">
+					<h2 className="font-display font-black text-lg text-ink uppercase tracking-tight leading-tight truncate group-hover:text-brand-ink transition-colors">
 						{titleCase(org.name)}
 					</h2>
 					<div className="flex items-center gap-1 mt-0.5">
@@ -131,7 +131,7 @@ function OrgCard({ org }: { org: OrgWithLeagues }) {
 				<ArrowRight
 					size={16}
 					strokeWidth={2}
-					className="text-ink-3 group-hover:text-brand transition-colors shrink-0"
+					className="text-ink-3 group-hover:text-brand-ink transition-colors shrink-0"
 				/>
 			</div>
 

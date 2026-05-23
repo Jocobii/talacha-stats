@@ -90,7 +90,7 @@ export function TeamSettingsPanel({ teamId, initial }: Props) {
 						{saving ? "Guardando..." : "Guardar cambios"}
 					</Button>
 					{saved && (
-						<span className="flex items-center gap-1 text-[12px] text-brand">
+						<span className="flex items-center gap-1 text-[12px] text-brand-ink">
 							<Check size={13} strokeWidth={2.5} /> Guardado
 						</span>
 					)}

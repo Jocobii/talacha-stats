@@ -212,7 +212,7 @@ export function SlotsFijosSection({ leagueId, teams, venues, initialSlots }: Pro
 				{slots.length === 0 && !adding && (
 					<p className="text-center py-5 text-xs text-ink-3">
 						Ningún equipo tiene slot comprado.{" "}
-						<button className="text-brand hover:underline" onClick={() => setAdding(true)}>
+						<button className="text-brand-ink hover:underline" onClick={() => setAdding(true)}>
 							Agregar primero
 						</button>
 					</p>
@@ -243,7 +243,7 @@ export function SlotsFijosSection({ leagueId, teams, venues, initialSlots }: Pro
 							<span className="text-xs text-ink-2 shrink-0">
 								{slot.venueName ?? "Cualquier cancha"}
 							</span>
-							<span className="text-xs font-mono text-brand shrink-0 w-12 text-right">
+							<span className="text-xs font-mono text-brand-ink shrink-0 w-12 text-right">
 								{slot.startTime}
 							</span>
 							<button

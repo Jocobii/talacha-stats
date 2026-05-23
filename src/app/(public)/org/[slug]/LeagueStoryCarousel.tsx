@@ -49,7 +49,7 @@ export default function LeagueStoryCarousel({ stories }: Props) {
 					</span>
 				</div>
 				{story.tag && (
-					<span className="text-[9px] font-bold text-brand bg-brand/10 border border-brand/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+					<span className="text-[9px] font-bold text-brand-ink bg-brand/10 border border-brand/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
 						{story.tag}
 					</span>
 				)}

@@ -151,10 +151,10 @@ export default async function AdminDashboard() {
 							href="/admin/leagues/new"
 							className="group flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line bg-surface/40 p-5 hover:border-brand/40 hover:bg-brand/[0.04] transition min-h-[124px]"
 						>
-							<span className="w-9 h-9 rounded-md border border-line group-hover:border-brand/40 grid place-items-center text-ink-3 group-hover:text-brand transition">
+							<span className="w-9 h-9 rounded-md border border-line group-hover:border-brand/40 grid place-items-center text-ink-3 group-hover:text-brand-ink transition">
 								<Plus size={16} strokeWidth={2} />
 							</span>
-							<span className="text-sm font-semibold text-ink-2 group-hover:text-brand transition">
+							<span className="text-sm font-semibold text-ink-2 group-hover:text-brand-ink transition">
 								Nueva liga
 							</span>
 						</Link>
@@ -197,7 +197,7 @@ function LeagueCard({ league }: { league: League }) {
 				<span className="text-[12px] text-ink-3">
 					{teamsCount} equipo{teamsCount !== 1 ? "s" : ""}
 				</span>
-				<span className="text-[12px] font-semibold text-ink-2 group-hover:text-brand transition flex items-center gap-1">
+				<span className="text-[12px] font-semibold text-ink-2 group-hover:text-brand-ink transition flex items-center gap-1">
 					Abrir <ChevronRight size={12} strokeWidth={2.25} />
 				</span>
 			</div>

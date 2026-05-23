@@ -22,7 +22,7 @@ function ConnectorLines({ connectors }: { connectors: Connector[] }) {
 				<path
 					key={i}
 					d={`M ${c.x1} ${c.y1} C ${c.x1 + 24} ${c.y1} ${c.x2 - 24} ${c.y2} ${c.x2} ${c.y2}`}
-					stroke="var(--color-brand)"
+					stroke="var(--color-brand-ink)"
 					strokeWidth="1.5"
 					fill="none"
 					opacity="0.45"
@@ -160,7 +160,7 @@ export function MappingPanels({
 										</span>
 									)}
 									{isMapped && (
-										<span className="text-[11px] bg-brand/15 px-2 py-0.5 rounded-full font-bold border border-brand/30 text-brand">
+										<span className="text-[11px] bg-brand/15 px-2 py-0.5 rounded-full font-bold border border-brand/30 text-brand-ink">
 											{colName}
 										</span>
 									)}
@@ -245,7 +245,7 @@ export function MappingPanels({
 										<span className="sm:hidden w-5 h-5 rounded-full bg-brand text-pitch text-[10px] font-black flex items-center justify-center shrink-0">
 											{colPairNumber[String(idx)]}
 										</span>
-										<span className="text-[11px] bg-brand/15 text-brand px-2 py-0.5 rounded-full font-semibold">
+										<span className="text-[11px] bg-brand/15 text-brand-ink px-2 py-0.5 rounded-full font-semibold">
 											✓ {assignedLabel}
 										</span>
 									</div>

@@ -126,7 +126,7 @@ function CarreraTab({
 					<p className="text-[11px] font-bold text-ink-2 uppercase tracking-widest mb-1">
 						Historial terminado
 					</p>
-					<p className="font-display font-black text-3xl text-brand leading-none">
+					<p className="font-display font-black text-3xl text-brand-ink leading-none">
 						{totalGoals}
 						<span className="text-ink-2 text-base font-sans font-normal ml-2">goles</span>
 					</p>
@@ -168,7 +168,11 @@ function CarreraTab({
 
 function CareerRow({ league: l }: { league: PlayerLeagueStats }) {
 	const gpmColor =
-		l.goalsPerMatch >= 1 ? "text-brand" : l.goalsPerMatch >= 0.5 ? "text-yellow-400" : "text-ink-2";
+		l.goalsPerMatch >= 1
+			? "text-brand-ink"
+			: l.goalsPerMatch >= 0.5
+				? "text-yellow-400"
+				: "text-ink-2";
 
 	return (
 		<div className="bg-surface border border-line rounded-xl p-3 flex items-center gap-3">
@@ -187,7 +191,7 @@ function CareerRow({ league: l }: { league: PlayerLeagueStats }) {
 			{/* Right: quick stats */}
 			<div className="flex gap-3 text-center shrink-0">
 				<div>
-					<p className="font-display font-black text-lg text-brand leading-none">{l.goals}</p>
+					<p className="font-display font-black text-lg text-brand-ink leading-none">{l.goals}</p>
 					<p className="text-[10px] text-ink-2">Goles</p>
 				</div>
 				{l.assists > 0 && (
@@ -219,7 +223,11 @@ function LeagueCard({
 	teamShare?: PlayerTeamGoalShare;
 }) {
 	const gpmColor =
-		l.goalsPerMatch >= 1 ? "text-brand" : l.goalsPerMatch >= 0.5 ? "text-yellow-400" : "text-ink-2";
+		l.goalsPerMatch >= 1
+			? "text-brand-ink"
+			: l.goalsPerMatch >= 0.5
+				? "text-yellow-400"
+				: "text-ink-2";
 
 	return (
 		<div className="bg-surface border border-line rounded-2xl overflow-hidden">
@@ -278,7 +286,7 @@ function LeagueStat({ label, value, accent }: { label: string; value: number; ac
 	return (
 		<div className="rounded-xl bg-surface-2 p-2.5 text-center">
 			<p
-				className={`font-display font-black text-xl leading-none ${accent ? "text-brand" : "text-ink"}`}
+				className={`font-display font-black text-xl leading-none ${accent ? "text-brand-ink" : "text-ink"}`}
 			>
 				{value}
 			</p>

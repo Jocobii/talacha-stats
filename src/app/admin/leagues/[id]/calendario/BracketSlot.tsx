@@ -90,7 +90,7 @@ export function BracketSlot({
 			>
 				{team?.name ?? <span className="italic text-ink-3">TBD</span>}
 			</span>
-			{isWinner && <span className="text-brand text-[10px] font-black">WIN</span>}
+			{isWinner && <span className="text-brand-ink text-[10px] font-black">WIN</span>}
 		</div>
 	);
 
@@ -133,7 +133,7 @@ export function BracketSlot({
 					{hasResult && (
 						<Link
 							href={`/admin/ligas/${leagueId}/jornadas/${playoffMatchdayId}/partidos/${slot.matchId}`}
-							className="flex items-center justify-center text-[10px] text-ink-3 hover:text-brand transition-colors py-1 border-t border-line"
+							className="flex items-center justify-center text-[10px] text-ink-3 hover:text-brand-ink transition-colors py-1 border-t border-line"
 						>
 							Ver resultado
 						</Link>
@@ -145,7 +145,7 @@ export function BracketSlot({
 			{!hasResult && !isBye && !editing && (
 				<button
 					onClick={() => setEditing(true)}
-					className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-ink-3 hover:text-brand"
+					className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-ink-3 hover:text-brand-ink"
 					aria-label="Editar equipos"
 				>
 					<Edit2 size={12} />

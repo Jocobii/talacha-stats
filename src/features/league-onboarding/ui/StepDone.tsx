@@ -40,7 +40,7 @@ export function StepDone({ league, teams }: Props) {
 			/>
 
 			<div className="w-14 h-14 rounded-full bg-brand/15 border border-brand/30 grid place-items-center mx-auto mb-5">
-				<Check size={26} strokeWidth={2.5} className="text-brand" />
+				<Check size={26} strokeWidth={2.5} className="text-brand-ink" />
 			</div>
 
 			<h2 className="font-display text-[36px] sm:text-[44px] leading-[0.95] text-ink tracking-tight">
@@ -64,7 +64,7 @@ export function StepDone({ league, teams }: Props) {
 				<a
 					href={`/api/content/league-launch-image?leagueId=${league.id}`}
 					download={`liga-${league.id}.png`}
-					className="inline-flex items-center gap-2 h-11 px-5 text-sm font-semibold rounded-md bg-surface-2 border border-line text-ink hover:border-brand/40 hover:text-brand transition"
+					className="inline-flex items-center gap-2 h-11 px-5 text-sm font-semibold rounded-md bg-surface-2 border border-line text-ink hover:border-brand/40 hover:text-brand-ink transition"
 					title="Descarga la imagen de lanzamiento con el Sello Talacha para WhatsApp/Facebook"
 				>
 					<Share2 size={16} strokeWidth={1.75} />
@@ -88,7 +88,7 @@ export function StepDone({ league, teams }: Props) {
 							className="flex items-center justify-between p-3 rounded-md border border-line hover:bg-surface-2 transition group"
 						>
 							<div>
-								<p className="text-[13px] font-medium text-ink group-hover:text-brand transition">
+								<p className="text-[13px] font-medium text-ink group-hover:text-brand-ink transition">
 									{item.label}
 								</p>
 								<p className="text-[11px] text-ink-3 mt-0.5">{item.desc}</p>
@@ -96,7 +96,7 @@ export function StepDone({ league, teams }: Props) {
 							<ArrowRight
 								size={13}
 								strokeWidth={2}
-								className="text-ink-3 group-hover:text-brand transition"
+								className="text-ink-3 group-hover:text-brand-ink transition"
 							/>
 						</Link>
 					))}

@@ -54,7 +54,7 @@ export function RegistrationSuccessCard({
 				</div>
 
 				<div className="flex-1 min-w-0">
-					<SectionLabel className="!text-brand">
+					<SectionLabel className="!text-brand-ink">
 						{data.isNew ? "Jugador creado y registrado" : "Registrado"}
 					</SectionLabel>
 					<h2 className="font-display text-[28px] sm:text-[36px] text-ink tracking-tight leading-[0.95] mt-1 break-words">

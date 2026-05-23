@@ -305,7 +305,7 @@ export default function SeedLigaForm({
 				) : (
 					<div className="space-y-6">
 						<div className="bg-brand/10 border border-brand/20 rounded-2xl px-6 py-5">
-							<p className="text-brand text-xs font-semibold uppercase tracking-wider mb-1">
+							<p className="text-brand-ink text-xs font-semibold uppercase tracking-wider mb-1">
 								Liga generada exitosamente
 							</p>
 							<h2 className="text-2xl font-bold text-white">{result.leagueName}</h2>

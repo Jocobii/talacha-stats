@@ -16,7 +16,7 @@ export function Badge({
 }) {
 	const tones: Record<Tone, string> = {
 		neutral: "bg-surface-2 text-ink-2 border-line",
-		brand: "bg-brand/10 text-brand border-brand/20",
+		brand: "bg-brand/10 text-brand-ink border-brand/20",
 		solid: "bg-brand text-pitch border-transparent",
 		warn: "bg-amber-500/10 text-amber-300 border-amber-500/20",
 		danger: "bg-red-500/10 text-red-400 border-red-500/20",

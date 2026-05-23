@@ -88,7 +88,7 @@ export function SummaryStrip({ events }: Props) {
 						{s.value}
 						{"unit" in s && s.unit && <span className="text-sm text-ink ml-1">{s.unit}</span>}
 					</div>
-					<div className={`text-[11px] ${s.deltaPos ? "text-brand" : "text-ink"}`}>
+					<div className={`text-[11px] ${s.deltaPos ? "text-brand-ink" : "text-ink"}`}>
 						{s.deltaPos && "↗ "}
 						{s.delta}
 					</div>

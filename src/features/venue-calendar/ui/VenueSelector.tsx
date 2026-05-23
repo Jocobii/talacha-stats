@@ -43,7 +43,7 @@ export function VenueSelector({ venues, selectedId, onChange, disabled }: Props)
 					className="w-7 h-7 rounded-lg grid place-items-center shrink-0"
 					style={{ background: "rgba(0,230,118,0.1)" }}
 				>
-					<MapPin size={14} className="text-brand" />
+					<MapPin size={14} className="text-brand-ink" />
 				</span>
 				<span className="flex-1 min-w-0">
 					<span className="block font-semibold text-ink truncate">{selected?.name ?? "—"}</span>
@@ -78,7 +78,7 @@ export function VenueSelector({ venues, selectedId, onChange, disabled }: Props)
 								<span className="block font-semibold text-ink">{v.name}</span>
 								{v.city && <span className="block text-[11px] text-ink-2 mt-0.5">{v.city}</span>}
 							</span>
-							{v.id === selectedId && <Check size={14} className="text-brand shrink-0" />}
+							{v.id === selectedId && <Check size={14} className="text-brand-ink shrink-0" />}
 						</button>
 					))}
 				</div>

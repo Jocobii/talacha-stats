@@ -36,7 +36,7 @@ export function MiniStat({ label, value, brand }: MiniStatProps) {
 				{label}
 			</div>
 			<div
-				className={`font-display text-2xl font-black leading-none mt-1 ${brand ? "text-brand" : "text-ink"}`}
+				className={`font-display text-2xl font-black leading-none mt-1 ${brand ? "text-brand-ink" : "text-ink"}`}
 			>
 				{value}
 			</div>

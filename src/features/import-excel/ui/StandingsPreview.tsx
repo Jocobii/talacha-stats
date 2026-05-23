@@ -24,16 +24,16 @@ export function StandingsPreview({
 			<div className="bg-brand/10 border border-brand/20 rounded-2xl p-4 flex items-center gap-4 flex-wrap">
 				<span className="text-3xl">✅</span>
 				<div className="flex-1">
-					<p className="text-base font-bold text-brand">
+					<p className="text-base font-bold text-brand-ink">
 						¡Todo se ve bien! {rows.length} equipos para la Jornada {preview.jornada}
 					</p>
-					<p className="text-xs text-brand mt-0.5">
+					<p className="text-xs text-brand-ink mt-0.5">
 						{preview.summary.teams} equipos listos para importar.
 					</p>
 				</div>
 				<div className="text-center shrink-0">
 					<div
-						className="text-2xl font-black text-brand"
+						className="text-2xl font-black text-brand-ink"
 						style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
 					>
 						{preview.summary.teams}
@@ -100,13 +100,15 @@ export function StandingsPreview({
 											{r.teamName}
 										</td>
 										<td className="px-3 py-2.5 text-center text-ink-2">{r.played}</td>
-										<td className="px-3 py-2.5 text-center font-semibold text-brand">{r.wins}</td>
+										<td className="px-3 py-2.5 text-center font-semibold text-brand-ink">
+											{r.wins}
+										</td>
 										<td className="px-3 py-2.5 text-center text-ink-2">{r.draws}</td>
 										<td className="px-3 py-2.5 text-center text-red-500">{r.losses}</td>
 										<td className="px-3 py-2.5 text-center text-ink-2">{r.goalsFor}</td>
 										<td className="px-3 py-2.5 text-center text-ink-2">{r.goalsAgainst}</td>
 										<td
-											className="px-3 py-2.5 text-center font-black text-brand text-base"
+											className="px-3 py-2.5 text-center font-black text-brand-ink text-base"
 											style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
 										>
 											{r.points}

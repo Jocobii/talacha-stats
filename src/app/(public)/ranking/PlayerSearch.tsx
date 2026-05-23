@@ -133,7 +133,7 @@ export default function PlayerSearch({ city, leagueId }: Props) {
 					<div className="flex items-center gap-1">
 						<Link
 							href={`/player/${saved.id}`}
-							className="text-xs text-brand font-semibold hover:underline px-2 py-1 rounded-lg hover:bg-surface-2 transition"
+							className="text-xs text-brand-ink font-semibold hover:underline px-2 py-1 rounded-lg hover:bg-surface-2 transition"
 						>
 							Ver perfil ↗
 						</Link>
@@ -246,7 +246,7 @@ export default function PlayerSearch({ city, leagueId }: Props) {
 		>
 			<Search
 				size={16}
-				className="text-ink-3 group-hover:text-brand transition shrink-0"
+				className="text-ink-3 group-hover:text-brand-ink transition shrink-0"
 				strokeWidth={2}
 			/>
 			<span className="text-sm text-ink-3 group-hover:text-ink transition">
@@ -273,12 +273,12 @@ function PositionBadge({
 	return (
 		<div className="bg-surface rounded-xl px-3 py-2 text-center">
 			<p
-				className={`font-display font-black text-xl leading-none ${isTop10 ? "text-brand" : "text-ink"}`}
+				className={`font-display font-black text-xl leading-none ${isTop10 ? "text-brand-ink" : "text-ink"}`}
 			>
 				#{rank}
 			</p>
 			<p className="text-[10px] text-ink-3 mt-0.5">de {total}</p>
-			<p className="text-[10px] text-brand font-semibold mt-1">{goals} goles</p>
+			<p className="text-[10px] text-brand-ink font-semibold mt-1">{goals} goles</p>
 			<p className="text-[10px] text-ink-3 truncate mt-0.5">{label}</p>
 		</div>
 	);
@@ -313,7 +313,9 @@ function DisambiguationCard({
 							<p className="text-sm font-semibold text-ink leading-tight">
 								{player.fullName}
 								{player.alias && (
-									<span className="text-brand ml-1.5 font-normal">&quot;{player.alias}&quot;</span>
+									<span className="text-brand-ink ml-1.5 font-normal">
+										&quot;{player.alias}&quot;
+									</span>
 								)}
 							</p>
 							<div className="flex items-center gap-1 mt-0.5">
@@ -342,7 +344,7 @@ function DisambiguationCard({
 
 				<div className="text-right shrink-0 flex flex-col items-end gap-1.5">
 					<div>
-						<p className="font-display font-black text-xl text-brand leading-none">
+						<p className="font-display font-black text-xl text-brand-ink leading-none">
 							{player.totalGoals}
 						</p>
 						<p className="text-[10px] text-ink-3">goles</p>
@@ -350,7 +352,7 @@ function DisambiguationCard({
 					<Link
 						href={`/player/${player.playerId}`}
 						onClick={(e) => e.stopPropagation()}
-						className="text-[11px] text-ink-3 hover:text-brand hover:underline transition"
+						className="text-[11px] text-ink-3 hover:text-brand-ink hover:underline transition"
 					>
 						Ver perfil ↗
 					</Link>
@@ -364,7 +366,7 @@ function DisambiguationCard({
 						e.stopPropagation();
 						setExpanded((v) => !v);
 					}}
-					className="flex items-center gap-1 text-[11px] text-brand mt-2 ml-10 hover:underline"
+					className="flex items-center gap-1 text-[11px] text-brand-ink mt-2 ml-10 hover:underline"
 				>
 					{expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
 					{expanded

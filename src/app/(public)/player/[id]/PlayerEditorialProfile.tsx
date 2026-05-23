@@ -266,7 +266,7 @@ export default function PlayerEditorialProfile({
 			<div className="mx-auto max-w-lg w-full px-5 py-6">
 				{/* Masthead */}
 				<header className="flex justify-between items-center pb-3 border-b-2 border-brand">
-					<span className="font-mono text-[11px] font-bold tracking-[0.18em] uppercase text-brand">
+					<span className="font-mono text-[11px] font-bold tracking-[0.18em] uppercase text-brand-ink">
 						TalachaStats
 					</span>
 					<span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
@@ -276,7 +276,7 @@ export default function PlayerEditorialProfile({
 
 				{/* Eyebrow + Headline + Dek */}
 				<section className="mt-5">
-					<p className="font-body text-[11px] font-semibold tracking-[0.18em] uppercase text-brand">
+					<p className="font-body text-[11px] font-semibold tracking-[0.18em] uppercase text-brand-ink">
 						● {isFemenilProfile(view) ? "Perfil de jugadora" : "Perfil de jugador"}
 					</p>
 					<h1 className="mt-3 font-display font-black text-5xl sm:text-6xl leading-[0.88] tracking-tight uppercase">
@@ -294,7 +294,7 @@ export default function PlayerEditorialProfile({
 				{/* Lead stat row */}
 				<section className="mt-5 py-4 border-y border-line grid grid-cols-[1.4fr_1fr_1fr_1fr] items-end gap-2">
 					<div>
-						<p className="font-display font-black text-[88px] sm:text-[104px] leading-[0.8] tracking-[-0.04em] text-brand">
+						<p className="font-display font-black text-[88px] sm:text-[104px] leading-[0.8] tracking-[-0.04em] text-brand-ink">
 							{hero.value}
 						</p>
 						<p className="mt-2 font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
@@ -327,7 +327,7 @@ export default function PlayerEditorialProfile({
 										i === 0 ? "" : "border-t border-line"
 									}`}
 								>
-									<span className="font-mono text-[10px] tracking-[0.16em] text-brand">
+									<span className="font-mono text-[10px] tracking-[0.16em] text-brand-ink">
 										{row.n}
 									</span>
 									<span className="font-display font-bold text-lg tracking-tight">{row.l}</span>
@@ -382,7 +382,7 @@ export default function PlayerEditorialProfile({
 											)}
 										</div>
 										<div className="text-right">
-											<p className="font-display font-black text-[42px] leading-[0.85] tracking-[-0.02em] text-brand">
+											<p className="font-display font-black text-[42px] leading-[0.85] tracking-[-0.02em] text-brand-ink">
 												{l.goals}
 											</p>
 											<p className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">

@@ -126,7 +126,7 @@ export default async function RankingPage({
 					<div className="flex items-start justify-between gap-3 pb-6">
 						<div>
 							<div className="flex items-center gap-2 mb-1">
-								<Trophy size={24} className="text-brand" strokeWidth={2} />
+								<Trophy size={24} className="text-brand-ink" strokeWidth={2} />
 								<h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">
 									Ranking
 								</h1>
@@ -211,7 +211,7 @@ export default async function RankingPage({
 							{hasPodium && listItems.some((_, i) => globalOffset + i + 4 <= 10) && (
 								<div className="flex items-center gap-3 py-1 mb-1">
 									<div className="flex-1 h-px bg-line" />
-									<span className="text-[10px] font-bold text-brand uppercase tracking-widest">
+									<span className="text-[10px] font-bold text-brand-ink uppercase tracking-widest">
 										Top 10
 									</span>
 									<div className="flex-1 h-px bg-line" />
@@ -260,11 +260,11 @@ const PODIUM_CONFIG = {
 	1: {
 		rankSize: "text-7xl",
 		goalsSize: "text-4xl",
-		goalsColor: "text-brand",
+		goalsColor: "text-brand-ink",
 		cardClass: "bg-brand/6 border border-brand/30 hover:border-brand/50",
 		avatarClass: "bg-brand text-pitch",
 		label: "CAMPEÓN",
-		labelClass: "text-brand border-brand/30 bg-brand/10",
+		labelClass: "text-brand-ink border-brand/30 bg-brand/10",
 		height: "pb-5 pt-4",
 		// Gradiente de fuego: amarillo brillante arriba → naranja → rojo abajo
 		rankGradient: "linear-gradient(180deg, #FFE566 0%, #FFA500 35%, #FF5722 68%, #CC2200 100%)",
@@ -355,7 +355,9 @@ function PodiumCard({ entry, pos }: { entry: RankingEntry; pos: 1 | 2 | 3 }) {
 
 function DeltaBadge({ delta, isNew }: { delta: number | null; isNew: boolean }) {
 	if (isNew) {
-		return <span className="text-[10px] font-bold text-brand uppercase tracking-wide">NEW</span>;
+		return (
+			<span className="text-[10px] font-bold text-brand-ink uppercase tracking-wide">NEW</span>
+		);
 	}
 	if (delta === null || delta === 0) return null;
 	const up = delta > 0;
@@ -419,7 +421,7 @@ function RankRow({
 			{/* Posición — badge brand para top 10, plano para el resto */}
 			{isTop10 ? (
 				<div className="w-8 h-8 rounded-lg bg-brand/10 border border-brand/25 flex items-center justify-center shrink-0">
-					<span className="font-display font-black text-base text-brand leading-none">
+					<span className="font-display font-black text-base text-brand-ink leading-none">
 						{position}
 					</span>
 				</div>
@@ -445,7 +447,7 @@ function RankRow({
 						<span className="ml-1 text-ink-3">· {entry.cities[0]}</span>
 					)}
 					{entry.leaguesCount > 1 && (
-						<span className="ml-1 text-brand font-medium">
+						<span className="ml-1 text-brand-ink font-medium">
 							+{entry.leaguesCount - 1} liga{entry.leaguesCount - 1 !== 1 ? "s" : ""}
 						</span>
 					)}
@@ -455,7 +457,7 @@ function RankRow({
 			{/* Goles */}
 			<div className="text-right shrink-0 flex flex-col items-end gap-0.5">
 				<p
-					className={`font-display font-black text-2xl leading-none ${isTop10 ? "text-brand" : "text-ink"}`}
+					className={`font-display font-black text-2xl leading-none ${isTop10 ? "text-brand-ink" : "text-ink"}`}
 				>
 					{entry.totalGoals}
 				</p>

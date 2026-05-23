@@ -57,7 +57,7 @@ export function ScoreHeader({
 						{data.league.name}
 					</span>
 					{matchdayLabel ? (
-						<span className="bg-brand/10 text-brand px-2 py-1 rounded border border-brand/20 font-semibold">
+						<span className="bg-brand/10 text-brand-ink px-2 py-1 rounded border border-brand/20 font-semibold">
 							{matchdayLabel}
 						</span>
 					) : (

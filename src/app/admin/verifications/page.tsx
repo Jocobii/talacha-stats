@@ -32,7 +32,7 @@ function VerificationRow({ org }: { org: PendingVerification }) {
 					<p className="text-sm text-ink-2 mt-1">
 						<span className="font-medium">{org.organizer.name}</span>
 						{" — "}
-						<a href={`mailto:${org.organizer.email}`} className="text-brand hover:underline">
+						<a href={`mailto:${org.organizer.email}`} className="text-brand-ink hover:underline">
 							{org.organizer.email}
 						</a>
 					</p>

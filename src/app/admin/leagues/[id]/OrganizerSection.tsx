@@ -108,7 +108,7 @@ export default function OrganizationSection({ leagueId, current, organizations, 
 					{isOwner && (
 						<button
 							onClick={() => setEditing(true)}
-							className="text-xs text-brand hover:underline flex-shrink-0"
+							className="text-xs text-brand-ink hover:underline flex-shrink-0"
 						>
 							Cambiar
 						</button>

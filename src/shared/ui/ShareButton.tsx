@@ -59,8 +59,8 @@ export default function ShareButton({ title, url, text, variant = "full", classN
 				aria-label="Compartir"
 				className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-colors ${
 					isCopied
-						? "border-brand/40 bg-brand/10 text-brand"
-						: "border-line bg-surface-2 text-ink-3 hover:text-brand hover:border-brand/40"
+						? "border-brand/40 bg-brand/10 text-brand-ink"
+						: "border-line bg-surface-2 text-ink-3 hover:text-brand-ink hover:border-brand/40"
 				} ${className}`}
 			>
 				{isCopied ? <Check size={16} strokeWidth={2} /> : <Share2 size={16} strokeWidth={2} />}
@@ -73,12 +73,12 @@ export default function ShareButton({ title, url, text, variant = "full", classN
 		<button
 			onClick={handleShare}
 			className={`inline-flex items-center gap-2 text-sm font-semibold transition-colors ${
-				isCopied ? "text-brand" : "text-ink-2 hover:text-brand"
+				isCopied ? "text-brand-ink" : "text-ink-2 hover:text-brand-ink"
 			} ${className}`}
 		>
 			{isCopied ? (
 				<>
-					<Check size={16} strokeWidth={2} className="text-brand" />
+					<Check size={16} strokeWidth={2} className="text-brand-ink" />
 					<span>¡Copiado!</span>
 				</>
 			) : (
@@ -113,10 +113,10 @@ export function CopyLinkButton({ url, className = "" }: { url?: string; classNam
 		<button
 			onClick={handleCopy}
 			aria-label="Copiar enlace"
-			className={`inline-flex items-center gap-1.5 text-xs text-ink-3 hover:text-brand transition-colors ${className}`}
+			className={`inline-flex items-center gap-1.5 text-xs text-ink-3 hover:text-brand-ink transition-colors ${className}`}
 		>
 			{copied ? (
-				<Check size={12} strokeWidth={2} className="text-brand" />
+				<Check size={12} strokeWidth={2} className="text-brand-ink" />
 			) : (
 				<Link size={12} strokeWidth={2} />
 			)}

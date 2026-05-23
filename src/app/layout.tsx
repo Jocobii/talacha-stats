@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import TrackVisit from "@/shared/ui/TrackVisit";
 import { Analytics } from "@vercel/analytics/next";
+import { ThemeProvider } from "@/shared/theme/ThemeProvider";
 
 const siteUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 
@@ -67,19 +68,25 @@ const jsonLd = {
 	},
 };
 
+const antiFlash = String.raw`try{var m=localStorage.getItem("ts.theme.mode")||"dark";var t=localStorage.getItem("ts.theme.tone")||"cal";document.documentElement.dataset.theme=m;document.documentElement.dataset.tone=t;}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="es" className="h-full">
 			<head>
+				{ }
+				<script dangerouslySetInnerHTML={{ __html: antiFlash }} />
 				<script
 					type="application/ld+json"
 					dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
 				/>
 			</head>
 			<body className="min-h-full antialiased">
-				<TrackVisit />
-				<Analytics />
-				{children}
+				<ThemeProvider>
+					<TrackVisit />
+					<Analytics />
+					{children}
+				</ThemeProvider>
 			</body>
 		</html>
 	);

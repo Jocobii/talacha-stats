@@ -30,12 +30,12 @@ const CAPTURED_STATUSES = new Set([
 
 const STATUS_PILL: Record<string, string> = {
 	scheduled: "bg-surface-2 text-ink-3",
-	played: "bg-brand/10 text-brand",
+	played: "bg-brand/10 text-brand-ink",
 	walkover_home: "bg-amber/10 text-amber",
 	walkover_away: "bg-amber/10 text-amber",
 	suspended: "bg-rose/10 text-rose",
 	postponed: "bg-amber/10 text-amber",
-	completed: "bg-brand/10 text-brand",
+	completed: "bg-brand/10 text-brand-ink",
 };
 
 export default async function JornadaDashboardPage({ params }: Params) {
@@ -207,7 +207,7 @@ export default async function JornadaDashboardPage({ params }: Params) {
 											<td className="px-4 py-3 text-right">
 												<Link
 													href={`/admin/ligas/${leagueId}/jornadas/${matchdayId}/partidos/${m.id}`}
-													className="text-xs font-semibold text-brand hover:text-brand-dim transition-colors"
+													className="text-xs font-semibold text-brand-ink hover:text-brand-dim transition-colors"
 												>
 													{m.status === "scheduled" ? "Capturar →" : "Editar →"}
 												</Link>

@@ -115,7 +115,7 @@ export function MapStep({
 							? "¿Cuál fila tiene los nombres de tus columnas?"
 							: `Fila ${headerRow + 1} seleccionada ✓`}
 					</p>
-					<p className={`text-xs mt-1 ${!hasGoodHeaders ? "text-ink-2" : "text-brand"}`}>
+					<p className={`text-xs mt-1 ${!hasGoodHeaders ? "text-ink-2" : "text-brand-ink"}`}>
 						{!hasGoodHeaders ? (
 							<>
 								Busca la fila que diga cosas como{" "}
@@ -160,7 +160,7 @@ export function MapStep({
 									].join(" ")}
 								>
 									<div
-										className={`w-9 py-2.5 text-center text-[11px] font-bold shrink-0 border-r border-line ${isSelected ? "text-brand bg-brand/15" : "text-ink-3 bg-surface-2"}`}
+										className={`w-9 py-2.5 text-center text-[11px] font-bold shrink-0 border-r border-line ${isSelected ? "text-brand-ink bg-brand/15" : "text-ink-3 bg-surface-2"}`}
 									>
 										{isSelected ? "✓" : ri + 1}
 									</div>
@@ -170,7 +170,7 @@ export function MapStep({
 												key={ci}
 												className={`px-2 py-2.5 text-[12px] truncate w-24 shrink-0 ${
 													isSelected
-														? "text-brand font-bold"
+														? "text-brand-ink font-bold"
 														: looksLikeHeaders
 															? "text-ink font-semibold"
 															: "text-ink-3"
@@ -214,7 +214,7 @@ export function MapStep({
 					<span className="text-2xl shrink-0">{hasMapInteracted ? "✅" : "👋"}</span>
 					<div className="flex-1 min-w-0">
 						<p
-							className={`text-[14px] font-bold mb-1 ${hasMapInteracted ? "text-brand" : "text-blue-300"}`}
+							className={`text-[14px] font-bold mb-1 ${hasMapInteracted ? "text-brand-ink" : "text-blue-300"}`}
 						>
 							{hasMapInteracted
 								? `${mappedCount} de ${fields.length} columnas asignadas`
@@ -235,7 +235,7 @@ export function MapStep({
 							</p>
 						)}
 						{hasMapInteracted && allReqDone && (
-							<p className="text-xs text-brand mt-1">
+							<p className="text-xs text-brand-ink mt-1">
 								Todos los campos obligatorios asignados. ¡Puedes continuar!
 							</p>
 						)}
@@ -276,7 +276,7 @@ export function MapStep({
 						💾 Guardar esta configuración para la próxima vez
 					</p>
 					{templateSaved ? (
-						<div className="flex items-center gap-2 text-brand text-sm font-semibold">
+						<div className="flex items-center gap-2 text-brand-ink text-sm font-semibold">
 							<span>✅</span> ¡Plantilla guardada!
 						</div>
 					) : (

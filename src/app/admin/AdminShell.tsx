@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { MEXICO_CITIES } from "@/shared/lib/cities";
+import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 
 // Badge "NUEVO" visible durante los primeros 14 días desde el release del módulo.
 const CANCHAS_RELEASE_DATE = new Date("2026-05-18");
@@ -220,7 +221,7 @@ export default function AdminShell({
 						<LogoMark className="w-7 h-7" />
 						{(!collapsed || isMobile) && (
 							<span className="font-display font-black text-[18px] tracking-tight text-ink whitespace-nowrap">
-								Talacha<span className="text-brand">Stats</span>
+								Talacha<span className="text-brand-ink">Stats</span>
 							</span>
 						)}
 					</Link>
@@ -280,6 +281,17 @@ export default function AdminShell({
 				>
 					<SidebarCitySwitcher activeCity={activeCity} collapsed={collapsed && !isMobile} />
 
+					{/* Theme toggle */}
+					{collapsed && !isMobile ? (
+						<div className="flex justify-center">
+							<ThemeToggle iconOnly />
+						</div>
+					) : (
+						<div className="px-0.5">
+							<ThemeToggle />
+						</div>
+					)}
+
 					{/* User card */}
 					<div
 						className={cn(
@@ -287,7 +299,7 @@ export default function AdminShell({
 							collapsed && !isMobile ? "justify-center py-1" : "px-1.5 py-2",
 						)}
 					>
-						<span className="w-7 h-7 rounded-md bg-brand/15 text-brand font-display font-bold text-[11px] grid place-items-center shrink-0 tracking-tight">
+						<span className="w-7 h-7 rounded-md bg-brand/15 text-brand-ink font-display font-bold text-[11px] grid place-items-center shrink-0 tracking-tight">
 							{initials}
 						</span>
 						{(!collapsed || isMobile) && (
@@ -319,9 +331,10 @@ export default function AdminShell({
 						<Link href="/admin" className="flex items-center gap-2 flex-1">
 							<LogoMark className="w-6 h-6" />
 							<span className="font-display font-black text-[18px] tracking-tight text-ink">
-								Talacha<span className="text-brand">Stats</span>
+								Talacha<span className="text-brand-ink">Stats</span>
 							</span>
 						</Link>
+						<ThemeToggle />
 					</header>
 				)}
 
@@ -372,7 +385,7 @@ function NavLink({
 				"relative group flex items-center gap-2.5 h-9 rounded-md transition-colors text-[13.5px]",
 				collapsed ? "justify-center px-0 w-9 mx-auto" : "px-2.5",
 				active
-					? "bg-brand/10 text-brand font-semibold"
+					? "bg-brand/10 text-brand-ink font-semibold"
 					: "text-ink-2 hover:text-ink hover:bg-surface font-medium",
 			)}
 		>
@@ -488,7 +501,7 @@ function SidebarCitySwitcher({
 		return (
 			<button
 				title={activeCity}
-				className="w-9 h-9 mx-auto grid place-items-center rounded-md text-brand hover:bg-surface transition"
+				className="w-9 h-9 mx-auto grid place-items-center rounded-md text-brand-ink hover:bg-surface transition"
 			>
 				<MapPin size={16} strokeWidth={1.75} />
 			</button>
@@ -505,7 +518,7 @@ function SidebarCitySwitcher({
 				className="w-full flex items-center gap-2.5 h-11 px-2.5 rounded-md bg-surface border border-line text-left hover:border-ink-3 transition"
 				aria-expanded={open}
 			>
-				<MapPin size={14} strokeWidth={1.75} className="text-brand shrink-0" />
+				<MapPin size={14} strokeWidth={1.75} className="text-brand-ink shrink-0" />
 				<div className="flex-1 min-w-0">
 					<div className="text-[10.5px] font-semibold tracking-[0.14em] uppercase text-ink-3 leading-none">
 						Ciudad activa
@@ -548,7 +561,7 @@ function SidebarCitySwitcher({
 										className={cn(
 											"w-full flex items-center justify-between px-3 py-2 text-[13px] text-left transition",
 											city === activeCity
-												? "bg-brand/10 text-brand"
+												? "bg-brand/10 text-brand-ink"
 												: "text-ink-2 hover:bg-surface hover:text-ink",
 										)}
 									>

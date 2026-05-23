@@ -188,9 +188,9 @@ export function LeagueVenuesClient({
 				))}
 				<Link
 					href="/admin/canchas?action=new"
-					className="bg-transparent border border-dashed border-line rounded-lg p-3.5 flex items-center justify-center gap-2 text-[13px] font-semibold text-brand hover:bg-brand/5 hover:border-brand/40 transition"
+					className="bg-transparent border border-dashed border-line rounded-lg p-3.5 flex items-center justify-center gap-2 text-[13px] font-semibold text-brand-ink hover:bg-brand/5 hover:border-brand/40 transition"
 				>
-					<span className="text-brand">+</span> Registrar nueva cancha
+					<span className="text-brand-ink">+</span> Registrar nueva cancha
 				</Link>
 			</div>
 		</div>

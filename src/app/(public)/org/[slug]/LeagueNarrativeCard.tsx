@@ -42,7 +42,7 @@ export default function LeagueNarrativeCard({ league, snapshot, narrative, orgSl
 			{/* Header de liga */}
 			<div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-line">
 				<div className="w-9 h-9 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
-					<span className="font-display font-black text-xs text-brand">{abbr}</span>
+					<span className="font-display font-black text-xs text-brand-ink">{abbr}</span>
 				</div>
 				<div className="flex-1 min-w-0">
 					<p className="font-semibold text-sm text-ink truncate">{titleCase(league.name)}</p>
@@ -51,7 +51,7 @@ export default function LeagueNarrativeCard({ league, snapshot, narrative, orgSl
 					</p>
 				</div>
 				{snapshot.lastJornada && (
-					<span className="text-[10px] font-bold text-brand bg-brand/10 border border-brand/20 rounded-lg px-2 py-0.5 shrink-0">
+					<span className="text-[10px] font-bold text-brand-ink bg-brand/10 border border-brand/20 rounded-lg px-2 py-0.5 shrink-0">
 						J{snapshot.lastJornada}
 					</span>
 				)}
@@ -67,11 +67,11 @@ export default function LeagueNarrativeCard({ league, snapshot, narrative, orgSl
 				<div className="px-4 py-3 space-y-1.5 border-b border-line">
 					{snapshot.leader && (
 						<div className="flex items-center gap-2">
-							<Trophy size={12} strokeWidth={2} className="text-brand shrink-0" />
+							<Trophy size={12} strokeWidth={2} className="text-brand-ink shrink-0" />
 							<span className="text-xs font-semibold text-ink flex-1 truncate">
 								{titleCase(snapshot.leader.teamName)}
 							</span>
-							<span className="text-xs font-black text-brand shrink-0">
+							<span className="text-xs font-black text-brand-ink shrink-0">
 								{snapshot.leader.points} pts
 							</span>
 						</div>
@@ -95,7 +95,7 @@ export default function LeagueNarrativeCard({ league, snapshot, narrative, orgSl
 			{/* CTA */}
 			<Link
 				href={href}
-				className="flex items-center justify-between px-4 py-3 text-xs font-semibold text-ink-3 hover:text-brand group transition-colors"
+				className="flex items-center justify-between px-4 py-3 text-xs font-semibold text-ink-3 hover:text-brand-ink group transition-colors"
 			>
 				<span>Ver tabla y goleadores completos</span>
 				<ChevronRight

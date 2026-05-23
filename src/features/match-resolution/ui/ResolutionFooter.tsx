@@ -19,7 +19,7 @@ type Props = {
 type GapIndicatorProps = { gap: number };
 
 function GapIndicator({ gap }: GapIndicatorProps) {
-	if (gap === 0) return <span className="text-brand font-medium">✓ Cuadrado</span>;
+	if (gap === 0) return <span className="text-brand-ink font-medium">✓ Cuadrado</span>;
 	if (gap > 0)
 		return <span className="text-amber font-medium">⚠ Falta atribuir {gap} gol(es)</span>;
 	return <span className="text-rose font-medium">✗ Sobran {Math.abs(gap)} gol(es)</span>;

@@ -37,8 +37,8 @@ export function StepBar({ current }: Props) {
 							<span
 								className={[
 									"text-[13px] whitespace-nowrap",
-									isActive ? "inline font-semibold text-brand" : "hidden sm:inline",
-									isDone ? "text-brand" : "",
+									isActive ? "inline font-semibold text-brand-ink" : "hidden sm:inline",
+									isDone ? "text-brand-ink" : "",
 									!isDone && !isActive ? "text-ink-3" : "",
 								].join(" ")}
 							>

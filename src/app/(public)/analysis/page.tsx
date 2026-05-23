@@ -29,7 +29,7 @@ export default function AnalysisPage() {
 					Inicio
 				</Link>
 				<div className="flex items-center gap-2 mb-1">
-					<BarChart3 size={24} className="text-brand" strokeWidth={2} />
+					<BarChart3 size={24} className="text-brand-ink" strokeWidth={2} />
 					<h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">
 						Análisis
 					</h1>
@@ -400,7 +400,7 @@ function AnalysisPanel({
 					<ul className="space-y-2">
 						{funFacts.map((f, i) => (
 							<li key={i} className="text-sm text-ink-2 flex gap-2">
-								<span className="text-brand shrink-0">★</span>
+								<span className="text-brand-ink shrink-0">★</span>
 								{f}
 							</li>
 						))}
@@ -498,7 +498,7 @@ function TeamCard({ team, color }: { team: TeamAnalysis; color: "blue" | "red" }
 				<span className="text-line">|</span>
 				<span className="text-ink-3">
 					Dif{" "}
-					<strong className={team.goalDiff >= 0 ? "text-brand" : "text-red-400"}>
+					<strong className={team.goalDiff >= 0 ? "text-brand-ink" : "text-red-400"}>
 						{team.goalDiff > 0 ? `+${team.goalDiff}` : team.goalDiff}
 					</strong>
 				</span>
@@ -579,7 +579,7 @@ function TeamCard({ team, color }: { team: TeamAnalysis; color: "blue" | "red" }
 			<div className="space-y-1.5 border-t border-line pt-3">
 				{team.topScorer && (
 					<div className="flex items-center gap-2 text-sm">
-						<span className="text-brand">⚽</span>
+						<span className="text-brand-ink">⚽</span>
 						<span className="text-ink-2">{playerDisplay(team.topScorer)}</span>
 						<span className="ml-auto text-ink-3">{team.topScorer.goals} goles</span>
 					</div>
@@ -690,7 +690,7 @@ function RosterTable({ team, color }: { team: TeamAnalysis; color: "blue" | "red
 									{p.alias ? `"${p.alias}"` : p.fullName}
 									{p.alias && <span className="block text-ink-3 text-[10px]">{p.fullName}</span>}
 								</td>
-								<td className="px-2 py-2 text-center font-bold text-brand">{p.goals || "—"}</td>
+								<td className="px-2 py-2 text-center font-bold text-brand-ink">{p.goals || "—"}</td>
 								<td className="px-2 py-2 text-center font-bold text-ink-2">
 									{p.contributions || "—"}
 								</td>
@@ -777,7 +777,9 @@ function PredictionCard({
 			<div className="space-y-2 border-t border-line pt-4">
 				<div className="flex items-center justify-between text-sm">
 					<span className="text-ink-3">¿Ambos anotarán?</span>
-					<span className={`font-semibold ${pred.bothTeamsToScore ? "text-brand" : "text-ink-3"}`}>
+					<span
+						className={`font-semibold ${pred.bothTeamsToScore ? "text-brand-ink" : "text-ink-3"}`}
+					>
 						{pred.bothTeamsToScore ? "Probable que sí" : "No garantizado"}
 					</span>
 				</div>
@@ -814,7 +816,7 @@ function PositionSimulatorCard({
 		const delta = from - to;
 		if (delta > 0)
 			return (
-				<span className="text-brand font-bold">
+				<span className="text-brand-ink font-bold">
 					{to}° ↑{delta}
 				</span>
 			);

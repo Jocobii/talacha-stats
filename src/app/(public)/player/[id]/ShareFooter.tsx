@@ -50,8 +50,8 @@ export default function ShareFooter({ url, slug }: { url: string; slug: string }
 					"mt-3 w-full flex items-center justify-center gap-2.5 py-3",
 					"border transition-colors duration-150",
 					isCopied
-						? "border-brand text-brand"
-						: "border-line text-ink-2 hover:border-brand hover:text-brand",
+						? "border-brand text-brand-ink"
+						: "border-line text-ink-2 hover:border-brand hover:text-brand-ink",
 				].join(" ")}
 			>
 				{isCopied ? (

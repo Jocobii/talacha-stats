@@ -56,7 +56,7 @@ export default function HeroCard() {
 		{
 			label: "Top Ciudad",
 			Icon: Trophy,
-			color: "text-brand",
+			color: "text-brand-ink",
 			bg: "bg-brand/10 border-brand/20",
 			delay: "1.9s",
 		},
@@ -76,12 +76,12 @@ export default function HeroCard() {
 				>
 					{/* Avatar */}
 					<div className="w-11 h-11 rounded-full bg-brand/20 border-2 border-brand/40 flex items-center justify-center shrink-0">
-						<span className="font-display font-black text-base text-brand">CM</span>
+						<span className="font-display font-black text-base text-brand-ink">CM</span>
 					</div>
 
 					<div className="min-w-0">
 						<p className="font-display font-black text-lg text-ink uppercase leading-tight tracking-tight">
-							Carlos <span className="text-brand">&apos;Tanque&apos;</span> M.
+							Carlos <span className="text-brand-ink">&apos;Tanque&apos;</span> M.
 						</p>
 						<div className="flex items-center gap-1 mt-0.5">
 							<MapPin size={12} strokeWidth={2} className="text-ink-3 shrink-0" />
@@ -99,7 +99,7 @@ export default function HeroCard() {
 						{
 							label: "Goles",
 							value: goals,
-							icon: <Flame size={12} strokeWidth={2} className="text-brand" />,
+							icon: <Flame size={12} strokeWidth={2} className="text-brand-ink" />,
 						},
 						{
 							label: "Partidos",
@@ -152,10 +152,10 @@ export default function HeroCard() {
 					style={{ animationDelay: "2.1s", animationFillMode: "both" }}
 				>
 					<div className="flex items-center gap-2">
-						<Trophy size={16} strokeWidth={2} className="text-brand" />
+						<Trophy size={16} strokeWidth={2} className="text-brand-ink" />
 						<span className="text-sm font-semibold text-ink-2">Ranking Tijuana</span>
 					</div>
-					<span className="font-display font-black text-2xl text-brand leading-none">#8</span>
+					<span className="font-display font-black text-2xl text-brand-ink leading-none">#8</span>
 				</div>
 			</div>
 

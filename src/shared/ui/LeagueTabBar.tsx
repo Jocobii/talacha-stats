@@ -67,7 +67,7 @@ export function LeagueTabBar({ leagueId, schedulingEnabled }: Props) {
 						className={cn(
 							"flex items-center gap-1.5 px-4 py-2.5 text-[13.5px] font-medium border-b-2 -mb-px transition-colors",
 							isActive
-								? "border-brand text-brand"
+								? "border-brand text-brand-ink"
 								: "border-transparent text-ink-2 hover:text-ink hover:border-line",
 						)}
 					>

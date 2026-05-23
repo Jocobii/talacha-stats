@@ -91,7 +91,7 @@ export function TeamPanel({
 					<button
 						onClick={onAddPlayer}
 						disabled={disabled}
-						className="flex items-center gap-1.5 text-xs text-brand hover:text-brand-dim disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+						className="flex items-center gap-1.5 text-xs text-brand-ink hover:text-brand-dim disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
 					>
 						<UserPlus size={12} />
 						Añadir jugador

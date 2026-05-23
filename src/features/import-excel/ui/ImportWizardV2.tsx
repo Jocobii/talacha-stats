@@ -45,7 +45,7 @@ function V2StepBar({ current }: { current: V2StepId }) {
 								{isDone ? "✓" : i + 1}
 							</div>
 							{isActive && (
-								<span className="text-[13px] whitespace-nowrap font-semibold text-brand">
+								<span className="text-[13px] whitespace-nowrap font-semibold text-brand-ink">
 									{s.label}
 								</span>
 							)}

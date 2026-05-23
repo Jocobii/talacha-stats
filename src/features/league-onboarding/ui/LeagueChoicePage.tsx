@@ -50,7 +50,7 @@ export function LeagueChoicePage({ league, onPro, onExcel }: Props) {
 						{/* Left — sell copy */}
 						<div className="p-7 sm:p-9">
 							<div className="flex items-center gap-2 mb-4">
-								<span className="w-9 h-9 rounded-md bg-brand/15 text-brand grid place-items-center shrink-0">
+								<span className="w-9 h-9 rounded-md bg-brand/15 text-brand-ink grid place-items-center shrink-0">
 									<ShieldCheck size={18} strokeWidth={1.75} />
 								</span>
 								<SectionLabel>Registro profesional</SectionLabel>
@@ -133,7 +133,7 @@ function Bullet({ children }: { children: React.ReactNode }) {
 	return (
 		<li className="flex items-start gap-2.5 text-[14px] text-ink leading-snug">
 			<span className="mt-0.5 shrink-0 w-4 h-4 rounded-full bg-brand/15 grid place-items-center">
-				<Check size={11} strokeWidth={3} className="text-brand" />
+				<Check size={11} strokeWidth={3} className="text-brand-ink" />
 			</span>
 			{children}
 		</li>

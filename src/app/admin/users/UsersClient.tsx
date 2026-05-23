@@ -77,7 +77,7 @@ export default function UsersClient({
 								<td className="px-5 py-3 font-medium text-ink">
 									{u.name}
 									{u.id === currentUserId && (
-										<span className="ml-2 text-xs text-brand font-semibold">(tú)</span>
+										<span className="ml-2 text-xs text-brand-ink font-semibold">(tú)</span>
 									)}
 								</td>
 								<td className="px-5 py-3 text-ink-2">{u.email}</td>
@@ -86,7 +86,7 @@ export default function UsersClient({
 										className={`text-xs font-medium px-2 py-0.5 rounded-full ${
 											u.role === "owner"
 												? "bg-purple-100 text-purple-700"
-												: "bg-brand/15 text-brand"
+												: "bg-brand/15 text-brand-ink"
 										}`}
 									>
 										{ROLE_LABELS[u.role] ?? u.role}

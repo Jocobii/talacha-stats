@@ -77,7 +77,7 @@ export function VenueCard({ venue, onEdit, onDelete, onDuplicate }: VenueCardPro
 					<StatNum label="Ventanas" value={venue.totalWindows} accent={false} />
 					<div className="ml-auto">
 						{inUse ? (
-							<span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand/10 text-brand">
+							<span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand/10 text-brand-ink">
 								● En uso
 							</span>
 						) : (
@@ -112,7 +112,7 @@ function StatNum({ label, value, accent }: { label: string; value: number; accen
 			<p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-ink-3">{label}</p>
 			<div className="flex items-baseline gap-1 mt-1">
 				<span
-					className={`text-[22px] leading-none font-black ${accent ? "text-brand" : "text-ink"}`}
+					className={`text-[22px] leading-none font-black ${accent ? "text-brand-ink" : "text-ink"}`}
 					style={{ fontFamily: "var(--font-display)" }}
 				>
 					{value}
@@ -191,7 +191,7 @@ export function AddVenueTile({ onClick }: { onClick: () => void }) {
 			onClick={onClick}
 			className="bg-transparent border border-dashed border-line rounded-xl min-h-[200px] flex flex-col items-center justify-center gap-2.5 text-ink-2 hover:border-brand/40 hover:bg-brand/5 transition group"
 		>
-			<span className="w-10 h-10 rounded-full bg-brand/10 text-brand grid place-items-center group-hover:bg-brand/20 transition">
+			<span className="w-10 h-10 rounded-full bg-brand/10 text-brand-ink grid place-items-center group-hover:bg-brand/20 transition">
 				<span className="text-xl font-bold leading-none">+</span>
 			</span>
 			<span className="text-[13.5px] font-semibold text-ink">Registrar cancha</span>

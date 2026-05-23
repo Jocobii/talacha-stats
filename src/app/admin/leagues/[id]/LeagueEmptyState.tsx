@@ -32,7 +32,7 @@ export default function LeagueEmptyState({ leagueId }: { leagueId: string }) {
 						Tengo datos históricos en una hoja de cálculo. Los importo y el sistema genera
 						posiciones y goleadores automáticamente.
 					</p>
-					<p className="text-xs text-brand font-semibold mt-3 group-hover:underline">
+					<p className="text-xs text-brand-ink font-semibold mt-3 group-hover:underline">
 						Ir al importador →
 					</p>
 				</Link>
@@ -48,7 +48,7 @@ export default function LeagueEmptyState({ leagueId }: { leagueId: string }) {
 						Empiezo desde cero. Registro jugadores con CURP, creo equipos y los inscribo a la liga
 						paso a paso.
 					</p>
-					<p className="text-xs text-brand font-semibold mt-3 group-hover:underline">
+					<p className="text-xs text-brand-ink font-semibold mt-3 group-hover:underline">
 						Ver guía de inicio →
 					</p>
 				</Link>
