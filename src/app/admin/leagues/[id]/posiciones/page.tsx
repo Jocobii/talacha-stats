@@ -12,6 +12,7 @@ import { serverFetch } from "@/shared/lib/server-fetch";
 import { getSessionUser } from "@/shared/lib/auth";
 import { db } from "@/db";
 import { leaguePlayoffZones } from "@/db/schema";
+import { ShareStandingsButton } from "./ShareStandingsButton";
 import { listOrganizations } from "@/entities/organization";
 import { findZone, isZoneStart, getZoneTokens } from "@/shared/lib/zone-colors";
 import type { ZoneInfo } from "@/shared/lib/zone-colors";
@@ -89,7 +90,10 @@ export default async function PosicionesPage({ params }: { params: Promise<{ id:
 					</div>
 				) : (
 					<>
-						<h2 className="text-lg font-semibold text-ink mb-3">Tabla de posiciones</h2>
+						<div className="flex items-center justify-between mb-3">
+							<h2 className="text-lg font-semibold text-ink">Tabla de posiciones</h2>
+							<ShareStandingsButton leagueId={id} />
+						</div>
 						<div className="bg-surface rounded-lg shadow overflow-hidden">
 							<div className="overflow-x-auto">
 								<table className="w-full text-sm min-w-[560px]">

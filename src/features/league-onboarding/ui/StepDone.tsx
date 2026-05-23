@@ -6,7 +6,7 @@
  */
 
 import Link from "next/link";
-import { Check, Upload, ArrowRight } from "lucide-react";
+import { Check, Upload, ArrowRight, Share2 } from "lucide-react";
 import { Card } from "@/shared/ui/Card";
 import type { CreatedTeam, League } from "../types";
 
@@ -61,6 +61,15 @@ export function StepDone({ league, teams }: Props) {
 					Capturar primera jornada
 					<ArrowRight size={14} strokeWidth={2} />
 				</Link>
+				<a
+					href={`/api/content/league-launch-image?leagueId=${league.id}`}
+					download={`liga-${league.id}.png`}
+					className="inline-flex items-center gap-2 h-11 px-5 text-sm font-semibold rounded-md bg-surface-2 border border-line text-ink hover:border-brand/40 hover:text-brand transition"
+					title="Descarga la imagen de lanzamiento con el Sello Talacha para WhatsApp/Facebook"
+				>
+					<Share2 size={16} strokeWidth={1.75} />
+					Compartir lanzamiento
+				</a>
 				<Link
 					href={`/admin/leagues/${league.id}`}
 					className="inline-flex items-center gap-2 h-11 px-5 text-sm font-semibold rounded-md bg-surface-2 border border-line text-ink hover:border-ink-3 transition"

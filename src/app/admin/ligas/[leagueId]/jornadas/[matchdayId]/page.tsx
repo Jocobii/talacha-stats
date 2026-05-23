@@ -13,6 +13,7 @@ import { listMatchesByRound } from "@/entities/match/queries";
 import { CedulaSearch } from "./CedulaSearch";
 import { CloseMatchdayButton } from "./CloseMatchdayButton";
 import { ReopenPlayoffButton } from "./ReopenPlayoffButton";
+import { ShareJornadaButton } from "./ShareJornadaButton";
 import { STATUS_LABELS } from "@/features/match-resolution/constants";
 import type { ResolutionStatus } from "@/db/schema";
 
@@ -134,6 +135,9 @@ export default async function JornadaDashboardPage({ params }: Params) {
 									leagueId={leagueId}
 									matchdayNumber={matchday.number}
 								/>
+							)}
+							{isClosed && matchday.number !== null && (
+								<ShareJornadaButton leagueId={leagueId} jornadaNumber={matchday.number} />
 							)}
 							{isPlayoff && matchday.status === "completed" && (
 								<ReopenPlayoffButton matchdayId={matchdayId} />

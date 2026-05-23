@@ -1,15 +1,25 @@
-import { db, teams, leagues } from "@/db";
+import { db, teams } from "@/db";
 import { eq, inArray, and } from "drizzle-orm";
+import { z } from "zod";
 import { CreateTeamSchema, apiSuccess, apiError } from "@/types";
 import { getRequestCity } from "@/shared/lib/active-city";
 import { sanitizeToCanonical } from "@/shared/lib/normalize";
+import { parseQueryParams } from "@/shared/lib/query-filters";
+import { getCityLeagueIds } from "@/shared/lib/db-scopes";
+
+const TeamFiltersSchema = z.object({
+	league_id: z.string().uuid().optional(),
+});
 
 // GET /api/teams?league_id=xxx&city=Tijuana
 // When league_id is provided, city filter is implicit (league already belongs to a city).
 // When no league_id, returns all teams in the active city.
 export async function GET(request: Request) {
 	const { searchParams } = new URL(request.url);
-	const leagueId = searchParams.get("league_id");
+
+	const parsed = parseQueryParams(searchParams, TeamFiltersSchema);
+	if (!parsed.success) return apiError("Parametros invalidos", 400);
+	const { league_id: leagueId } = parsed.data;
 
 	if (leagueId) {
 		const rows = await db.query.teams.findMany({
@@ -22,13 +32,7 @@ export async function GET(request: Request) {
 
 	// No league_id: return all teams in the active city
 	const city = await getRequestCity(request);
-
-	const cityLeagues = await db
-		.select({ id: leagues.id })
-		.from(leagues)
-		.where(eq(leagues.city, city));
-
-	const leagueIds = cityLeagues.map((l) => l.id);
+	const leagueIds = await getCityLeagueIds(city);
 
 	if (leagueIds.length === 0) return apiSuccess([]);
 
@@ -49,8 +53,8 @@ export async function POST(request: Request) {
 
 	const nameCanonical = sanitizeToCanonical(parsed.data.name);
 
-	// Verificación previa de duplicado por nombre canónico en la misma liga.
-	// No se confía solo en el constraint de DB — se valida proactivamente para
+	// Verificacion previa de duplicado por nombre canonico en la misma liga.
+	// No se confia solo en el constraint de DB - se valida proactivamente para
 	// devolver un mensaje claro antes de intentar el insert.
 	const existing = await db.query.teams.findFirst({
 		where: and(eq(teams.leagueId, parsed.data.leagueId), eq(teams.nameCanonical, nameCanonical)),

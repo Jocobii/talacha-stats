@@ -2,10 +2,58 @@
  * entities/match-player-stat/queries.ts
  * Acceso y mutación de DB para match_player_stats.
  */
-import { db } from "@/db";
-import { matchPlayerStats } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import {
+	db,
+	matchPlayerStats,
+	inscriptions,
+	leagueMembers,
+	globalPlayers,
+	teams,
+	matches,
+} from "@/db";
+import { eq, and, desc, gt, sql } from "drizzle-orm";
 import type { MatchPlayerStatInput } from "@/entities/match/model";
+
+export type TopScorerV2 = {
+	inscriptionId: string;
+	fullName: string;
+	teamName: string;
+	goals: number;
+};
+
+/**
+ * Goleadores de una liga V2.
+ * Suma goles de match_player_stats → inscriptions → league_members → global_players.
+ *
+ * Reglas de negocio:
+ * - Solo partidos con status "played" (no W.O., no "completed" legacy).
+ * - Bonus goals no se atribuyen a jugadores → no entran al conteo.
+ * - Empate en goles → orden alfabético por nombre canónico.
+ */
+export async function getLeagueTopScorersV2(leagueId: string, limit = 10): Promise<TopScorerV2[]> {
+	const goalsSum = sql<number>`sum(${matchPlayerStats.goals})::int`;
+
+	const rows = await db
+		.select({
+			inscriptionId: inscriptions.id,
+			fullName: globalPlayers.fullName,
+			teamName: teams.name,
+			goals: goalsSum,
+		})
+		.from(matchPlayerStats)
+		.innerJoin(inscriptions, eq(matchPlayerStats.playerRegistrationId, inscriptions.id))
+		.innerJoin(leagueMembers, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.innerJoin(globalPlayers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+		.innerJoin(teams, eq(inscriptions.teamId, teams.id))
+		.innerJoin(matches, eq(matchPlayerStats.matchId, matches.id))
+		.where(and(eq(matches.leagueId, leagueId), eq(matches.status, "played")))
+		.groupBy(inscriptions.id, globalPlayers.fullName, teams.name)
+		.having(gt(goalsSum, 0))
+		.orderBy(desc(goalsSum))
+		.limit(limit);
+
+	return rows;
+}
 
 type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 

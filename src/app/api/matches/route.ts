@@ -1,21 +1,27 @@
-import { db, matches, leagues } from "@/db";
+import { db, matches } from "@/db";
 import { eq, desc, count, and, inArray } from "drizzle-orm";
-import { MATCH_STATUSES, type MatchStatus } from "@/db/schema";
+import { z } from "zod";
+import { MATCH_STATUSES } from "@/db/schema";
 import { CreateMatchSchema, apiSuccess, apiSuccessPaginated, apiError } from "@/types";
 import { parsePaginationParams, buildMeta, toOffset } from "@/shared/lib/pagination";
 import { getRequestCity } from "@/shared/lib/active-city";
+import { parseQueryParams } from "@/shared/lib/query-filters";
+import { getCityLeagueIds } from "@/shared/lib/db-scopes";
+
+const MatchFiltersSchema = z.object({
+	league_id: z.string().uuid().optional(),
+	status: z.enum(MATCH_STATUSES).optional(),
+});
 
 // GET /api/matches?league_id=xxx&status=scheduled&page=1&limit=20&city=Tijuana
 // When league_id is provided, city filter is implicit.
 // When no league_id, filters by all leagues in the active city.
 export async function GET(request: Request) {
 	const { searchParams } = new URL(request.url);
-	const leagueId = searchParams.get("league_id") ?? undefined;
-	const statusRaw = searchParams.get("status") ?? undefined;
-	const status =
-		statusRaw && (MATCH_STATUSES as readonly string[]).includes(statusRaw)
-			? (statusRaw as MatchStatus)
-			: undefined;
+
+	const parsed = parseQueryParams(searchParams, MatchFiltersSchema);
+	if (!parsed.success) return apiError("Parametros invalidos", 400);
+	const { league_id: leagueId, status } = parsed.data;
 
 	const params = parsePaginationParams(searchParams, { limit: 25 });
 
@@ -25,12 +31,7 @@ export async function GET(request: Request) {
 		leagueWhere = eq(matches.leagueId, leagueId);
 	} else {
 		const city = await getRequestCity(request);
-		const cityLeagues = await db
-			.select({ id: leagues.id })
-			.from(leagues)
-			.where(eq(leagues.city, city));
-
-		const leagueIds = cityLeagues.map((l) => l.id);
+		const leagueIds = await getCityLeagueIds(city);
 		leagueWhere = leagueIds.length > 0 ? inArray(matches.leagueId, leagueIds) : undefined;
 	}
 
