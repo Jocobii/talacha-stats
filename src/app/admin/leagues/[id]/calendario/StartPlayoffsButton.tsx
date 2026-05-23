@@ -40,7 +40,7 @@ export function StartPlayoffsButton({ leagueId }: Props) {
 
 	return (
 		<div className="bg-surface rounded-lg shadow p-5 text-center space-y-3">
-			<Trophy className="mx-auto text-brand" size={32} />
+			<Trophy className="mx-auto text-brand-ink" size={32} />
 			<p className="text-sm font-semibold text-ink">Fase Final</p>
 			<p className="text-xs text-ink-2 max-w-xs mx-auto">
 				Genera los brackets de eliminación directa para todas las zonas configuradas. Los equipos se

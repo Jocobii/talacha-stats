@@ -45,7 +45,7 @@ function Row({
 			{/* Rank */}
 			<span
 				className={`font-display font-black text-xl w-8 shrink-0 text-right leading-none ${
-					isTop3 ? "text-brand" : "text-ink-3"
+					isTop3 ? "text-brand-ink" : "text-ink-3"
 				}`}
 			>
 				#{rank}
@@ -55,7 +55,7 @@ function Row({
 			<div className="flex-1 min-w-0">
 				<p className="text-sm font-semibold text-ink leading-tight truncate">
 					{name}
-					{alias && <span className="text-brand font-normal ml-1.5">&quot;{alias}&quot;</span>}
+					{alias && <span className="text-brand-ink font-normal ml-1.5">&quot;{alias}&quot;</span>}
 				</p>
 				<p className="text-xs text-ink-3 truncate mt-0.5">{team}</p>
 			</div>
@@ -63,7 +63,7 @@ function Row({
 			{/* Goles */}
 			<div className="text-right shrink-0">
 				<p
-					className={`font-display font-black text-xl leading-none ${isTop3 ? "text-brand" : "text-ink"}`}
+					className={`font-display font-black text-xl leading-none ${isTop3 ? "text-brand-ink" : "text-ink"}`}
 				>
 					{goals}
 				</p>
@@ -84,19 +84,19 @@ function GhostRow({ delay, visible }: { delay: number; visible: boolean }) {
 				transition: `opacity 0.55s ease ${delay}ms, transform 0.55s cubic-bezier(0.22,1,0.36,1) ${delay}ms`,
 			}}
 		>
-			<span className="font-display font-black text-xl w-8 shrink-0 text-right leading-none text-brand/50">
+			<span className="font-display font-black text-xl w-8 shrink-0 text-right leading-none text-brand-ink/50">
 				?
 			</span>
 			<div className="flex-1 min-w-0">
-				<p className="text-sm font-semibold text-brand/70 leading-tight">¿Dónde estás tú?</p>
-				<p className="text-xs text-brand/40 mt-0.5 flex items-center gap-1">
+				<p className="text-sm font-semibold text-brand-ink/70 leading-tight">¿Dónde estás tú?</p>
+				<p className="text-xs text-brand-ink/40 mt-0.5 flex items-center gap-1">
 					<MapPin size={10} strokeWidth={2} />
 					Tijuana · todas las ligas
 				</p>
 			</div>
 			<Link
 				href="/ranking"
-				className="text-xs text-brand font-semibold flex items-center gap-0.5 hover:underline shrink-0"
+				className="text-xs text-brand-ink font-semibold flex items-center gap-0.5 hover:underline shrink-0"
 			>
 				Ver <ChevronRight size={12} strokeWidth={2} />
 			</Link>
@@ -138,7 +138,7 @@ export default function LeaderboardTeaser() {
 					}}
 				>
 					<div className="flex items-center gap-2">
-						<Trophy size={16} strokeWidth={2} className="text-brand" />
+						<Trophy size={16} strokeWidth={2} className="text-brand-ink" />
 						<h2 className="font-display font-black text-xl uppercase tracking-wide text-ink">
 							Ranking Tijuana
 						</h2>
@@ -166,7 +166,7 @@ export default function LeaderboardTeaser() {
 				>
 					<Link
 						href="/ranking"
-						className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-2 hover:text-brand transition border border-line hover:border-brand/40 px-5 py-2.5 rounded-xl"
+						className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-2 hover:text-brand-ink transition border border-line hover:border-brand/40 px-5 py-2.5 rounded-xl"
 					>
 						Ver ranking completo
 						<ChevronRight size={14} strokeWidth={2} />

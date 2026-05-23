@@ -132,9 +132,9 @@ export function RentalModal({
 					<div className="flex items-center justify-between px-5 py-4 border-b border-line">
 						<h2 className="text-ink font-display font-semibold text-xl flex items-center gap-2">
 							{isEdit ? (
-								<PencilLine size={18} className="text-brand" />
+								<PencilLine size={18} className="text-brand-ink" />
 							) : (
-								<Plus size={18} className="text-brand" />
+								<Plus size={18} className="text-brand-ink" />
 							)}
 							{isEdit ? "Editar renta" : "Nueva renta"}
 						</h2>

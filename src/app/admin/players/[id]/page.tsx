@@ -76,7 +76,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 					<Link
 						href={`/player/${id}`}
 						target="_blank"
-						className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:text-brand transition"
+						className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-ink hover:text-brand-ink transition"
 					>
 						Ver perfil público ↗
 					</Link>
@@ -95,7 +95,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 					<div className="flex-1 min-w-0">
 						<h1 className="text-2xl sm:text-3xl font-black leading-tight">{fullName}</h1>
 						{alias && (
-							<p className="text-brand text-lg font-semibold mt-0.5">&quot;{alias}&quot;</p>
+							<p className="text-brand-ink text-lg font-semibold mt-0.5">&quot;{alias}&quot;</p>
 						)}
 						{phone && <p className="text-ink-3 text-sm mt-1">{phone}</p>}
 						{v2Basic?.birthDate && (
@@ -115,14 +115,14 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 						<div className="text-center sm:text-right shrink-0">
 							{v1Profile.global.totalMatches > 0 ? (
 								<>
-									<p className="text-5xl font-black text-brand leading-none">
+									<p className="text-5xl font-black text-brand-ink leading-none">
 										{v1Profile.global.goalsPerMatch.toFixed(2)}
 									</p>
 									<p className="text-ink-3 text-sm mt-1.5">goles / partido</p>
 								</>
 							) : (
 								<>
-									<p className="text-5xl font-black text-brand leading-none">
+									<p className="text-5xl font-black text-brand-ink leading-none">
 										{v1Profile.global.totalGoals}
 									</p>
 									<p className="text-ink-3 text-sm mt-1.5">goles totales</p>
@@ -191,7 +191,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 
 function GlobalStatsBar({ global: g }: { global: PlayerGlobalProfile }) {
 	const stats = [
-		{ label: "Goles", value: g.totalGoals, color: "text-brand" },
+		{ label: "Goles", value: g.totalGoals, color: "text-brand-ink" },
 		{ label: "Asistencias", value: g.totalAssists, color: "text-blue-600" },
 		{ label: "Contribuciones", value: g.totalContributions, color: "text-purple-600" },
 		{ label: "Partidos", value: g.totalMatches, color: "text-ink" },
@@ -229,11 +229,11 @@ function PlayerTeamsBar({ members }: { members: GlobalPlayerLeagueMember[] }) {
 						href={`/admin/teams/${m.teamId}`}
 						className="inline-flex items-center gap-2 bg-surface-2 border border-line hover:border-brand/50 hover:bg-surface px-3 py-2 rounded-xl transition group"
 					>
-						<span className="text-[13px] font-semibold text-ink group-hover:text-brand transition">
+						<span className="text-[13px] font-semibold text-ink group-hover:text-brand-ink transition">
 							{m.teamName}
 						</span>
 						<span className="text-[11px] text-ink-3">{m.leagueName}</span>
-						<span className="text-ink-3 group-hover:text-brand transition text-[11px]">↗</span>
+						<span className="text-ink-3 group-hover:text-brand-ink transition text-[11px]">↗</span>
 					</Link>
 				))}
 			</div>
@@ -278,7 +278,7 @@ function MembershipCard({
 					</p>
 				</div>
 				{member.dorsal != null && (
-					<span className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-brand/15 text-brand font-black text-sm">
+					<span className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-brand/15 text-brand-ink font-black text-sm">
 						{member.dorsal}
 					</span>
 				)}
@@ -303,7 +303,11 @@ function LeagueStatsCard({
 	canEdit: boolean;
 }) {
 	const gpmColor =
-		l.goalsPerMatch >= 1 ? "text-brand" : l.goalsPerMatch >= 0.5 ? "text-yellow-600" : "text-ink-2";
+		l.goalsPerMatch >= 1
+			? "text-brand-ink"
+			: l.goalsPerMatch >= 0.5
+				? "text-yellow-600"
+				: "text-ink-2";
 
 	const borderColor = v2Member
 		? ({ active: "border-green-500", suspended: "border-yellow-500", inactive: "border-line" }[
@@ -323,7 +327,7 @@ function LeagueStatsCard({
 					<p className="text-sm text-ink-2 mt-1 font-medium">{l.teamName}</p>
 				</div>
 				{l.source === "season_stats" && (
-					<span className="shrink-0 text-[10px] font-semibold bg-brand/15 text-brand px-2 py-0.5 rounded-full">
+					<span className="shrink-0 text-[10px] font-semibold bg-brand/15 text-brand-ink px-2 py-0.5 rounded-full">
 						Importado
 					</span>
 				)}
@@ -331,7 +335,7 @@ function LeagueStatsCard({
 
 			{/* Stats: goles, asistencias, partidos */}
 			<div className="grid grid-cols-3 gap-2">
-				<StatBox label="Goles" value={l.goals} color="bg-brand/10 text-brand" />
+				<StatBox label="Goles" value={l.goals} color="bg-brand/10 text-brand-ink" />
 				<StatBox label="Asist." value={l.assists} color="bg-blue-950/40 text-blue-300" />
 				<StatBox label="PJ" value={l.matchesPlayed} color="bg-surface-2 text-ink" />
 			</div>

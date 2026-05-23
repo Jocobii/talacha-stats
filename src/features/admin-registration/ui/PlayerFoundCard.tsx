@@ -52,7 +52,7 @@ export function PlayerFoundCard({
 				{/* Banner */}
 				<div className="flex items-center gap-2 px-6 py-3 border-b border-line bg-brand/[0.05]">
 					<span className="w-2 h-2 rounded-full bg-brand shadow-[0_0_8px_rgba(0,230,118,.7)] shrink-0" />
-					<span className="text-[12px] font-semibold text-brand">
+					<span className="text-[12px] font-semibold text-brand-ink">
 						Jugador encontrado en la base nacional
 					</span>
 				</div>

@@ -20,12 +20,12 @@ export function ResultStepV2({ result, jornada, leagueId, onReset }: Props) {
 			{/* Hero */}
 			<div className="bg-brand/10 border-2 border-brand/20 rounded-3xl p-8 text-center">
 				<h2
-					className="text-3xl font-black text-brand mb-1"
+					className="text-3xl font-black text-brand-ink mb-1"
 					style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
 				>
 					{jornada != null ? `Jornada ${jornada} importada` : "¡Importación completada!"}
 				</h2>
-				<p className="text-sm text-brand/80">
+				<p className="text-sm text-brand-ink/80">
 					{total} jugador{total !== 1 ? "es" : ""} procesado{total !== 1 ? "s" : ""}
 				</p>
 			</div>
@@ -52,7 +52,7 @@ export function ResultStepV2({ result, jornada, leagueId, onReset }: Props) {
 						className="flex items-center gap-4 px-4 py-3.5 hover:bg-surface-2 transition group"
 					>
 						<div className="w-9 h-9 rounded-xl bg-brand/10 flex items-center justify-center shrink-0">
-							<BarChart2 size={16} strokeWidth={2} className="text-brand" />
+							<BarChart2 size={16} strokeWidth={2} className="text-brand-ink" />
 						</div>
 						<div className="flex-1 min-w-0">
 							<p className="text-sm font-semibold text-ink">Ver tabla de posiciones</p>
@@ -61,7 +61,7 @@ export function ResultStepV2({ result, jornada, leagueId, onReset }: Props) {
 						<ArrowRight
 							size={14}
 							strokeWidth={2}
-							className="text-ink-3 group-hover:text-brand transition shrink-0"
+							className="text-ink-3 group-hover:text-brand-ink transition shrink-0"
 						/>
 					</Link>
 
@@ -80,7 +80,7 @@ export function ResultStepV2({ result, jornada, leagueId, onReset }: Props) {
 						<ArrowRight
 							size={14}
 							strokeWidth={2}
-							className="text-ink-3 group-hover:text-brand transition shrink-0"
+							className="text-ink-3 group-hover:text-brand-ink transition shrink-0"
 						/>
 					</button>
 
@@ -98,7 +98,7 @@ export function ResultStepV2({ result, jornada, leagueId, onReset }: Props) {
 						<ArrowRight
 							size={14}
 							strokeWidth={2}
-							className="text-ink-3 group-hover:text-brand transition shrink-0"
+							className="text-ink-3 group-hover:text-brand-ink transition shrink-0"
 						/>
 					</Link>
 				</div>
@@ -107,7 +107,7 @@ export function ResultStepV2({ result, jornada, leagueId, onReset }: Props) {
 			{/* Stat blocks — detalle técnico, secundario */}
 			<div className="grid grid-cols-2 gap-3">
 				<div className="rounded-xl border border-brand/20 bg-brand/5 p-3 flex flex-col gap-0.5">
-					<span className="text-2xl font-black text-brand">{updatedProfiles}</span>
+					<span className="text-2xl font-black text-brand-ink">{updatedProfiles}</span>
 					<p className="text-[12px] font-semibold text-ink leading-snug">Actualizados</p>
 					<p className="text-[11px] text-ink-3 leading-snug">Ya registrados en la liga</p>
 				</div>
@@ -118,7 +118,7 @@ export function ResultStepV2({ result, jornada, leagueId, onReset }: Props) {
 				</div>
 				{claimsAutoVerified > 0 && (
 					<div className="rounded-xl border border-brand/20 bg-brand/5 p-3 flex flex-col gap-0.5">
-						<span className="text-2xl font-black text-brand">{claimsAutoVerified}</span>
+						<span className="text-2xl font-black text-brand-ink">{claimsAutoVerified}</span>
 						<p className="text-[12px] font-semibold text-ink leading-snug">Vinculados</p>
 						<p className="text-[11px] text-ink-3 leading-snug">Verificados automáticamente</p>
 					</div>

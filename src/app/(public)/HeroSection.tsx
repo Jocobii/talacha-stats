@@ -169,7 +169,7 @@ export default function HeroSection() {
 						>
 							Tus goles
 							<br />
-							<span className="text-brand">hablan</span>
+							<span className="text-brand-ink">hablan</span>
 							<br />
 							por ti.
 						</h1>
@@ -216,11 +216,11 @@ export default function HeroSection() {
 						{/* Puerta para el organizador */}
 						<Link
 							href="/register"
-							className="animate-fade-slide-up inline-flex items-center gap-1.5 text-xs text-ink-3 hover:text-brand border border-line hover:border-brand/40 px-3.5 py-2 rounded-xl transition"
+							className="animate-fade-slide-up inline-flex items-center gap-1.5 text-xs text-ink-3 hover:text-brand-ink border border-line hover:border-brand/40 px-3.5 py-2 rounded-xl transition"
 							style={{ animationDelay: "1s", animationFillMode: "both" }}
 						>
 							¿Organizas una liga?
-							<span className="text-brand font-semibold">Registrate gratis →</span>
+							<span className="text-brand-ink font-semibold">Registrate gratis →</span>
 						</Link>
 					</div>
 

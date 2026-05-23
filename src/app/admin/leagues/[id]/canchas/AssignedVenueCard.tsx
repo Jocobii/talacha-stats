@@ -78,7 +78,7 @@ export function AssignedVenueCard({
 						</p>
 					)}
 				</div>
-				<span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand/10 text-brand">
+				<span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand/10 text-brand-ink">
 					{windows.length} ventana{windows.length !== 1 ? "s" : ""}
 				</span>
 				<span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-surface-2 border border-line text-ink-2">

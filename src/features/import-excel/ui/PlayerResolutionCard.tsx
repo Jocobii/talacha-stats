@@ -40,7 +40,7 @@ export function PlayerResolutionCard({ pm, resolution, onResolve }: Props) {
 						{pm.teamName && <span className="text-xs text-ink-2">{pm.teamName}</span>}
 					</div>
 					{isResolved && resolution !== "NEW" && chosenCandidate && (
-						<p className="text-xs text-brand font-medium mt-0.5">
+						<p className="text-xs text-brand-ink font-medium mt-0.5">
 							→ {chosenCandidate.fullName}
 							{chosenCandidate.alias ? ` "${chosenCandidate.alias}"` : ""}
 						</p>
@@ -101,7 +101,7 @@ export function PlayerResolutionCard({ pm, resolution, onResolve }: Props) {
 								)}
 							</div>
 
-							{selected && <span className="text-brand text-lg shrink-0">✓</span>}
+							{selected && <span className="text-brand-ink text-lg shrink-0">✓</span>}
 						</button>
 					);
 				})}

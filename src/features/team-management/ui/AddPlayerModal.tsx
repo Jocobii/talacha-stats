@@ -101,7 +101,7 @@ export function AddPlayerModal({ league, teamId, onSuccess, onClose }: Props) {
 
 				{step.type === "submitting" && (
 					<Card className="p-8 flex items-center gap-4 text-ink-2">
-						<Loader2 size={20} className="animate-spin text-brand" />
+						<Loader2 size={20} className="animate-spin text-brand-ink" />
 						<span className="text-sm">Registrando jugador...</span>
 					</Card>
 				)}

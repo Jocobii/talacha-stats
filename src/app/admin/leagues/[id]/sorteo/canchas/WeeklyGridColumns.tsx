@@ -91,7 +91,7 @@ function WindowBlock({ window: w, rangeStart, slotDuration, onWindowClick }: Win
 			}}
 		>
 			<span
-				className="block px-1 pt-0.5 text-[10px] font-bold text-brand leading-none"
+				className="block px-1 pt-0.5 text-[10px] font-bold text-brand-ink leading-none"
 				style={{ fontFamily: "var(--font-mono)" }}
 			>
 				{w.startTime}
@@ -99,7 +99,7 @@ function WindowBlock({ window: w, rangeStart, slotDuration, onWindowClick }: Win
 			{height > 36 && <span className="block px-1 text-[9px] text-ink-2">{slots} slots</span>}
 			{height > 48 && (
 				<span
-					className="absolute bottom-1 left-1 text-[10px] font-bold text-brand"
+					className="absolute bottom-1 left-1 text-[10px] font-bold text-brand-ink"
 					style={{ fontFamily: "var(--font-mono)" }}
 				>
 					{w.endTime}

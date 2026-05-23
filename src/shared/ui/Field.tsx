@@ -22,7 +22,7 @@ export function Field({
 			{label && (
 				<span className="text-[13px] font-medium text-ink">
 					{label}
-					{required && <span className="text-brand ml-0.5">*</span>}
+					{required && <span className="text-brand-ink ml-0.5">*</span>}
 				</span>
 			)}
 			{children}

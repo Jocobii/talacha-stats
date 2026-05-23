@@ -1,59 +1,45 @@
 /**
  * GET /api/content/jornada-image?leagueId=uuid&jornada=N&type=standings|goleadores|both
  *
- * Imagen vertical 1080x1920 para compartir en WhatsApp/Stories.
- * type=goleadores -> solo goleadores
- * type=standings  -> solo tabla
- * omitido/both    -> ambas secciones
+ * Imagen vertical 1080×1920 para compartir en WhatsApp/Stories.
+ * Fuente de goleadores:
+ *   Prioridad 1 — playerSeasonStats (Excel/V1) si existen datos.
+ *   Prioridad 2 — match_player_stats (captura V2) como fallback.
+ *
+ * Footer: Sello Talacha con deep-link + QR (Regla C1 del contrato de marca).
  */
 
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
-import { db, leagues, playerSeasonStats, teamStandingsSnapshot } from "@/db";
+import { db, leagues, playerSeasonStats, organizations } from "@/db";
 import { eq, and, desc } from "drizzle-orm";
+import { getLeagueStandings } from "@/lib/standings";
+import type { TeamStanding } from "@/types";
 import { generateJornadaPills } from "@/features/post-import-content";
 import { titleCase } from "@/shared/lib/normalize";
+import { getLeagueTopScorersV2 } from "@/entities/match-player-stat";
+import { BRAND_PALETTE as C } from "@/shared/brand/palette";
+import { Watermark } from "@/shared/brand/Watermark";
+import { buildQrDataUrl } from "@/shared/brand/qr";
+import { buildDeepLink } from "@/features/share-assets/deep-link";
 
 export const runtime = "nodejs";
-
-const C = {
-	bg: "#0a0f0d",
-	surface: "#111814",
-	surfaceAlt: "#162019",
-	brand: "#00e676",
-	ink: "#f0f4f2",
-	inkDim: "#8a9e93",
-	inkMuted: "#4a5e53",
-	gold: "#fbbf24",
-	silver: "#9ca3af",
-	bronze: "#b45309",
-	border: "#1e2b23",
-} as const;
 
 const W = 1080;
 const H = 1920;
 
-type Scorer = {
-	playerProfile: { id: string; fullName: string; alias: string | null };
-	team: { name: string } | null;
+// ── Tipos internos ──────────────────────────────────────────────────────────
+
+type ScorerRow = {
+	id: string;
+	name: string;
+	teamName: string;
 	goals: number;
 };
 
-type Standing = {
-	teamId: string;
-	team: { name: string };
-	played: number;
-	wins: number;
-	draws: number;
-	losses: number;
-	points: number;
-	goalsFor: number;
-	goalsAgainst: number;
-};
+type Standing = TeamStanding;
 
-function pName(p: { fullName: string; alias: string | null }): string {
-	return p.alias ? `"${titleCase(p.alias)}"` : titleCase(p.fullName);
-}
+// ── Helpers de render ───────────────────────────────────────────────────────
 
 function rankColor(i: number): string {
 	return i === 0 ? C.gold : i === 1 ? C.silver : i === 2 ? C.bronze : C.inkDim;
@@ -69,7 +55,7 @@ function SectionTitle({ label }: { label: string }) {
 	);
 }
 
-function ScorerRow({ s, i }: { s: Scorer; i: number }) {
+function ScorerRow({ s, i }: { s: ScorerRow; i: number }) {
 	const medals = ["🥇", "🥈", "🥉"];
 	return (
 		<div
@@ -104,11 +90,9 @@ function ScorerRow({ s, i }: { s: Scorer; i: number }) {
 						lineHeight: "1.1",
 					}}
 				>
-					{pName(s.playerProfile)}
+					{s.name}
 				</span>
-				<span style={{ fontSize: 16, color: C.inkDim, marginTop: 2 }}>
-					{titleCase(s.team?.name ?? "")}
-				</span>
+				<span style={{ fontSize: 16, color: C.inkDim, marginTop: 2 }}>{titleCase(s.teamName)}</span>
 			</div>
 			<div style={{ display: "flex", alignItems: "baseline" }}>
 				<span
@@ -162,7 +146,7 @@ function StandingRow({ s, i, compact }: { s: Standing; i: number; compact?: bool
 					paddingRight: 8,
 				}}
 			>
-				{compact ? titleCase(s.team.name).split(" ")[0] : titleCase(s.team.name)}
+				{compact ? titleCase(s.teamName).split(" ")[0] : titleCase(s.teamName)}
 			</span>
 			{[s.played, s.wins, s.draws, s.losses].map((val, j) => (
 				<span
@@ -214,6 +198,8 @@ const StatsHead = ({ compact }: { compact?: boolean }) => (
 	</div>
 );
 
+// ── Handler principal ───────────────────────────────────────────────────────
+
 export async function GET(request: NextRequest) {
 	const { searchParams } = new URL(request.url);
 	const leagueId = searchParams.get("leagueId");
@@ -231,51 +217,81 @@ export async function GET(request: NextRequest) {
 	const needsScorers = type !== "standings";
 	const needsStandings = type !== "goleadores";
 
-	const [league, rawScorers, rawStandings, pills] = await Promise.all([
+	// Cargar datos en paralelo — liga con su org para el deep-link
+	// getLeagueStandings maneja prioridad V1 (snapshot Excel) → V2 (partidos capturados)
+	const [league, allStandings, pills] = await Promise.all([
 		db.query.leagues.findFirst({
 			where: eq(leagues.id, leagueId),
-			columns: { id: true, name: true, season: true },
+			columns: { id: true, name: true, season: true, slug: true, organizationId: true },
 		}),
-		needsScorers
-			? db.query.playerSeasonStats.findMany({
-					where: and(eq(playerSeasonStats.leagueId, leagueId)),
-					with: {
-						playerProfile: { columns: { id: true, fullName: true, alias: true } },
-						team: { columns: { name: true } },
-					},
-					orderBy: [desc(playerSeasonStats.goals)],
-					limit: type === "both" ? 5 : 8,
-				})
-			: ([] as Scorer[]),
-		needsStandings
-			? db.query.teamStandingsSnapshot
-					.findMany({
-						where: eq(teamStandingsSnapshot.leagueId, leagueId),
-						with: { team: { columns: { name: true } } },
-						orderBy: [desc(teamStandingsSnapshot.jornada), desc(teamStandingsSnapshot.points)],
-					})
-					.then((snaps) => {
-						if (!snaps.length) return [] as Standing[];
-						const latest = snaps[0].jornada;
-						return snaps
-							.filter((s) => s.jornada === latest)
-							.sort(
-								(a, b) =>
-									b.points - a.points ||
-									b.goalsFor - a.goalsFor - (b.goalsAgainst - a.goalsAgainst),
-							)
-							.slice(0, type === "both" ? 6 : 12) as Standing[];
-					})
-			: ([] as Standing[]),
+		needsStandings ? getLeagueStandings(leagueId) : ([] as Standing[]),
 		generateJornadaPills(leagueId, jornada),
 	]);
 
 	if (!league) return new Response("Liga no encontrada", { status: 404 });
 
+	// Limitar filas según el tipo de asset (la imagen tiene altura fija)
+	const standings = allStandings.slice(0, type === "both" ? 8 : 20);
+
+	// Goleadores: prioridad V1 (Excel), fallback V2 (match_player_stats)
+	let scorers: ScorerRow[] = [];
+	if (needsScorers) {
+		const limit = type === "both" ? 5 : 8;
+		const v1rows = await db.query.playerSeasonStats.findMany({
+			where: and(eq(playerSeasonStats.leagueId, leagueId)),
+			with: {
+				playerProfile: { columns: { id: true, fullName: true, alias: true } },
+				team: { columns: { name: true } },
+			},
+			orderBy: [desc(playerSeasonStats.goals)],
+			limit,
+		});
+
+		if (v1rows.length > 0) {
+			scorers = v1rows
+				.filter((r) => r.goals > 0)
+				.map((r) => ({
+					id: r?.playerProfile?.id,
+					name: r?.playerProfile?.alias
+						? `"${titleCase(r.playerProfile.alias)}"`
+						: titleCase(r?.playerProfile?.fullName ?? "Jugador sin nombre"),
+					teamName: r?.team?.name ?? "",
+					goals: r.goals,
+				})) as ScorerRow[];
+		} else {
+			const v2rows = await getLeagueTopScorersV2(leagueId, limit);
+			scorers = v2rows.map((r) => ({
+				id: r.inscriptionId,
+				name: titleCase(r.fullName),
+				teamName: r.teamName,
+				goals: r.goals,
+			}));
+		}
+	}
+
+	// Deep-link + QR para el Sello Talacha
+	let deepLink = `https://talachastats.com`;
+	let orgLogoUrl: string | undefined;
+
+	if (league.slug && league.organizationId) {
+		const org = await db.query.organizations.findFirst({
+			where: eq(organizations.id, league.organizationId),
+			columns: { slug: true, logoUrl: true },
+		});
+		if (org?.slug) {
+			deepLink = buildDeepLink({
+				orgSlug: org.slug,
+				leagueSlug: league.slug,
+				assetType:
+					type === "standings" ? "standings" : type === "goleadores" ? "goleadores" : "combo",
+			});
+			orgLogoUrl = org.logoUrl ?? undefined;
+		}
+	}
+
+	const qrDataUrl = await buildQrDataUrl(deepLink);
 	const leagueName = titleCase(league.name);
 	const highlights = pills.filter((p) => p.priority <= 3).slice(0, 2);
-	const scorers = (rawScorers as Scorer[]).filter((s) => s.goals > 0);
-	const standings = rawStandings as Standing[];
 
 	return new ImageResponse(
 		<div
@@ -353,9 +369,9 @@ export async function GET(request: NextRequest) {
 				<div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "48px 72px" }}>
 					<SectionTitle label="GOLEADORES DEL TORNEO" />
 					{scorers.length === 0 ? (
-						<span style={{ fontSize: 22, color: C.inkMuted }}>Sin datos aun</span>
+						<span style={{ fontSize: 22, color: C.inkMuted }}>Sin datos aún</span>
 					) : (
-						scorers.map((s, i) => <ScorerRow key={s.playerProfile.id} s={s} i={i} />)
+						scorers.map((s, i) => <ScorerRow key={s.id} s={s} i={i} />)
 					)}
 				</div>
 			)}
@@ -364,7 +380,7 @@ export async function GET(request: NextRequest) {
 					<SectionTitle label="TABLA DE POSICIONES" />
 					<StatsHead />
 					{standings.length === 0 ? (
-						<span style={{ fontSize: 22, color: C.inkMuted }}>Sin datos aun</span>
+						<span style={{ fontSize: 22, color: C.inkMuted }}>Sin datos aún</span>
 					) : (
 						standings.map((s, i) => <StandingRow key={s.teamId} s={s} i={i} />)
 					)}
@@ -377,9 +393,9 @@ export async function GET(request: NextRequest) {
 					>
 						<SectionTitle label="GOLEADORES" />
 						{scorers.length === 0 ? (
-							<span style={{ fontSize: 18, color: C.inkMuted }}>Sin datos aun</span>
+							<span style={{ fontSize: 18, color: C.inkMuted }}>Sin datos aún</span>
 						) : (
-							scorers.map((s, i) => <ScorerRow key={s.playerProfile.id} s={s} i={i} />)
+							scorers.map((s, i) => <ScorerRow key={s.id} s={s} i={i} />)
 						)}
 					</div>
 					<div
@@ -397,7 +413,7 @@ export async function GET(request: NextRequest) {
 						<SectionTitle label="TABLA" />
 						<StatsHead compact />
 						{standings.length === 0 ? (
-							<span style={{ fontSize: 18, color: C.inkMuted }}>Sin datos aun</span>
+							<span style={{ fontSize: 18, color: C.inkMuted }}>Sin datos aún</span>
 						) : (
 							standings.map((s, i) => <StandingRow key={s.teamId} s={s} i={i} compact />)
 						)}
@@ -405,46 +421,44 @@ export async function GET(request: NextRequest) {
 				</div>
 			)}
 
-			{/* Footer */}
-			<div
-				style={{
-					display: "flex",
-					flexDirection: "column",
-					background: C.surface,
-					borderTop: `1px solid ${C.border}`,
-					padding: "32px 72px",
-				}}
-			>
-				{highlights.length > 0 && (
-					<div style={{ display: "flex", flexDirection: "column", marginBottom: 20 }}>
-						{highlights.map((pill, i) => (
-							<div
-								key={i}
-								style={{
-									display: "flex",
-									flexDirection: "column",
-									background: C.surfaceAlt,
-									borderRadius: 16,
-									padding: "18px 24px",
-									border: `1px solid ${C.border}`,
-									marginBottom: 12,
-								}}
-							>
-								<span style={{ fontSize: 20, fontWeight: 700, color: C.brand }}>
-									{pill.headline}
-								</span>
-								<span style={{ fontSize: 15, color: C.inkDim, marginTop: 4 }}>{pill.detail}</span>
-							</div>
-						))}
-					</div>
-				)}
-				<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-					<span style={{ fontSize: 18, color: C.inkMuted }}>talachastats.com</span>
-					<span style={{ fontSize: 14, color: C.inkMuted, letterSpacing: 2 }}>
-						FUTBOL AMATEUR - TIJUANA
-					</span>
+			{/* Highlights de jornada */}
+			{highlights.length > 0 && (
+				<div
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						background: C.surface,
+						borderTop: `1px solid ${C.border}`,
+						padding: "20px 72px 12px",
+					}}
+				>
+					{highlights.map((pill, i) => (
+						<div
+							key={i}
+							style={{
+								display: "flex",
+								flexDirection: "column",
+								background: C.surfaceAlt,
+								borderRadius: 16,
+								padding: "14px 20px",
+								border: `1px solid ${C.border}`,
+								marginBottom: 8,
+							}}
+						>
+							<span style={{ fontSize: 18, fontWeight: 700, color: C.brand }}>{pill.headline}</span>
+							<span style={{ fontSize: 13, color: C.inkDim, marginTop: 2 }}>{pill.detail}</span>
+						</div>
+					))}
 				</div>
-			</div>
+			)}
+
+			{/* Sello Talacha — Regla C1: siempre presente */}
+			<Watermark
+				deepLink={deepLink}
+				qrDataUrl={qrDataUrl}
+				leagueName={leagueName}
+				orgLogoUrl={orgLogoUrl}
+			/>
 		</div>,
 		{
 			width: W,

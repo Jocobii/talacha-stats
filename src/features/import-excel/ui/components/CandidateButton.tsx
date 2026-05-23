@@ -19,7 +19,7 @@ const BASE =
 const VARIANTS: Record<Variant, { idle: string; selected: string }> = {
 	primary: {
 		idle: "border-line bg-surface text-ink hover:border-brand/40 hover:bg-brand/5",
-		selected: "border-brand bg-brand/10 text-brand",
+		selected: "border-brand bg-brand/10 text-brand-ink",
 	},
 	secondary: {
 		idle: "border-line bg-surface text-ink-2 hover:border-blue/40 hover:bg-blue/5",

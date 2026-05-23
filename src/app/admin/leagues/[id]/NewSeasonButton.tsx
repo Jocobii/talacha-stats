@@ -60,7 +60,7 @@ export default function NewSeasonButton({
 		return (
 			<button
 				onClick={() => setOpen(true)}
-				className="flex items-center gap-1.5 text-sm text-brand hover:underline font-medium"
+				className="flex items-center gap-1.5 text-sm text-brand-ink hover:underline font-medium"
 			>
 				<Copy size={14} />
 				Nueva temporada

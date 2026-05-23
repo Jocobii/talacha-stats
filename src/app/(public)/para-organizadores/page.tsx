@@ -75,7 +75,7 @@ export default function ParaOrganizadoresPage() {
 		<main>
 			{/* Hero */}
 			<section className="px-6 py-16 sm:py-24 max-w-3xl mx-auto text-center">
-				<p className="text-brand text-sm font-semibold uppercase tracking-widest mb-4">
+				<p className="text-brand-ink text-sm font-semibold uppercase tracking-widest mb-4">
 					Para organizadores
 				</p>
 				<h1 className="font-display font-extrabold text-4xl sm:text-5xl text-ink leading-tight mb-6">

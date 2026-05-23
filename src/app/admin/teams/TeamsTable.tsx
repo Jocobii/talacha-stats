@@ -185,7 +185,7 @@ export function TeamsTable({ rows, pagination, leagueId, leagueName, emptyMessag
 				actions={(t) => (
 					<Link
 						href={`/admin/teams/${t.id}`}
-						className="text-xs px-2.5 py-1 rounded-lg border border-brand/30 text-brand hover:bg-brand/10 font-medium transition"
+						className="text-xs px-2.5 py-1 rounded-lg border border-brand/30 text-brand-ink hover:bg-brand/10 font-medium transition"
 					>
 						Ver
 					</Link>
@@ -321,7 +321,7 @@ function MergePanel({
 								].join(" ")}
 							>
 								<span
-									className={`font-medium ${isKeep ? "text-brand" : isSelected ? "text-red-400 line-through" : "text-ink"}`}
+									className={`font-medium ${isKeep ? "text-brand-ink" : isSelected ? "text-red-400 line-through" : "text-ink"}`}
 								>
 									{isKeep && <span className="text-xs mr-1.5">✓</span>}
 									{isSelected && <span className="text-xs mr-1.5">✕</span>}
@@ -332,7 +332,7 @@ function MergePanel({
 										<button
 											onClick={() => handleSetKeep(team.id)}
 											disabled={isSelected}
-											className="text-xs px-2 py-1 rounded border border-brand/30 text-brand hover:bg-brand/10 disabled:opacity-30 transition"
+											className="text-xs px-2 py-1 rounded border border-brand/30 text-brand-ink hover:bg-brand/10 disabled:opacity-30 transition"
 										>
 											Conservar
 										</button>
@@ -374,7 +374,7 @@ function MergePanel({
 					</p>
 				)}
 				{success && (
-					<p className="text-xs text-brand bg-brand/10 border border-brand/20 rounded-lg px-3 py-2">
+					<p className="text-xs text-brand-ink bg-brand/10 border border-brand/20 rounded-lg px-3 py-2">
 						✓ {success}
 					</p>
 				)}
@@ -395,8 +395,8 @@ function MergePanel({
 					<div className="bg-surface rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
 						<h2 className="font-bold text-ink text-lg">Confirmar fusión</h2>
 						<div className="bg-brand/10 border border-brand/20 rounded-lg p-3 text-sm">
-							<p className="text-brand font-semibold">Se conservará:</p>
-							<p className="text-brand font-bold mt-0.5">📌 {keepTeam.name}</p>
+							<p className="text-brand-ink font-semibold">Se conservará:</p>
+							<p className="text-brand-ink font-bold mt-0.5">📌 {keepTeam.name}</p>
 						</div>
 						<div className="bg-red-950/40 border border-red-800/50 rounded-lg p-3 text-sm">
 							<p className="text-red-400 font-semibold">Se eliminarán:</p>

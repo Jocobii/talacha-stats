@@ -66,7 +66,7 @@ export function WeeklyGrid({
 			{DAYS_SHORT.map((d, i) => (
 				<div
 					key={d}
-					className={`h-7 flex items-center justify-center text-[11px] font-semibold tracking-wide uppercase border-b border-l border-line ${i === activeDayIdx ? "text-brand bg-brand/5" : "text-ink-3 bg-surface"}`}
+					className={`h-7 flex items-center justify-center text-[11px] font-semibold tracking-wide uppercase border-b border-l border-line ${i === activeDayIdx ? "text-brand-ink bg-brand/5" : "text-ink-3 bg-surface"}`}
 				>
 					{d}
 				</div>

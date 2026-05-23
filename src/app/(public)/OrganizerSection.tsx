@@ -55,7 +55,7 @@ function ValueCard({
 			}}
 		>
 			<div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 mt-0.5">
-				<Icon size={18} strokeWidth={2} className="text-brand" />
+				<Icon size={18} strokeWidth={2} className="text-brand-ink" />
 			</div>
 			<div>
 				<p className="font-semibold text-ink text-sm mb-1">{title}</p>
@@ -93,7 +93,7 @@ export default function OrganizerSection() {
 					<div ref={ref}>
 						{/* Eyebrow */}
 						<p
-							className="text-[11px] font-bold text-brand uppercase tracking-widest mb-3"
+							className="text-[11px] font-bold text-brand-ink uppercase tracking-widest mb-3"
 							style={{
 								opacity: visible ? 1 : 0,
 								transition: "opacity 0.4s ease",
@@ -113,7 +113,7 @@ export default function OrganizerSection() {
 						>
 							Tu liga
 							<br />
-							<span className="text-brand">merece</span>
+							<span className="text-brand-ink">merece</span>
 							<br />
 							ser vista.
 						</h2>
@@ -140,7 +140,7 @@ export default function OrganizerSection() {
 						>
 							{PERKS.map((perk) => (
 								<li key={perk} className="flex items-center gap-2.5 text-sm text-ink-2">
-									<CheckCircle size={14} strokeWidth={2} className="text-brand shrink-0" />
+									<CheckCircle size={14} strokeWidth={2} className="text-brand-ink shrink-0" />
 									{perk}
 								</li>
 							))}
@@ -191,7 +191,7 @@ export default function OrganizerSection() {
 							</p>
 							<div className="flex items-center gap-2">
 								<div className="w-6 h-6 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center">
-									<span className="font-display font-black text-[10px] text-brand">J</span>
+									<span className="font-display font-black text-[10px] text-brand-ink">J</span>
 								</div>
 								<p className="text-xs text-ink-3 font-semibold">Organizador · Liga Domingos TJ</p>
 							</div>

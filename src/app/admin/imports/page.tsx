@@ -73,7 +73,7 @@ function ImportsPageContent() {
 						className={[
 							"flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all",
 							activeTab === tab.id
-								? "bg-surface shadow-sm text-brand"
+								? "bg-surface shadow-sm text-brand-ink"
 								: "text-ink-2 hover:text-ink",
 						].join(" ")}
 					>

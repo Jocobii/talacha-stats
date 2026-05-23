@@ -70,7 +70,7 @@ export default async function OrganizationsPage() {
 									/>
 								) : (
 									<div className="w-10 h-10 rounded-lg bg-brand/15 flex items-center justify-center flex-shrink-0">
-										<span className="text-brand font-bold text-lg">
+										<span className="text-brand-ink font-bold text-lg">
 											{org.name.charAt(0).toUpperCase()}
 										</span>
 									</div>
@@ -82,7 +82,7 @@ export default async function OrganizationsPage() {
 									</p>
 								</div>
 							</div>
-							<p className="text-xs text-brand font-medium">Ver organización →</p>
+							<p className="text-xs text-brand-ink font-medium">Ver organización →</p>
 						</Link>
 					))}
 				</div>

@@ -98,7 +98,7 @@ export default function CitySwitcher({ activeCity }: Props) {
 										className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left transition
                       ${
 												city === activeCity
-													? "bg-brand/15 text-brand"
+													? "bg-brand/15 text-brand-ink"
 													: "text-ink hover:bg-surface-2"
 											}`}
 									>

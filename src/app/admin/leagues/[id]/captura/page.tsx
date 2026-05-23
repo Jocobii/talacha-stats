@@ -100,7 +100,7 @@ export default async function CapturaPage({ params }: Params) {
 				<p className="text-ink-2 text-sm">No hay jornadas aún. Genera el calendario primero.</p>
 				<Link
 					href={`/admin/leagues/${id}/sorteo`}
-					className="inline-block text-sm text-brand hover:underline font-medium"
+					className="inline-block text-sm text-brand-ink hover:underline font-medium"
 				>
 					Ir al sorteo →
 				</Link>

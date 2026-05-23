@@ -76,7 +76,7 @@ function LeagueCardHeader({
 		<div className="flex items-center gap-3">
 			<DayBadge abbr={abbr} />
 			<div className="flex-1 min-w-0">
-				<p className="font-semibold text-sm text-ink group-hover:text-brand transition-colors truncate">
+				<p className="font-semibold text-sm text-ink group-hover:text-brand-ink transition-colors truncate">
 					{titleCase(name)}
 				</p>
 				<p className="text-xs text-ink-3">
@@ -85,14 +85,14 @@ function LeagueCardHeader({
 			</div>
 			<div className="flex items-center gap-2 shrink-0">
 				{lastJornada && (
-					<span className="text-[10px] font-bold text-brand bg-brand/10 border border-brand/20 rounded-lg px-2 py-0.5">
+					<span className="text-[10px] font-bold text-brand-ink bg-brand/10 border border-brand/20 rounded-lg px-2 py-0.5">
 						J{lastJornada}
 					</span>
 				)}
 				<ChevronRight
 					size={16}
 					strokeWidth={2}
-					className="text-ink-3 group-hover:text-brand transition-colors"
+					className="text-ink-3 group-hover:text-brand-ink transition-colors"
 				/>
 			</div>
 		</div>
@@ -102,7 +102,7 @@ function LeagueCardHeader({
 function DayBadge({ abbr }: { abbr: string }) {
 	return (
 		<div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
-			<span className="font-display font-black text-xs text-brand">{abbr}</span>
+			<span className="font-display font-black text-xs text-brand-ink">{abbr}</span>
 		</div>
 	);
 }
@@ -110,11 +110,11 @@ function DayBadge({ abbr }: { abbr: string }) {
 function LeaderRow({ leader }: { leader: NonNullable<LeagueSnapshot["leader"]> }) {
 	return (
 		<div className="flex items-center gap-2">
-			<Trophy size={13} strokeWidth={2} className="text-brand shrink-0" />
+			<Trophy size={13} strokeWidth={2} className="text-brand-ink shrink-0" />
 			<span className="text-xs font-semibold text-ink truncate flex-1">
 				{titleCase(leader.teamName)}
 			</span>
-			<span className="text-xs font-black text-brand shrink-0">{leader.points} pts</span>
+			<span className="text-xs font-black text-brand-ink shrink-0">{leader.points} pts</span>
 		</div>
 	);
 }

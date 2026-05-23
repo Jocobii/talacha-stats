@@ -568,3 +568,57 @@ TalachaStats está evolucionando hacia una **plataforma de identidad global para
 ### Documento de referencia completo
 
 `docs/player-identity-admin-ecosystem.md` — diseño cerrado, listo para implementación. Incluye el flujo completo de registro, estrategia de migración y decisiones de diseño.
+
+---
+
+## Arquitectura de datos — "Thin Client, Smart Backend" (NO NEGOCIABLE)
+
+Actúas como Senior Software Architect. Al escribir código, proponer soluciones o modificar features existentes, debes adherirte estrictamente al paradigma **"Thin Client, Smart Backend"**.
+
+### Responsabilidades del frontend (Thin Client)
+
+El frontend debe ser lo más "tonto" posible. Sus **únicas** responsabilidades son:
+
+- Gestión de estado de UI y renderizado
+- Captura de input del usuario
+- Formateo local si es estrictamente necesario (fechas, moneda)
+
+**NUNCA** colocar lógica de negocio, manipulación pesada de datos, sorting o filtering de datasets grandes en el frontend, salvo que sea explícitamente requerido y justificado (ej. requisitos offline-first).
+
+### Responsabilidades del backend y base de datos (Smart Backend)
+
+El backend (APIs, Server Actions, DB) maneja **toda** la lógica de negocio.
+
+- **Fetching de datos:** Traer exactamente los datos que el cliente necesita, en la forma exacta en que los necesita. No over-fetching.
+- **Filtering y sorting:** Deben hacerse a nivel de query de base de datos (cláusulas `WHERE` de PostgreSQL) o dentro de la capa de servicio del backend.
+- **Diseño de endpoints:** Evitar "God APIs" que devuelven datasets masivos sin refinar. Crear endpoints de propósito específico o usar query parameters para acotar la entrega de datos.
+
+### Anti-patrones estrictos (PROHIBIDO)
+
+**No hacer fetch de todos los registros para filtrarlos en memoria con JavaScript/TypeScript.**
+
+```typescript
+// 🚫 MAL — over-fetching y filtrado en memoria del cliente
+const allLeagues = await getLeagues(city); // devuelve todo
+const active = allLeagues.filter((l) => l.status !== "finished");
+const finished = allLeagues.filter((l) => l.status === "finished");
+
+// ✅ BIEN — filtrado a nivel de DB
+// Opción A: queries/endpoints distintos
+const activeLeagues = await getActiveLeagues(city);
+const finishedLeagues = await getFinishedLeagues(city);
+
+// Opción B: parámetro de query que ejecuta el WHERE en la DB
+const activeLeagues = await getLeagues(city, { status: "active" });
+const finishedLeagues = await getLeagues(city, { status: "finished" });
+```
+
+### Proceso de decisión
+
+Antes de escribir código que maneje datos, pregúntate en silencio:
+
+1. ¿Esta lógica evalúa una regla de negocio? → Ponerla en el backend.
+2. ¿Estoy transformando un array grande de datos? → Moverlo a la query de DB.
+3. ¿Estoy descargando datos que el usuario no está viendo ahora mismo? → Refactorizar el endpoint.
+
+Si debes poner lógica de negocio en el frontend, **debes** comenzar tu respuesta con una justificación breve explicando por qué rompe la arquitectura estándar y por qué es inevitable.

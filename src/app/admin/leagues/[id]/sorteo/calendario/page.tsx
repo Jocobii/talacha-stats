@@ -97,7 +97,7 @@ export default async function CalendarioPage({ params }: Params) {
 					</div>
 					<Link
 						href={`/admin/leagues/${id}/sorteo/sortear`}
-						className="text-sm text-brand hover:underline"
+						className="text-sm text-brand-ink hover:underline"
 					>
 						Regenerar sorteo →
 					</Link>
@@ -110,7 +110,7 @@ export default async function CalendarioPage({ params }: Params) {
 					<p className="text-ink-2 text-sm">Aún no hay calendario confirmado para esta liga.</p>
 					<Link
 						href={`/admin/leagues/${id}/sorteo/sortear`}
-						className="inline-block text-sm text-brand hover:underline font-medium"
+						className="inline-block text-sm text-brand-ink hover:underline font-medium"
 					>
 						Hacer el sorteo →
 					</Link>

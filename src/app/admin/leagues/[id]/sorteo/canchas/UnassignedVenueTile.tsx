@@ -44,7 +44,7 @@ export function UnassignedVenueTile({ venue, leagueId, onAssigned }: UnassignedV
 			<button
 				onClick={handleAssign}
 				disabled={isPending}
-				className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-semibold text-brand border border-brand/30 rounded-lg hover:bg-brand/10 disabled:opacity-60 transition shrink-0"
+				className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-semibold text-brand-ink border border-brand/30 rounded-lg hover:bg-brand/10 disabled:opacity-60 transition shrink-0"
 			>
 				<Plus size={12} /> {isPending ? "…" : "Asignar"}
 			</button>

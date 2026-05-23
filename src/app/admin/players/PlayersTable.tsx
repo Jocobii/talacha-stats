@@ -27,7 +27,7 @@ export type OwnerPlayerRow = {
 // ── Badges de estado ──────────────────────────────────────────────────────────
 
 const STATUS_BADGE: Record<string, string> = {
-	active: "bg-brand/15 text-brand",
+	active: "bg-brand/15 text-brand-ink",
 	suspended: "bg-yellow-900/40 text-yellow-400",
 	inactive: "bg-surface-2 text-ink-3",
 };
@@ -56,7 +56,7 @@ const ORG_COLUMNS: AdminTableColumn<OrgPlayerRow>[] = [
 		label: "Jugador",
 		render: (p) => (
 			<div className="flex items-center gap-3">
-				<div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-xs font-bold text-brand shrink-0">
+				<div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-xs font-bold text-brand-ink shrink-0">
 					{initials(p.fullName)}
 				</div>
 				<span className="font-medium text-ink">{p.fullName}</span>
@@ -83,7 +83,7 @@ const ORG_COLUMNS: AdminTableColumn<OrgPlayerRow>[] = [
 		hiddenMobile: true,
 		render: (p) =>
 			p.latestDorsal != null ? (
-				<span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand/15 text-brand font-black text-xs">
+				<span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand/15 text-brand-ink font-black text-xs">
 					{p.latestDorsal}
 				</span>
 			) : (
@@ -115,7 +115,7 @@ const OWNER_COLUMNS: AdminTableColumn<OwnerPlayerRow>[] = [
 		label: "Jugador",
 		render: (p) => (
 			<div className="flex items-center gap-3">
-				<div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-xs font-bold text-brand shrink-0">
+				<div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-xs font-bold text-brand-ink shrink-0">
 					{initials(p.fullName)}
 				</div>
 				<span className="font-medium text-ink">{p.fullName}</span>
@@ -163,7 +163,7 @@ export function PlayersTable(props: PlayersTableProps) {
 				actions={(r) => (
 					<Link
 						href={`/admin/players/${r.globalPlayerId}`}
-						className="text-xs px-2.5 py-1 rounded-lg border border-brand/30 text-brand hover:bg-brand/10 font-medium transition"
+						className="text-xs px-2.5 py-1 rounded-lg border border-brand/30 text-brand-ink hover:bg-brand/10 font-medium transition"
 					>
 						Ver
 					</Link>
@@ -183,7 +183,7 @@ export function PlayersTable(props: PlayersTableProps) {
 			actions={(r) => (
 				<Link
 					href={`/admin/players/${r.globalPlayerId}`}
-					className="text-xs px-2.5 py-1 rounded-lg border border-brand/30 text-brand hover:bg-brand/10 font-medium transition"
+					className="text-xs px-2.5 py-1 rounded-lg border border-brand/30 text-brand-ink hover:bg-brand/10 font-medium transition"
 				>
 					Ver
 				</Link>

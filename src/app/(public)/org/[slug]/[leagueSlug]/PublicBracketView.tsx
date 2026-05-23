@@ -163,7 +163,7 @@ function SlotTeamRow({
 			>
 				{team?.name ?? "—"}
 			</span>
-			{isWinner && <span className="text-brand text-[9px] font-black shrink-0">✓</span>}
+			{isWinner && <span className="text-brand-ink text-[9px] font-black shrink-0">✓</span>}
 		</div>
 	);
 }

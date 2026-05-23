@@ -25,7 +25,7 @@ export function PreviewStepV2({ preview, warnings, onContinue, onBack }: Props) 
 			label: "Auto-resueltos",
 			value: summary.auto,
 			icon: "⚡",
-			color: "bg-brand/10 text-brand border-brand/20",
+			color: "bg-brand/10 text-brand-ink border-brand/20",
 		},
 		{
 			label: "Requieren revisión",
@@ -92,7 +92,7 @@ export function PreviewStepV2({ preview, warnings, onContinue, onBack }: Props) 
 
 			{/* What happens next */}
 			{summary.doubts === 0 && summary.suggestions === 0 && (
-				<div className="rounded-xl bg-brand/5 border border-brand/15 px-4 py-3 text-sm text-brand">
+				<div className="rounded-xl bg-brand/5 border border-brand/15 px-4 py-3 text-sm text-brand-ink">
 					✓ Todo auto-resuelto — puedes confirmar directamente.
 				</div>
 			)}

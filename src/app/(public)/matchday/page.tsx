@@ -31,7 +31,7 @@ export default async function MatchdayPage({
 				<div className="flex items-start justify-between gap-3">
 					<div>
 						<div className="flex items-center gap-2 mb-1">
-							<Star size={24} className="text-brand" strokeWidth={2} />
+							<Star size={24} className="text-brand-ink" strokeWidth={2} />
 							<h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">
 								Tabla de honor
 							</h1>
@@ -79,7 +79,7 @@ function LeagueHonorCard({ league }: { league: JornadaLeague }) {
 						</p>
 					</div>
 					<div className="bg-surface border border-line rounded-xl px-3 py-1.5 text-center shrink-0">
-						<p className="font-display font-black text-lg text-brand leading-none">
+						<p className="font-display font-black text-lg text-brand-ink leading-none">
 							J{league.jornada}
 						</p>
 						<p className="text-[9px] text-ink-3 uppercase tracking-wide">jornada</p>
@@ -123,7 +123,7 @@ function HeroRow({ hero, medal, rank }: { hero: JornadaHero; medal: string; rank
 
 			<div className="text-right shrink-0">
 				<p
-					className={`font-display font-black text-2xl leading-none ${isBest ? "text-brand" : "text-ink"}`}
+					className={`font-display font-black text-2xl leading-none ${isBest ? "text-brand-ink" : "text-ink"}`}
 				>
 					{hero.goals}
 				</p>

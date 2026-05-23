@@ -72,7 +72,7 @@ export function NewVenueModal({
 				<div style={{ height: 6, background: form.color }} />
 				<div className="p-6">
 					<div className="flex items-start gap-3 mb-5">
-						<div className="w-10 h-10 rounded-lg bg-brand/10 text-brand grid place-items-center shrink-0">
+						<div className="w-10 h-10 rounded-lg bg-brand/10 text-brand-ink grid place-items-center shrink-0">
 							<MapPin size={18} />
 						</div>
 						<div className="flex-1">

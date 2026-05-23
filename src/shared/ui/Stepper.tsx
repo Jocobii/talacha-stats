@@ -14,7 +14,7 @@ export function Stepper({ steps, current }: { steps: string[]; current: number }
 								className={cn(
 									"shrink-0 grid place-items-center w-6 h-6 rounded-full text-[11px] font-bold transition",
 									state === "done" && "bg-brand text-pitch",
-									state === "current" && "bg-brand/15 text-brand ring-1 ring-brand/40",
+									state === "current" && "bg-brand/15 text-brand-ink ring-1 ring-brand/40",
 									state === "next" && "bg-surface-2 text-ink-3 border border-line",
 								)}
 							>
@@ -25,7 +25,7 @@ export function Stepper({ steps, current }: { steps: string[]; current: number }
 									className={cn(
 										"text-[10.5px] font-semibold tracking-[0.14em] uppercase",
 										state === "current"
-											? "text-brand"
+											? "text-brand-ink"
 											: state === "done"
 												? "text-ink-2"
 												: "text-ink-3",

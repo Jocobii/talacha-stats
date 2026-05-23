@@ -55,7 +55,7 @@ function PlayersContent() {
 				<div className="flex items-start justify-between gap-3">
 					<div>
 						<div className="flex items-center gap-2 mb-1">
-							<Users size={24} className="text-brand" strokeWidth={2} />
+							<Users size={24} className="text-brand-ink" strokeWidth={2} />
 							<h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">
 								Jugadores
 							</h1>
@@ -108,7 +108,9 @@ function PlayersContent() {
 
 								<div className="min-w-0 flex-1">
 									<p className="font-semibold text-ink truncate">{p.fullName}</p>
-									{p.alias && <p className="text-sm text-brand truncate">&quot;{p.alias}&quot;</p>}
+									{p.alias && (
+										<p className="text-sm text-brand-ink truncate">&quot;{p.alias}&quot;</p>
+									)}
 								</div>
 
 								<ChevronRight size={16} className="text-ink-3 shrink-0" strokeWidth={2} />

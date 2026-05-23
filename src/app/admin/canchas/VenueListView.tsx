@@ -44,7 +44,7 @@ export function VenueListView({ venues, onEdit, onDelete }: Props) {
 							<td className="px-3 py-3 font-mono text-ink">{v.totalWindows}</td>
 							<td className="px-3 py-3">
 								{v.ligasCount > 0 ? (
-									<span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand/10 text-brand">
+									<span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand/10 text-brand-ink">
 										En uso
 									</span>
 								) : (

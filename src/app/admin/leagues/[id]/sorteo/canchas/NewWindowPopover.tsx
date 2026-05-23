@@ -155,7 +155,7 @@ export function NewWindowPopover({
 						{slots > 0 && (
 							<div className="flex items-center gap-2 px-3 py-2 bg-brand/8 border border-brand/20 rounded-lg">
 								<span
-									className="text-brand font-black text-[22px] leading-none"
+									className="text-brand-ink font-black text-[22px] leading-none"
 									style={{ fontFamily: "var(--font-display)" }}
 								>
 									{slots}

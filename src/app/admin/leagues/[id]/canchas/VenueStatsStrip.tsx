@@ -12,7 +12,7 @@ export function MiniStat({ label, value, sub, accent }: MiniStatProps) {
 		<div className="bg-surface border border-line rounded-xl px-3.5 py-2.5">
 			<p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-ink-3">{label}</p>
 			<p
-				className={`text-[26px] leading-none font-black mt-1.5 ${accent ? "text-brand" : "text-ink"}`}
+				className={`text-[26px] leading-none font-black mt-1.5 ${accent ? "text-brand-ink" : "text-ink"}`}
 				style={{ fontFamily: "var(--font-display)" }}
 			>
 				{value}

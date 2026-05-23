@@ -340,7 +340,7 @@ export default function DemoPage() {
 							className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold whitespace-nowrap border-b-2 transition shrink-0
                 ${
 									tab === id
-										? "border-brand text-brand"
+										? "border-brand text-brand-ink"
 										: "border-transparent text-ink-3 hover:text-ink"
 								}`}
 						>
@@ -381,7 +381,7 @@ function RankingTab({ onShowProfile }: { onShowProfile: () => void }) {
 		<div className="flex flex-col flex-1">
 			<div className="bg-pitch px-5 pt-8 pb-6 max-w-lg mx-auto w-full">
 				<div className="flex items-center gap-2 mb-1">
-					<Trophy size={24} className="text-brand" strokeWidth={2} />
+					<Trophy size={24} className="text-brand-ink" strokeWidth={2} />
 					<h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">
 						Ranking
 					</h1>
@@ -407,7 +407,7 @@ function RankingTab({ onShowProfile }: { onShowProfile: () => void }) {
 								<p className="text-xs font-semibold text-ink leading-tight line-clamp-2 w-full">
 									{p.alias ? `"${p.alias}"` : p.fullName}
 								</p>
-								<p className={`${p.size} font-display font-black text-brand mt-1 leading-none`}>
+								<p className={`${p.size} font-display font-black text-brand-ink mt-1 leading-none`}>
 									{p.goals}
 								</p>
 								<p className="text-[10px] text-ink-3">goles</p>
@@ -438,12 +438,12 @@ function RankingTab({ onShowProfile }: { onShowProfile: () => void }) {
 								<p className="text-xs text-ink-2 truncate">
 									{p.team} · {p.league.name}
 									{p.leagues > 1 && (
-										<span className="ml-1 text-brand font-medium">+{p.leagues - 1} liga</span>
+										<span className="ml-1 text-brand-ink font-medium">+{p.leagues - 1} liga</span>
 									)}
 								</p>
 							</div>
 							<div className="text-right shrink-0">
-								<p className="font-display font-black text-2xl text-brand leading-none">
+								<p className="font-display font-black text-2xl text-brand-ink leading-none">
 									{p.goals}
 								</p>
 								<p className="text-[10px] text-ink-3">{(p.goals / p.matches).toFixed(2)}/PJ</p>
@@ -588,7 +588,7 @@ function MatchdayTab() {
 		<div className="flex flex-col flex-1">
 			<div className="bg-pitch px-5 pt-8 pb-6 max-w-lg mx-auto w-full">
 				<div className="flex items-center gap-2 mb-1">
-					<Star size={24} className="text-brand" strokeWidth={2} />
+					<Star size={24} className="text-brand-ink" strokeWidth={2} />
 					<h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">
 						Tabla de honor
 					</h1>
@@ -615,7 +615,7 @@ function MatchdayTab() {
 										</p>
 									</div>
 									<div className="bg-surface border border-line rounded-xl px-3 py-1.5 text-center shrink-0">
-										<p className="font-display font-black text-lg text-brand leading-none">
+										<p className="font-display font-black text-lg text-brand-ink leading-none">
 											J{league.jornada}
 										</p>
 										<p className="text-[9px] text-ink-3 uppercase tracking-wide">jornada</p>
@@ -643,7 +643,7 @@ function MatchdayTab() {
 											</div>
 											<div className="text-right shrink-0">
 												<p
-													className={`font-display font-black text-2xl leading-none ${i === 0 ? "text-brand" : "text-ink"}`}
+													className={`font-display font-black text-2xl leading-none ${i === 0 ? "text-brand-ink" : "text-ink"}`}
 												>
 													{hero.goals}
 												</p>
@@ -679,7 +679,7 @@ function AnalysisTab() {
 		<div className="flex flex-col flex-1">
 			<div className="bg-pitch px-5 pt-8 pb-6 max-w-2xl mx-auto w-full">
 				<div className="flex items-center gap-2 mb-1">
-					<BarChart3 size={24} className="text-brand" strokeWidth={2} />
+					<BarChart3 size={24} className="text-brand-ink" strokeWidth={2} />
 					<h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">
 						Análisis
 					</h1>
@@ -822,7 +822,7 @@ function AnalysisTab() {
 												<div key={label} className="flex justify-between items-center">
 													<span className="text-ink-3">{label}</span>
 													{delta > 0 ? (
-														<span className="text-brand font-bold">
+														<span className="text-brand-ink font-bold">
 															{to}° ↑{delta}
 														</span>
 													) : delta < 0 ? (
@@ -906,7 +906,7 @@ function AnalysisTab() {
 						<ul className="space-y-2">
 							{funFacts.map((f, i) => (
 								<li key={i} className="text-sm text-ink-2 flex gap-2">
-									<span className="text-brand shrink-0">★</span>
+									<span className="text-brand-ink shrink-0">★</span>
 									{f}
 								</li>
 							))}
@@ -1001,7 +1001,9 @@ function TeamCard({ team }: { team: TeamData }) {
 				<span className="text-line">|</span>
 				<span className="text-ink-3">
 					Dif{" "}
-					<strong className={team.diff >= 0 ? "text-brand" : "text-red-400"}>+{team.diff}</strong>
+					<strong className={team.diff >= 0 ? "text-brand-ink" : "text-red-400"}>
+						+{team.diff}
+					</strong>
 				</span>
 				<span className="text-line">|</span>
 				<span className="text-ink-3">
@@ -1044,7 +1046,7 @@ function TeamCard({ team }: { team: TeamData }) {
 
 			<div className="space-y-1.5 border-t border-line pt-3">
 				<div className="flex items-center gap-2 text-sm">
-					<span className="text-brand">⚽</span>
+					<span className="text-brand-ink">⚽</span>
 					<span className="text-ink-2">{team.topScorer.name}</span>
 					<span className="ml-auto text-ink-3">{team.topScorer.goals} goles</span>
 				</div>
@@ -1093,7 +1095,7 @@ function RosterTable({ team, color }: { team: TeamData; color: "blue" | "red" })
 								className={`hover:bg-pitch transition ${p.goals === 0 ? "opacity-40" : ""}`}
 							>
 								<td className="px-3 py-2 font-medium text-ink max-w-[130px] truncate">{p.name}</td>
-								<td className="px-2 py-2 text-center font-bold text-brand">{p.goals || "—"}</td>
+								<td className="px-2 py-2 text-center font-bold text-brand-ink">{p.goals || "—"}</td>
 								<td className="px-2 py-2 text-center text-yellow-400">{p.yellows || "—"}</td>
 								<td className="px-2 py-2 text-center text-red-400">{p.reds || "—"}</td>
 								<td className="px-2 py-2 text-center text-ink-3">{p.pj}</td>
@@ -1136,7 +1138,7 @@ function CtaFooter() {
 				<h2 className="font-display font-black text-4xl uppercase tracking-tight text-ink leading-tight">
 					¿Quieres esto
 					<br />
-					para <span className="text-brand">tu liga</span>?
+					para <span className="text-brand-ink">tu liga</span>?
 				</h2>
 				<p className="text-ink-2 text-sm leading-relaxed max-w-sm mx-auto">
 					Ranking público, perfiles compartibles, análisis pre-partido para el narrador del Facebook

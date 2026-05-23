@@ -96,7 +96,7 @@ export function LeagueMemberEditor({ globalPlayerId, member }: Props) {
 	}
 
 	const statusColor: Record<string, string> = {
-		active: "text-brand",
+		active: "text-brand-ink",
 		suspended: "text-yellow-400",
 		inactive: "text-ink-3",
 	};
@@ -116,7 +116,7 @@ export function LeagueMemberEditor({ globalPlayerId, member }: Props) {
 							{statusLabel[member.status]}
 						</span>
 						{member.dorsal != null && (
-							<span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-brand/15 text-brand font-black text-[10px]">
+							<span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-brand/15 text-brand-ink font-black text-[10px]">
 								{member.dorsal}
 							</span>
 						)}
@@ -207,7 +207,7 @@ export function LeagueMemberEditor({ globalPlayerId, member }: Props) {
 						</p>
 					)}
 					{success && (
-						<p className="text-xs text-brand bg-brand/10 border border-brand/20 rounded-lg px-3 py-2">
+						<p className="text-xs text-brand-ink bg-brand/10 border border-brand/20 rounded-lg px-3 py-2">
 							✓ Guardado correctamente.
 						</p>
 					)}

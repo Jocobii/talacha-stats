@@ -25,7 +25,7 @@ export function TemplateLinks() {
 					href={t.href}
 					target="_blank"
 					rel="noopener noreferrer"
-					className="inline-flex items-center gap-1 text-xs text-ink-2 hover:text-brand transition"
+					className="inline-flex items-center gap-1 text-xs text-ink-2 hover:text-brand-ink transition"
 				>
 					<FileDown size={12} strokeWidth={2} />
 					{t.label}

@@ -51,7 +51,7 @@ export default async function SorteoPage({ params }: Params) {
 				</div>
 				<Link
 					href={`/admin/leagues/${id}/configuracion`}
-					className="text-sm text-brand hover:underline font-medium"
+					className="text-sm text-brand-ink hover:underline font-medium"
 				>
 					Ir a Configuración →
 				</Link>

@@ -48,7 +48,7 @@ export default function PublicNav() {
 						href="/"
 						className="font-display font-black text-xl text-ink uppercase tracking-tight"
 					>
-						Talacha<span className="text-brand">Stats</span>
+						Talacha<span className="text-brand-ink">Stats</span>
 					</Link>
 				</div>
 
@@ -61,7 +61,7 @@ export default function PublicNav() {
 								href={href}
 								className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
 									active
-										? "bg-surface-2 text-brand"
+										? "bg-surface-2 text-brand-ink"
 										: "text-ink-2 hover:bg-surface-2 hover:text-ink"
 								}`}
 							>
@@ -98,14 +98,14 @@ export default function PublicNav() {
 									isAdmin
 										? "text-ink-3 border-l border-line hover:text-ink-2"
 										: active
-											? "text-brand"
+											? "text-brand-ink"
 											: "text-ink-3 hover:text-ink-2"
 								}`}
 							>
 								<Icon size={isAdmin ? 16 : 20} strokeWidth={2} />
 								<span
 									className={`text-[10px] font-semibold uppercase tracking-wide leading-none ${
-										isAdmin ? "text-ink-3" : active ? "text-brand" : "text-ink-3"
+										isAdmin ? "text-ink-3" : active ? "text-brand-ink" : "text-ink-3"
 									}`}
 								>
 									{label}

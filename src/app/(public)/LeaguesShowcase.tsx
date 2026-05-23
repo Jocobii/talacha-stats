@@ -30,7 +30,7 @@ function LeagueCardItem({
 			{/* Header de la liga */}
 			<div className="bg-brand/5 border-b border-line px-4 py-3.5 flex items-center gap-3">
 				<div className="w-10 h-10 rounded-xl bg-brand/15 border border-brand/25 flex items-center justify-center shrink-0">
-					<span className="font-display font-black text-lg text-brand">{initial}</span>
+					<span className="font-display font-black text-lg text-brand-ink">{initial}</span>
 				</div>
 				<div className="min-w-0 flex-1">
 					<p className="font-display font-black text-base text-ink uppercase tracking-tight leading-tight truncate">
@@ -71,7 +71,7 @@ function LeagueCardItem({
 
 			{/* Goleador top */}
 			<div className="px-4 py-3 flex items-center gap-2.5">
-				<Star size={12} strokeWidth={2} className="text-brand shrink-0" />
+				<Star size={12} strokeWidth={2} className="text-brand-ink shrink-0" />
 				<div className="min-w-0 flex-1">
 					<p className="text-[11px] text-ink-3 uppercase tracking-widest font-semibold mb-0.5">
 						Goleador
@@ -90,7 +90,7 @@ function LeagueCardItem({
 				</div>
 				{league.topScorer && (
 					<div className="text-right shrink-0">
-						<p className="font-display font-black text-xl text-brand leading-none">
+						<p className="font-display font-black text-xl text-brand-ink leading-none">
 							{league.topScorer.goals}
 						</p>
 						<p className="text-[10px] text-ink-3">goles</p>
@@ -103,7 +103,7 @@ function LeagueCardItem({
 				<div className="px-4 pb-3.5">
 					<Link
 						href={`/org/${league.orgSlug}/${league.leagueSlug}`}
-						className="flex items-center justify-center gap-1 w-full text-xs font-semibold text-ink-3 group-hover:text-brand border border-line group-hover:border-brand/30 py-2 rounded-xl transition"
+						className="flex items-center justify-center gap-1 w-full text-xs font-semibold text-ink-3 group-hover:text-brand-ink border border-line group-hover:border-brand/30 py-2 rounded-xl transition"
 					>
 						Ver liga
 						<ChevronRight size={12} strokeWidth={2} />
@@ -150,7 +150,7 @@ export default function LeaguesShowcase({ leagues }: { leagues: LeagueShowcaseIt
 					}}
 				>
 					<div>
-						<p className="text-[11px] font-bold text-brand uppercase tracking-widest mb-1.5">
+						<p className="text-[11px] font-bold text-brand-ink uppercase tracking-widest mb-1.5">
 							Ligas en la plataforma
 						</p>
 						<h2 className="font-display font-black text-3xl sm:text-4xl uppercase text-ink leading-tight">
@@ -164,7 +164,7 @@ export default function LeaguesShowcase({ leagues }: { leagues: LeagueShowcaseIt
 					</div>
 					<Link
 						href="/about#organizadores"
-						className="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-brand border border-brand/30 hover:bg-brand/8 px-4 py-2.5 rounded-xl transition"
+						className="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-ink border border-brand/30 hover:bg-brand/8 px-4 py-2.5 rounded-xl transition"
 					>
 						Registra la tuya
 						<ChevronRight size={14} strokeWidth={2} />

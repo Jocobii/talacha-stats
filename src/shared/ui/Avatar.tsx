@@ -23,7 +23,9 @@ export function Avatar({
 		<span
 			className={cn(
 				"rounded-md font-display font-bold grid place-items-center shrink-0 tracking-tight",
-				tone === "brand" ? "bg-brand/15 text-brand" : "bg-surface-2 text-ink-2 border border-line",
+				tone === "brand"
+					? "bg-brand/15 text-brand-ink"
+					: "bg-surface-2 text-ink-2 border border-line",
 				sizes[size],
 			)}
 		>

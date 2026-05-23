@@ -35,7 +35,7 @@ export default async function MatchPreviewPage({ params }: { params: Promise<{ i
 			</div>
 
 			{/* Bullets para el narrador */}
-			<div className="bg-surface text-brand rounded-xl p-5 mb-6 font-mono text-sm">
+			<div className="bg-surface text-brand-ink rounded-xl p-5 mb-6 font-mono text-sm">
 				<p className="text-green-500 text-xs uppercase tracking-widest mb-3">
 					📢 Frases para el narrador
 				</p>
@@ -54,7 +54,7 @@ export default async function MatchPreviewPage({ params }: { params: Promise<{ i
 				<h2 className="font-semibold text-ink mb-4">Probabilidad de victoria</h2>
 				<div className="flex items-center gap-4">
 					<div className="text-center w-28">
-						<p className="text-3xl font-black text-brand">{winProbability.homeWinPct}%</p>
+						<p className="text-3xl font-black text-brand-ink">{winProbability.homeWinPct}%</p>
 						<p className="text-xs text-ink-2 mt-1 truncate">{match.homeTeam}</p>
 					</div>
 					<div className="flex-1">
@@ -114,7 +114,7 @@ function TeamFormCard({
 	form: TeamFormStats;
 	color: "green" | "blue";
 }) {
-	const accent = color === "green" ? "text-brand" : "text-blue-600";
+	const accent = color === "green" ? "text-brand-ink" : "text-blue-600";
 	const resultColor = (r: "W" | "D" | "L") =>
 		r === "W" ? "bg-brand/100" : r === "D" ? "bg-ink-3" : "bg-red-950/400";
 
@@ -182,7 +182,7 @@ function ThreatsCard({ title, threats }: { title: string; threats: TopThreat[] }
 									{t.goalsThisSeason} goles · {t.assists} asist · {t.goalsPerMatch}/partido
 								</p>
 								{t.goalsLast3Matches > 0 && (
-									<p className="text-xs text-brand">
+									<p className="text-xs text-brand-ink">
 										{t.goalsLast3Matches} goles en últimos 3 partidos
 									</p>
 								)}
@@ -255,7 +255,7 @@ function H2HCard({
 				<>
 					<div className="flex justify-around text-center mb-3">
 						<div>
-							<p className="text-2xl font-bold text-brand">{h2h.homeWins}</p>
+							<p className="text-2xl font-bold text-brand-ink">{h2h.homeWins}</p>
 							<p className="text-xs text-ink-3 truncate max-w-[80px]">{homeTeam}</p>
 						</div>
 						<div>

@@ -53,7 +53,7 @@ export const CurpSearchCard = forwardRef<HTMLInputElement, Props>(function CurpS
 						/>
 						<span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none">
 							{isSearching ? (
-								<Loader2 size={20} className="animate-spin text-brand" />
+								<Loader2 size={20} className="animate-spin text-brand-ink" />
 							) : (
 								<IdCard size={20} strokeWidth={1.75} />
 							)}

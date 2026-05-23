@@ -69,7 +69,7 @@ export default function OrganizationDetailClient({
 					<h2 className="text-lg font-semibold text-ink">Ligas</h2>
 					<Link
 						href={`/admin/leagues/new`}
-						className="text-sm text-brand hover:underline font-medium"
+						className="text-sm text-brand-ink hover:underline font-medium"
 					>
 						+ Nueva liga
 					</Link>
@@ -80,7 +80,7 @@ export default function OrganizationDetailClient({
 						<p className="text-ink-3 text-sm">Esta organización aún no tiene ligas.</p>
 						<Link
 							href="/admin/leagues/new"
-							className="text-brand text-sm hover:underline mt-2 block"
+							className="text-brand-ink text-sm hover:underline mt-2 block"
 						>
 							Crear primera liga →
 						</Link>
@@ -103,7 +103,7 @@ export default function OrganizationDetailClient({
 									<span
 										className={`text-xs px-2 py-0.5 rounded-full font-medium ${
 											league.status === "active"
-												? "bg-brand/15 text-brand"
+												? "bg-brand/15 text-brand-ink"
 												: "bg-surface-2 text-ink-2"
 										}`}
 									>

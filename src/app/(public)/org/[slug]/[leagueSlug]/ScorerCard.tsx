@@ -34,7 +34,7 @@ export default function ScorerCard({ scorer, rank }: Props) {
 			{/* Posición */}
 			{isTop3 ? (
 				<div className="w-7 h-7 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
-					<span className="font-display font-black text-sm text-brand">{rank}</span>
+					<span className="font-display font-black text-sm text-brand-ink">{rank}</span>
 				</div>
 			) : (
 				<div className="w-7 text-center shrink-0 font-display font-black text-sm text-ink-3">
@@ -49,7 +49,7 @@ export default function ScorerCard({ scorer, rank }: Props) {
 
 			{/* Nombre + equipo + PJ */}
 			<div className="flex-1 min-w-0">
-				<p className="font-semibold text-sm text-ink group-hover:text-brand transition-colors truncate">
+				<p className="font-semibold text-sm text-ink group-hover:text-brand-ink transition-colors truncate">
 					{displayName}
 				</p>
 				<div className="flex items-center gap-1.5 mt-0.5">
@@ -63,7 +63,7 @@ export default function ScorerCard({ scorer, rank }: Props) {
 			{/* Stats: goles + detalle secundario */}
 			<div className="text-right shrink-0">
 				<p
-					className={`font-display font-black text-xl leading-none ${isTop3 ? "text-brand" : "text-ink"}`}
+					className={`font-display font-black text-xl leading-none ${isTop3 ? "text-brand-ink" : "text-ink"}`}
 				>
 					{scorer.goals}
 				</p>
@@ -80,7 +80,7 @@ export default function ScorerCard({ scorer, rank }: Props) {
 				<ChevronRight
 					size={14}
 					strokeWidth={2}
-					className="text-ink-3 group-hover:text-brand transition-colors shrink-0"
+					className="text-ink-3 group-hover:text-brand-ink transition-colors shrink-0"
 				/>
 			)}
 		</>

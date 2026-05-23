@@ -62,7 +62,7 @@ function FeatureCard({ Icon, title, desc, delay }: Feature) {
 			}}
 		>
 			<div className="w-11 h-11 rounded-xl bg-surface-2 border border-line flex items-center justify-center shrink-0">
-				<Icon size={20} className="text-brand" strokeWidth={2} />
+				<Icon size={20} className="text-brand-ink" strokeWidth={2} />
 			</div>
 			<p className="font-bold text-ink text-sm">{title}</p>
 			<p className="text-ink-3 text-sm leading-relaxed">{desc}</p>

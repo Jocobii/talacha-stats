@@ -34,7 +34,7 @@ function StatBox({
 		<div className="bg-surface-2 border border-line rounded-2xl flex flex-col items-center justify-center py-3 gap-0.5">
 			<span
 				className={`font-display font-black text-2xl leading-none ${
-					highlight ? "text-brand" : "text-ink"
+					highlight ? "text-brand-ink" : "text-ink"
 				}`}
 			>
 				{value}

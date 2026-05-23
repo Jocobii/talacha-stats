@@ -38,12 +38,12 @@ const MATCHDAY_STATUS_BADGE: Record<string, string> = {
 	draft: "bg-surface-2 text-ink-3",
 	published: "bg-blue/10 text-blue",
 	in_progress: "bg-amber/10 text-amber",
-	completed: "bg-brand/10 text-brand",
+	completed: "bg-brand/10 text-brand-ink",
 };
 
 const MATCH_STATUS_PILL: Record<string, string> = {
-	played: "bg-brand/10 text-brand",
-	completed: "bg-brand/10 text-brand",
+	played: "bg-brand/10 text-brand-ink",
+	completed: "bg-brand/10 text-brand-ink",
 	walkover_home: "bg-amber/10 text-amber",
 	walkover_away: "bg-amber/10 text-amber",
 	suspended: "bg-rose/10 text-rose",
@@ -121,7 +121,7 @@ export function MatchdayCard({
 								className={`text-xs font-semibold px-2.5 py-1 rounded transition-colors border ${
 									allDone
 										? "bg-surface-2 text-ink-2 hover:bg-surface-3 border-line"
-										: "text-brand bg-brand/10 hover:bg-brand/20 border-brand/20"
+										: "text-brand-ink bg-brand/10 hover:bg-brand/20 border-brand/20"
 								}`}
 							>
 								{allDone ? "Ver →" : captured === 0 ? "Capturar →" : "Continuar →"}
@@ -205,7 +205,7 @@ export function MatchdayCard({
 
 								{/* Flecha — solo en jornadas abiertas */}
 								{!isClosed && (
-									<span className="text-xs text-ink-3 group-hover:text-brand transition-colors shrink-0">
+									<span className="text-xs text-ink-3 group-hover:text-brand-ink transition-colors shrink-0">
 										{isCaptured ? "Editar →" : "Capturar →"}
 									</span>
 								)}

@@ -162,7 +162,7 @@ export default async function MatchCapturePage({ params }: Params) {
 					</div>
 					<Link
 						href={`/admin/ligas/${leagueId}/jornadas/${matchdayId}`}
-						className="inline-block text-sm font-semibold text-brand hover:underline"
+						className="inline-block text-sm font-semibold text-brand-ink hover:underline"
 					>
 						← Volver a la jornada
 					</Link>

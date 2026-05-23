@@ -13,6 +13,7 @@ import { listMatchesByRound } from "@/entities/match/queries";
 import { CedulaSearch } from "./CedulaSearch";
 import { CloseMatchdayButton } from "./CloseMatchdayButton";
 import { ReopenPlayoffButton } from "./ReopenPlayoffButton";
+import { ShareJornadaButton } from "./ShareJornadaButton";
 import { STATUS_LABELS } from "@/features/match-resolution/constants";
 import type { ResolutionStatus } from "@/db/schema";
 
@@ -29,12 +30,12 @@ const CAPTURED_STATUSES = new Set([
 
 const STATUS_PILL: Record<string, string> = {
 	scheduled: "bg-surface-2 text-ink-3",
-	played: "bg-brand/10 text-brand",
+	played: "bg-brand/10 text-brand-ink",
 	walkover_home: "bg-amber/10 text-amber",
 	walkover_away: "bg-amber/10 text-amber",
 	suspended: "bg-rose/10 text-rose",
 	postponed: "bg-amber/10 text-amber",
-	completed: "bg-brand/10 text-brand",
+	completed: "bg-brand/10 text-brand-ink",
 };
 
 export default async function JornadaDashboardPage({ params }: Params) {
@@ -135,6 +136,9 @@ export default async function JornadaDashboardPage({ params }: Params) {
 									matchdayNumber={matchday.number}
 								/>
 							)}
+							{isClosed && matchday.number !== null && (
+								<ShareJornadaButton leagueId={leagueId} jornadaNumber={matchday.number} />
+							)}
 							{isPlayoff && matchday.status === "completed" && (
 								<ReopenPlayoffButton matchdayId={matchdayId} />
 							)}
@@ -203,7 +207,7 @@ export default async function JornadaDashboardPage({ params }: Params) {
 											<td className="px-4 py-3 text-right">
 												<Link
 													href={`/admin/ligas/${leagueId}/jornadas/${matchdayId}/partidos/${m.id}`}
-													className="text-xs font-semibold text-brand hover:text-brand-dim transition-colors"
+													className="text-xs font-semibold text-brand-ink hover:text-brand-dim transition-colors"
 												>
 													{m.status === "scheduled" ? "Capturar →" : "Editar →"}
 												</Link>

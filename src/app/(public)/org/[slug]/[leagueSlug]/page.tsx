@@ -114,7 +114,7 @@ export default async function LeaguePublicPage({ params }: Props) {
 	const standingsSection = (
 		<section>
 			<SectionHeader
-				icon={<Trophy size={16} strokeWidth={2} className="text-brand" />}
+				icon={<Trophy size={16} strokeWidth={2} className="text-brand-ink" />}
 				title="Posiciones"
 			/>
 			{!hasStandings ? (
@@ -129,7 +129,7 @@ export default async function LeaguePublicPage({ params }: Props) {
 						<span className="text-[10px] font-bold text-ink-3 text-center">G</span>
 						<span className="text-[10px] font-bold text-ink-3 text-center">E</span>
 						<span className="text-[10px] font-bold text-ink-3 text-center">P</span>
-						<span className="text-[10px] font-bold text-brand text-right">PTS</span>
+						<span className="text-[10px] font-bold text-brand-ink text-right">PTS</span>
 					</div>
 
 					{standings.map((row, idx) => {
@@ -163,7 +163,7 @@ export default async function LeaguePublicPage({ params }: Props) {
 									{/* Pos */}
 									<div className="flex items-center justify-center">
 										{isTop3 && !zone ? (
-											<span className="w-5 h-5 rounded-md bg-brand/15 border border-brand/25 flex items-center justify-center font-display font-black text-[11px] text-brand">
+											<span className="w-5 h-5 rounded-md bg-brand/15 border border-brand/25 flex items-center justify-center font-display font-black text-[11px] text-brand-ink">
 												{pos}
 											</span>
 										) : (
@@ -189,7 +189,7 @@ export default async function LeaguePublicPage({ params }: Props) {
 									<span className="text-xs text-ink-3 text-center self-center">{row.draws}</span>
 									<span className="text-xs text-ink-3 text-center self-center">{row.losses}</span>
 									<span
-										className={`text-sm font-black text-right self-center ${isTop3 && !zone ? "text-brand" : "text-ink"}`}
+										className={`text-sm font-black text-right self-center ${isTop3 && !zone ? "text-brand-ink" : "text-ink"}`}
 									>
 										{row.points}
 									</span>
@@ -206,7 +206,7 @@ export default async function LeaguePublicPage({ params }: Props) {
 	const scorersSection = (
 		<section>
 			<SectionHeader
-				icon={<Target size={16} strokeWidth={2} className="text-brand" />}
+				icon={<Target size={16} strokeWidth={2} className="text-brand-ink" />}
 				title="Goleadores"
 			/>
 			{!hasScorers ? (
@@ -255,7 +255,7 @@ export default async function LeaguePublicPage({ params }: Props) {
 							</h1>
 							<p className="text-ink-3 text-sm mt-1">
 								{league.season}
-								{jornada && <span className="ml-2 text-brand font-semibold">· J{jornada}</span>}
+								{jornada && <span className="ml-2 text-brand-ink font-semibold">· J{jornada}</span>}
 							</p>
 						</div>
 						<ShareLeagueButton title={league.name} />

@@ -135,7 +135,7 @@ export default function MatchdayPublicView({ matchdays }: Props) {
 							onClick={() => setSelectedIdx(i)}
 							className={`shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-colors border ${
 								isActive
-									? "bg-brand/15 border-brand/40 text-brand"
+									? "bg-brand/15 border-brand/40 text-brand-ink"
 									: "bg-surface-2 border-line text-ink-3 hover:text-ink hover:border-line"
 							}`}
 						>

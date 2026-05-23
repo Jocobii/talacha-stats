@@ -200,7 +200,7 @@ export function CalendarGrid({
 									{DAY_NAMES[i]}
 								</span>
 								<span
-									className={`font-display text-lg font-semibold leading-none ${isToday ? "text-brand" : "text-ink"}`}
+									className={`font-display text-lg font-semibold leading-none ${isToday ? "text-brand-ink" : "text-ink"}`}
 								>
 									{d.getDate()}
 								</span>
@@ -279,7 +279,7 @@ export function CalendarGrid({
 													border: "1px dashed var(--color-brand)",
 												}}
 											>
-												<div className="px-2 pt-1 text-[11px] font-semibold text-brand">
+												<div className="px-2 pt-1 text-[11px] font-semibold text-brand-ink">
 													{fmtTime(startDate)} → {fmtTime(endDate)}
 												</div>
 											</div>

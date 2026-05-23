@@ -39,7 +39,7 @@ export default async function OrganizationDetailPage({
 						<img src={org.logoUrl} alt={org.name} className="w-14 h-14 rounded-xl object-cover" />
 					) : (
 						<div className="w-14 h-14 rounded-xl bg-brand/15 flex items-center justify-center flex-shrink-0">
-							<span className="text-brand font-bold text-2xl">
+							<span className="text-brand-ink font-bold text-2xl">
 								{org.name.charAt(0).toUpperCase()}
 							</span>
 						</div>

@@ -45,7 +45,7 @@ export function CockpitFooter({
 			style={{
 				flexShrink: 0,
 				borderTop: "1px solid var(--color-line)",
-				background: "rgba(10,10,10,0.95)",
+				background: "color-mix(in srgb, var(--color-surface) 95%, transparent)",
 				backdropFilter: "blur(6px)",
 				padding: "14px 20px",
 				display: "flex",
@@ -62,8 +62,8 @@ export function CockpitFooter({
 						borderRadius: 6,
 						display: "grid",
 						placeItems: "center",
-						background: "rgba(0,230,118,0.14)",
-						color: "var(--color-brand)",
+						background: "var(--tint-brand)",
+						color: "var(--color-brand-ink)",
 						fontWeight: 700,
 						fontSize: 11,
 					}}

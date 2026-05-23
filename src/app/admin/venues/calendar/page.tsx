@@ -64,7 +64,7 @@ export default async function VenueCalendarPage() {
 					</p>
 					<Link
 						href="/admin/leagues"
-						className="inline-block text-brand text-sm hover:underline mt-2"
+						className="inline-block text-brand-ink text-sm hover:underline mt-2"
 					>
 						Ir a ligas →
 					</Link>

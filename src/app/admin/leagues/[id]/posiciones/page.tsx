@@ -12,6 +12,7 @@ import { serverFetch } from "@/shared/lib/server-fetch";
 import { getSessionUser } from "@/shared/lib/auth";
 import { db } from "@/db";
 import { leaguePlayoffZones } from "@/db/schema";
+import { ShareStandingsButton } from "./ShareStandingsButton";
 import { listOrganizations } from "@/entities/organization";
 import { findZone, isZoneStart, getZoneTokens } from "@/shared/lib/zone-colors";
 import type { ZoneInfo } from "@/shared/lib/zone-colors";
@@ -89,7 +90,10 @@ export default async function PosicionesPage({ params }: { params: Promise<{ id:
 					</div>
 				) : (
 					<>
-						<h2 className="text-lg font-semibold text-ink mb-3">Tabla de posiciones</h2>
+						<div className="flex items-center justify-between mb-3">
+							<h2 className="text-lg font-semibold text-ink">Tabla de posiciones</h2>
+							<ShareStandingsButton leagueId={id} />
+						</div>
 						<div className="bg-surface rounded-lg shadow overflow-hidden">
 							<div className="overflow-x-auto">
 								<table className="w-full text-sm min-w-[560px]">
@@ -122,7 +126,7 @@ export default async function PosicionesPage({ params }: { params: Promise<{ id:
 													<td className="px-3 py-2 text-ink-2">{pos}</td>
 													<td className="px-3 py-2 font-medium text-ink">{s.teamName}</td>
 													<td className="px-3 py-2 text-center text-ink">{s.played}</td>
-													<td className="px-3 py-2 text-center text-brand">{s.wins}</td>
+													<td className="px-3 py-2 text-center text-brand-ink">{s.wins}</td>
 													<td className="px-3 py-2 text-center text-ink-2">{s.draws}</td>
 													<td className="px-3 py-2 text-center text-red-500">{s.losses}</td>
 													<td className="px-3 py-2 text-center text-ink">{s.goalsFor}</td>
@@ -179,7 +183,7 @@ export default async function PosicionesPage({ params }: { params: Promise<{ id:
 										<p className="text-xs text-ink-3">{s.teamName}</p>
 									</div>
 								</div>
-								<span className="font-bold text-brand">{s.goals} ⚽</span>
+								<span className="font-bold text-brand-ink">{s.goals} ⚽</span>
 							</div>
 						))}
 						{topScorers.length === 0 && (
@@ -188,7 +192,7 @@ export default async function PosicionesPage({ params }: { params: Promise<{ id:
 								{!isLeagueEmpty && (
 									<Link
 										href={`/admin/imports?leagueId=${id}&tab=goleadores`}
-										className="text-xs text-brand hover:underline mt-1 inline-block"
+										className="text-xs text-brand-ink hover:underline mt-1 inline-block"
 									>
 										Importar estadísticas →
 									</Link>

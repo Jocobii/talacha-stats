@@ -71,7 +71,7 @@ export default function AboutPage() {
 					<br />
 					Tijuana sabrá quién es
 					<br />
-					<span className="text-brand">el mejor.</span>
+					<span className="text-brand-ink">el mejor.</span>
 				</h1>
 
 				<p className="text-ink-2 text-base sm:text-lg leading-relaxed max-w-lg mx-auto mt-7">
@@ -83,7 +83,9 @@ export default function AboutPage() {
 
 			{/* ── EL PROBLEMA ───────────────────────────────────────────── */}
 			<section className="px-5 py-16 max-w-3xl mx-auto w-full">
-				<p className="text-xs font-bold text-brand uppercase tracking-widest mb-4">El problema</p>
+				<p className="text-xs font-bold text-brand-ink uppercase tracking-widest mb-4">
+					El problema
+				</p>
 				<h2 className="font-display font-black text-3xl sm:text-4xl uppercase leading-tight mb-6">
 					Llevas años jugando.
 					<br />
@@ -99,7 +101,7 @@ export default function AboutPage() {
 			{/* ── QUÉ ES ────────────────────────────────────────────────── */}
 			<section className="bg-surface border-y border-line px-5 py-16">
 				<div className="max-w-3xl mx-auto">
-					<p className="text-xs font-bold text-brand uppercase tracking-widest mb-4">
+					<p className="text-xs font-bold text-brand-ink uppercase tracking-widest mb-4">
 						Qué es TalachaStats
 					</p>
 					<h2 className="font-display font-black text-3xl sm:text-4xl uppercase leading-tight mb-10">
@@ -126,7 +128,7 @@ export default function AboutPage() {
 						].map(({ Icon, title, desc }) => (
 							<div key={title} className="flex flex-col gap-3">
 								<div className="w-11 h-11 rounded-xl bg-surface-2 border border-line flex items-center justify-center shrink-0">
-									<Icon size={20} className="text-brand" strokeWidth={2} />
+									<Icon size={20} className="text-brand-ink" strokeWidth={2} />
 								</div>
 								<p className="font-bold text-ink text-sm">{title}</p>
 								<p className="text-ink-3 text-sm leading-relaxed">{desc}</p>
@@ -138,11 +140,13 @@ export default function AboutPage() {
 
 			{/* ── CÓMO FUNCIONA ─────────────────────────────────────────── */}
 			<section className="px-5 py-16 max-w-3xl mx-auto w-full">
-				<p className="text-xs font-bold text-brand uppercase tracking-widest mb-4">Cómo funciona</p>
+				<p className="text-xs font-bold text-brand-ink uppercase tracking-widest mb-4">
+					Cómo funciona
+				</p>
 				<h2 className="font-display font-black text-3xl sm:text-4xl uppercase leading-tight mb-10">
 					Simple para el organizador.
 					<br />
-					<span className="text-brand">Poderoso para el jugador.</span>
+					<span className="text-brand-ink">Poderoso para el jugador.</span>
 				</h2>
 
 				<div className="flex flex-col gap-0">
@@ -166,7 +170,7 @@ export default function AboutPage() {
 						<div key={step} className="flex gap-5">
 							<div className="flex flex-col items-center">
 								<div className="w-10 h-10 rounded-full bg-surface-2 border border-line flex items-center justify-center shrink-0">
-									<span className="font-display font-black text-xs text-brand">{step}</span>
+									<span className="font-display font-black text-xs text-brand-ink">{step}</span>
 								</div>
 								{i < arr.length - 1 && <div className="w-px flex-1 bg-line my-2" />}
 							</div>
@@ -183,13 +187,13 @@ export default function AboutPage() {
 			<section className="bg-surface border-y border-line px-5 py-16">
 				<div className="max-w-3xl mx-auto flex flex-col sm:flex-row gap-10 items-start">
 					<div className="flex-1">
-						<p className="text-xs font-bold text-brand uppercase tracking-widest mb-4">
+						<p className="text-xs font-bold text-brand-ink uppercase tracking-widest mb-4">
 							Nuestra visión
 						</p>
 						<h2 className="font-display font-black text-3xl sm:text-4xl uppercase leading-tight mb-5">
 							Tijuana primero.
 							<br />
-							<span className="text-brand">Después el mundo.</span>
+							<span className="text-brand-ink">Después el mundo.</span>
 						</h2>
 						<p className="text-ink-2 text-sm leading-relaxed max-w-md">
 							Empezamos en Tijuana porque es nuestra ciudad y porque tiene una escena de fútbol
@@ -213,7 +217,7 @@ export default function AboutPage() {
 								key={label}
 								className="bg-surface-2 border border-line rounded-xl px-6 py-4 text-center min-w-[140px]"
 							>
-								<p className="font-display font-black text-3xl text-brand">{value}</p>
+								<p className="font-display font-black text-3xl text-brand-ink">{value}</p>
 								<p className="text-ink-3 text-xs font-semibold uppercase tracking-wide mt-1">
 									{label}
 								</p>
@@ -228,8 +232,8 @@ export default function AboutPage() {
 				<div className="bg-surface-2 border border-brand/20 rounded-2xl px-7 py-10 flex flex-col sm:flex-row items-start sm:items-center gap-7">
 					<div className="flex-1">
 						<div className="flex items-center gap-2 mb-3">
-							<Zap size={16} className="text-brand" strokeWidth={2} />
-							<p className="text-xs font-bold text-brand uppercase tracking-widest">
+							<Zap size={16} className="text-brand-ink" strokeWidth={2} />
+							<p className="text-xs font-bold text-brand-ink uppercase tracking-widest">
 								Para organizadores
 							</p>
 						</div>

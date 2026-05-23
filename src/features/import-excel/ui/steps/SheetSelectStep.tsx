@@ -44,7 +44,8 @@ export function SheetSelectStep({
 			<div className="bg-surface rounded-2xl shadow-sm border border-line overflow-hidden">
 				<div className="px-4 py-3 border-b border-line flex items-center justify-between">
 					<span className="text-sm font-bold text-ink">
-						Vista previa — <span className="text-brand">{selectedSheet || "sin selección"}</span>
+						Vista previa —{" "}
+						<span className="text-brand-ink">{selectedSheet || "sin selección"}</span>
 					</span>
 					{loading && (
 						<span className="inline-block w-4 h-4 border-2 border-brand/30 border-t-brand rounded-full animate-spin" />

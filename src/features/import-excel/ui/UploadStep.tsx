@@ -52,7 +52,7 @@ export function UploadStep({
 				<div className="rounded-2xl border border-brand/20 bg-brand/10 p-4 flex items-center gap-3">
 					<span className="text-2xl shrink-0">💾</span>
 					<div className="flex-1">
-						<p className="text-sm font-semibold text-brand">¿Usar configuración guardada?</p>
+						<p className="text-sm font-semibold text-brand-ink">¿Usar configuración guardada?</p>
 						<div className="flex gap-2 mt-2 flex-wrap">
 							{relevantTemplates.map((t) => (
 								<button
@@ -63,7 +63,7 @@ export function UploadStep({
 										"px-3 py-1.5 rounded-full text-[13px] font-semibold border-2 transition-all",
 										selectedTemplate === t.id
 											? "bg-brand border-brand text-pitch"
-											: "bg-surface border-brand/30 text-brand hover:border-brand",
+											: "bg-surface border-brand/30 text-brand-ink hover:border-brand",
 									].join(" ")}
 								>
 									{t.name}
@@ -73,7 +73,7 @@ export function UploadStep({
 						</div>
 					</div>
 					{selectedTemplate && (
-						<span className="shrink-0 text-xs font-semibold text-brand bg-surface border border-brand/20 rounded-lg px-2 py-1">
+						<span className="shrink-0 text-xs font-semibold text-brand-ink bg-surface border border-brand/20 rounded-lg px-2 py-1">
 							Mapeo automático
 						</span>
 					)}
@@ -109,7 +109,7 @@ export function UploadStep({
 									].join(" ")}
 								>
 									<div
-										className={`text-[15px] font-bold ${importType === t ? "text-brand" : "text-ink"}`}
+										className={`text-[15px] font-bold ${importType === t ? "text-brand-ink" : "text-ink"}`}
 									>
 										{t === "goleadores" ? "⚽  Goleadores" : "📊  Tabla de posiciones"}
 									</div>
@@ -141,7 +141,7 @@ export function UploadStep({
 							min="1"
 							value={jornada}
 							onChange={(e) => onJornadaChange(String(Math.max(1, parseInt(e.target.value) || 1)))}
-							className="w-20 text-center text-3xl font-black text-brand border-2 border-brand/30 rounded-xl py-1.5 bg-brand/10 outline-none focus:border-brand"
+							className="w-20 text-center text-3xl font-black text-brand-ink border-2 border-brand/30 rounded-xl py-1.5 bg-brand/10 outline-none focus:border-brand"
 							style={
 								{
 									fontFamily: "'Barlow Condensed', sans-serif",

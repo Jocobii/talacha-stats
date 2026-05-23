@@ -17,7 +17,7 @@ function scoreLabel(score: number): string {
 }
 
 function scoreColor(score: number): string {
-	if (score >= 80) return "text-brand bg-brand/10";
+	if (score >= 80) return "text-brand-ink bg-brand/10";
 	if (score >= 50) return "text-amber bg-amber/10";
 	return "text-ink-3 bg-surface-2";
 }
@@ -61,7 +61,7 @@ export function DoubtCard({ row, candidates, decision, onDecide }: Props) {
 					</p>
 				</div>
 				{isResolved && (
-					<span className="text-xs font-semibold text-brand bg-brand/10 border border-brand/20 rounded-lg px-2 py-0.5 shrink-0">
+					<span className="text-xs font-semibold text-brand-ink bg-brand/10 border border-brand/20 rounded-lg px-2 py-0.5 shrink-0">
 						Decidido
 					</span>
 				)}

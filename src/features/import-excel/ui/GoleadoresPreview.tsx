@@ -38,12 +38,14 @@ export function GoleadoresPreview({
 			>
 				<span className="text-3xl shrink-0">{allResolved ? "✅" : "⚠️"}</span>
 				<div className="flex-1">
-					<p className={`text-base font-bold ${allResolved ? "text-brand" : "text-orange-800"}`}>
+					<p
+						className={`text-base font-bold ${allResolved ? "text-brand-ink" : "text-orange-800"}`}
+					>
 						{allResolved
 							? `¡Todo listo! ${preview.summary.players ?? 0} jugadores · ${preview.summary.totalGoals ?? 0} goles — Jornada ${preview.jornada}`
 							: `Identifica ${pendingCount} jugador${pendingCount !== 1 ? "es" : ""} antes de importar`}
 					</p>
-					<p className={`text-xs mt-0.5 ${allResolved ? "text-brand" : "text-orange-700"}`}>
+					<p className={`text-xs mt-0.5 ${allResolved ? "text-brand-ink" : "text-orange-700"}`}>
 						{allResolved
 							? "Todo el mapeo está completo y listo para guardar."
 							: `${ambiguous.length - pendingCount} de ${ambiguous.length} jugadores ambiguos identificados`}
@@ -51,8 +53,8 @@ export function GoleadoresPreview({
 				</div>
 				<div className="flex gap-4 shrink-0 w-full sm:w-auto justify-around sm:justify-start">
 					{[
-						{ label: "Jugadores", value: preview.summary.players ?? 0, color: "text-brand" },
-						{ label: "Goles", value: preview.summary.totalGoals ?? 0, color: "text-brand" },
+						{ label: "Jugadores", value: preview.summary.players ?? 0, color: "text-brand-ink" },
+						{ label: "Goles", value: preview.summary.totalGoals ?? 0, color: "text-brand-ink" },
 						{
 							label: "Pendientes",
 							value: pendingCount,
@@ -130,7 +132,7 @@ export function GoleadoresPreview({
 			{confirmed.length > 0 && (
 				<details className="bg-surface border border-line rounded-2xl overflow-hidden group">
 					<summary className="px-4 py-3 cursor-pointer text-sm font-semibold text-ink-2 select-none list-none flex items-center gap-2">
-						<span className="text-brand">✅</span>
+						<span className="text-brand-ink">✅</span>
 						{confirmed.length === 1 ? "1 jugador" : `${confirmed.length} jugadores`} reconocidos
 						automáticamente
 						<span className="ml-auto text-xs text-ink-3 group-open:hidden">Ver lista ▾</span>
@@ -142,7 +144,7 @@ export function GoleadoresPreview({
 								key={pm.rawName}
 								className="flex items-center gap-2 px-4 py-2.5 border-b border-line last:border-0"
 							>
-								<span className="text-brand text-sm shrink-0">✓</span>
+								<span className="text-brand-ink text-sm shrink-0">✓</span>
 								<span className="text-sm font-semibold text-ink">{pm.rawName}</span>
 								{pm.playerId && <span className="text-xs text-ink-3 ml-1">identificado</span>}
 							</div>

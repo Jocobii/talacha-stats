@@ -1,22 +1,33 @@
 import { db, leagues, leaguePlayoffZones } from "@/db";
 import { eq, desc, and } from "drizzle-orm";
+import { z } from "zod";
 import { CreateLeagueSchema, apiSuccess, apiError } from "@/types";
 import { getActiveCity, getRequestCity } from "@/shared/lib/active-city";
 import { getSessionUserFromRequest } from "@/shared/lib/auth";
 import { generateSlug } from "@/entities/organization";
 import { sanitizeToCanonical } from "@/shared/lib/normalize";
+import { parseQueryParams } from "@/shared/lib/query-filters";
 import {
 	generateLeagueCode,
 	resolveUniqueCode,
 } from "@/features/league-management/lib/generate-league-code";
 
-// GET /api/leagues?city=Tijuana
-// Sin sesión (público) → solo ligas activas de la ciudad
-// owner              → todas las ligas de la ciudad
-// organizer          → solo las ligas de su organización
+const LeagueFiltersSchema = z.object({
+	status: z.enum(["active", "finished"]).optional(),
+});
+
+// GET /api/leagues?city=Tijuana[&status=active|finished]
+// Sin sesion (publico) -> solo ligas activas de la ciudad
+// owner/organizer     -> respeta el parametro ?status (sin el devuelve activas)
 export async function GET(request: Request) {
 	const session = await getSessionUserFromRequest(request);
 	const city = await getRequestCity(request);
+	const { searchParams } = new URL(request.url);
+
+	// ?status solo se respeta en sesiones autenticadas; sin sesion siempre "active"
+	const filters = parseQueryParams(searchParams, LeagueFiltersSchema);
+	const statusFilter =
+		session && filters.success && filters.data.status ? filters.data.status : "active";
 
 	if (!session) {
 		const rows = await db.query.leagues.findMany({
@@ -27,18 +38,20 @@ export async function GET(request: Request) {
 				organization: { columns: { status: true } },
 			},
 		});
-		// Exclude leagues from trial organizations
+		// Excluir ligas de organizaciones en periodo de prueba
 		const verified = rows.filter((l) => !l.organization || l.organization.status === "verified");
 		return apiSuccess(verified);
 	}
 
+	const scopeCondition =
+		session.role === "owner"
+			? eq(leagues.city, city)
+			: session.organizationId
+				? eq(leagues.organizationId, session.organizationId)
+				: eq(leagues.city, city);
+
 	const rows = await db.query.leagues.findMany({
-		where:
-			session.role === "owner"
-				? eq(leagues.city, city)
-				: session.organizationId
-					? eq(leagues.organizationId, session.organizationId)
-					: and(eq(leagues.city, city), eq(leagues.status, "active")),
+		where: and(scopeCondition, eq(leagues.status, statusFilter)),
 		orderBy: [desc(leagues.createdAt)],
 		with: {
 			teams: true,
@@ -65,13 +78,13 @@ export async function POST(request: Request) {
 			? parsed.data.organizationId
 			: (session.organizationId ?? null);
 
-	// Slug único por temporada: "comics-domingo-2026"
+	// Slug unico por temporada: "comics-domingo-2026"
 	// Incluir la temporada evita colisiones al crear una nueva temporada de la misma liga.
 	const slug =
 		parsed.data.slug ??
 		generateSlug(`${parsed.data.name} ${parsed.data.dayOfWeek} ${parsed.data.season}`);
 
-	// Verificación proactiva de slug duplicado (Regla CLAUDE.md: nunca confiar solo en el constraint)
+	// Verificacion proactiva de slug duplicado (Regla CLAUDE.md: nunca confiar solo en el constraint)
 	if (organizationId) {
 		const existing = await db.query.leagues.findFirst({
 			where: and(eq(leagues.organizationId, organizationId), eq(leagues.slug, slug)),
@@ -79,13 +92,13 @@ export async function POST(request: Request) {
 		});
 		if (existing) {
 			return apiError(
-				`Ya existe una liga "${existing.name}" (${existing.season}) con ese nombre y día en esta organización.`,
+				`Ya existe una liga "${existing.name}" (${existing.season}) con ese nombre y dia en esta organizacion.`,
 				409,
 			);
 		}
 	}
 
-	// Auto-generar código de liga para prefijo de cédula
+	// Auto-generar codigo de liga para prefijo de cedula
 	const baseCode = generateLeagueCode(parsed.data.name);
 	const existingRows = organizationId
 		? await db.query.leagues.findMany({

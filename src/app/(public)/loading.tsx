@@ -6,7 +6,7 @@ export default function PublicLoading() {
 				<div className="absolute inset-0 rounded-full border-2 border-gray-200 border-t-green-500 animate-spin" />
 			</div>
 
-			<p className="text-brand text-sm font-semibold mt-1">Cargando...</p>
+			<p className="text-brand-ink text-sm font-semibold mt-1">Cargando...</p>
 		</div>
 	);
 }

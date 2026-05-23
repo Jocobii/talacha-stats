@@ -42,7 +42,7 @@ function LoginForm() {
 				<div className="text-center">
 					<img src="/logo-icon.svg" alt="TalachaStats" className="w-10 h-10 mx-auto mb-3" />
 					<h1 className="font-display text-3xl font-black text-ink uppercase tracking-tight">
-						Talacha<span className="text-brand">Stats</span>
+						Talacha<span className="text-brand-ink">Stats</span>
 					</h1>
 					<p className="text-ink-2 text-sm mt-1">Panel de administración</p>
 				</div>
@@ -96,7 +96,7 @@ function LoginForm() {
 					No tienes cuenta?{" "}
 					<a
 						href="/register"
-						className="text-brand hover:text-brand-dim font-medium transition-colors"
+						className="text-brand-ink hover:text-brand-dim font-medium transition-colors"
 					>
 						Registrate gratis
 					</a>

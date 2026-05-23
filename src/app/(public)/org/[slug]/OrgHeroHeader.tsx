@@ -17,7 +17,7 @@ export default function OrgHeroHeader({ name, city, logoUrl, totalLeagues, total
 			{/* Watermark — inicial gigante como identidad visual */}
 			<span
 				aria-hidden="true"
-				className="pointer-events-none select-none absolute -right-2 -top-4 font-display font-black text-[8rem] leading-none text-brand/5 uppercase"
+				className="pointer-events-none select-none absolute -right-2 -top-4 font-display font-black text-[8rem] leading-none text-brand-ink/5 uppercase"
 			>
 				{initial}
 			</span>
@@ -32,7 +32,7 @@ export default function OrgHeroHeader({ name, city, logoUrl, totalLeagues, total
 				/>
 			) : (
 				<div className="relative z-10 w-16 h-16 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
-					<span className="font-display font-black text-3xl text-brand">{initial}</span>
+					<span className="font-display font-black text-3xl text-brand-ink">{initial}</span>
 				</div>
 			)}
 

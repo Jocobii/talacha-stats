@@ -11,7 +11,7 @@ export function PlayerPreviewCard() {
 	return (
 		<div className="bg-surface border border-line rounded-lg p-4 relative overflow-hidden">
 			<div className="flex items-center justify-between mb-3">
-				<span className="font-mono text-[9.5px] tracking-[0.18em] uppercase text-brand font-bold">
+				<span className="font-mono text-[9.5px] tracking-[0.18em] uppercase text-brand-ink font-bold">
 					TalachaStats
 				</span>
 				<span className="font-mono text-[9px] tracking-[0.14em] uppercase text-ink-3">PERFIL</span>
@@ -20,13 +20,13 @@ export function PlayerPreviewCard() {
 			<div className="flex items-start gap-3">
 				<Avatar initials="MG" size="lg" />
 				<div className="min-w-0">
-					<div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-brand">
+					<div className="text-[10px] font-semibold tracking-[0.14em] uppercase text-brand-ink">
 						● Goleadora
 					</div>
 					<div className="font-display text-[22px] text-ink leading-none tracking-tight mt-1">
 						MARGARITA
 					</div>
-					<div className="font-display text-[22px] text-ink leading-none tracking-tight text-brand">
+					<div className="font-display text-[22px] text-ink leading-none tracking-tight text-brand-ink">
 						GUTIERREZ
 					</div>
 				</div>
@@ -54,7 +54,7 @@ function StatMini({ value, label, brand }: { value: number; label: string; brand
 	return (
 		<div>
 			<div
-				className={`font-display text-[28px] font-black leading-none ${brand ? "text-brand" : "text-ink"}`}
+				className={`font-display text-[28px] font-black leading-none ${brand ? "text-brand-ink" : "text-ink"}`}
 			>
 				{value}
 			</div>

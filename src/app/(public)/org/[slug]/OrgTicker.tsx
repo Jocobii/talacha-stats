@@ -30,7 +30,7 @@ function TickerChip({ item }: { item: TickerItem }) {
 	return (
 		<span className="inline-flex items-center gap-2 px-5 border-r border-line text-xs shrink-0">
 			<span className="text-ink-3 font-medium">{item.label}</span>
-			<span className="text-brand font-bold">{item.value}</span>
+			<span className="text-brand-ink font-bold">{item.value}</span>
 		</span>
 	);
 }

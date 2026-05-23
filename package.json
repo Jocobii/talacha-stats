@@ -37,6 +37,7 @@
 		"@supabase/supabase-js": "^2.103.0",
 		"@tanstack/react-table": "8.21.3",
 		"@types/pg": "^8.20.0",
+		"@types/qrcode": "^1.5.6",
 		"@vercel/analytics": "^2.0.1",
 		"drizzle-orm": "^0.45.2",
 		"exceljs": "^4.4.0",
@@ -44,6 +45,7 @@
 		"next": "16.2.6",
 		"pdfkit": "^0.18.0",
 		"pg": "^8.20.0",
+		"qrcode": "^1.5.4",
 		"react": "19.2.4",
 		"react-dom": "19.2.4",
 		"resend": "^6.12.2",
@@ -88,7 +90,8 @@
 	},
 	"pnpm": {
 		"overrides": {
-			"postcss@<8.5.10": ">=8.5.10"
+			"postcss@<8.5.10": ">=8.5.10",
+			"exceljs>uuid": "~14.0.0"
 		}
 	}
 }

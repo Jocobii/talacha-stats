@@ -57,7 +57,7 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
 			</div>
 
 			{/* Marcador */}
-			<div className="bg-brand/15 text-brand rounded-xl p-6 text-center mb-6">
+			<div className="bg-brand/15 text-brand-ink rounded-xl p-6 text-center mb-6">
 				<div className="flex items-center justify-center gap-8">
 					<div className="flex-1 text-right">
 						<p className="font-bold text-lg">{match.homeTeam.name}</p>
