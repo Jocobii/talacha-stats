@@ -18,26 +18,30 @@ Este archivo define cómo trabajar en este codebase. Aplica a cualquier agente (
 
 ## 1. Orientación rápida del proyecto
 
-TalachaStats es una **plataforma de identidad digital y estadísticas para ligas de fútbol amateur en México**. La visión es que, conforme más ligas de la ciudad adopten la app, los datos de cada jugador sean cada vez más confiables — porque un jugador registrado con su CURP real no puede duplicarse en ninguna otra liga.
+TalachaStats es una **plataforma de gestión de ligas de fútbol amateur en México cuyo norte es generar contenido y alimentar el ego del jugador**. Sí gestiona la operación de la liga de punta a punta — ligas, equipos, jugadores, jornadas, calendario/sorteo, canchas, cédulas de partido, goleo, tabla y liguilla — pero la gestión **no es el fin**: es la forma de capturar dato limpio y estructurado que después se convierte en identidad de jugador, estadísticas presumibles y contenido listo para postear.
+
+> **Estrella polar (leer siempre):** cada feature, incluso las de gestión pura, existe para que al final el jugador presuma sus números y el organizador tenga su liga "en serio" con contenido y presencia digital. Si una feature de gestión no termina alimentando dato/identidad/contenido, está mal priorizada.
+
+La visión de fondo sigue intacta: conforme más ligas de la ciudad adopten la app, los datos de cada jugador son más confiables — porque un jugador registrado con su CURP real no puede duplicarse en ninguna otra liga.
 
 El proyecto tiene tres capas:
 
 - **Identidad global** — `global_players` anclados al CURP. Un jugador, una identidad, para siempre.
-- **Pública** (`/`, `/ranking`, `/player/[id]`, etc.) — jugadores ven sus stats y perfil
-- **Admin** (`/admin/*`) — organizadores registran jugadores, importan datos; el narrador del Facebook Live consulta análisis pre-partido
+- **Pública** (`/`, `/ranking`, `/player/[id]`, `/ligas`, `/matchday`, etc.) — jugadores y aficionados ven stats, perfiles, jornadas y tabla
+- **Admin** (`/admin/*`) — organizadores gestionan ligas, equipos, jornadas, calendario, canchas y cédulas; el narrador del Facebook Live consulta análisis pre-partido
 
-### Dos flujos paralelos (coexisten hasta v3)
+### Dos flujos paralelos de datos (coexisten hasta v3)
 
-| Flujo  | Descripción                                      | Tablas escritas                                          |
-| ------ | ------------------------------------------------ | -------------------------------------------------------- |
-| **V1** | Excel semanal → importación bulk → stats         | `players`, `player_registrations`, `player_season_stats` |
-| **V2** | Terminal de registro CURP → identidad verificada | `global_players`, `league_members`, `inscriptions`       |
+| Flujo  | Descripción                                        | Tablas escritas                                                                     |
+| ------ | -------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **V1** | Excel semanal → importación bulk → stats           | `players`, `player_registrations`, `player_season_stats`                            |
+| **V2** | Registro CURP + gestión en-app (cédulas, jornadas) | `global_players`, `league_members`, `inscriptions`, `matches`, `match_player_stats` |
 
 **Regla de routing entre flujos:**
 
 - Feature toca stats importadas de Excel → tablas V1
-- Feature toca registro de identidad o inscripción → tablas V2
-- Feature toca ambas → prioridad: `season_stats` > `match_events`
+- Feature toca registro de identidad, inscripción o captura en-app (cédula de partido) → tablas V2
+- Feature toca ambas → prioridad de stats: `player_season_stats` (Excel) > `match_player_stats` / `match_events` (partido a partido)
 
 No eliminar tablas V1 hasta confirmar que todas las ligas migradas usan el flujo V2.
 
@@ -45,27 +49,63 @@ No eliminar tablas V1 hasta confirmar que todas las ligas migradas usan el flujo
 
 ## 1.5 Posicionamiento del producto — leer antes de proponer features
 
-TalachaStats es la **capa de identidad digital y contenido para ligas locales de fútbol amateur**. El diferenciador central es la **identidad global de jugador anclada al CURP**: conforme más ligas de la ciudad adopten la plataforma, la calidad del dato mejora sola — porque un jugador verificado con CURP real es incorruptible.
+TalachaStats es una **plataforma de gestión de ligas + capa de identidad y contenido para fútbol amateur local**. El diferenciador central NO es la gestión en sí misma (eso lo hacen muchos): es que **toda la operación desemboca en identidad global de jugador (anclada al CURP) y en contenido presumible**. Conforme más ligas de la ciudad adopten la plataforma, la calidad del dato mejora sola — un jugador verificado con CURP real es incorruptible.
 
-Lo que sí construimos, en capas:
+Cambio de estrategia (2026): **ahora sí construimos gestión de liga completa** — sorteo/calendario, canchas, cédulas de partido, liguilla. Lo hacemos porque capturar el dato en-app (en vez de depender solo del Excel del organizador) hace el dato más rico, más en tiempo real y más apto para generar contenido e identidad. Pero la gestión es el **medio**, no el producto. El producto sigue siendo el ego del jugador y el contenido del organizador.
 
-1. **Identidad global de jugador** — `global_players` con CURP hash. Sin esto, todo lo demás es frágil. **Esta es la fundación.**
-2. **Identidad de la liga** — página pública con branding, perfiles de jugador, tabla, goleadores.
-3. **Terminal de registro de alta velocidad** — flujo de oficinista para CURP + liga + equipo en segundos.
-4. **Generación automática de contenido** semanal post-importación (imágenes para WhatsApp/Facebook, píldoras del narrador, carruseles).
+Lo que construimos, en capas (todas activas hoy en alguna medida):
+
+1. **Identidad global de jugador** — `global_players` con CURP hash. La fundación. Sin esto, todo lo demás es frágil.
+2. **Gestión de la liga** — ligas, equipos, jugadores, jornadas, sorteo/calendario, canchas, cédulas de partido, liguilla. Captura el dato estructurado.
+3. **Identidad de la liga** — página pública con branding, perfiles de jugador, tabla, goleadores, jornadas.
+4. **Generación de contenido** post-jornada/post-importación (píldoras del narrador, imágenes para WhatsApp/Facebook, stories del org-hub, assets para compartir).
 5. **Pre-partido del narrador** — UI dedicada para el narrador del Facebook Live.
-6. **Ecosistema de ciudad** — comparativos entre ligas, vitrina de jugadores libres, sponsors. Solo cuando haya 20+ ligas activas.
+6. **Ecosistema de ciudad** — comparativos entre ligas, vitrina de jugadores libres, sponsors. Madura conforme crece la adopción.
 
 **Heurística antes de implementar cualquier feature:**
 
 1. ¿Refuerza la confiabilidad del dato del jugador (identidad)?
-2. ¿Refuerza el ego del jugador o del organizador?
-3. ¿Refuerza el viral loop (jugador presume → otros jugadores presionan a sus organizadores)?
-4. ¿Es contenido/identidad/análisis, o es operación? Si es operación pura, posponer.
-5. ¿Lo tiene resuelto WhatsApp+Excel hoy? Si sí, no es prioridad.
-6. ¿Hay 10 ligas pidiéndolo? Si no, no construir aún.
+2. ¿El dato que captura o procesa termina alimentando contenido, stats presumibles o identidad? (Gestión que no desemboca en esto = baja prioridad.)
+3. ¿Refuerza el ego del jugador o del organizador?
+4. ¿Refuerza el viral loop (jugador presume → otros jugadores presionan a sus organizadores)?
+5. ¿Resuelve mejor en-app algo que hoy es manual/frágil en WhatsApp+Excel (sorteo, cédula, goleo)?
 
-**Documento completo:** `docs/PRODUCT-STRATEGY.md` y `docs/player-identity-admin-ecosystem.md`. Si una decisión técnica afecta el posicionamiento o la identidad global, leer esos documentos primero.
+**Documentos de referencia:** `docs/PRODUCT-STRATEGY.md` y `docs/player-identity-admin-ecosystem.md` dan contexto histórico y detalle. **Si hay conflicto sobre posicionamiento, este AGENTS.md manda** — es la fuente de verdad. (Nota: partes de `PRODUCT-STRATEGY.md` escritas antes de 2026 dicen que "no construimos gestión de liga"; eso quedó superado por el cambio de estrategia descrito arriba.)
+
+---
+
+## 1.6 Módulos del producto — estado real del código
+
+Inventario de las features que existen hoy en `src/features/`. Cada una vive como un slice FSD; las capas superiores solo importan desde su `index.ts`.
+
+### Identidad y registro
+
+- **`admin-registration`** — Terminal de registro de alta velocidad por CURP. Hashea el CURP en server, busca en `global_players`, y en una transacción atómica crea `global_player` + `league_member` + `inscription`.
+- **`import-excel`** — Importación bulk del corte semanal (ExcelJS). Incluye `column-mapper`, `anomaly-detector`, `matching` (fuzzy de nombres) y `confirm` (transacción). Escribe stats V1.
+
+### Gestión de liga
+
+- **`league-onboarding`** — Wizard de alta de liga: crear liga + carga bulk de equipos (`bulk-create-teams`).
+- **`league-management`** — Utilidades de liga; genera el código corto de la liga (`generate-league-code`) usado como prefijo de cédulas (`LCN-0001`).
+- **`team-management`** — CRUD de equipos: roster, settings, borrado. UI + hooks (`useTeamRoster`, `useTeamForm`).
+- **`match-resolution`** — Cédula de partido: capturar stats por jugador, autosave, jugadores ad-hoc, walkover/forfeit, numeración de cédula y resolución final del marcador. Escribe `matches` + `match_player_stats`.
+- **`playoffs`** — Liguilla: generador de brackets de eliminación directa (B = 2/4/8 con byes y seeding), propagación de ganadores entre slots, zonas de playoff por liga.
+
+### Calendario, sorteo y canchas
+
+- **`scheduling`** — Sorteo y calendarización completos (opt-in por liga). Pairing (circle method), descansos, generación y asignación de slots, jornadas makeup, overrides con snapshot. Ver §16 y `src/features/scheduling/README.md`.
+- **`sorteo-cockpit`** — UI del cockpit de sorteo para el organizador.
+- **`venue-management`** — CRUD de canchas (venues) + ventanas de horario; asignación de canchas a ligas.
+- **`venue-calendar`** — Calendario de canchas: rentas, ventanas, detección de solapamientos, timeslots comprados por equipo.
+
+### Contenido e identidad (el norte)
+
+- **`narrator-analysis`** — Análisis pre-partido para el narrador del Facebook Live, con exportación a PDF/PNG.
+- **`post-import-content`** — Genera **píldoras** narrativas tras la jornada (deltas de goleo, forma de equipos) listas para WhatsApp o para renderizar en imágenes. Devuelve datos, nunca JSX.
+- **`org-hub`** — Stories, ticker y líneas narrativas del hub de la organización (presencia digital de la liga).
+- **`share-assets`** — Deep links y URLs de assets para compartir perfiles/jornadas.
+
+> Al agregar una feature nueva, ubícala en la capa correcta de esta lista y conéctala al norte (§1.5). Si es gestión pura, deja explícito en el PR cómo alimenta dato/contenido/identidad.
 
 ---
 
@@ -160,6 +200,40 @@ export async function confirmImport(data: ParsedImport) {
 }
 ```
 
+### 3.5 Calidad de código (SRP) — límites no negociables
+
+- **Tamaño de archivo:** ningún componente supera **150 líneas**. Divide God Components en subcomponentes atómicos en `features/*/ui/` o `shared/ui/`.
+- **Tamaño de función:** **máximo 20 líneas**. Si hace más de una cosa, divídela.
+- **Custom Hooks obligatorios:** si la lógica de estado o efectos supera **20 líneas**, se extrae a `use[Nombre].ts` en `features/*/model/`. No dejar lógica de ciclo de vida en el cuerpo del componente.
+- **Sin hardcoding (DRY):** magic strings, IDs, regex, timeouts y números mágicos van en `constants.ts` de la feature. Antes de crear una utilidad/tipo/componente, verifica si ya existe en `shared/`.
+- **Nombres semánticos:** `isLoading` no `ld`, `userData` no `u`. Booleans con verbos auxiliares: `isLoading`, `hasTeams`, `shouldRedirect`, `canSubmit`.
+- **Declarativo sobre imperativo:** prioriza `map`/`filter`/`reduce` sobre bucles.
+
+### 3.6 Estructura interna de una feature con UI
+
+```
+features/[nombre]/
+├── constants.ts          # Magic strings, regex, timeouts
+├── types.ts              # Tipos compartidos de la feature
+├── index.ts              # Exportaciones públicas (único punto de import externo)
+├── lib/
+│   └── [nombre]-utils.ts # Funciones puras sin ciclo de vida React
+├── model/
+│   └── use[Nombre].ts    # Custom Hook con estado + efectos
+└── ui/
+    ├── [Nombre].tsx       # Orquestador (≤ 80 líneas)
+    └── [SubComp].tsx      # Subcomponentes atómicos (≤ 150 líneas)
+```
+
+### 3.7 Cómo agregar una feature nueva (orden)
+
+1. **Modelo** en `entities/[nombre]/model.ts` — tipos + schema Zod
+2. **Queries** en `entities/[nombre]/queries.ts` — acceso a DB
+3. **Lógica** en `features/[nombre]/` — orquestar queries, calcular, transformar
+4. **Endpoint** en `app/api/[ruta]/route.ts` — validar + llamar feature + responder
+5. **UI** en `app/(admin)/[ruta]/page.tsx` o `app/(public)/...` — componer componentes
+6. **Conectar al norte:** dejar explícito cómo la feature alimenta dato/identidad/contenido (§1.5)
+
 ---
 
 ## 4. Base de datos
@@ -204,6 +278,19 @@ await db
 | `league_members` | `UNIQUE(global_player_id, league_id)` | Un jugador, una inscripción por liga                                          |
 | `inscriptions`   | `UNIQUE(league_member_id)`            | Un jugador, un equipo por liga (`league_member_id` ya está scoped a liga)     |
 
+#### Tablas de gestión (jornadas, partidos, liguilla, canchas)
+
+| Tabla                      | Constraint                                                       | Regla práctica                                                                                             |
+| -------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `matchdays`                | `UNIQUE(league_id, number)`                                      | `number` es la jornada (integer de negocio). Makeup se numeran después                                     |
+| `matches`                  | `UNIQUE(league_id, cedula)`                                      | `cedula = "{LEAGUE_CODE}-{NNNN}"`. `status`: scheduled/played/walkover\_\*/postponed. BYE nunca se inserta |
+| `match_player_stats`       | agregado por jugador por partido                                 | Fuente de stats V2 (captura en-app vía cédula); fallback frente a `player_season_stats`                    |
+| `match_events`             | un evento por gol/asistencia/tarjeta/MVP                         | Detalle fino del partido; FK migrada a `global_players`                                                    |
+| `playoff_brackets`         | `UNIQUE(league_id, zone_id)`                                     | Un bracket por zona de liguilla                                                                            |
+| `playoff_slots`            | `UNIQUE(bracket_id, round, slot_index)`                          | Slots propagan ganador/perdedor; no hardcodear rondas                                                      |
+| `venues` / `league_venues` | `UNIQUE(org_id, name_canonical)` / `UNIQUE(league_id, venue_id)` | Canchas scoped a la organización; asignadas a ligas                                                        |
+| `team_rest_requests`       | `UNIQUE(team_id, league_id, matchday_number)`                    | Descansos del sorteo                                                                                       |
+
 #### Tablas V1 — Excel / legacy
 
 | Tabla                          | Constraint                              | Regla práctica                                                          |
@@ -212,7 +299,7 @@ await db
 | `player_season_stats`          | `UNIQUE(player_id, league_id)`          | Siempre upsert, nunca insert directo                                    |
 | `player_season_stats_snapshot` | `UNIQUE(player_id, league_id, jornada)` | Re-importar la misma jornada sobreescribe                               |
 | `team_standings_snapshot`      | `UNIQUE(team_id, league_id, jornada)`   | Ídem                                                                    |
-| `teams`                        | scoped a `league_id`                    | "Deportivo" en Liga Lunes ≠ Liga Martes                                 |
+| `teams`                        | `UNIQUE(league_id, name_canonical)`     | "Deportivo" en Liga Lunes ≠ Liga Martes                                 |
 
 ### 4.4 Pool de conexiones
 
@@ -267,6 +354,24 @@ return apiSuccessPaginated(items, meta);
 return apiError("mensaje", 400); // { ok: false, error }
 return apiError("no encontrado", 404);
 ```
+
+### 7.1 Naming de endpoints (REST)
+
+```
+GET    /api/[recurso]               → listar
+POST   /api/[recurso]               → crear
+GET    /api/[recurso]/[id]          → detalle
+PATCH  /api/[recurso]/[id]          → actualizar parcialmente
+DELETE /api/[recurso]/[id]          → eliminar
+POST   /api/[recurso]/[accion]      → acción especial (ej: /merge, /confirm, /schedule)
+```
+
+### 7.2 Frontend — reglas de UI
+
+- **Server Components por defecto** (§3.3). `"use client"` solo para estado/interacción.
+- **Tailwind, sin CSS custom** salvo `globals.css`. Colores del sistema: `green-600` para acciones primarias, `gray-*` para neutros, `red-*` para destructivos. **Modo claro forzado** — panel administrativo, sin dark mode.
+- **Sin librerías de formularios** (react-hook-form, formik). El proyecto es suficientemente simple: validar en cliente para feedback inmediato, validar en server como fuente de verdad, y siempre mostrar el error de la API en la UI.
+- **Peticiones internas desde el cliente:** siempre `apiFetch<T>` de `@/shared/api/client`, nunca `fetch()` desnudo (serializa el body, respeta el error del backend, devuelve `ApiResult<T>` tipado). Para Server Components que llaman rutas internas, usar `serverFetch` de `@/shared/lib/server-fetch`.
 
 ---
 
