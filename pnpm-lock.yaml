@@ -85,6 +85,9 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^19.8.0
         version: 19.8.1
+      '@jocobi/db-tools':
+        specifier: git+https://github.com/Jocobii/db-tools.git
+        version: git+https://github.com/Jocobii/db-tools.git#b5fb0539a6cef07680497e58fa306d76e9061cf8
       '@playwright/test':
         specifier: ^1.59.1
         version: 1.60.0
@@ -1058,6 +1061,12 @@ packages:
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [x64]
     os: [win32]
+
+  '@jocobi/db-tools@git+https://github.com/Jocobii/db-tools.git#b5fb0539a6cef07680497e58fa306d76e9061cf8':
+    resolution: {commit: b5fb0539a6cef07680497e58fa306d76e9061cf8, repo: https://github.com/Jocobii/db-tools.git, type: git}
+    version: 1.1.0
+    engines: {node: '>=16'}
+    hasBin: true
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -4969,6 +4978,8 @@ snapshots:
 
   '@img/sharp-win32-x64@0.34.5':
     optional: true
+
+  '@jocobi/db-tools@git+https://github.com/Jocobii/db-tools.git#b5fb0539a6cef07680497e58fa306d76e9061cf8': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
