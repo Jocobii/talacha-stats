@@ -1,15 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { titleCase } from "@/shared/lib/normalize";
-import { apiFetch } from "@/shared/api/client";
-
-type League = {
-	id: string;
-	name: string;
-	dayOfWeek: string;
-	status: string;
-};
+import { useLeagues } from "@/shared/hooks/useLeagues";
 
 type Props = {
 	value: string;
@@ -25,49 +16,26 @@ const DEFAULT_CLASS =
 	"w-full bg-surface-2 text-ink border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50 [color-scheme:dark]";
 
 export function LeagueSelect({ value, onChange, city, selectClassName, id }: Props) {
-	const [leagues, setLeagues] = useState<League[]>([]);
-	const [loading, setLoading] = useState(true);
-
-	useEffect(() => {
-		let active = true;
-		const url = city ? `/api/leagues?city=${encodeURIComponent(city)}` : "/api/leagues";
-		apiFetch<League[]>(url)
-			.then((result) => {
-				if (!active) return;
-				const all = result.ok ? result.data : [];
-				setLeagues(all.filter((l) => l.status === "active"));
-				setLoading(false);
-			})
-			.catch((networkError) => {
-				if (!active) return;
-				console.error("[LeagueSelect] cargar ligas", networkError);
-				setLoading(false);
-			});
-		return () => {
-			active = false;
-		};
-	}, [city]);
+	const { data: leagues = [], isLoading } = useLeagues(city);
 
 	return (
 		<select
 			id={id}
 			value={value}
 			onChange={(e) => onChange(e.target.value)}
-			disabled={loading}
+			disabled={isLoading}
 			className={selectClassName ?? DEFAULT_CLASS}
 		>
-			{loading ? (
+			{isLoading ? (
 				<option value="">Cargando ligas…</option>
 			) : leagues.length === 0 ? (
-				<>
-					<option value="">No hay ligas activas</option>
-				</>
+				<option value="">No hay ligas activas</option>
 			) : (
 				<>
 					<option value="">— Seleccionar liga —</option>
-					{leagues.map((l) => (
-						<option key={l.id} value={l.id}>
-							{titleCase(l.name)} - {titleCase(l.dayOfWeek)}
+					{leagues.map((league) => (
+						<option key={league.id} value={league.id}>
+							{league.label}
 						</option>
 					))}
 				</>

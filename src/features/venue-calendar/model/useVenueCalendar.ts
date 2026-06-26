@@ -10,12 +10,8 @@ import { useState, useCallback, useRef, useEffect, type RefObject } from "react"
 import type { EventInput } from "@fullcalendar/core";
 import type { VenueEvent, CreateRentalPayload, UpdateRentalPayload } from "../types";
 import { mapVenueEventToCalendarEvent } from "../lib/map-calendar-event";
-import {
-	fetchVenueEvents,
-	createRental,
-	updateRental,
-	deleteRental,
-} from "../lib/venue-calendar-api";
+import { fetchVenueEvents } from "../lib/venue-calendar-api";
+import { useRentalMutations } from "./useRentalMutations";
 
 // ── Tipos mínimos de FullCalendar (evita importar de @fullcalendar/react e interaction) ──
 
@@ -102,8 +98,6 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 	const [view, setView] = useState<"week" | "day">("week");
 	const [viewTitle, setViewTitle] = useState("");
 	const [displayEvents, setDisplayEvents] = useState<VenueEvent[]>([]);
-	const [isSaving, setIsSaving] = useState(false);
-	const [error, setError] = useState<string | null>(null);
 
 	const [modal, setModal] = useState<ModalState>({
 		isOpen: false,
@@ -142,6 +136,15 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 		setSelectedVenueIdState(id);
 	}
 
+	// El refetch de FullCalendar es la "invalidación" del calendario: los eventos
+	// no son una query RQ (los maneja el motor de FC), así que las mutaciones lo
+	// disparan al tener éxito.
+	const refetch = useCallback((): void => {
+		calendarRef.current?.getApi().refetchEvents();
+	}, []);
+
+	const rentals = useRentalMutations(selectedVenueId, { onSuccess: refetch });
+
 	function onDatesSet(arg: DatesSetInfo): void {
 		setViewTitle(arg.view.title);
 		setView(arg.view.type === "timeGridDay" ? "day" : "week");
@@ -154,15 +157,13 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 			arg.revert();
 			return;
 		}
-		try {
-			await updateRental(venueEvent.rentalId, {
-				startAt: arg.event.startStr,
-				endAt: arg.event.endStr ?? undefined,
-			});
-		} catch (dropError) {
-			console.error("[useVenueCalendar] handleDrop", dropError);
-			arg.revert();
-		}
+		rentals.updateRental(
+			{
+				id: venueEvent.rentalId,
+				payload: { startAt: arg.event.startStr, endAt: arg.event.endStr ?? undefined },
+			},
+			{ onError: () => arg.revert() },
+		);
 	}
 
 	// Resize — solo rentas
@@ -172,58 +173,40 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 			arg.revert();
 			return;
 		}
-		try {
-			await updateRental(venueEvent.rentalId, {
-				startAt: arg.event.startStr,
-				endAt: arg.event.endStr,
-			});
-		} catch (resizeError) {
-			console.error("[useVenueCalendar] handleResize", resizeError);
-			arg.revert();
-		}
+		rentals.updateRental(
+			{
+				id: venueEvent.rentalId,
+				payload: { startAt: arg.event.startStr, endAt: arg.event.endStr },
+			},
+			{ onError: () => arg.revert() },
+		);
 	}
 
-	async function handleCreate(payload: CreateRentalPayload): Promise<void> {
-		setIsSaving(true);
-		setError(null);
-		try {
-			await createRental(selectedVenueId, payload);
-			setModal((m) => ({ ...m, isOpen: false }));
-			calendarRef.current?.getApi().refetchEvents();
-		} catch (createError) {
-			setError(createError instanceof Error ? createError.message : "Error inesperado");
-		} finally {
-			setIsSaving(false);
-		}
+	function handleCreate(payload: CreateRentalPayload): Promise<void> {
+		rentals.createRental(payload, {
+			onSuccess: () => setModal((m) => ({ ...m, isOpen: false })),
+		});
+		return Promise.resolve();
 	}
 
-	async function handleUpdate(id: string, payload: UpdateRentalPayload): Promise<void> {
-		setIsSaving(true);
-		setError(null);
-		try {
-			await updateRental(id, payload);
-			setModal((m) => ({ ...m, isOpen: false }));
-			setPopover((p) => ({ ...p, isOpen: false }));
-			calendarRef.current?.getApi().refetchEvents();
-		} catch (updateError) {
-			setError(updateError instanceof Error ? updateError.message : "Error inesperado");
-		} finally {
-			setIsSaving(false);
-		}
+	function handleUpdate(id: string, payload: UpdateRentalPayload): Promise<void> {
+		rentals.updateRental(
+			{ id, payload },
+			{
+				onSuccess: () => {
+					setModal((m) => ({ ...m, isOpen: false }));
+					setPopover((p) => ({ ...p, isOpen: false }));
+				},
+			},
+		);
+		return Promise.resolve();
 	}
 
-	async function handleDelete(id: string): Promise<void> {
-		setIsSaving(true);
-		setError(null);
-		try {
-			await deleteRental(id);
-			setPopover((p) => ({ ...p, isOpen: false }));
-			calendarRef.current?.getApi().refetchEvents();
-		} catch (deleteError) {
-			setError(deleteError instanceof Error ? deleteError.message : "Error inesperado");
-		} finally {
-			setIsSaving(false);
-		}
+	function handleDelete(id: string): Promise<void> {
+		rentals.deleteRental(id, {
+			onSuccess: () => setPopover((p) => ({ ...p, isOpen: false })),
+		});
+		return Promise.resolve();
 	}
 
 	return {
@@ -253,7 +236,7 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 		handleDelete,
 		handleDrop,
 		handleResize,
-		isSaving,
-		error,
+		isSaving: rentals.isSaving,
+		error: rentals.error,
 	};
 }

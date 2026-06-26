@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Suspense } from "react";
 import { MapPin } from "lucide-react";
-import { apiFetch } from "@/shared/api/client";
+import { useCities } from "@/shared/hooks/useCities";
 
 function CityFilterInner() {
 	const router = useRouter();
@@ -12,19 +11,7 @@ function CityFilterInner() {
 	const params = useSearchParams();
 	const current = params.get("city") ?? "Tijuana";
 
-	const [cities, setCities] = useState<string[]>([]);
-
-	useEffect(() => {
-		let cancelled = false;
-		apiFetch<string[]>("/api/cities")
-			.then((result) => {
-				if (!cancelled && result.ok && Array.isArray(result.data)) setCities(result.data);
-			})
-			.catch((networkError) => console.error("[CityFilter] cargar ciudades", networkError));
-		return () => {
-			cancelled = true;
-		};
-	}, []);
+	const { data: cities = [] } = useCities();
 
 	function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
 		const next = new URLSearchParams(params.toString());
