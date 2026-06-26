@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # ── Paso 1: Tabla legible en los logs ───────────────────────────────────
       # Muestra Package | CVE | Severity | Installed | Fixed en los logs
@@ -155,7 +155,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Show all vulnerabilities (human-readable)
         uses: aquasecurity/trivy-action@master
