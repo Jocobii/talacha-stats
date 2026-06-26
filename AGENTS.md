@@ -370,8 +370,15 @@ POST   /api/[recurso]/[accion]      → acción especial (ej: /merge, /confirm, 
 
 - **Server Components por defecto** (§3.3). `"use client"` solo para estado/interacción.
 - **Tailwind, sin CSS custom** salvo `globals.css`. Colores del sistema: `green-600` para acciones primarias, `gray-*` para neutros, `red-*` para destructivos. **Modo claro forzado** — panel administrativo, sin dark mode.
-- **Sin librerías de formularios** (react-hook-form, formik). El proyecto es suficientemente simple: validar en cliente para feedback inmediato, validar en server como fuente de verdad, y siempre mostrar el error de la API en la UI.
-- **Peticiones internas desde el cliente:** siempre `apiFetch<T>` de `@/shared/api/client`, nunca `fetch()` desnudo (serializa el body, respeta el error del backend, devuelve `ApiResult<T>` tipado). Para Server Components que llaman rutas internas, usar `serverFetch` de `@/shared/lib/server-fetch`.
+- **Formularios = React Hook Form + `zodResolver`** (`@hookform/resolvers`). Stack estándar del proyecto (2026): cada formulario se cablea a un **Zod schema único** que vive en `model/*-form-schema.ts` (client-safe, sin imports de `@/db`) y que **también** valida el API route con `safeParse`. Define la validación una vez, infiere los tipos de ahí. Inputs no-controlados (cero `useState`-soup); valores no estándar (chips, pickers) vía `Controller`. El server sigue siendo la fuente de verdad y la UI siempre muestra el error de la API. No usar formik ni validación a mano con `useState`.
+- **Estado-de-servidor = TanStack Query** (`@tanstack/react-query`). Lecturas y mutaciones a rutas internas se hacen con `useQuery`/`useMutation` (caché, `isPending`/`isError`, invalidación), envueltos en hooks por feature en `model/` (p. ej. `useCreateLeague`). No reinventar loading/error con `useState`. El `QueryClientProvider` se monta una vez en `RootLayout`.
+- **Tablas/grids con muchos datos = TanStack Table** (`@tanstack/react-table`, ya instalado) — headless, para orden/filtro/paginación.
+- **Peticiones internas desde el cliente:** siempre `apiFetch<T>` de `@/shared/api/client` (es el transporte dentro de los `queryFn`/`mutationFn`), nunca `fetch()` desnudo (serializa el body, respeta el error del backend, devuelve `ApiResult<T>` tipado). Para Server Components que llaman rutas internas, usar `serverFetch` de `@/shared/lib/server-fetch`.
+- **Nunca llames `setState` síncronamente dentro de un `useEffect`.** Dispara renders en cascada y rompe el lint de React (`react-hooks/set-state-in-effect`). En su lugar:
+  - Para **inicializar estado** desde una fuente externa (localStorage, props calculadas), usa el **lazy initializer** de `useState`: `useState(() => leerValorInicial())`, con guarda `typeof window === "undefined"` para SSR. No restaures con `setState` en un efecto.
+  - Para **derivar** un valor de otros estados/props, **calcúlalo durante el render** (o `useMemo`), no con un efecto + `setState`.
+  - Reserva `useEffect` para sincronizar con sistemas externos (escribir a localStorage, suscripciones, DOM). Llamar `setState` solo dentro de un **callback** de evento o de suscripción, nunca en el cuerpo del efecto.
+  - Referencia: https://react.dev/learn/you-might-not-need-an-effect
 
 ---
 
@@ -464,6 +471,9 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 - **No dupliques tipos** si Zod puede inferirlos
 - **No uses CSS custom** cuando Tailwind lo puede hacer
 - **No agregues entradas a `.trivyignore` sin comentario** de justificación
+- **No escribas `try/catch` vacíos** ni silencies errores (§18.4)
+- **No consumas el DTO crudo en la UI** en código nuevo — pasa por un mapper a `XView` (§19)
+- **No entregues código nuevo sin pruebas** (componentes con lógica, hooks, mappers y funciones puras, §20)
 
 ---
 
@@ -482,6 +492,10 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 - [ ] ¿Si toqué algo en `src/lib/`, lo migré a FSD?
 - [ ] ¿Las nuevas dependencias no tienen CVEs HIGH/CRITICAL sin fix?
 - [ ] ¿Si agregué algo a `.trivyignore`, tiene comentario de justificación?
+- [ ] ¿Usé early returns y me mantuve en ≤ 3 niveles de indentación? (§18.1–18.2)
+- [ ] ¿Todo `try/catch` maneja o re-propaga el error explícitamente? (§18.4)
+- [ ] ¿El código nuevo expone `XView` a la UI vía mapper, no el DTO crudo? (§19)
+- [ ] ¿Agregué pruebas (Vitest + Testing Library) cubriendo loading/error/nulos/edge cases? (§20)
 
 **Identidad global (si el feature toca V2)**
 
@@ -790,3 +804,155 @@ Antes de escribir código que maneje datos, pregúntate en silencio:
 3. ¿Estoy descargando datos que el usuario no está viendo ahora mismo? → Refactorizar el endpoint.
 
 Si debes poner lógica de negocio en el frontend, **debes** comenzar tu respuesta con una justificación breve explicando por qué rompe la arquitectura estándar y por qué es inevitable.
+
+---
+
+## 18. Clean Code estricto — patrones de diseño (refuerza §3.5)
+
+§3.5 ya fija los límites de tamaño (componente ≤ 150, orquestador ≤ 80, función ≤ 20) y SRP. Estas reglas los complementan y son igual de inquebrantables.
+
+### 18.1 Early returns — patrón Bouncer
+
+Falla rápido. Las validaciones, guardas y casos base van **al principio** de la función. El "happy path" queda limpio y al final, sin anidar en `else`.
+
+```typescript
+// ✅ BIEN — guardas arriba, happy path plano
+function buildPlayerView(member: LeagueMember | null): PlayerView | null {
+	if (!member) return null;
+	if (member.status !== "active") return null;
+	return mapLeagueMemberToPlayerView(member);
+}
+
+// ❌ MAL — anidación de if/else, happy path enterrado
+function buildPlayerView(member: LeagueMember | null) {
+	if (member) {
+		if (member.status === "active") {
+			return mapLeagueMemberToPlayerView(member);
+		} else {
+			return null;
+		}
+	} else {
+		return null;
+	}
+}
+```
+
+### 18.2 Máximo 2–3 niveles de indentación
+
+Prohibido el "callback hell" y la anidación profunda. Si una función pasa de **3 niveles** de indentación, extrae la rama interna a una función con nombre. Esto trabaja en conjunto con los early returns (§18.1) y el límite de 20 líneas por función (§3.5).
+
+### 18.3 Inmutabilidad por defecto
+
+- `const` siempre. `let` solo si es estrictamente inevitable; `var` nunca.
+- No mutar arrays, estados ni props. Usa spread / métodos funcionales (`map`, `filter`, `reduce`) en vez de `push`/`splice`/asignación in-place.
+- Esto extiende "declarativo sobre imperativo" de §3.5.
+
+```typescript
+// ✅ BIEN
+const activeMembers = members.filter((member) => member.status === "active");
+
+// ❌ MAL — mutación
+const activeMembers = [];
+for (const member of members) {
+	if (member.status === "active") activeMembers.push(member);
+}
+```
+
+### 18.4 Manejo de errores predecible — Error Boundaries
+
+- **Prohibido `try/catch` vacío** o que silencie el error. Si capturas, o lo manejas explícitamente o lo re-propagas.
+- En React, usa **Error Boundaries** para que un fallo de render no tumbe toda la app; propaga el error hacia la UI con un estado de error claro (TanStack Query ya expone `isError`/`error`, §7.2).
+- En el server solo `console.error` para errores reales (§11). Nunca tragues un error de DB o de validación.
+
+```typescript
+// ❌ MAL — error silenciado
+try {
+	await confirmImport(parsed);
+} catch (caughtError) {
+	// nada
+}
+
+// ✅ BIEN — manejo explícito y propagación
+try {
+	await confirmImport(parsed);
+} catch (caughtError) {
+	console.error("confirmImport failed", caughtError);
+	return apiError("No se pudo confirmar la importación", 500);
+}
+```
+
+---
+
+## 19. Límite API ↔ UI — mapper DTO → ViewModel (código nuevo)
+
+Regla para **features y lecturas nuevas** (no obliga a migrar lo existente, pero todo código nuevo la cumple sin excepción):
+
+- Cada lectura de la API/DB pasa por un **mapper puro** que convierte el DTO/entidad cruda en un **ViewModel** orientado a la UI (`mapLeagueMemberToPlayerView`, `mapMatchDtoToMatchView`).
+- Los componentes consumen **exclusivamente el `XView`**, nunca el DTO crudo ni la entidad de Drizzle directamente.
+- El mapper es donde aplicas `titleCase()` (§5), formateos de fecha/moneda y el data siloing (§14) — así el ViewModel jamás carga campos privados (`internal_notes`, `institution_photo_url`).
+
+```typescript
+// features/player-profile/lib/map-player-view.ts ✅ función pura, testeable
+import { titleCase } from "@/shared/lib/normalize";
+
+export function mapLeagueMemberToPlayerView(member: LeagueMember): PlayerView {
+	return {
+		id: member.id,
+		displayName: titleCase(member.fullName),
+		teamName: member.team ? titleCase(member.team.name) : null,
+		// NO se exponen internal_notes ni institution_photo_url
+	};
+}
+```
+
+**Dónde vive:** el mapper en `features/[nombre]/lib/map-*.ts` (puro, sin imports de `@/db`); el tipo `XView` en `features/[nombre]/types.ts`. Esto encaja con "Thin Client, Smart Backend" (§17): el backend entrega el DTO acotado, el mapper le da la forma exacta que la UI consume. No reintroduce lógica de negocio en el cliente — el mapper solo transforma forma, no calcula reglas.
+
+> Coherencia con §4.1: los tipos de DB se siguen infiriendo con `$inferSelect`. El DTO es esa entidad inferida; el `XView` es un tipo nuevo de la feature. No dupliques tipos de DB a mano.
+
+---
+
+## 20. Testing estricto — obligatorio
+
+> El código **no está completo sin sus pruebas**. Stack del proyecto: **Vitest** + **@testing-library/react** + `jsdom` (unit/componente) y **Playwright** (e2e). No introducir Jest ni otro runner.
+
+### 20.1 Qué debe llevar prueba
+
+- **Componentes** con lógica condicional o estados (loading/error/empty) → test con Testing Library.
+- **Custom Hooks** (`model/use*.ts`) → test de comportamiento (no de implementación).
+- **Mappers** (§19) y **funciones puras** de `lib/` → test unitario directo (entrada → salida).
+
+### 20.2 Cobertura de casos, no solo el happy path
+
+Prueba explícitamente: estados de carga, estados de error, valores nulos/vacíos y edge cases (jornada 0, roster vacío, CURP dummy `PENDING_*`, walkover/forfeit). Un test que solo cubre el happy path se considera incompleto.
+
+### 20.3 Mocks estrictos
+
+Aísla la unidad: mockea `apiFetch`/`serverFetch`, rutas de Next y dependencias externas para evitar tests frágiles. Nunca pegues a la DB real ni a la red en pruebas unitarias.
+
+### 20.4 Ubicación y naming
+
+- Co-locado con el archivo: `use-team-roster.test.ts`, `map-player-view.test.ts`, `PlayerCard.test.tsx`.
+- `.test.tsx` para componentes/hooks; `.test.ts` para mappers/utils.
+
+```typescript
+// features/player-profile/lib/map-player-view.test.ts
+import { describe, it, expect } from "vitest";
+import { mapLeagueMemberToPlayerView } from "./map-player-view";
+
+describe("mapLeagueMemberToPlayerView", () => {
+	it("aplica titleCase al nombre", () => {
+		const view = mapLeagueMemberToPlayerView(buildMember({ fullName: "juan de la cruz" }));
+		expect(view.displayName).toBe("Juan de la Cruz");
+	});
+
+	it("no expone campos privados de la liga", () => {
+		const view = mapLeagueMemberToPlayerView(buildMember({ internalNotes: "secreto" }));
+		expect(view).not.toHaveProperty("internalNotes");
+	});
+
+	it("teamName es null cuando no hay equipo asignado", () => {
+		const view = mapLeagueMemberToPlayerView(buildMember({ team: null }));
+		expect(view.teamName).toBeNull();
+	});
+});
+```

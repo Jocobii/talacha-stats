@@ -3,6 +3,7 @@ import "./globals.css";
 import TrackVisit from "@/shared/ui/TrackVisit";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/shared/theme/ThemeProvider";
+import { QueryProvider } from "@/shared/api/QueryProvider";
 
 const siteUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 
@@ -74,7 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 	return (
 		<html lang="es" className="h-full">
 			<head>
-				{ }
+				{}
 				<script dangerouslySetInnerHTML={{ __html: antiFlash }} />
 				<script
 					type="application/ld+json"
@@ -83,9 +84,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 			</head>
 			<body className="min-h-full antialiased">
 				<ThemeProvider>
-					<TrackVisit />
-					<Analytics />
-					{children}
+					<QueryProvider>
+						<TrackVisit />
+						<Analytics />
+						{children}
+					</QueryProvider>
 				</ThemeProvider>
 			</body>
 		</html>

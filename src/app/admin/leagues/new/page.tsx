@@ -1,6 +1,6 @@
 import { getSessionUser } from "@/shared/lib/auth";
 import { listOrganizations, getOrganizationByUserId } from "@/entities/organization";
-import NewLeagueForm from "./NewLeagueForm";
+import { QuickCreateLeagueForm } from "@/features/league-onboarding/ui/QuickCreateLeagueForm";
 
 export default async function NewLeaguePage() {
 	const session = await getSessionUser();
@@ -16,7 +16,7 @@ export default async function NewLeaguePage() {
 	}
 
 	return (
-		<NewLeagueForm
+		<QuickCreateLeagueForm
 			organizations={organizations}
 			defaultOrganizationId={session?.organizationId ?? undefined}
 		/>
