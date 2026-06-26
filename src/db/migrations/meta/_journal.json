@@ -22,6 +22,13 @@
 			"when": 1779326463433,
 			"tag": "0034_dry_skrulls",
 			"breakpoints": true
+		},
+		{
+			"idx": 35,
+			"version": "7",
+			"when": 1782508064739,
+			"tag": "0035_demonic_madame_hydra",
+			"breakpoints": true
 		}
 	]
 }

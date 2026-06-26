@@ -1,6 +1,7 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getSessionUser } from "@/shared/lib/auth";
-import { listOrganizations, getOrganizationByUserId } from "@/entities/organization";
+import { listOrganizations } from "@/entities/organization";
 import { redirect } from "next/navigation";
 
 export default async function OrganizationsPage() {
@@ -63,7 +64,7 @@ export default async function OrganizationsPage() {
 						>
 							<div className="flex items-start gap-3 mb-3">
 								{org.logoUrl ? (
-									<img
+									<Image
 										src={org.logoUrl}
 										alt={org.name}
 										className="w-10 h-10 rounded-lg object-cover flex-shrink-0"

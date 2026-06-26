@@ -85,3 +85,24 @@ export async function apiFetch<T>(url: string, options: FetchOptions = {}): Prom
 
 	return { ok: true, data: (payload as { data: T }).data };
 }
+
+/**
+ * Variante para subir archivos (multipart/form-data). `apiFetch` serializa JSON
+ * y no sirve para `File`; usa esta para uploads. No setea Content-Type a
+ * propósito: el browser agrega el boundary correcto del FormData.
+ *
+ * Devuelve el mismo `ApiResult<T>` y respeta el error del backend.
+ */
+export async function apiUpload<T>(url: string, formData: FormData): Promise<ApiResult<T>> {
+	const res = await fetch(url, { method: "POST", body: formData });
+	const payload: unknown = await res.json();
+
+	if (!res.ok || !(payload as { ok?: boolean }).ok) {
+		return {
+			ok: false,
+			error: (payload as { error?: string }).error ?? "Error inesperado",
+		};
+	}
+
+	return { ok: true, data: (payload as { data: T }).data };
+}

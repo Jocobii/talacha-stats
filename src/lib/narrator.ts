@@ -24,119 +24,37 @@ import { eq, and, desc, inArray, sql } from "drizzle-orm";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Tipos públicos del módulo
+//
+// La fuente de verdad de estos tipos es `entities/narrator` (§7.4). Aquí se
+// re-exportan para no romper a los consumidores legacy (export-pdf/png) mientras
+// este archivo migra a `features/narrator-analysis/analysis.ts` (§10).
 // ────────────────────────────────────────────────────────────────────────────
 
-export type DangerRating = "ALTO" | "MEDIO" | "BAJO";
+import type {
+	DangerRating,
+	RosterPlayer,
+	TeamStreak,
+	TeamAnalysis,
+	H2HRecord,
+	WinProbability,
+	PositionScenario,
+	PositionSimulator,
+	LeagueStandingRow,
+	MatchPrediction,
+	NarratorAnalysis,
+} from "@/entities/narrator";
 
-export type RosterPlayer = {
-	playerId: string;
-	fullName: string;
-	alias: string | null;
-	goals: number;
-	assists: number;
-	contributions: number; // goals + assists — métrica combinada
-	yellowCards: number;
-	redCards: number;
-	matchesPlayed: number;
-	goalsPerMatch: number;
-	dangerRating: DangerRating;
-};
-
-export type TeamStreak = { type: "W" | "D" | "L"; count: number };
-
-export type TeamAnalysis = {
-	team: { id: string; name: string };
-	position: number | null;
-	record: { wins: number; draws: number; losses: number; played: number };
-	points: number;
-	goalsFor: number;
-	goalsAgainst: number;
-	goalDiff: number;
-	avgGoalsFor: number;
-	avgGoalsAgainst: number;
-	last5: ("W" | "D" | "L")[];
-	currentStreak: TeamStreak | null;
-	roster: RosterPlayer[];
-	topScorer: RosterPlayer | null;
-	topAssist: RosterPlayer | null;
-	topContributor: RosterPlayer | null;
-	topScoringThreats: RosterPlayer[];
-	cardRisk: {
-		player: string;
-		alias: string | null;
-		yellowCards: number;
-		redCards: number;
-		note: string;
-	}[];
-	attackRank: number | null;
-	defenseRank: number | null;
-	totalTeams: number;
-};
-
-export type H2HRecord = {
-	total: number;
-	aWins: number;
-	draws: number;
-	bWins: number;
-	lastMatch: {
-		date: string;
-		aGoals: number;
-		bGoals: number;
-		result: string;
-	} | null;
-};
-
-export type WinProbability = {
-	aWinPct: number;
-	drawPct: number;
-	bWinPct: number;
-	method: string;
-};
-
-export type PositionScenario = {
-	currentPoints: number;
-	currentPosition: number | null;
-	ifWin: number | null;
-	ifDraw: number | null;
-	ifLoss: number | null;
-};
-
-export type PositionSimulator = {
-	teamA: PositionScenario;
-	teamB: PositionScenario;
-};
-
-type LeagueStandingRow = {
-	teamId: string;
-	points: number;
-	goalsFor: number;
-	goalsAgainst: number;
-};
-
-export type MatchPrediction = {
-	expectedGoalsA: number;
-	expectedGoalsB: number;
-	expectedTotal: number;
-	totalLabel: "cerrado" | "abierto" | "festival";
-	likelyScoreA: number;
-	likelyScoreB: number;
-	bothTeamsToScore: boolean;
-	offensiveEdge: "A" | "B" | "equal";
-	defensiveEdge: "A" | "B" | "equal";
-	hasData: boolean;
-};
-
-export type NarratorAnalysis = {
-	league: { id: string; name: string; season: string };
-	lastMatchday: number | null;
-	teamA: TeamAnalysis;
-	teamB: TeamAnalysis;
-	winProbability: WinProbability;
-	headToHead: H2HRecord;
-	positionSimulator: PositionSimulator;
-	matchPrediction: MatchPrediction;
-	narratorBullets: string[];
-	funFacts: string[];
+export type {
+	DangerRating,
+	RosterPlayer,
+	TeamStreak,
+	TeamAnalysis,
+	H2HRecord,
+	WinProbability,
+	PositionScenario,
+	PositionSimulator,
+	MatchPrediction,
+	NarratorAnalysis,
 };
 
 // ────────────────────────────────────────────────────────────────────────────

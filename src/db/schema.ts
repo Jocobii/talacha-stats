@@ -974,6 +974,28 @@ export const pageViews = pgTable(
 export type PageView = typeof pageViews.$inferSelect;
 
 // ---------------------------------------------------------------------------
+// NARRATOR_ANALYSIS_EVENTS — Métrica de uso del módulo de análisis del narrador
+// Una fila por análisis generado. Sirve para medir qué tan usado es el módulo
+// (sobre todo el flujo Excel público) cuando salga a producción.
+// ---------------------------------------------------------------------------
+export const narratorAnalysisEvents = pgTable(
+	"narrator_analysis_events",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		source: text("source").notNull(), // "excel" | "database"
+		leagueName: text("league_name"), // nombre crudo (Excel no tiene league_id)
+		teamAName: text("team_a_name").notNull(),
+		teamBName: text("team_b_name").notNull(),
+		visitorId: uuid("visitor_id"), // cookie del visitante, si existe
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("nae_source_idx").on(t.source), index("nae_created_at_idx").on(t.createdAt)],
+);
+
+export type NarratorAnalysisEvent = typeof narratorAnalysisEvents.$inferSelect;
+export type NewNarratorAnalysisEvent = typeof narratorAnalysisEvents.$inferInsert;
+
+// ---------------------------------------------------------------------------
 // IMPORT_AUDIT_LOG — Registro de cada importación realizada
 // Permite auditar qué se importó, cuándo, por quién, y si hubo anomalías.
 // ---------------------------------------------------------------------------

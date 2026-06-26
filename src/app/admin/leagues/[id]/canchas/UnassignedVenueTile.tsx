@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { MapPin, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { Venue } from "@/entities/venue";
 
 type UnassignedVenueTileProps = {

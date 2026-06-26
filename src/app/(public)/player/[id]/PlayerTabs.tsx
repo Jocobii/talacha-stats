@@ -101,13 +101,7 @@ function TemporadaTab({
 
 // ── Tab 2: Carrera ────────────────────────────────────────────────────────────
 
-function CarreraTab({
-	leagues,
-	global: g,
-}: {
-	leagues: PlayerLeagueStats[];
-	global: PlayerGlobalProfile;
-}) {
+function CarreraTab({ leagues }: { leagues: PlayerLeagueStats[]; global: PlayerGlobalProfile }) {
 	const finished = leagues.filter((l) => l.leagueStatus === "finished");
 
 	if (finished.length === 0) {

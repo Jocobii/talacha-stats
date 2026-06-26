@@ -10,7 +10,7 @@ import {
 	getLeagueZones,
 } from "@/entities/organization";
 import { db } from "@/db";
-import { playoffBrackets, playoffSlots } from "@/db/schema";
+import { playoffBrackets } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import type { PublicBracket } from "./PublicBracketView";
 import { titleCase } from "@/shared/lib/normalize";
