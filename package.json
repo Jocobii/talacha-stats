@@ -36,12 +36,12 @@
 	},
 	"dependencies": {
 		"@commitlint/types": "^20.5.0",
-		"@fullcalendar/core": "^6.1.20",
-		"@fullcalendar/interaction": "^6.1.20",
-		"@fullcalendar/react": "^6.1.20",
-		"@fullcalendar/timegrid": "^6.1.20",
+		"@fullcalendar/core": "^6.1.21",
+		"@fullcalendar/interaction": "^6.1.21",
+		"@fullcalendar/react": "^6.1.21",
+		"@fullcalendar/timegrid": "^6.1.21",
 		"@hookform/resolvers": "^5.4.0",
-		"@supabase/supabase-js": "^2.103.0",
+		"@supabase/supabase-js": "^2.108.2",
 		"@tanstack/react-query": "^5.101.1",
 		"@tanstack/react-table": "8.21.3",
 		"@types/pg": "^8.20.0",
@@ -49,48 +49,47 @@
 		"@vercel/analytics": "^2.0.1",
 		"drizzle-orm": "^0.45.2",
 		"exceljs": "^4.4.0",
-		"lucide-react": "^1.8.0",
+		"lucide-react": "^1.21.0",
 		"next": "16.2.6",
 		"pdfkit": "^0.18.0",
-		"pg": "^8.20.0",
+		"pg": "^8.22.0",
 		"qrcode": "^1.5.4",
 		"react": "19.2.4",
 		"react-dom": "19.2.4",
 		"react-hook-form": "^7.80.0",
-		"resend": "^6.12.2",
+		"resend": "^6.14.0",
 		"sileo": "^0.1.5",
-		"zod": "^4.3.6",
-		"zustand": "^5.0.13"
+		"zod": "^4.4.3",
+		"zustand": "^5.0.14"
 	},
 	"optionalDependencies": {
 		"@jocobi/db-tools": "git+https://github.com/Jocobii/db-tools.git"
 	},
 	"devDependencies": {
-		"@commitlint/cli": "^19.8.0",
-		"@commitlint/config-conventional": "^19.8.0",
-		"@playwright/test": "^1.59.1",
-		"@tailwindcss/postcss": "^4",
+		"@commitlint/cli": "^19.8.1",
+		"@commitlint/config-conventional": "^19.8.1",
+		"@playwright/test": "^1.61.1",
+		"@tailwindcss/postcss": "^4.3.1",
 		"@testing-library/dom": "^10.4.1",
 		"@testing-library/react": "^16.3.2",
-		"@types/node": "^24",
-		"@types/pdfkit": "^0.17.5",
-		"@types/react": "^19",
-		"@types/react-dom": "^19",
-		"@vitejs/plugin-react": "^6.0.1",
+		"@types/node": "^24.13.2",
+		"@types/pdfkit": "^0.17.6",
+		"@types/react": "^19.2.17",
+		"@types/react-dom": "^19.2.3",
 		"dotenv": "^17.4.2",
 		"drizzle-kit": "^0.31.10",
-		"eslint": "^9",
+		"eslint": "^9.39.4",
 		"eslint-config-next": "16.2.3",
-		"eslint-config-prettier": "^10.1.5",
+		"eslint-config-prettier": "^10.1.8",
 		"husky": "^9.1.7",
-		"jsdom": "^29.1.0",
-		"lint-staged": "^15.5.1",
-		"prettier": "^3.5.3",
-		"tailwindcss": "^4",
-		"tsx": "^4.21.0",
-		"typescript": "^5",
-		"vite-tsconfig-paths": "^6.1.1",
-		"vitest": "^4.1.5"
+		"jsdom": "^29.1.1",
+		"lint-staged": "^15.5.2",
+		"prettier": "^3.8.4",
+		"tailwindcss": "^4.3.1",
+		"tsx": "^4.22.4",
+		"typescript": "^5.9.3",
+		"vite": "^8.1.0",
+		"vitest": "^4.1.9"
 	},
 	"lint-staged": {
 		"*.{ts,tsx}": [
@@ -104,7 +103,9 @@
 	"pnpm": {
 		"overrides": {
 			"postcss@<8.5.10": ">=8.5.10",
-			"exceljs>uuid": "~14.0.0"
+			"exceljs>uuid": "~14.0.0",
+			"vite": "^8.0.16",
+			"esbuild": "^0.25.0"
 		}
 	}
 }
