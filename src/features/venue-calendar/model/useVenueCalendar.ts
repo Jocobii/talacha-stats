@@ -9,7 +9,13 @@
 import { useState, useCallback, useRef, useEffect, type RefObject } from "react";
 import type { EventInput } from "@fullcalendar/core";
 import type { VenueEvent, CreateRentalPayload, UpdateRentalPayload } from "../types";
-import { EVENT_COLORS } from "../constants";
+import { mapVenueEventToCalendarEvent } from "../lib/map-calendar-event";
+import {
+	fetchVenueEvents,
+	createRental,
+	updateRental,
+	deleteRental,
+} from "../lib/venue-calendar-api";
 
 // ── Tipos mínimos de FullCalendar (evita importar de @fullcalendar/react e interaction) ──
 
@@ -41,30 +47,6 @@ type ResizeArg = {
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function toCalendarEvent(e: VenueEvent): EventInput {
-	const colors = EVENT_COLORS[e.type];
-	return {
-		id: e.id,
-		title: e.clientName ?? e.leagueName ?? e.title,
-		start: e.startAt,
-		end: e.endAt,
-		backgroundColor: colors.background,
-		borderColor: colors.border,
-		textColor: colors.text,
-		extendedProps: { venueEvent: e },
-	};
-}
-
-async function patchRental(id: string, payload: UpdateRentalPayload): Promise<boolean> {
-	const res = await fetch(`/api/venue-rentals/${id}`, {
-		method: "PATCH",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(payload),
-	});
-	const json = (await res.json()) as { ok: boolean };
-	return Boolean(json.ok);
-}
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -139,15 +121,13 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 	// FullCalendar events source — llamado por FC al cambiar el rango de fechas
 	const fetchEvents = useCallback(
 		(info: FetchInfo, successCb: SuccessCb, failureCb: FailureCb): void => {
-			fetch(`/api/venues/${selectedVenueId}/events?start=${info.startStr}&end=${info.endStr}`)
-				.then((res) => res.json())
-				.then((json: { ok: boolean; data: VenueEvent[]; error?: string }) => {
-					if (!json.ok) throw new Error(json.error ?? "Error al cargar eventos");
-					setDisplayEvents(json.data);
-					successCb(json.data.map(toCalendarEvent));
+			fetchVenueEvents(selectedVenueId, { start: info.startStr, end: info.endStr })
+				.then((events) => {
+					setDisplayEvents(events);
+					successCb(events.map(mapVenueEventToCalendarEvent));
 				})
-				.catch((e: unknown) => {
-					failureCb(e instanceof Error ? e : new Error("Error inesperado"));
+				.catch((fetchError: unknown) => {
+					failureCb(fetchError instanceof Error ? fetchError : new Error("Error inesperado"));
 				});
 		},
 		[selectedVenueId],
@@ -174,11 +154,15 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 			arg.revert();
 			return;
 		}
-		const ok = await patchRental(venueEvent.rentalId, {
-			startAt: arg.event.startStr,
-			endAt: arg.event.endStr ?? undefined,
-		}).catch(() => false);
-		if (!ok) arg.revert();
+		try {
+			await updateRental(venueEvent.rentalId, {
+				startAt: arg.event.startStr,
+				endAt: arg.event.endStr ?? undefined,
+			});
+		} catch (dropError) {
+			console.error("[useVenueCalendar] handleDrop", dropError);
+			arg.revert();
+		}
 	}
 
 	// Resize — solo rentas
@@ -188,28 +172,26 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 			arg.revert();
 			return;
 		}
-		const ok = await patchRental(venueEvent.rentalId, {
-			startAt: arg.event.startStr,
-			endAt: arg.event.endStr,
-		}).catch(() => false);
-		if (!ok) arg.revert();
+		try {
+			await updateRental(venueEvent.rentalId, {
+				startAt: arg.event.startStr,
+				endAt: arg.event.endStr,
+			});
+		} catch (resizeError) {
+			console.error("[useVenueCalendar] handleResize", resizeError);
+			arg.revert();
+		}
 	}
 
 	async function handleCreate(payload: CreateRentalPayload): Promise<void> {
 		setIsSaving(true);
 		setError(null);
 		try {
-			const res = await fetch(`/api/venues/${selectedVenueId}/rentals`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(payload),
-			});
-			const json = (await res.json()) as { ok: boolean; error?: string };
-			if (!json.ok) throw new Error(json.error ?? "Error al crear renta");
+			await createRental(selectedVenueId, payload);
 			setModal((m) => ({ ...m, isOpen: false }));
 			calendarRef.current?.getApi().refetchEvents();
-		} catch (e) {
-			setError(e instanceof Error ? e.message : "Error inesperado");
+		} catch (createError) {
+			setError(createError instanceof Error ? createError.message : "Error inesperado");
 		} finally {
 			setIsSaving(false);
 		}
@@ -219,18 +201,12 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 		setIsSaving(true);
 		setError(null);
 		try {
-			const res = await fetch(`/api/venue-rentals/${id}`, {
-				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(payload),
-			});
-			const json = (await res.json()) as { ok: boolean; error?: string };
-			if (!json.ok) throw new Error(json.error ?? "Error al actualizar renta");
+			await updateRental(id, payload);
 			setModal((m) => ({ ...m, isOpen: false }));
 			setPopover((p) => ({ ...p, isOpen: false }));
 			calendarRef.current?.getApi().refetchEvents();
-		} catch (e) {
-			setError(e instanceof Error ? e.message : "Error inesperado");
+		} catch (updateError) {
+			setError(updateError instanceof Error ? updateError.message : "Error inesperado");
 		} finally {
 			setIsSaving(false);
 		}
@@ -240,13 +216,11 @@ export function useVenueCalendar(initialVenueId: string): UseVenueCalendarReturn
 		setIsSaving(true);
 		setError(null);
 		try {
-			const res = await fetch(`/api/venue-rentals/${id}`, { method: "DELETE" });
-			const json = (await res.json()) as { ok: boolean; error?: string };
-			if (!json.ok) throw new Error(json.error ?? "Error al eliminar renta");
+			await deleteRental(id);
 			setPopover((p) => ({ ...p, isOpen: false }));
 			calendarRef.current?.getApi().refetchEvents();
-		} catch (e) {
-			setError(e instanceof Error ? e.message : "Error inesperado");
+		} catch (deleteError) {
+			setError(deleteError instanceof Error ? deleteError.message : "Error inesperado");
 		} finally {
 			setIsSaving(false);
 		}

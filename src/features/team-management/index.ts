@@ -11,7 +11,7 @@ export { DeleteTeamSection } from "./ui/DeleteTeamSection";
 export { useTeamRoster } from "./model/useTeamRoster";
 export { useTeamForm } from "./model/useTeamForm";
 export { useTransferModal } from "./model/useTransferModal";
-export { useLeagueTeams, leagueTeamsQueryKey } from "./model/useLeagueTeams";
+export { useLeagueTeams } from "./model/useLeagueTeams";
 
 export {
 	updateTeamInfo,

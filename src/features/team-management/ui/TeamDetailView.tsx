@@ -45,7 +45,7 @@ export function TeamDetailView({ team, initialRoster }: Props) {
 		handleTransfer,
 		handleEditMember,
 		handlePlayerAdded,
-	} = useTeamRoster(team.id, initialRoster);
+	} = useTeamRoster(team.id, team.leagueId, initialRoster);
 
 	const league = { id: team.leagueId, name: team.leagueName, season: team.leagueSeason };
 
@@ -74,6 +74,7 @@ export function TeamDetailView({ team, initialRoster }: Props) {
 				<div className="p-6 flex flex-col gap-0">
 					<TeamSettingsPanel
 						teamId={team.id}
+						leagueId={team.leagueId}
 						initial={{ name: team.name, color: team.color ?? "" }}
 					/>
 					<DeleteTeamSection teamId={team.id} teamName={team.name} leagueId={team.leagueId} />

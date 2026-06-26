@@ -380,6 +380,22 @@ POST   /api/[recurso]/[accion]      → acción especial (ej: /merge, /confirm, 
   - Reserva `useEffect` para sincronizar con sistemas externos (escribir a localStorage, suscripciones, DOM). Llamar `setState` solo dentro de un **callback** de evento o de suscripción, nunca en el cuerpo del efecto.
   - Referencia: https://react.dev/learn/you-might-not-need-an-effect
 
+### 7.3 Datos del frontend — 5 capas y caché (contrato)
+
+> Detalle, racional y plan de migración en `docs/FRONTEND-DATA-STRATEGY.md`. Esto es el contrato corto.
+
+Toda lectura/mutación a rutas internas pasa por estas capas; cada una es testeable por separado:
+
+```
+apiFetch/serverFetch (transporte) → entities (DTO) → lib/map-*.ts (mapper) → model/use*.ts (hooks RQ) → ui/*.tsx (componente tonto)
+```
+
+- **El componente es tonto.** Recibe **ViewModels + callbacks por props**. Cero `fetch`, cero mapeo, cero regla de negocio en la UI. Si un componente arma datos o decide reglas, está mal: muévelo al mapper o al hook.
+- **El mapper es el único puente DTO → ViewModel** (§19) y donde vive la lógica de negocio/formateo. Puro, en `lib/map-*.ts`, con test unitario.
+- **Los hooks RQ son dueños de la caché.** La key SIEMPRE sale de la fábrica central `@/shared/api/query-keys.ts` (`queryKeys.*`); prohibido armar el array a mano. `queryFn`/`mutationFn` usan `apiFetch` y devuelven ViewModels mapeados; en `!ok` hacen `throw new Error(res.error)`.
+- **Invalidación explícita** tras cada mutación con `queryClient.invalidateQueries`, según el mapa de invalidación (ver doc y comentario de `query-keys.ts`). No usar `router.refresh()` para refrescar datos de una query.
+- **Patrón SSR→props:** el Server Component baja el DTO mapeado como `initialData` del hook; el cliente invalida puntualmente en vez de recargar la ruta.
+
 ---
 
 ## 8. Seguridad — reglas para el agente
@@ -931,8 +947,10 @@ Aísla la unidad: mockea `apiFetch`/`serverFetch`, rutas de Next y dependencias 
 
 ### 20.4 Ubicación y naming
 
-- Co-locado con el archivo: `use-team-roster.test.ts`, `map-player-view.test.ts`, `PlayerCard.test.tsx`.
+- Co-locado con el archivo: `use-team-roster.test.ts`, `map-player-view.test.ts`, `PlayerCard.test.tsx`. El harness (`vitest.config.ts`) colecta los co-localizados (`src/**/*.test.{ts,tsx}`), no solo los de `__tests__/`.
 - `.test.tsx` para componentes/hooks; `.test.ts` para mappers/utils.
+- **Entorno por defecto = `node`** (rápido, para tests puros). Los tests que tocan DOM (hooks con `renderHook`, componentes con RTL) declaran su entorno por archivo en la primera línea: `// @vitest-environment jsdom`.
+- **Hooks de Query:** usar `createQueryWrapper()` de `@/shared/test/react-query` y mockear `@/shared/api/client` (única costura de red). Ver `features/team-management/model/useLeagueTeams.test.tsx` como plantilla.
 
 ```typescript
 // features/player-profile/lib/map-player-view.test.ts

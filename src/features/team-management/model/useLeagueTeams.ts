@@ -13,16 +13,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/shared/api/client";
+import { queryKeys } from "@/shared/api/query-keys";
 import type { Team } from "@/entities/team";
 import { TEAMS_BY_LEAGUE_URL } from "../constants";
 import { mapTeamToTeamOption } from "../lib/map-team-option";
 import type { TeamOption } from "../types";
 
-export const leagueTeamsQueryKey = (leagueId: string) => ["league-teams", leagueId] as const;
-
 export function useLeagueTeams(leagueId: string, excludeTeamId?: string) {
 	return useQuery({
-		queryKey: leagueTeamsQueryKey(leagueId),
+		queryKey: queryKeys.leagueTeams(leagueId),
 		enabled: leagueId.length > 0,
 		queryFn: async (): Promise<TeamOption[]> => {
 			const result = await apiFetch<Team[]>(TEAMS_BY_LEAGUE_URL(leagueId));

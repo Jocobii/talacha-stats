@@ -2,12 +2,16 @@
 
 /**
  * features/team-management/model/useTeamForm.ts
- * Estado del formulario de edicion del equipo (nombre, color).
+ * Estado del formulario de edición del equipo (nombre, color). La escritura vive
+ * en useUpdateTeam (TanStack Query). Mantiene `router.refresh()` SOLO para
+ * reflejar el rename en el título, que se renderiza en el Server Component (SSR);
+ * la caché cliente ya se invalida en la mutación. (Cuando el detalle del equipo
+ * pase a ser query con initialData, esto se vuelve invalidación pura.)
  */
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { TEAM_API_URL } from "../constants";
+import { useUpdateTeam } from "./useUpdateTeam";
 import type { TeamFormData } from "../types";
 
 export type UseTeamFormReturn = {
@@ -16,45 +20,52 @@ export type UseTeamFormReturn = {
 	saving: boolean;
 	saved: boolean;
 	error: string;
-	setName: (v: string) => void;
-	setColor: (v: string) => void;
-	handleSave: () => Promise<void>;
+	setName: (value: string) => void;
+	setColor: (value: string) => void;
+	handleSave: () => void;
 };
 
-export function useTeamForm(teamId: string, initial: TeamFormData): UseTeamFormReturn {
+export function useTeamForm(
+	teamId: string,
+	leagueId: string,
+	initial: TeamFormData,
+): UseTeamFormReturn {
 	const [name, setName] = useState(initial.name);
 	const [color, setColor] = useState(initial.color);
-	const [saving, setSaving] = useState(false);
 	const [saved, setSaved] = useState(false);
-	const [error, setError] = useState("");
+	const [validationError, setValidationError] = useState("");
 	const router = useRouter();
 
-	async function handleSave(): Promise<void> {
-		if (!name.trim()) {
-			setError("El nombre es requerido");
-			return;
-		}
-		setSaving(true);
-		setError("");
-		setSaved(false);
-		try {
-			const res = await fetch(TEAM_API_URL(teamId), {
-				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ name: name.trim(), color: color || null }),
-			});
-			const data = (await res.json()) as { ok: boolean; error?: string };
-			if (!data.ok) {
-				setError(data.error ?? "Error al guardar");
-				return;
-			}
+	const {
+		updateTeam,
+		isSaving,
+		error: mutationError,
+	} = useUpdateTeam(teamId, leagueId, {
+		onSuccess: () => {
 			setSaved(true);
 			router.refresh();
 			setTimeout(() => setSaved(false), 3000);
-		} finally {
-			setSaving(false);
+		},
+	});
+
+	function handleSave(): void {
+		if (!name.trim()) {
+			setValidationError("El nombre es requerido");
+			return;
 		}
+		setValidationError("");
+		setSaved(false);
+		updateTeam({ name: name.trim(), color });
 	}
 
-	return { name, color, saving, saved, error, setName, setColor, handleSave };
+	return {
+		name,
+		color,
+		saving: isSaving,
+		saved,
+		error: validationError || mutationError,
+		setName,
+		setColor,
+		handleSave,
+	};
 }

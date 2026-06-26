@@ -30,3 +30,12 @@ export const EVENT_TYPE_LABELS: Record<CalendarEventType, string> = {
 	rental_tentative: "Renta tentativa",
 	rental_cancelled: "Renta cancelada",
 };
+
+// ── URLs de API (sin magic strings dispersos) ───────────────────────────────────
+
+export const VENUE_EVENTS_URL = (venueId: string, range: { start: string; end: string }): string =>
+	`/api/venues/${venueId}/events?start=${range.start}&end=${range.end}`;
+
+export const VENUE_RENTALS_URL = (venueId: string): string => `/api/venues/${venueId}/rentals`;
+
+export const RENTAL_URL = (rentalId: string): string => `/api/venue-rentals/${rentalId}`;

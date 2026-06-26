@@ -5,6 +5,9 @@
 
 export const TEAM_API_URL = (teamId: string): string => `/api/teams/${teamId}`;
 
+/** Roster V2 (RosterEntry[]) — fuente cliente para TanStack Query. */
+export const TEAM_ROSTER_URL = (teamId: string): string => `/api/teams/${teamId}/members`;
+
 export const ROSTER_MEMBER_URL = (teamId: string, memberId: string): string =>
 	`/api/teams/${teamId}/roster/${memberId}`;
 
