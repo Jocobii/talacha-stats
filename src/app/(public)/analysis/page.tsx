@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { apiFetch } from "@/shared/api/client";
-import { LeagueSelect } from "@/shared/ui/LeagueSelect";
+import { LeagueSelect } from "@/features/league-selection";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { BarChart3, ArrowLeft } from "lucide-react";

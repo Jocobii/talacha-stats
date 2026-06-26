@@ -1,6 +1,13 @@
 "use client";
 
-import { useLeagues } from "@/shared/hooks/useLeagues";
+/**
+ * features/league-selection/ui/LeagueSelect.tsx
+ *
+ * Selector de liga. Componente de presentación: consume `useLeagues` (TanStack
+ * Query) y pinta `LeagueOption[]` ya mapeado (sin fetch, sin formateo, sin filtro).
+ */
+
+import { useLeagues } from "../model/useLeagues";
 
 type Props = {
 	value: string;

@@ -400,6 +400,28 @@ apiFetch/serverFetch (transporte) → entities (DTO) → lib/map-*.ts (mapper) �
 - **Invalidación explícita** tras cada mutación con `queryClient.invalidateQueries`, según el mapa de invalidación (ver doc y comentario de `query-keys.ts`). No usar `router.refresh()` para refrescar datos de una query.
 - **Patrón SSR→props:** el Server Component baja el DTO mapeado como `initialData` del hook; el cliente invalida puntualmente en vez de recargar la ruta.
 
+### 7.4 El tipo de respuesta es un DTO nombrado en `entities/` — nunca inline ni exportado desde el route
+
+El genérico `T` de `apiFetch<T>` y el `data` que el route pasa a `apiSuccess(data)` son **el mismo contrato** y deben salir de **un solo tipo nombrado que vive en `entities/[recurso]`** (inferido con `$inferSelect` §4.1, o un `z.infer` de un schema en el módulo de la entidad). Define el tipo una vez; el route lo importa para tipar su salida y el callsite lo importa para el genérico.
+
+```typescript
+// entities/league/model.ts — fuente única del contrato
+export const CreateLeagueResponseSchema = z.object({ id: z.string().uuid() });
+export type CreateLeagueResponse = z.infer<typeof CreateLeagueResponseSchema>;
+
+// app/api/leagues/route.ts (capa app) — importa de entities, valida la salida
+import { type CreateLeagueResponse } from "@/entities/league";
+return apiSuccess<CreateLeagueResponse>({ id: league.id });
+
+// features/league-onboarding/model/useCreateLeague.ts (capa features) — mismo tipo
+import { type CreateLeagueResponse } from "@/entities/league";
+const res = await apiFetch<CreateLeagueResponse>("/api/leagues", { ... });
+```
+
+- **Prohibido `apiFetch<{ ... }>` inline** y prohibido re-declarar el shape a mano en el callsite (§4.1). Si el tipo no existe, créalo en la entidad, no en el componente.
+- **Prohibido exportar el tipo de respuesta desde `route.ts` e importarlo en una feature/entity:** eso es `features → app`, invierte la dependencia y **viola §3.1**. El contrato siempre baja de `entities`, capa que tanto `app` como `features` pueden importar.
+- El DTO de `entities` es la entrada del mapper → `XView` (§19): no se consume crudo en la UI. Este §7.4 fija de dónde sale el DTO; §19 fija cómo se transforma para la UI.
+
 ---
 
 ## 8. Seguridad — reglas para el agente
