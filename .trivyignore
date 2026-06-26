@@ -27,4 +27,9 @@
 # Revisión pendiente: cuando exceljs publique una versión que use uuid >= 14
 #   o cuando uuid >= 14 sea compatible con exceljs.
 #   Ver: https://github.com/exceljs/exceljs/issues
+#
+# NOTA: a este advisory se le asignó el CVE-2026-41907; Trivy puede reportarlo
+#   por el ID del CVE en vez del GHSA, así que listamos AMBOS alias para que la
+#   supresión funcione sin importar cuál use la base de datos de Trivy.
 GHSA-w5hq-g745-h8pq
+CVE-2026-41907
