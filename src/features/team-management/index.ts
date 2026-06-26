@@ -15,12 +15,9 @@ export { useTransferModal } from "./model/useTransferModal";
 export { useLeagueTeams } from "./model/useLeagueTeams";
 export { useCreateTeam } from "./model/useCreateTeam";
 
-export {
-	updateTeamInfo,
-	dissolveTeam,
-	updateRosterMember,
-	removeFromRoster,
-	transferPlayer,
-} from "./actions";
+// NOTA: las actions de escritura (./actions) importan @/db y son SOLO server.
+// No se re-exportan aquí para que los Client Components que importan este barrel
+// no arrastren `pg` al bundle del navegador. Los API routes las importan por
+// ruta directa: `@/features/team-management/actions`.
 
 export type { RosterEntry, ModalType, TeamFormData, TransferFormData, TeamOption } from "./types";
