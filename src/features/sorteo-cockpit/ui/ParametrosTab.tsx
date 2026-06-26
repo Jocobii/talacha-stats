@@ -5,6 +5,7 @@ import { Clock, RefreshCw, Calendar, Info } from "lucide-react";
 import { ParamRow } from "./ParamRow";
 import { ParametrosWizard } from "./ParametrosWizard";
 import { COCKPIT_DEBOUNCE_MS } from "../constants";
+import { putSchedulingConfig } from "../lib/cockpit-api";
 import type { CockpitConfig } from "../types";
 
 type ParametrosTabProps = {
@@ -22,19 +23,7 @@ export function ParametrosTab({ leagueId, config, onConfigChange, onSave }: Para
 		if (debounceRef.current) clearTimeout(debounceRef.current);
 		debounceRef.current = setTimeout(async () => {
 			if (!config) return;
-			const updated = { ...config, ...partial };
-			await fetch(`/api/leagues/${leagueId}/scheduling-config`, {
-				method: "PUT",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					matchDurationMinutes: updated.matchDurationMinutes,
-					bufferMinutes: updated.bufferMinutes,
-					noRepeatWithin: updated.noRepeatWithin,
-					regularMatchdays: updated.regularMatchdays,
-					regularFormat: "single",
-					allowDuplicateMatchups: false,
-				}),
-			});
+			await putSchedulingConfig(leagueId, { ...config, ...partial });
 		}, COCKPIT_DEBOUNCE_MS);
 	}
 

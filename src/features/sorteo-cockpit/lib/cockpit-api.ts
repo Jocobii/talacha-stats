@@ -1,4 +1,5 @@
 import { apiFetch } from "@/shared/api/client";
+import { SCHEDULING_CONFIG_URL, SCHEDULING_CONFIG_FIXED } from "../constants";
 import type {
 	CockpitMatchday,
 	TeamWithAttendance,
@@ -127,6 +128,19 @@ export async function postPublish(leagueId: string, matchdayNumber: number): Pro
 		`/api/leagues/${leagueId}/jornadas/${matchdayNumber}/publish`,
 		{ method: "POST" },
 	);
+	unwrap(result);
+}
+
+/**
+ * Crea o actualiza la config de sorteo (PUT). Centraliza la construcción del body
+ * (config de UI + valores fijos) que antes duplicaban ParametrosTab/Wizard con
+ * `fetch()` desnudo. Lanza `Error(res.error)` en `!ok` (§18.4).
+ */
+export async function putSchedulingConfig(leagueId: string, config: CockpitConfig): Promise<void> {
+	const result = await apiFetch<unknown>(SCHEDULING_CONFIG_URL(leagueId), {
+		method: "PUT",
+		body: { ...config, ...SCHEDULING_CONFIG_FIXED },
+	});
 	unwrap(result);
 }
 
