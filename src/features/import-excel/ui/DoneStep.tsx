@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Upload } from "lucide-react";
+import { ArrowRight, Upload, Share2, Download, Check } from "lucide-react";
 import type { ImportResult } from "../model";
 
 type Props = {
@@ -12,7 +13,67 @@ type Props = {
 	onReset: () => void;
 };
 
+type ShareState = "idle" | "sharing" | "shared";
+
 export function DoneStep({ result, leagueId, copiedIdx, onCopy, onReset }: Props) {
+	const [shareState, setShareState] = useState<ShareState>("idle");
+
+	/**
+	 * Comparte la imagen de jornada en un toque. Prioriza Web Share API con el
+	 * archivo PNG real (se incrusta directo en WhatsApp/Stories); cae a Web Share
+	 * sólo-URL en móviles sin soporte de archivos, y a descarga en desktop.
+	 */
+	async function handleShareImage() {
+		const content = result.content;
+		if (!content) return;
+		const imageUrl = content.imageUrl;
+		const filename = `jornada-${content.jornada}.png`;
+		const title = `Jornada ${content.jornada} — TalachaStats`;
+		const text = "Mira la tabla y los goleadores de la jornada 👇";
+		const nav = typeof navigator !== "undefined" ? navigator : undefined;
+
+		setShareState("sharing");
+
+		// 1) Compartir la imagen real — se incrusta directo en WhatsApp/Stories.
+		let file: File | null = null;
+		try {
+			const res = await fetch(imageUrl);
+			const blob = await res.blob();
+			file = new File([blob], filename, { type: "image/png" });
+		} catch {
+			file = null;
+		}
+
+		if (file && nav?.share && nav.canShare?.({ files: [file] })) {
+			try {
+				await nav.share({ files: [file], title, text });
+				setShareState("shared");
+				setTimeout(() => setShareState("idle"), 2200);
+			} catch {
+				setShareState("idle"); // usuario canceló
+			}
+			return;
+		}
+
+		// 2) Web Share sólo-URL (móvil sin soporte de archivos).
+		if (nav?.share) {
+			try {
+				await nav.share({ title, text, url: `${window.location.origin}${imageUrl}` });
+			} catch {
+				/* usuario canceló */
+			}
+			setShareState("idle");
+			return;
+		}
+
+		// 3) Desktop sin Web Share: descarga directa.
+		const a = document.createElement("a");
+		a.href = imageUrl;
+		a.download = filename;
+		a.click();
+		setShareState("idle");
+	}
+
 	return (
 		<div className="flex flex-col gap-5">
 			{/* Success hero */}
@@ -134,22 +195,48 @@ export function DoneStep({ result, leagueId, copiedIdx, onCopy, onReset }: Props
 
 			{result.content && (
 				<>
-					{/* Download matchday image */}
+					{/* Imagen de jornada — compartir (la cuña) + descargar */}
 					<div className="bg-surface border border-line rounded-2xl p-5 flex items-center gap-4">
 						<span className="text-3xl shrink-0">🖼️</span>
-						<div className="flex-1">
+						<div className="flex-1 min-w-0">
 							<h3 className="text-sm font-bold text-ink">Imagen de jornada lista</h3>
 							<p className="text-xs text-ink-2 mt-0.5">
-								1080×1080 · Lista para WhatsApp y Facebook
+								1080×1920 · Lista para WhatsApp y Facebook
 							</p>
 						</div>
-						<a
-							href={result.content.imageUrl}
-							download
-							className="flex items-center gap-2 bg-surface hover:bg-surface-2 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shrink-0"
-						>
-							↓ Descargar
-						</a>
+						<div className="flex items-center gap-2 shrink-0">
+							<a
+								href={result.content.imageUrl}
+								download={`jornada-${result.content.jornada}.png`}
+								className="h-10 w-10 flex items-center justify-center rounded-xl border border-line bg-surface-2 text-ink-2 hover:text-brand-ink hover:border-brand/40 transition"
+								title="Descargar imagen"
+							>
+								<Download size={16} strokeWidth={2} />
+							</a>
+							<button
+								type="button"
+								onClick={handleShareImage}
+								disabled={shareState === "sharing"}
+								className={[
+									"inline-flex items-center gap-2 h-10 px-5 rounded-xl text-sm font-bold transition",
+									shareState === "shared"
+										? "bg-brand/10 border border-brand/30 text-brand-ink"
+										: "bg-brand text-pitch hover:bg-brand-dim",
+								].join(" ")}
+							>
+								{shareState === "shared" ? (
+									<>
+										<Check size={16} strokeWidth={2.5} />
+										¡Listo!
+									</>
+								) : (
+									<>
+										<Share2 size={16} strokeWidth={2} />
+										Compartir
+									</>
+								)}
+							</button>
+						</div>
 					</div>
 
 					{/* Copyable highlights */}
