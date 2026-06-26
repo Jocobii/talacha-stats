@@ -7,11 +7,13 @@ export { TeamDetailView } from "./ui/TeamDetailView";
 export { RosterTable } from "./ui/RosterTable";
 export { TeamSettingsPanel } from "./ui/TeamSettingsPanel";
 export { DeleteTeamSection } from "./ui/DeleteTeamSection";
+export { CreateTeamModal } from "./ui/CreateTeamModal";
 
 export { useTeamRoster } from "./model/useTeamRoster";
 export { useTeamForm } from "./model/useTeamForm";
 export { useTransferModal } from "./model/useTransferModal";
 export { useLeagueTeams } from "./model/useLeagueTeams";
+export { useCreateTeam } from "./model/useCreateTeam";
 
 export {
 	updateTeamInfo,

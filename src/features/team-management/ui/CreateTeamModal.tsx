@@ -3,29 +3,20 @@
 /**
  * features/team-management/ui/CreateTeamModal.tsx
  *
- * Modal para registrar un nuevo equipo en una liga.
- * Llama POST /api/teams con { name, leagueId, color? }.
- * Devuelve control al padre mediante onSuccess / onClose.
+ * Modal de alta de equipo. Componente de presentación sobre el stack estándar:
+ *   - React Hook Form + zodResolver(TeamFormSchema) → validación declarativa con
+ *     el MISMO schema client-safe, sin `useState`-soup ni validación a mano.
+ *   - useCreateTeam (TanStack Query) → mutación con loading/error/invalidación.
+ * No hace `fetch` ni mapea: delega el POST y el estado al hook. Al éxito devuelve
+ * control al padre con `onSuccess`.
  */
 
-import { useState, useRef, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Modal } from "@/shared/ui/Modal";
-import { apiFetch } from "@/shared/api/client";
-
-// ── Constantes ────────────────────────────────────────────────────────────────
-
-const COLOR_PRESETS = [
-	"#e53e3e",
-	"#dd6b20",
-	"#d69e2e",
-	"#38a169",
-	"#3182ce",
-	"#6b46c1",
-	"#d53f8c",
-	"#2d3748",
-] as const;
-
-// ── Tipos ─────────────────────────────────────────────────────────────────────
+import { COLOR_PRESETS } from "../constants";
+import { TeamFormSchema, type TeamFormInput } from "../model/team-form-schema";
+import { useCreateTeam } from "../model/useCreateTeam";
 
 type Props = {
 	leagueId: string;
@@ -34,53 +25,31 @@ type Props = {
 	onClose: () => void;
 };
 
-// ── Componente ────────────────────────────────────────────────────────────────
-
 export function CreateTeamModal({ leagueId, leagueName, onSuccess, onClose }: Props) {
-	const [name, setName] = useState("");
-	const [color, setColor] = useState<string | null>(null);
-	const [submitting, setSubmitting] = useState(false);
-	const [error, setError] = useState("");
-	const nameRef = useRef<HTMLInputElement>(null);
+	const createTeam = useCreateTeam(leagueId);
 
-	useEffect(() => {
-		nameRef.current?.focus();
-	}, []);
+	const {
+		register,
+		handleSubmit,
+		control,
+		watch,
+		formState: { errors },
+	} = useForm<TeamFormInput>({
+		resolver: zodResolver(TeamFormSchema),
+		mode: "onBlur",
+		defaultValues: { name: "", color: "" },
+	});
 
-	async function handleSubmit(e: React.FormEvent) {
-		e.preventDefault();
-		const trimmed = name.trim();
-		if (!trimmed) {
-			setError("El nombre del equipo es requerido.");
-			return;
-		}
-
-		setSubmitting(true);
-		setError("");
-
-		try {
-			const result = await apiFetch("/api/teams", {
-				method: "POST",
-				body: { name: trimmed, leagueId, color: color ?? undefined },
-			});
-
-			if (!result.ok) {
-				setError(result.error ?? "Error al crear el equipo.");
-				return;
-			}
-
-			onSuccess();
-		} catch (networkError) {
-			console.error("[CreateTeamModal] create", networkError);
-			setError("Error de red. Intenta de nuevo.");
-		} finally {
-			setSubmitting(false);
-		}
+	function onValid(values: TeamFormInput) {
+		createTeam.mutate(values, { onSuccess });
 	}
+
+	const name = watch("name");
+	const isSubmitting = createTeam.isPending;
 
 	return (
 		<Modal onClose={onClose} title="Nuevo equipo" size="sm">
-			<form onSubmit={handleSubmit} className="p-5 space-y-5">
+			<form onSubmit={handleSubmit(onValid)} className="p-5 space-y-5">
 				{/* Liga */}
 				<div className="bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm">
 					<span className="text-ink-3 text-xs">Liga</span>
@@ -94,18 +63,15 @@ export function CreateTeamModal({ leagueId, leagueName, onSuccess, onClose }: Pr
 					</label>
 					<input
 						id="team-name"
-						ref={nameRef}
+						autoFocus
 						type="text"
-						value={name}
-						onChange={(e) => {
-							setName(e.target.value);
-							setError("");
-						}}
-						placeholder="Ej. Deportivo FC"
 						maxLength={100}
-						disabled={submitting}
+						disabled={isSubmitting}
+						placeholder="Ej. Deportivo FC"
+						{...register("name")}
 						className="w-full px-3 py-2 rounded-lg border border-line bg-surface text-sm text-ink placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand disabled:opacity-50"
 					/>
+					{errors.name && <p className="text-xs text-red-400">{errors.name.message}</p>}
 				</div>
 
 				{/* Color (opcional) */}
@@ -113,39 +79,46 @@ export function CreateTeamModal({ leagueId, leagueName, onSuccess, onClose }: Pr
 					<p className="text-sm font-medium text-ink">
 						Color del equipo <span className="text-ink-3 font-normal">(opcional)</span>
 					</p>
-					<div className="flex flex-wrap gap-2 items-center">
-						{COLOR_PRESETS.map((c) => (
-							<button
-								key={c}
-								type="button"
-								onClick={() => setColor(color === c ? null : c)}
-								disabled={submitting}
-								className="w-7 h-7 rounded-full border-2 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand/40 disabled:opacity-50"
-								style={{
-									backgroundColor: c,
-									borderColor: color === c ? "white" : "transparent",
-									boxShadow: color === c ? `0 0 0 2px ${c}` : "none",
-								}}
-								aria-label={`Color ${c}`}
-							/>
-						))}
-						{color && (
-							<button
-								type="button"
-								onClick={() => setColor(null)}
-								disabled={submitting}
-								className="text-xs text-ink-3 hover:text-ink transition px-2 py-1 rounded border border-line"
-							>
-								Quitar
-							</button>
+					<Controller
+						control={control}
+						name="color"
+						render={({ field }) => (
+							<div className="flex flex-wrap gap-2 items-center">
+								{COLOR_PRESETS.map((c) => (
+									<button
+										key={c}
+										type="button"
+										onClick={() => field.onChange(field.value === c ? "" : c)}
+										disabled={isSubmitting}
+										className="w-7 h-7 rounded-full border-2 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand/40 disabled:opacity-50"
+										style={{
+											backgroundColor: c,
+											borderColor: field.value === c ? "white" : "transparent",
+											boxShadow: field.value === c ? `0 0 0 2px ${c}` : "none",
+										}}
+										aria-label={`Color ${c}`}
+										aria-pressed={field.value === c}
+									/>
+								))}
+								{field.value && (
+									<button
+										type="button"
+										onClick={() => field.onChange("")}
+										disabled={isSubmitting}
+										className="text-xs text-ink-3 hover:text-ink transition px-2 py-1 rounded border border-line"
+									>
+										Quitar
+									</button>
+								)}
+							</div>
 						)}
-					</div>
+					/>
 				</div>
 
-				{/* Error */}
-				{error && (
+				{/* Error de la API */}
+				{createTeam.isError && (
 					<p className="text-xs text-red-400 bg-red-950/30 border border-red-800/30 rounded-lg px-3 py-2">
-						{error}
+						{createTeam.error.message}
 					</p>
 				)}
 
@@ -154,17 +127,17 @@ export function CreateTeamModal({ leagueId, leagueName, onSuccess, onClose }: Pr
 					<button
 						type="button"
 						onClick={onClose}
-						disabled={submitting}
+						disabled={isSubmitting}
 						className="flex-1 bg-surface-2 text-ink py-2.5 rounded-lg text-sm font-medium hover:bg-surface-2/80 transition disabled:opacity-50"
 					>
 						Cancelar
 					</button>
 					<button
 						type="submit"
-						disabled={submitting || !name.trim()}
+						disabled={isSubmitting || !name.trim()}
 						className="flex-1 bg-brand text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-brand/90 transition disabled:opacity-40"
 					>
-						{submitting ? "Creando…" : "Crear equipo"}
+						{isSubmitting ? "Creando…" : "Crear equipo"}
 					</button>
 				</div>
 			</form>

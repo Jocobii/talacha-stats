@@ -25,3 +25,10 @@ export type TeamOption = {
 	name: string;
 	color: string | null;
 };
+
+/** ViewModel del equipo recién creado que devuelve la mutación de alta (§19). */
+export type CreatedTeamView = {
+	id: string;
+	displayName: string;
+	color: string | null;
+};

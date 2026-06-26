@@ -30,20 +30,20 @@ El proyecto tiene tres capas:
 - **Pública** (`/`, `/ranking`, `/player/[id]`, `/ligas`, `/matchday`, etc.) — jugadores y aficionados ven stats, perfiles, jornadas y tabla
 - **Admin** (`/admin/*`) — organizadores gestionan ligas, equipos, jornadas, calendario, canchas y cédulas; el narrador del Facebook Live consulta análisis pre-partido
 
-### Dos flujos paralelos de datos (coexisten hasta v3)
+### Dos flujos de datos (V1 legacy de solo-lectura + V2 activo)
 
-| Flujo  | Descripción                                        | Tablas escritas                                                                     |
-| ------ | -------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **V1** | Excel semanal → importación bulk → stats           | `players`, `player_registrations`, `player_season_stats`                            |
-| **V2** | Registro CURP + gestión en-app (cédulas, jornadas) | `global_players`, `league_members`, `inscriptions`, `matches`, `match_player_stats` |
+| Flujo  | Descripción                                                                                     | Tablas                                                                              |
+| ------ | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **V1** | Stats históricas de Excel — **solo lectura**. El flujo de importación fue eliminado (ver §1.6). | `players`, `player_registrations`, `player_season_stats`                            |
+| **V2** | Registro CURP + gestión en-app (cédulas, jornadas)                                              | `global_players`, `league_members`, `inscriptions`, `matches`, `match_player_stats` |
 
 **Regla de routing entre flujos:**
 
-- Feature toca stats importadas de Excel → tablas V1
+- Feature **lee** stats históricas de Excel → tablas V1 (ya no hay escritura in-app)
 - Feature toca registro de identidad, inscripción o captura en-app (cédula de partido) → tablas V2
-- Feature toca ambas → prioridad de stats: `player_season_stats` (Excel) > `match_player_stats` / `match_events` (partido a partido)
+- Feature toca ambas → prioridad de stats: `player_season_stats` (Excel, histórico) > `match_player_stats` / `match_events` (partido a partido)
 
-No eliminar tablas V1 hasta confirmar que todas las ligas migradas usan el flujo V2.
+No eliminar tablas V1: conservan el dato ya importado y siguen sirviendo lecturas (tabla, perfiles). El flujo de importación (`import-excel`) se eliminó en 2026; las tablas quedan como histórico de solo-lectura.
 
 ---
 
@@ -58,7 +58,7 @@ Lo que construimos, en capas (todas activas hoy en alguna medida):
 1. **Identidad global de jugador** — `global_players` con CURP hash. La fundación. Sin esto, todo lo demás es frágil.
 2. **Gestión de la liga** — ligas, equipos, jugadores, jornadas, sorteo/calendario, canchas, cédulas de partido, liguilla. Captura el dato estructurado.
 3. **Identidad de la liga** — página pública con branding, perfiles de jugador, tabla, goleadores, jornadas.
-4. **Generación de contenido** post-jornada/post-importación (píldoras del narrador, imágenes para WhatsApp/Facebook, stories del org-hub, assets para compartir).
+4. **Generación de contenido** post-jornada (píldoras del narrador, imágenes para WhatsApp/Facebook, stories del org-hub, assets para compartir).
 5. **Pre-partido del narrador** — UI dedicada para el narrador del Facebook Live.
 6. **Ecosistema de ciudad** — comparativos entre ligas, vitrina de jugadores libres, sponsors. Madura conforme crece la adopción.
 
@@ -81,7 +81,8 @@ Inventario de las features que existen hoy en `src/features/`. Cada una vive com
 ### Identidad y registro
 
 - **`admin-registration`** — Terminal de registro de alta velocidad por CURP. Hashea el CURP en server, busca en `global_players`, y en una transacción atómica crea `global_player` + `league_member` + `inscription`.
-- **`import-excel`** — Importación bulk del corte semanal (ExcelJS). Incluye `column-mapper`, `anomaly-detector`, `matching` (fuzzy de nombres) y `confirm` (transacción). Escribe stats V1.
+
+> **`import-excel` — ELIMINADO (2026).** El flujo de importación bulk de Excel, sus rutas (`/admin/import`, `/admin/imports`, `/api/import/*`, `/api/imports/*`) y sus entry points fueron removidos por decisión de producto. Las tablas V1 (`player_season_stats`, snapshots, `player_registrations`) se conservan como histórico de solo-lectura (§1, §4.3). La captura de datos ahora es 100% en-app vía cédula (V2, `match-resolution`). **No recrear este módulo.**
 
 ### Gestión de liga
 
@@ -141,7 +142,7 @@ app  →  features  →  entities  →  shared
 ```
 ✅  app/api/players/route.ts  →  entities/player/queries.ts
 ✅  features/narrator-analysis/  →  lib/narrator.ts (legacy, ver §10)
-❌  entities/player/queries.ts  →  features/import-excel/
+❌  entities/player/queries.ts  →  features/match-resolution/
 ❌  shared/lib/normalize.ts  →  entities/player/
 ❌  features/standings/  →  features/narrator-analysis/
 ```
@@ -182,8 +183,8 @@ export default async function LeaguePage({ params }: { params: { id: string } })
 
 // ✅ Formulario con estado → Client Component
 "use client";
-export function ImportWizard() {
-  const [step, setStep] = useState("upload");
+export function SorteoCockpit() {
+  const [step, setStep] = useState("config");
   ...
 }
 ```
@@ -191,11 +192,12 @@ export function ImportWizard() {
 ### 3.4 Transacciones en features, no en routes ni en queries
 
 ```typescript
-// features/import-excel/confirm.ts ✅
-export async function confirmImport(data: ParsedImport) {
+// features/admin-registration/register.ts ✅
+export async function registerPlayer(data: RegistrationInput) {
   return db.transaction(async (tx) => {
-    await tx.insert(players).values(...);
-    await tx.insert(playerSeasonStats).values(...);
+    const player = await tx.insert(globalPlayers).values(...).returning();
+    const member = await tx.insert(leagueMembers).values(...).returning();
+    await tx.insert(inscriptions).values({ leagueMemberId: member.id, teamId });
   });
 }
 ```
@@ -291,15 +293,17 @@ await db
 | `venues` / `league_venues` | `UNIQUE(org_id, name_canonical)` / `UNIQUE(league_id, venue_id)` | Canchas scoped a la organización; asignadas a ligas                                                        |
 | `team_rest_requests`       | `UNIQUE(team_id, league_id, matchday_number)`                    | Descansos del sorteo                                                                                       |
 
-#### Tablas V1 — Excel / legacy
+#### Tablas V1 — Excel / legacy (solo lectura)
 
-| Tabla                          | Constraint                              | Regla práctica                                                          |
-| ------------------------------ | --------------------------------------- | ----------------------------------------------------------------------- |
-| `player_registrations`         | `UNIQUE(player_id, league_id)`          | Un jugador, un equipo por liga. Eliminar registro anterior para moverlo |
-| `player_season_stats`          | `UNIQUE(player_id, league_id)`          | Siempre upsert, nunca insert directo                                    |
-| `player_season_stats_snapshot` | `UNIQUE(player_id, league_id, jornada)` | Re-importar la misma jornada sobreescribe                               |
-| `team_standings_snapshot`      | `UNIQUE(team_id, league_id, jornada)`   | Ídem                                                                    |
-| `teams`                        | `UNIQUE(league_id, name_canonical)`     | "Deportivo" en Liga Lunes ≠ Liga Martes                                 |
+> El flujo de importación que escribía estas tablas fue eliminado (§1.6). Conservan el dato histórico ya importado y siguen sirviendo lecturas; ya no hay escritura in-app.
+
+| Tabla                          | Constraint                              | Regla práctica                                                                  |
+| ------------------------------ | --------------------------------------- | ------------------------------------------------------------------------------- |
+| `player_registrations`         | `UNIQUE(player_id, league_id)`          | Un jugador, un equipo por liga. Eliminar registro anterior para moverlo         |
+| `player_season_stats`          | `UNIQUE(player_id, league_id)`          | Siempre upsert, nunca insert directo                                            |
+| `player_season_stats_snapshot` | `UNIQUE(player_id, league_id, jornada)` | Una fila por jornada (histórico Excel); el constraint era upsert al re-importar |
+| `team_standings_snapshot`      | `UNIQUE(team_id, league_id, jornada)`   | Ídem                                                                            |
+| `teams`                        | `UNIQUE(league_id, name_canonical)`     | "Deportivo" en Liga Lunes ≠ Liga Martes                                         |
 
 ### 4.4 Pool de conexiones
 
@@ -450,9 +454,9 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 
 | Elemento             | Convención                   | Ejemplo                  |
 | -------------------- | ---------------------------- | ------------------------ |
-| Archivos de lógica   | `kebab-case`                 | `excel-import-bulk.ts`   |
-| Componentes React    | `PascalCase`                 | `ImportWizard.tsx`       |
-| Funciones exportadas | `camelCase`                  | `confirmBulkImport()`    |
+| Archivos de lógica   | `kebab-case`                 | `assign-cedula.ts`       |
+| Componentes React    | `PascalCase`                 | `SorteoCockpit.tsx`      |
+| Funciones exportadas | `camelCase`                  | `registerPlayer()`       |
 | Schemas Zod y tipos  | `PascalCase`                 | `CreateLeagueSchema`     |
 | Rutas API            | `kebab-case`                 | `/api/top-scorers`       |
 | Columnas DB          | `snake_case`                 | `full_name`, `league_id` |
@@ -464,14 +468,12 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 
 `src/lib/` es código en producción activo. No lo elimines, pero tampoco crees funciones nuevas ahí. Si tocas un archivo de `src/lib/`, migralo a FSD en ese mismo commit.
 
-| Archivo legacy             | Destino FSD                              |
-| -------------------------- | ---------------------------------------- |
-| `lib/excel-import-bulk.ts` | `features/import-excel/bulk.ts`          |
-| `lib/excel-import.ts`      | `features/import-excel/events.ts`        |
-| `lib/narrator.ts`          | `features/narrator-analysis/analysis.ts` |
-| `lib/standings.ts`         | `features/standings/calculate.ts`        |
-| `lib/stats.ts`             | `features/player-stats/aggregate.ts`     |
-| `lib/preview.ts`           | `features/match-preview/build.ts`        |
+| Archivo legacy     | Destino FSD                              |
+| ------------------ | ---------------------------------------- |
+| `lib/narrator.ts`  | `features/narrator-analysis/analysis.ts` |
+| `lib/standings.ts` | `features/standings/calculate.ts`        |
+| `lib/stats.ts`     | `features/player-stats/aggregate.ts`     |
+| `lib/preview.ts`   | `features/match-preview/build.ts`        |
 
 ---
 
@@ -541,7 +543,7 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 ### Coexistencia V1 / V2
 
 - **Dos sistemas de identidad viven juntos**. V1: `players` + `player_registrations`. V2: `global_players` + `league_members` + `inscriptions`. No mezclar en queries.
-- **Stats tienen dos fuentes**. `player_season_stats` (Excel, prioridad 1) y `match_events` (partido a partido, prioridad 2 / fallback). Un jugador puede tener stats de ambas fuentes en ligas distintas — el perfil las muestra correctamente por fuente.
+- **Stats tienen dos fuentes**. `player_season_stats` (Excel, histórico de solo-lectura, prioridad 1) y `match_events` (partido a partido, prioridad 2 / fallback). Un jugador puede tener stats de ambas fuentes en ligas distintas — el perfil las muestra correctamente por fuente.
 
 ### Otros
 
@@ -549,7 +551,7 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 - **Snapshots son acumulados**. Para goles en jornada 5: `J5.goals − J4.goals`.
 - **El narrador es un usuario clave** y nuestro evangelizador interno. `/admin/analisis` y `/api/narrator` son features críticas usadas en vivo.
 - **El organizador es la puerta, el jugador es el motor**. El viral loop empieza por el jugador presumiendo sus stats; el organizador adopta porque sus jugadores presionan.
-- **El "corte semanal" (lun/mar) es el evento clave** — toda la generación de contenido se dispara después de la importación bulk.
+- **El cierre de jornada es el evento clave** — la generación de contenido (píldoras, imágenes) se dispara tras capturar y cerrar la jornada en-app vía cédula. (Antes dependía de la importación bulk de Excel, ya eliminada.)
 - **Ciudades están predefinidas** en `shared/lib/cities.ts`. No hardcodees ciudades.
 - **`jornada` es un integer de negocio**, no una fecha — representa la ronda de la liga.
 
@@ -883,17 +885,17 @@ for (const member of members) {
 ```typescript
 // ❌ MAL — error silenciado
 try {
-	await confirmImport(parsed);
+	await confirmSchedule(parsed);
 } catch (caughtError) {
 	// nada
 }
 
 // ✅ BIEN — manejo explícito y propagación
 try {
-	await confirmImport(parsed);
+	await confirmSchedule(parsed);
 } catch (caughtError) {
-	console.error("confirmImport failed", caughtError);
-	return apiError("No se pudo confirmar la importación", 500);
+	console.error("confirmSchedule failed", caughtError);
+	return apiError("No se pudo confirmar el sorteo", 500);
 }
 ```
 

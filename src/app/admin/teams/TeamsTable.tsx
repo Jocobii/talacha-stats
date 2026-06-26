@@ -14,7 +14,7 @@ import { apiFetch } from "@/shared/api/client";
 import { Plus } from "lucide-react";
 import { AdminTable } from "@/shared/ui/AdminTable";
 import type { AdminTableColumn, AdminTablePagination } from "@/shared/ui/AdminTable";
-import { CreateTeamModal } from "@/features/team-management/ui/CreateTeamModal";
+import { CreateTeamModal } from "@/features/team-management";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
