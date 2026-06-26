@@ -27,7 +27,6 @@ import {
 	defaultSeason,
 } from "../model/league-form-schema";
 import { useCreateLeague } from "../model/useCreateLeague";
-import { TeamChipsInput } from "./TeamChipsInput";
 
 type Organization = { id: string; name: string; city: string };
 
@@ -44,7 +43,6 @@ type DraftValues = {
 	season: string;
 	category: string;
 	organizationId?: string;
-	teams: string[];
 };
 
 /**
@@ -59,7 +57,6 @@ function readInitialDraft(): DraftValues {
 		season: defaultSeason(),
 		category: "",
 		organizationId: undefined,
-		teams: [],
 	};
 	if (typeof window === "undefined") return base;
 	try {
@@ -72,9 +69,6 @@ function readInitialDraft(): DraftValues {
 			season: typeof d.season === "string" && d.season ? d.season : base.season,
 			category: typeof d.category === "string" ? d.category : "",
 			organizationId: typeof d.organizationId === "string" ? d.organizationId : undefined,
-			teams: Array.isArray(d.teams)
-				? d.teams.filter((x): x is string => typeof x === "string")
-				: base.teams,
 		};
 	} catch {
 		return base;
@@ -100,7 +94,6 @@ export function QuickCreateLeagueForm({ organizations, defaultOrganizationId }: 
 		control,
 		watch,
 		getValues,
-		setValue,
 		setError,
 		formState: { errors },
 	} = useForm<QuickCreateLeagueInput>({
@@ -125,7 +118,6 @@ export function QuickCreateLeagueForm({ organizations, defaultOrganizationId }: 
 	}, [watch]);
 
 	const dayOfWeek = watch("dayOfWeek");
-	const teams = watch("teams") ?? [];
 	const dayLabel = DAYS.find((d) => d.value === dayOfWeek)?.label ?? "";
 
 	// handleSubmit valida con Zod; si pasa, abrimos la confirmación.
@@ -159,7 +151,7 @@ export function QuickCreateLeagueForm({ organizations, defaultOrganizationId }: 
 				</Link>
 				<h1 className="text-2xl font-bold text-ink mt-1">Crear tu liga</h1>
 				<p className="text-sm text-ink-2 mt-1">
-					Te toma menos de 2 minutos. Los jugadores se registran después con su CURP.
+					Paso 1 de 3. Luego agregas tus equipos y registras jugadores.
 				</p>
 			</div>
 
@@ -267,26 +259,11 @@ export function QuickCreateLeagueForm({ organizations, defaultOrganizationId }: 
 					</div>
 				)}
 
-				{/* Equipos — campo de fichas */}
-				<div>
-					<label className="block text-sm font-medium text-ink mb-1">Tus equipos</label>
-					<Controller
-						control={control}
-						name="teams"
-						render={({ field }) => (
-							<TeamChipsInput value={field.value ?? []} onChange={field.onChange} />
-						)}
-					/>
-					{errors.teams && <p className="text-xs text-red-400 mt-1">{errors.teams.message}</p>}
-				</div>
-
 				<button
 					type="submit"
 					className="w-full bg-brand text-pitch px-6 py-3 rounded-lg text-sm font-bold hover:bg-brand-dim"
 				>
-					{teams.length > 0
-						? `Crear liga y ${teams.length} equipo${teams.length === 1 ? "" : "s"}`
-						: "Crear liga"}
+					Crear liga y continuar
 				</button>
 			</form>
 
@@ -312,21 +289,10 @@ export function QuickCreateLeagueForm({ organizations, defaultOrganizationId }: 
 								<dt className="text-ink-3">Temporada</dt>
 								<dd className="text-ink text-right">{getValues("season").trim()}</dd>
 							</div>
-							<div className="flex justify-between gap-3">
-								<dt className="text-ink-3">Equipos</dt>
-								<dd className="text-ink text-right">{teams.length}</dd>
-							</div>
 						</dl>
-						<div className="flex flex-wrap gap-1.5 mb-5">
-							{teams.map((t, i) => (
-								<span
-									key={`${t}-${i}`}
-									className="text-xs bg-surface-2 border border-line rounded-full px-2.5 py-1 text-ink-2"
-								>
-									{t}
-								</span>
-							))}
-						</div>
+						<p className="text-xs text-ink-3 mb-5">
+							Después agregas tus equipos y registras jugadores.
+						</p>
 						{createLeague.isError && (
 							<p className="text-red-400 text-sm bg-red-950/40 px-3 py-2 rounded-lg mb-4">
 								{createLeague.error.message}

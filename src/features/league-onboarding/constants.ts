@@ -22,6 +22,3 @@ export const REGISTRATION_URL = (leagueId: string, teamId?: string): string => {
 	const base = `/admin/registro?leagueId=${leagueId}`;
 	return teamId ? `${base}&teamId=${teamId}` : base;
 };
-
-export const EXCEL_IMPORT_URL = (leagueId: string): string =>
-	`/admin/imports?leagueId=${leagueId}&from=new-league`;

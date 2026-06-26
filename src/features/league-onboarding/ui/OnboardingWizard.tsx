@@ -5,7 +5,7 @@
  * Orquestador del wizard 3 pasos: Equipos → Jugadores → Listo.
  */
 
-import { Button } from "@/shared/ui/Button";
+import Link from "next/link";
 import { Card } from "@/shared/ui/Card";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Stepper } from "@/shared/ui/Stepper";
@@ -43,9 +43,9 @@ export function OnboardingWizard({
 				title={`Configurar ${league.name}`}
 				subtitle={`${league.season} · ${league.dayOfWeek}`}
 				actions={
-					<Button variant="ghost" size="sm" onClick={onBack}>
-						← Volver
-					</Button>
+					<Link href={`/admin/leagues/${league.id}`} className="text-sm text-ink-2 hover:underline">
+						← Salir
+					</Link>
 				}
 			/>
 

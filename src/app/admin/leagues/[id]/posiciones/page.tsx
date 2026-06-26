@@ -189,14 +189,6 @@ export default async function PosicionesPage({ params }: { params: Promise<{ id:
 						{topScorers.length === 0 && (
 							<div className="text-center py-4">
 								<p className="text-sm text-ink-3">Sin goleadores aún.</p>
-								{!isLeagueEmpty && (
-									<Link
-										href={`/admin/imports?leagueId=${id}&tab=goleadores`}
-										className="text-xs text-brand-ink hover:underline mt-1 inline-block"
-									>
-										Importar estadísticas →
-									</Link>
-								)}
 							</div>
 						)}
 					</div>

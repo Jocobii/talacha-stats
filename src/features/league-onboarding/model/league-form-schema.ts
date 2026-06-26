@@ -10,7 +10,6 @@
  */
 
 import { z } from "zod";
-import { MAX_TEAMS, MAX_TEAM_NAME_LENGTH } from "../lib/parse-team-names";
 
 /**
  * Días válidos. DEBE coincidir con DAYS_OF_WEEK de src/db/schema.ts.
@@ -45,10 +44,6 @@ export const QuickCreateLeagueSchema = z.object({
 	season: z.string().trim().min(2, "Escribe la temporada.").max(50),
 	category: z.string().max(80).optional(),
 	organizationId: z.string().uuid().optional(),
-	teams: z
-		.array(z.string().min(1).max(MAX_TEAM_NAME_LENGTH))
-		.min(1, "Agrega al menos un equipo.")
-		.max(MAX_TEAMS),
 });
 
 export type QuickCreateLeagueInput = z.infer<typeof QuickCreateLeagueSchema>;

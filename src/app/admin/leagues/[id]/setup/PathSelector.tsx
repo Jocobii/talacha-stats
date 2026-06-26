@@ -2,34 +2,20 @@
 
 /**
  * app/admin/leagues/[id]/setup/PathSelector.tsx
- * Orquestador — delega estado a useOnboardingWizard y renderiza la pantalla correcta.
+ * Orquestador — entra directo al wizard de configuración (sin pantalla de elección).
  */
 
 import { useOnboardingWizard } from "@/features/league-onboarding/model/useOnboardingWizard";
-import { LeagueChoicePage } from "@/features/league-onboarding/ui/LeagueChoicePage";
 import { OnboardingWizard } from "@/features/league-onboarding/ui/OnboardingWizard";
 import type { League } from "@/features/league-onboarding/types";
 
 type Props = {
 	league: League;
-	initialPath?: "choosing" | "v2";
 };
 
-export function PathSelector({ league, initialPath }: Props) {
-	const {
-		screen,
-		wizardStep,
-		createdTeams,
-		goToWizard,
-		goToExcel,
-		handleTeamsReady,
-		handlePlayersReady,
-		handleBack,
-	} = useOnboardingWizard(league, initialPath);
-
-	if (screen === "choosing") {
-		return <LeagueChoicePage league={league} onPro={goToWizard} onExcel={goToExcel} />;
-	}
+export function PathSelector({ league }: Props) {
+	const { wizardStep, createdTeams, handleTeamsReady, handlePlayersReady, goToTeams } =
+		useOnboardingWizard();
 
 	return (
 		<OnboardingWizard
@@ -38,7 +24,7 @@ export function PathSelector({ league, initialPath }: Props) {
 			createdTeams={createdTeams}
 			onTeamsReady={handleTeamsReady}
 			onPlayersReady={handlePlayersReady}
-			onBack={handleBack}
+			onBack={goToTeams}
 		/>
 	);
 }

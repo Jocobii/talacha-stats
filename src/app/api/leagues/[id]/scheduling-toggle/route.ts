@@ -1,7 +1,7 @@
 /**
  * POST /api/leagues/[id]/scheduling-toggle
  * Activa o desactiva el módulo de sorteo para una liga.
- * Solo owners pueden usar este endpoint.
+ * Pueden usarlo el owner o el organizer de la organización dueña de la liga.
  */
 
 import { db } from "@/db";
@@ -18,7 +18,6 @@ const ToggleSchema = z.object({
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
 	const session = await getSessionUserFromRequest(request);
 	if (!session) return apiError("No autenticado", 401);
-	if (session.role !== "owner") return apiError("Solo owners pueden activar este módulo", 403);
 
 	const { id } = await params;
 
@@ -27,6 +26,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 		columns: { id: true, organizationId: true },
 	});
 	if (!league) return apiError("Liga no encontrada", 404);
+
+	const canManage =
+		session.role === "owner" ||
+		(session.role === "organizer" && session.organizationId === league.organizationId);
+	if (!canManage) return apiError("No tienes permiso para gestionar esta liga", 403);
 
 	const body = await request.json().catch(() => null);
 	const parsed = ToggleSchema.safeParse(body);

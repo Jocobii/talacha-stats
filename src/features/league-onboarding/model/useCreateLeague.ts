@@ -12,7 +12,7 @@ import { apiFetch } from "@/shared/api/client";
 import type { QuickCreateLeagueInput } from "./league-form-schema";
 
 export type CreatedLeague = { id: string; name: string; slug: string | null };
-type CreateLeagueResponse = { league: CreatedLeague; teams: { id: string; name: string }[] };
+type CreateLeagueResponse = { league: CreatedLeague };
 
 export function useCreateLeague() {
 	return useMutation<CreateLeagueResponse, Error, QuickCreateLeagueInput>({

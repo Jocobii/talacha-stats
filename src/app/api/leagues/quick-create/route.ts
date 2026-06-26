@@ -35,5 +35,5 @@ export async function POST(request: Request) {
 		return apiError(result.error, status);
 	}
 
-	return apiSuccess({ league: result.league, teams: result.teams });
+	return apiSuccess({ league: result.league });
 }

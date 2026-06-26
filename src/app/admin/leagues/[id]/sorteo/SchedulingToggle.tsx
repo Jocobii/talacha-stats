@@ -2,7 +2,7 @@
 
 /**
  * SchedulingToggle — Activa/desactiva el módulo de sorteo para una liga.
- * Solo renderizado para owners. Llama POST /api/leagues/[id]/scheduling-toggle.
+ * Disponible para owner u organizer de la liga. Llama POST /api/leagues/[id]/scheduling-toggle.
  */
 
 import { useState } from "react";

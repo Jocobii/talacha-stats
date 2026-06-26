@@ -2,23 +2,23 @@
 
 /**
  * features/league-onboarding/model/useStepTeams.ts
- * Estado y lógica del paso 0 — creación de equipos en bloque.
+ * Estado y lógica del paso de equipos del wizard — creación en bloque.
+ *
+ * Los nombres se capturan con TeamChipsInput (campo de fichas perdonador) y se
+ * guardan en bloque al avanzar. La dedup por nombre la maneja TeamChipsInput en
+ * el cliente y el constraint UNIQUE(league_id, name_canonical) en el server.
  */
 
-import { useState, useRef } from "react";
-import type { RefObject } from "react";
+import { useState } from "react";
 import { TEAM_COLORS, BULK_TEAMS_URL } from "../constants";
-import type { DraftTeam, CreatedTeam, League } from "../types";
+import { apiFetch } from "@/shared/api/client";
+import type { CreatedTeam, League } from "../types";
 
 export type UseStepTeamsReturn = {
-	draft: string;
-	drafts: DraftTeam[];
+	names: string[];
 	saving: boolean;
 	error: string;
-	inputRef: RefObject<HTMLInputElement | null>;
-	setDraftInput: (v: string) => void;
-	addDraft: () => void;
-	removeDraft: (index: number) => void;
+	setNames: (names: string[]) => void;
 	handleNext: () => Promise<void>;
 };
 
@@ -26,52 +26,28 @@ export function useStepTeams(
 	league: League,
 	onNext: (teams: CreatedTeam[]) => void,
 ): UseStepTeamsReturn {
-	const [draft, setDraft] = useState("");
-	const [drafts, setDrafts] = useState<DraftTeam[]>([]);
+	const [names, setNames] = useState<string[]>([]);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState("");
-	const inputRef = useRef<HTMLInputElement | null>(null);
-
-	function setDraftInput(v: string): void {
-		setDraft(v);
-		setError("");
-	}
-
-	function addDraft(): void {
-		const name = draft.trim();
-		if (!name) return;
-		const isDuplicate = drafts.some((d) => d.name.toLowerCase() === name.toLowerCase());
-		if (isDuplicate) {
-			setError("Ya tienes un equipo con ese nombre.");
-			return;
-		}
-		const color = TEAM_COLORS[drafts.length % TEAM_COLORS.length] ?? TEAM_COLORS[0];
-		setDrafts((prev) => [...prev, { name, color }]);
-		setDraft("");
-		setError("");
-		inputRef.current?.focus();
-	}
-
-	function removeDraft(index: number): void {
-		setDrafts((prev) => prev.filter((_, j) => j !== index));
-	}
 
 	async function handleNext(): Promise<void> {
-		if (drafts.length === 0) return;
+		if (names.length === 0) return;
 		setSaving(true);
 		setError("");
 		try {
-			const res = await fetch(BULK_TEAMS_URL(league.id), {
+			const payload = names.map((name, i) => ({
+				name,
+				color: TEAM_COLORS[i % TEAM_COLORS.length] ?? TEAM_COLORS[0],
+			}));
+			const res = await apiFetch<CreatedTeam[]>(BULK_TEAMS_URL(league.id), {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ teams: drafts.map((d) => ({ name: d.name, color: d.color })) }),
+				body: { teams: payload },
 			});
-			const data = (await res.json()) as { ok: boolean; data?: CreatedTeam[]; error?: string };
-			if (!data.ok) {
-				setError(data.error ?? "Error al guardar equipos.");
+			if (!res.ok) {
+				setError(res.error);
 				return;
 			}
-			onNext(data.data ?? []);
+			onNext(res.data ?? []);
 		} catch {
 			setError("Error de conexión. Intenta de nuevo.");
 		} finally {
@@ -79,15 +55,5 @@ export function useStepTeams(
 		}
 	}
 
-	return {
-		draft,
-		drafts,
-		saving,
-		error,
-		inputRef,
-		setDraftInput,
-		addDraft,
-		removeDraft,
-		handleNext,
-	};
+	return { names, saving, error, setNames, handleNext };
 }

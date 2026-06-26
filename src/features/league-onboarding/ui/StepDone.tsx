@@ -6,7 +6,7 @@
  */
 
 import Link from "next/link";
-import { Check, Upload, ArrowRight, Share2 } from "lucide-react";
+import { Check, ArrowRight, Share2 } from "lucide-react";
 import { Card } from "@/shared/ui/Card";
 import type { CreatedTeam, League } from "../types";
 
@@ -54,10 +54,9 @@ export function StepDone({ league, teams }: Props) {
 
 			<div className="mt-7 flex flex-wrap items-center justify-center gap-3">
 				<Link
-					href={`/admin/imports?leagueId=${league.id}`}
+					href={`/admin/leagues/${league.id}/captura`}
 					className="inline-flex items-center gap-2 h-11 px-6 text-sm font-semibold rounded-md bg-brand text-pitch hover:bg-brand-dim transition"
 				>
-					<Upload size={16} strokeWidth={1.75} />
 					Capturar primera jornada
 					<ArrowRight size={14} strokeWidth={2} />
 				</Link>
@@ -77,7 +76,6 @@ export function StepDone({ league, teams }: Props) {
 					Ver liga
 				</Link>
 			</div>
-
 			<div className="mt-8 pt-8 border-t border-line max-w-md mx-auto">
 				<p className="text-[11px] text-ink-3 mb-4">¿Qué puedes hacer ahora?</p>
 				<div className="flex flex-col gap-2 text-left">

@@ -28,7 +28,6 @@ import {
 	Users,
 	UserCircle,
 	UserPlus,
-	Upload,
 	UserCog,
 	CheckCircle2,
 	MapPin,
@@ -135,7 +134,6 @@ export default function AdminShell({
 
 	const coreItems: NavItem[] = [
 		{ href: "/admin", label: "Dashboard", icon: Home, exact: true },
-		{ href: "/admin/import", label: "Importar jornada", icon: Upload },
 		{
 			href: "/admin/canchas",
 			label: "Canchas",
