@@ -6,6 +6,9 @@ import type { ResolutionStatus } from "@/db/schema";
 
 export const AUTOSAVE_DEBOUNCE_MS = 1000;
 
+/** Alta de jugador ad-hoc en un partido. */
+export const MATCH_PLAYERS_URL = (matchId: string): string => `/api/matches/${matchId}/players`;
+
 export const WALKOVER_DEFAULT_SCORE = { winner: 3, loser: 0 } as const;
 
 export const MAX_GOALS_PER_PLAYER = 20;
