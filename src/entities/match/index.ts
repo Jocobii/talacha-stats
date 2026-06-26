@@ -4,6 +4,7 @@ export type {
 	MatchStatus,
 	MatchPlayerStatInput,
 	ResolveMatchInput,
+	ResolveMatchResult,
 	AutosaveStatInput,
 	AutosaveMatchFieldsInput,
 } from "./model";

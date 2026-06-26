@@ -4,9 +4,15 @@
  * Hook principal de estado para la pantalla de captura de partidos.
  */
 import { useState, useCallback, useRef } from "react";
-import type { MatchResolutionData } from "@/entities/match/model";
+import type {
+	MatchResolutionData,
+	AutosaveStatInput,
+	AutosaveMatchFieldsInput,
+	ResolveMatchInput,
+} from "@/entities/match";
 import type { ResolutionState, PlayerStatDraft, TeamSide, SaveStatus } from "../types";
 import { AUTOSAVE_DEBOUNCE_MS } from "../constants";
+import { patchPlayerStat, patchMatchFields, resolveMatch } from "../lib/match-resolution-api";
 
 function buildInitialState(data: MatchResolutionData): ResolutionState {
 	const toPlayerDraft = (p: MatchResolutionData["homePlayers"][number]): PlayerStatDraft => ({
@@ -81,7 +87,8 @@ export function useMatchResolution(initialData: MatchResolutionData): UseMatchRe
 				await fn();
 				setSaveStatus("saved");
 				setLastSavedAt(new Date());
-			} catch {
+			} catch (autosaveError) {
+				console.error("[useMatchResolution] autosave", autosaveError);
 				setSaveStatus("error");
 			}
 		}, AUTOSAVE_DEBOUNCE_MS);
@@ -112,11 +119,11 @@ export function useMatchResolution(initialData: MatchResolutionData): UseMatchRe
 			});
 
 			scheduleAutosave(`stat-${registrationId}-${field}`, async () => {
-				await fetch(`/api/matches/${state.matchId}/stats/${registrationId}`, {
-					method: "PATCH",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ [field]: value }),
-				});
+				// `field` es un StatColumn | "isPresent" | "shirtNumber" y `value` su valor;
+				// se acota al patch parcial del stat (AutosaveStatInput) — cast necesario
+				// porque la firma pública recibe `field: string`.
+				const patch = { [field]: value } as AutosaveStatInput;
+				await patchPlayerStat(state.matchId, registrationId, patch);
 			});
 		},
 		[state.matchId, scheduleAutosave],
@@ -128,11 +135,10 @@ export function useMatchResolution(initialData: MatchResolutionData): UseMatchRe
 			if (field === "status") return; // status no se autosavea aquí
 
 			scheduleAutosave(`match-${field}`, async () => {
-				await fetch(`/api/matches/${state.matchId}`, {
-					method: "PATCH",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ [field]: value }),
-				});
+				// Campo de partido autosaveable (marcador, bonus, observaciones); se acota
+				// al patch parcial AutosaveMatchFieldsInput (la firma recibe `field: string`).
+				const patch = { [field]: value } as AutosaveMatchFieldsInput;
+				await patchMatchFields(state.matchId, patch);
 			});
 		},
 		[state.matchId, scheduleAutosave],
@@ -150,59 +156,43 @@ export function useMatchResolution(initialData: MatchResolutionData): UseMatchRe
 
 	const saveAll = useCallback(async (): Promise<{ nextMatchId: string | null } | null> => {
 		setSaveStatus("saving");
+
+		const toStatInput = (p: PlayerStatDraft) => ({
+			playerRegistrationId: p.registrationId,
+			isPresent: p.isPresent,
+			shirtNumber: p.shirtNumber,
+			goals: p.goals,
+			assists: p.assists,
+			yellowCards: p.yellowCards,
+			blueCards: p.blueCards,
+			redCards: p.redCards,
+		});
+
+		const body: ResolveMatchInput = {
+			// state.status proviene del status real del partido (DB) — siempre un
+			// MatchStatus válido en runtime; el route lo revalida con safeParse.
+			status: state.status as ResolveMatchInput["status"],
+			homeScore: state.homeScore,
+			awayScore: state.awayScore,
+			homeBonusGoals: state.homeBonusGoals,
+			awayBonusGoals: state.awayBonusGoals,
+			refereeObservations: state.refereeObservations,
+			homePlayers: state.homePlayers.map(toStatInput),
+			awayPlayers: state.awayPlayers.map(toStatInput),
+		};
+
 		try {
-			const body = {
-				status: state.status,
-				homeScore: state.homeScore,
-				awayScore: state.awayScore,
-				homeBonusGoals: state.homeBonusGoals,
-				awayBonusGoals: state.awayBonusGoals,
-				refereeObservations: state.refereeObservations,
-				homePlayers: state.homePlayers.map((p) => ({
-					playerRegistrationId: p.registrationId,
-					isPresent: p.isPresent,
-					shirtNumber: p.shirtNumber,
-					goals: p.goals,
-					assists: p.assists,
-					yellowCards: p.yellowCards,
-					blueCards: p.blueCards,
-					redCards: p.redCards,
-				})),
-				awayPlayers: state.awayPlayers.map((p) => ({
-					playerRegistrationId: p.registrationId,
-					isPresent: p.isPresent,
-					shirtNumber: p.shirtNumber,
-					goals: p.goals,
-					assists: p.assists,
-					yellowCards: p.yellowCards,
-					blueCards: p.blueCards,
-					redCards: p.redCards,
-				})),
-			};
-
-			const res = await fetch(`/api/matches/${state.matchId}/resolve`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
-			});
-
-			if (!res.ok) throw new Error("Error al guardar");
-
-			const data = await res.json();
+			const result = await resolveMatch(state.matchId, body);
 			setSaveStatus("saved");
 			setLastSavedAt(new Date());
-			setState((prev) =>
-				prev.homePlayers
-					? {
-							...prev,
-							homePlayers: prev.homePlayers.map((p) => ({ ...p, dirty: false })),
-							awayPlayers: prev.awayPlayers.map((p) => ({ ...p, dirty: false })),
-						}
-					: prev,
-			);
-
-			return { nextMatchId: data.data?.nextMatchId ?? null };
-		} catch {
+			setState((prev) => ({
+				...prev,
+				homePlayers: prev.homePlayers.map((p) => ({ ...p, dirty: false })),
+				awayPlayers: prev.awayPlayers.map((p) => ({ ...p, dirty: false })),
+			}));
+			return { nextMatchId: result.nextMatchId };
+		} catch (saveError) {
+			console.error("[useMatchResolution] saveAll", saveError);
 			setSaveStatus("error");
 			return null;
 		}

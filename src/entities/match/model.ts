@@ -55,6 +55,15 @@ export const AutosaveStatSchema = MatchPlayerStatSchema.partial().omit({
 });
 export type AutosaveStatInput = z.infer<typeof AutosaveStatSchema>;
 
+/**
+ * Respuesta de POST /api/matches/[id]/resolve. Tipo nombrado único (§7.4):
+ * lo devuelve el route y lo consume el cliente vía `apiFetch<ResolveMatchResult>`.
+ * `nextMatchId` alimenta el flujo "Guardar y siguiente".
+ */
+export type ResolveMatchResult = {
+	nextMatchId: string | null;
+};
+
 export const AutosaveMatchFieldsSchema = z.object({
 	homeScore: z.number().int().min(0).max(99).nullable().optional(),
 	awayScore: z.number().int().min(0).max(99).nullable().optional(),
