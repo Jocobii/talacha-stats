@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { titleCase } from "@/shared/lib/normalize";
+import { apiFetch } from "@/shared/api/client";
 
 type League = {
 	id: string;
@@ -30,12 +31,16 @@ export function LeagueSelect({ value, onChange, city, selectClassName, id }: Pro
 	useEffect(() => {
 		let active = true;
 		const url = city ? `/api/leagues?city=${encodeURIComponent(city)}` : "/api/leagues";
-		fetch(url)
-			.then((r) => r.json())
-			.then((d) => {
+		apiFetch<League[]>(url)
+			.then((result) => {
 				if (!active) return;
-				const all: League[] = d.data ?? [];
+				const all = result.ok ? result.data : [];
 				setLeagues(all.filter((l) => l.status === "active"));
+				setLoading(false);
+			})
+			.catch((networkError) => {
+				if (!active) return;
+				console.error("[LeagueSelect] cargar ligas", networkError);
 				setLoading(false);
 			});
 		return () => {

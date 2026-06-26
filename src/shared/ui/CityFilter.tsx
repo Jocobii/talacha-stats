@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Suspense } from "react";
 import { MapPin } from "lucide-react";
+import { apiFetch } from "@/shared/api/client";
 
 function CityFilterInner() {
 	const router = useRouter();
@@ -14,11 +15,15 @@ function CityFilterInner() {
 	const [cities, setCities] = useState<string[]>([]);
 
 	useEffect(() => {
-		fetch("/api/cities")
-			.then((r) => r.json())
-			.then((d) => {
-				if (Array.isArray(d.data)) setCities(d.data);
-			});
+		let cancelled = false;
+		apiFetch<string[]>("/api/cities")
+			.then((result) => {
+				if (!cancelled && result.ok && Array.isArray(result.data)) setCities(result.data);
+			})
+			.catch((networkError) => console.error("[CityFilter] cargar ciudades", networkError));
+		return () => {
+			cancelled = true;
+		};
 	}, []);
 
 	function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {

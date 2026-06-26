@@ -10,6 +10,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Modal } from "@/shared/ui/Modal";
+import { apiFetch } from "@/shared/api/client";
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -58,20 +59,19 @@ export function CreateTeamModal({ leagueId, leagueName, onSuccess, onClose }: Pr
 		setError("");
 
 		try {
-			const res = await fetch("/api/teams", {
+			const result = await apiFetch("/api/teams", {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ name: trimmed, leagueId, color: color ?? undefined }),
+				body: { name: trimmed, leagueId, color: color ?? undefined },
 			});
-			const data = await res.json();
 
-			if (!data.ok) {
-				setError(data.error ?? "Error al crear el equipo.");
+			if (!result.ok) {
+				setError(result.error ?? "Error al crear el equipo.");
 				return;
 			}
 
 			onSuccess();
-		} catch {
+		} catch (networkError) {
+			console.error("[CreateTeamModal] create", networkError);
 			setError("Error de red. Intenta de nuevo.");
 		} finally {
 			setSubmitting(false);

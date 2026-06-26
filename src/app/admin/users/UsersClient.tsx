@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { UserPublic } from "@/entities/user";
+import { apiFetch } from "@/shared/api/client";
 
 const ROLE_LABELS: Record<string, string> = {
 	owner: "Owner",
@@ -26,19 +27,20 @@ export default function UsersClient({
 		setError("");
 		setSaving(true);
 		try {
-			const res = await fetch("/api/users", {
+			const result = await apiFetch<UserPublic>("/api/users", {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(form),
+				body: form,
 			});
-			const data = await res.json();
-			if (!data.ok) {
-				setError(data.error);
+			if (!result.ok) {
+				setError(result.error);
 				return;
 			}
-			setUsers([...users, data.data]);
+			setUsers([...users, result.data]);
 			setShowForm(false);
 			setForm({ email: "", password: "", name: "", role: "organizer" });
+		} catch (networkError) {
+			console.error("[UsersClient] create", networkError);
+			setError("Error de red. Intenta de nuevo.");
 		} finally {
 			setSaving(false);
 		}
@@ -46,14 +48,16 @@ export default function UsersClient({
 
 	async function handleToggleActive(user: UserPublic) {
 		if (user.id === currentUserId) return;
-		const res = await fetch(`/api/users/${user.id}`, {
-			method: "PATCH",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ active: !user.active }),
-		});
-		const data = await res.json();
-		if (data.ok) {
-			setUsers(users.map((u) => (u.id === user.id ? data.data : u)));
+		try {
+			const result = await apiFetch<UserPublic>(`/api/users/${user.id}`, {
+				method: "PATCH",
+				body: { active: !user.active },
+			});
+			if (result.ok) {
+				setUsers(users.map((u) => (u.id === user.id ? result.data : u)));
+			}
+		} catch (networkError) {
+			console.error("[UsersClient] toggleActive", networkError);
 		}
 	}
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { apiFetch } from "@/shared/api/client";
 
 /**
  * Banner contextual que aparece cuando el organizador llega al importador
@@ -19,13 +20,13 @@ export default function NewLeagueBanner() {
 	useEffect(() => {
 		if (!leagueId || from !== "new-league") return;
 
-		fetch(`/api/leagues/${leagueId}`)
-			.then((r) => r.json())
-			.then((d) => {
-				if (d.ok && d.data?.name) setLeagueName(d.data.name);
+		apiFetch<{ name: string }>(`/api/leagues/${leagueId}`)
+			.then((result) => {
+				if (result.ok && result.data?.name) setLeagueName(result.data.name);
 			})
-			.catch(() => {
+			.catch((networkError) => {
 				// Si falla el fetch, el banner igual se muestra sin nombre
+				console.error("[NewLeagueBanner] cargar liga", networkError);
 				setLeagueName("");
 			});
 	}, [leagueId, from]);

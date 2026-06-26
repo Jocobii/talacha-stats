@@ -20,6 +20,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { apiFetch } from "@/shared/api/client";
 import {
 	Home,
 	Building2,
@@ -424,7 +425,11 @@ function LogoutButton({ collapsed }: { collapsed: boolean }) {
 	async function handleLogout() {
 		setBusy(true);
 		try {
-			await fetch("/api/auth/logout", { method: "POST" });
+			await apiFetch("/api/auth/logout", { method: "POST" });
+			router.push("/login");
+		} catch (networkError) {
+			// §18.4 — aunque falle el logout en red, igual llevamos al usuario a /login.
+			console.error("[AdminShell] logout", networkError);
 			router.push("/login");
 		} finally {
 			setBusy(false);
@@ -489,12 +494,15 @@ function SidebarCitySwitcher({
 			setOpen(false);
 			return;
 		}
-		const res = await fetch("/api/auth/city", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ city }),
-		});
-		if (res.ok) window.location.reload();
+		try {
+			const result = await apiFetch("/api/auth/city", {
+				method: "POST",
+				body: { city },
+			});
+			if (result.ok) window.location.reload();
+		} catch (networkError) {
+			console.error("[AdminShell] selectCity", networkError);
+		}
 	}
 
 	if (collapsed) {

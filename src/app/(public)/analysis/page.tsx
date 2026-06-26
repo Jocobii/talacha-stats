@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
+import { apiFetch } from "@/shared/api/client";
 import { LeagueSelect } from "@/shared/ui/LeagueSelect";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -128,16 +129,16 @@ function AnalysisContent() {
 					setLoading(true);
 					setError("");
 					try {
-						const res = await fetch(
+						const result = await apiFetch<NarratorAnalysis>(
 							`/api/narrator?leagueId=${leagueId}&teamA=${params.teamA}&teamB=${params.teamB}`,
 						);
-						const data = await res.json();
-						if (!data.ok) {
-							setError(data.error);
+						if (!result.ok) {
+							setError(result.error);
 							return;
 						}
-						setAnalysis(data.data);
-					} catch {
+						setAnalysis(result.data);
+					} catch (networkError) {
+						console.error("[analysis] carga desde enlace", networkError);
 						setError("Error de red al generar el análisis.");
 					} finally {
 						setLoading(false);
@@ -159,15 +160,17 @@ function AnalysisContent() {
 		setError("");
 		setLoading(true);
 		try {
-			const res = await fetch(`/api/narrator?leagueId=${leagueId}&teamA=${teamA}&teamB=${teamB}`);
-			const data = await res.json();
-			if (!data.ok) {
-				setError(data.error);
+			const result = await apiFetch<NarratorAnalysis>(
+				`/api/narrator?leagueId=${leagueId}&teamA=${teamA}&teamB=${teamB}`,
+			);
+			if (!result.ok) {
+				setError(result.error);
 				return;
 			}
-			setAnalysis(data.data);
+			setAnalysis(result.data);
 			router.replace(`?leagueId=${leagueId}&teamA=${teamA}&teamB=${teamB}`, { scroll: false });
-		} catch {
+		} catch (networkError) {
+			console.error("[analysis] handleAnalyze", networkError);
 			setError("Error de red al generar el análisis.");
 		} finally {
 			setLoading(false);
@@ -179,8 +182,9 @@ function AnalysisContent() {
 			await navigator.clipboard.writeText(window.location.href);
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
-		} catch {
-			// noop
+		} catch (clipboardError) {
+			// §18.4 — clipboard puede fallar (permisos/secure context); registrar, no romper la UI.
+			console.error("[analysis] no se pudo copiar al portapapeles", clipboardError);
 		}
 	}
 

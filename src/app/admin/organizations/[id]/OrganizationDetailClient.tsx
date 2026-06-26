@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { apiFetch } from "@/shared/api/client";
 
 type Member = { id: string; name: string; email: string };
 type League = { id: string; name: string; dayOfWeek: string; season: string; status: string };
@@ -45,17 +46,18 @@ export default function OrganizationDetailClient({
 		setMemberLoading(userId);
 		setMemberError("");
 		try {
-			const res = await fetch(`/api/organizations/${org.id}`, {
+			const result = await apiFetch(`/api/organizations/${org.id}`, {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ userId, action }),
+				body: { userId, action },
 			});
-			const data = await res.json();
-			if (!data.ok) {
-				setMemberError(data.error);
+			if (!result.ok) {
+				setMemberError(result.error);
 				return;
 			}
 			window.location.reload();
+		} catch (networkError) {
+			console.error("[OrganizationDetailClient] memberAction", networkError);
+			setMemberError("Error de red. Intenta de nuevo.");
 		} finally {
 			setMemberLoading(null);
 		}

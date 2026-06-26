@@ -5,13 +5,13 @@
  * Selector de equipo destino + checkbox carta de salida.
  */
 
-import { useEffect } from "react";
 import { ArrowLeftRight } from "lucide-react";
 import { Modal } from "@/shared/ui/Modal";
 import { Button } from "@/shared/ui/Button";
 import { Avatar } from "@/shared/ui/Avatar";
 import { Select } from "@/shared/ui/Select";
 import { useTransferModal } from "../model/useTransferModal";
+import { useLeagueTeams } from "../model/useLeagueTeams";
 import type { RosterEntry, TeamOption } from "../types";
 
 type Props = {
@@ -38,19 +38,8 @@ export function TransferModal({
 	mutating,
 	error,
 }: Props) {
-	const {
-		availableTeams,
-		loadingTeams,
-		targetTeamId,
-		hasExitLetter,
-		setTargetTeamId,
-		setHasExitLetter,
-		loadTeams,
-	} = useTransferModal();
-
-	useEffect(() => {
-		loadTeams(leagueId, teamId);
-	}, [leagueId, teamId]);
+	const { targetTeamId, hasExitLetter, setTargetTeamId, setHasExitLetter } = useTransferModal();
+	const { data: availableTeams = [], isLoading: loadingTeams } = useLeagueTeams(leagueId, teamId);
 
 	async function handleConfirm() {
 		if (!targetTeamId) return;

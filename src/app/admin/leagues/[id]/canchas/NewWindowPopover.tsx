@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { X } from "lucide-react";
+import { apiFetch } from "@/shared/api/client";
 import { DAYS_FULL, parseTime } from "./WeeklyGrid";
 
 const inputCls =
@@ -57,40 +58,46 @@ export function NewWindowPopover({
 		}
 		setError(null);
 		startTransition(async () => {
-			let res: Response;
-			if (isEdit) {
-				res = await fetch(`/api/venue-windows/${mode.window.id}`, {
-					method: "PATCH",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ dayOfWeek: day, startTime: start, endTime: end }),
-				});
-			} else {
-				const venueId = mode.venueId;
-				res = await fetch(`/api/leagues/${leagueId}/venues/${venueId}/windows`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ dayOfWeek: day, startTime: start, endTime: end }),
-				});
+			const requestBody = { dayOfWeek: day, startTime: start, endTime: end };
+			try {
+				let result;
+				if (isEdit) {
+					result = await apiFetch<VenueTimeWindow>(`/api/venue-windows/${mode.window.id}`, {
+						method: "PATCH",
+						body: requestBody,
+					});
+				} else {
+					result = await apiFetch<VenueTimeWindow>(
+						`/api/leagues/${leagueId}/venues/${mode.venueId}/windows`,
+						{ method: "POST", body: requestBody },
+					);
+				}
+				if (!result.ok) {
+					setError(result.error ?? "Error al guardar");
+					return;
+				}
+				onSuccess(result.data);
+			} catch (networkError) {
+				console.error("[NewWindowPopover] save", networkError);
+				setError("Error de red. Intenta de nuevo.");
 			}
-			const json = await res.json();
-			if (!json.ok) {
-				setError(json.error ?? "Error al guardar");
-				return;
-			}
-			onSuccess(json.data as VenueTimeWindow);
 		});
 	}
 
 	function handleDelete() {
 		if (!isEdit) return;
 		startTransition(async () => {
-			const res = await fetch(`/api/venue-windows/${mode.window.id}`, { method: "DELETE" });
-			const json = await res.json();
-			if (!json.ok) {
-				setError(json.error ?? "Error al eliminar");
-				return;
+			try {
+				const result = await apiFetch(`/api/venue-windows/${mode.window.id}`, { method: "DELETE" });
+				if (!result.ok) {
+					setError(result.error ?? "Error al eliminar");
+					return;
+				}
+				onDeleted?.(mode.window.id);
+			} catch (networkError) {
+				console.error("[NewWindowPopover] delete", networkError);
+				setError("Error de red. Intenta de nuevo.");
 			}
-			onDeleted?.(mode.window.id);
 		});
 	}
 

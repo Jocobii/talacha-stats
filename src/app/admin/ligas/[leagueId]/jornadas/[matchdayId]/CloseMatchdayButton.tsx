@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
+import { apiFetch } from "@/shared/api/client";
 
 type Props = {
 	matchdayId: string;
@@ -28,15 +29,15 @@ export function CloseMatchdayButton({ matchdayId, leagueId, matchdayNumber }: Pr
 		setLoading(true);
 		setError(null);
 		try {
-			const res = await fetch(`/api/matchdays/${matchdayId}/close`, { method: "POST" });
-			const json = await res.json();
-			if (!res.ok) {
-				setError(json.error ?? "Error al cerrar la jornada");
+			const result = await apiFetch(`/api/matchdays/${matchdayId}/close`, { method: "POST" });
+			if (!result.ok) {
+				setError(result.error ?? "Error al cerrar la jornada");
 				return;
 			}
 			router.push(`/admin/leagues/${leagueId}/calendario`);
 			router.refresh();
-		} catch {
+		} catch (networkError) {
+			console.error("[CloseMatchdayButton] close", networkError);
 			setError("Error de red. Intenta de nuevo.");
 		} finally {
 			setLoading(false);

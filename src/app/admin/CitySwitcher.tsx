@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MapPin, ChevronDown, Check, Search } from "lucide-react";
 import { MEXICO_CITIES } from "@/shared/lib/cities";
+import { apiFetch } from "@/shared/api/client";
 
 type Props = { activeCity: string };
 
@@ -32,13 +33,16 @@ export default function CitySwitcher({ activeCity }: Props) {
 			setOpen(false);
 			return;
 		}
-		const res = await fetch("/api/auth/city", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ city }),
-		});
-		if (res.ok) {
-			window.location.reload();
+		try {
+			const result = await apiFetch("/api/auth/city", {
+				method: "POST",
+				body: { city },
+			});
+			if (result.ok) {
+				window.location.reload();
+			}
+		} catch (networkError) {
+			console.error("[CitySwitcher] selectCity", networkError);
 		}
 	}
 

@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Unlock } from "lucide-react";
+import { apiFetch } from "@/shared/api/client";
 
 type Props = { matchdayId: string };
 
@@ -19,14 +20,14 @@ export function ReopenPlayoffButton({ matchdayId }: Props) {
 		setLoading(true);
 		setError(null);
 		try {
-			const res = await fetch(`/api/matchdays/${matchdayId}/reopen`, { method: "POST" });
-			const json = await res.json();
-			if (!res.ok) {
-				setError(json.error ?? "Error al reabrir");
+			const result = await apiFetch(`/api/matchdays/${matchdayId}/reopen`, { method: "POST" });
+			if (!result.ok) {
+				setError(result.error ?? "Error al reabrir");
 				return;
 			}
 			router.refresh();
-		} catch {
+		} catch (networkError) {
+			console.error("[ReopenPlayoffButton] reopen", networkError);
 			setError("Error de red. Intenta de nuevo.");
 		} finally {
 			setLoading(false);

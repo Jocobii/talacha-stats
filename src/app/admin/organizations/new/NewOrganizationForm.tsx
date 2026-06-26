@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { apiFetch } from "@/shared/api/client";
 
 function toSlug(name: string): string {
 	return name
@@ -43,22 +44,23 @@ export default function NewOrganizationForm() {
 		setError("");
 		setLoading(true);
 		try {
-			const res = await fetch("/api/organizations", {
+			const result = await apiFetch<{ id: string }>("/api/organizations", {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
+				body: {
 					name: form.name,
 					slug: form.slug,
 					city: form.city,
 					logoUrl: form.logoUrl || undefined,
-				}),
+				},
 			});
-			const data = await res.json();
-			if (!data.ok) {
-				setError(data.error);
+			if (!result.ok) {
+				setError(result.error);
 				return;
 			}
-			router.push(`/admin/organizations/${data.data.id}`);
+			router.push(`/admin/organizations/${result.data.id}`);
+		} catch (networkError) {
+			console.error("[NewOrganizationForm] create", networkError);
+			setError("Error de red. Intenta de nuevo.");
 		} finally {
 			setLoading(false);
 		}

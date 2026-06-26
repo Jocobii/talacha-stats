@@ -12,6 +12,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { GlobalPlayerLeagueMember } from "@/entities/player";
+import { apiFetch } from "@/shared/api/client";
 
 type Props = {
 	globalPlayerId: string;
@@ -52,21 +53,19 @@ export function LeagueMemberEditor({ globalPlayerId, member }: Props) {
 		}
 
 		try {
-			const res = await fetch(`/api/players/${globalPlayerId}/member`, {
+			const result = await apiFetch(`/api/players/${globalPlayerId}/member`, {
 				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
+				body: {
 					leagueMemberId: member.memberId,
 					status,
 					dorsal: dorsalNum,
 					internalNotes: notes.trim() || null,
 					institutionPhotoUrl: photoUrl.trim() || null,
-				}),
+				},
 			});
 
-			const json = await res.json();
-			if (!res.ok || !json.ok) {
-				setError(json.error ?? "Error al guardar.");
+			if (!result.ok) {
+				setError(result.error ?? "Error al guardar.");
 				return;
 			}
 
@@ -77,7 +76,8 @@ export function LeagueMemberEditor({ globalPlayerId, member }: Props) {
 				setSuccess(false);
 				setOpen(false);
 			}, 1500);
-		} catch {
+		} catch (networkError) {
+			console.error("[LeagueMemberEditor] save", networkError);
 			setError("Error de conexión. Intenta de nuevo.");
 		} finally {
 			setSaving(false);

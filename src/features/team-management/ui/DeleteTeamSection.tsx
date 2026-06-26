@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/shared/ui/Button";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { apiFetch } from "@/shared/api/client";
 import { TEAM_API_URL } from "../constants";
 
 type Props = {
@@ -29,17 +30,18 @@ export function DeleteTeamSection({ teamId, teamName, leagueId }: Props) {
 		setLoading(true);
 		setError("");
 		try {
-			const res = await fetch(TEAM_API_URL(teamId), {
+			const result = await apiFetch(TEAM_API_URL(teamId), {
 				method: "DELETE",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ confirm: teamName }),
+				body: { confirm: teamName },
 			});
-			const data = (await res.json()) as { ok: boolean; error?: string };
-			if (!data.ok) {
-				setError(data.error ?? "Error al disolver el equipo");
+			if (!result.ok) {
+				setError(result.error ?? "Error al disolver el equipo");
 				return;
 			}
 			router.push(`/admin/leagues/${leagueId}`);
+		} catch (networkError) {
+			console.error("[DeleteTeamSection] disband", networkError);
+			setError("Error de red. Intenta de nuevo.");
 		} finally {
 			setLoading(false);
 			setShowConfirm(false);

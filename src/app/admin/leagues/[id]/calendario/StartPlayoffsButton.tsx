@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/shared/api/client";
 
 type Props = { leagueId: string };
 
@@ -23,19 +24,21 @@ export function StartPlayoffsButton({ leagueId }: Props) {
 		}
 		setError(null);
 		setLoading(true);
-
-		const res = await fetch(`/api/leagues/${leagueId}/playoffs/start`, {
-			method: "POST",
-		});
-		const json = await res.json();
-		setLoading(false);
-
-		if (!res.ok) {
-			setError(json.error ?? "Error al iniciar la fase final.");
-			return;
+		try {
+			const result = await apiFetch(`/api/leagues/${leagueId}/playoffs/start`, {
+				method: "POST",
+			});
+			if (!result.ok) {
+				setError(result.error ?? "Error al iniciar la fase final.");
+				return;
+			}
+			router.refresh();
+		} catch (networkError) {
+			console.error("[StartPlayoffsButton] start", networkError);
+			setError("Error de red. Intenta de nuevo.");
+		} finally {
+			setLoading(false);
 		}
-
-		router.refresh();
 	};
 
 	return (

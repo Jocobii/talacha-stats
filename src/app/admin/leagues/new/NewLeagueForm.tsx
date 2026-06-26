@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { apiFetch } from "@/shared/api/client";
 
 const DAYS = [
 	{ value: "lunes", label: "Lunes" },
@@ -47,23 +48,24 @@ export default function NewLeagueForm({
 		setError("");
 		setLoading(true);
 		try {
-			const res = await fetch("/api/leagues", {
+			const result = await apiFetch<{ id: string }>("/api/leagues", {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
+				body: {
 					name: form.name,
 					category: form.category || undefined,
 					dayOfWeek: form.dayOfWeek,
 					season: form.season,
 					organizationId: form.organizationId,
-				}),
+				},
 			});
-			const data = await res.json();
-			if (!data.ok) {
-				setError(data.error);
+			if (!result.ok) {
+				setError(result.error);
 				return;
 			}
-			router.push(`/admin/leagues/${data.data.id}/setup`);
+			router.push(`/admin/leagues/${result.data.id}/setup`);
+		} catch (networkError) {
+			console.error("[NewLeagueForm] create", networkError);
+			setError("Error de red. Intenta de nuevo.");
 		} finally {
 			setLoading(false);
 		}
