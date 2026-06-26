@@ -16,7 +16,6 @@ import { getSessionUser } from "@/shared/lib/auth";
 import { LeagueTabBar } from "@/shared/ui";
 import NewSeasonButton from "./NewSeasonButton";
 import ShareButton from "@/shared/ui/ShareButton";
-import { ToastContainer } from "@/shared/ui/ToastContainer";
 
 type Props = {
 	children: ReactNode;
@@ -81,9 +80,6 @@ export default async function LeagueLayout({ children, params }: Props) {
 
 			{/* ── Contenido del tab activo ──────────────────────────────────────── */}
 			<div className="mt-4">{children}</div>
-
-			{/* ── Toasts globales ───────────────────────────────────────────────── */}
-			<ToastContainer />
 		</div>
 	);
 }

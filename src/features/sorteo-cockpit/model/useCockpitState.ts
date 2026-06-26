@@ -11,7 +11,7 @@ import type {
 	SaveStatus,
 } from "../types";
 import { pairKey } from "@/features/scheduling/lib/pair-key";
-import { useToastStore } from "@/shared/store/toast-store";
+import { notify } from "@/shared/lib/notify";
 import { COCKPIT_DEBOUNCE_MS } from "../constants";
 import {
 	fetchCurrent,
@@ -255,8 +255,6 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 		[pairings, recentPairKeys],
 	);
 
-	const addToast = useToastStore((s) => s.add);
-
 	const confirmPairings = useCallback(async () => {
 		const md = matchdayRef.current;
 		if (!md || lastSeed === null) return;
@@ -271,13 +269,9 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 			savedTimerRef.current = setTimeout(() => setSaveStatus("idle"), 2000);
 		} catch {
 			setSaveStatus("error");
-			addToast({
-				type: "error",
-				message: "No se pudieron guardar los cambios. Intenta de nuevo.",
-				duration: 5000,
-			});
+			notify.error("No se pudieron guardar los cambios. Intenta de nuevo.");
 		}
-	}, [leagueId, pairings, lastSeed, addToast]);
+	}, [leagueId, pairings, lastSeed]);
 
 	const publishMatchday = useCallback(async () => {
 		const md = matchdayRef.current;
@@ -287,17 +281,13 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 			await postPublish(leagueId, md.number);
 			// Actualizar estado local sin recargar toda la página (evita el parpadeo del spinner)
 			setMatchday((prev) => (prev ? { ...prev, status: "published" as const } : prev));
-			addToast({ type: "success", message: "Jornada publicada correctamente.", duration: 4000 });
+			notify.success("Jornada publicada correctamente.");
 		} catch {
-			addToast({
-				type: "error",
-				message: "Error al publicar la jornada. Intenta de nuevo.",
-				duration: 5000,
-			});
+			notify.error("Error al publicar la jornada. Intenta de nuevo.");
 		} finally {
 			setPublishLoading(false);
 		}
-	}, [leagueId, addToast]);
+	}, [leagueId]);
 
 	useEffect(() => {
 		if (!isDirty || pairings.length === 0 || lastSeed === null) return;
