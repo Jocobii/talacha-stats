@@ -25,6 +25,9 @@ export { TeamPicker } from "./TeamPicker";
 // Navegacion de liga
 export { LeagueTabBar } from "./LeagueTabBar";
 
+// Notificaciones (sileo) — montar una vez en el root layout
+export { Toaster } from "./Toaster";
+
 // Componentes existentes
 export { AdminTable } from "./AdminTable";
 export type { AdminTableColumn, AdminTableProps } from "./AdminTable";

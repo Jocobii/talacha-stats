@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/shared/hooks/use-toast";
+import { apiFetch } from "@/shared/api/client";
 
 type Team = {
 	id: string;
@@ -58,20 +59,17 @@ export function TeamsSection({ leagueId, teams: initialTeams }: Props) {
 		setLoading(true);
 
 		try {
-			const res = await fetch(`/api/leagues/${leagueId}/teams/${confirmId}/disband`, {
-				method: "POST",
-			});
-			const json = await res.json();
+			const result = await apiFetch<{ teamName: string; freedPlayers: number }>(
+				`/api/leagues/${leagueId}/teams/${confirmId}/disband`,
+				{ method: "POST" },
+			);
 
-			if (!res.ok || !json.ok) {
-				toast.error(json.error ?? "Error al disolver el equipo");
+			if (!result.ok) {
+				toast.error(result.error ?? "Error al disolver el equipo");
 				return;
 			}
 
-			const { teamName, freedPlayers } = json.data as {
-				teamName: string;
-				freedPlayers: number;
-			};
+			const { teamName, freedPlayers } = result.data;
 
 			// Update local state optimistically
 			setTeams((prev) => prev.map((t) => (t.id === confirmId ? { ...t, status: "disbanded" } : t)));

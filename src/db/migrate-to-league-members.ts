@@ -84,11 +84,6 @@ async function run() {
 
 	// Mapa: legacy player.id → global_player.id
 	const legacyToGlobalId = new Map<string, string>();
-	for (const row of globalRows) {
-		// Los dummy hashes tienen formato sha256("PENDING_" + uuid)
-		// Reconstruimos el player.id a partir del hash para armar el mapa inverso
-		// No es posible invertir sha256, así que leemos players directamente
-	}
 
 	// Leer todos los players legacy para construir el mapa directo
 	const legacyPlayers = await db.select({ id: players.id }).from(players);

@@ -9,7 +9,7 @@
  *  4. Es idempotente — devuelve 409 si ya existe un bracket para esta liga.
  */
 
-import { eq, asc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { apiSuccess, apiError } from "@/types";
 import { getSessionUserFromRequest, canManageLeague } from "@/shared/lib/auth";
 import { db } from "@/db";

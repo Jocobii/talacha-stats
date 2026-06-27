@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiFetch } from "@/shared/api/client";
 
 type OrgMember = { id: string; name: string; email: string };
 type Organization = {
@@ -28,18 +29,19 @@ export default function OrganizationSection({ leagueId, current, organizations, 
 		setSaving(true);
 		setError("");
 		try {
-			const res = await fetch(`/api/leagues/${leagueId}`, {
+			const result = await apiFetch(`/api/leagues/${leagueId}`, {
 				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ organizationId: selected || null }),
+				body: { organizationId: selected || null },
 			});
-			const data = await res.json();
-			if (!data.ok) {
-				setError(data.error);
+			if (!result.ok) {
+				setError(result.error);
 				return;
 			}
 			setEditing(false);
 			window.location.reload();
+		} catch (networkError) {
+			console.error("[OrganizerSection] save", networkError);
+			setError("Error de red. Intenta de nuevo.");
 		} finally {
 			setSaving(false);
 		}

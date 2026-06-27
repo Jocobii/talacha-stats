@@ -1,5 +1,18 @@
 export const COCKPIT_DEBOUNCE_MS = 800;
 
+/** Config de sorteo de la liga (GET lee / PUT crea-actualiza). */
+export const SCHEDULING_CONFIG_URL = (leagueId: string): string =>
+	`/api/leagues/${leagueId}/scheduling-config`;
+
+/**
+ * Valores fijos que el cockpit envía siempre al guardar la config (formato
+ * simple, sin duplicados). Centralizados para no hardcodearlos en cada UI (§3.5).
+ */
+export const SCHEDULING_CONFIG_FIXED = {
+	regularFormat: "single",
+	allowDuplicateMatchups: false,
+} as const;
+
 export const STATUS_LABELS: Record<string, string> = {
 	draft: "Borrador",
 	published: "Publicada",

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/shared/api/client";
 
 export default function ApproveButton({ orgId, orgName }: { orgId: string; orgName: string }) {
 	const router = useRouter();
@@ -14,14 +15,14 @@ export default function ApproveButton({ orgId, orgName }: { orgId: string; orgNa
 		setLoading(true);
 		setError("");
 		try {
-			const res = await fetch(`/api/organizations/${orgId}/approve`, { method: "POST" });
-			const data = await res.json();
-			if (!data.ok) {
-				setError(data.error ?? "Error al aprobar");
+			const result = await apiFetch(`/api/organizations/${orgId}/approve`, { method: "POST" });
+			if (!result.ok) {
+				setError(result.error ?? "Error al aprobar");
 				return;
 			}
 			router.refresh();
-		} catch {
+		} catch (networkError) {
+			console.error("[ApproveButton] approve", networkError);
 			setError("Error de conexion");
 		} finally {
 			setLoading(false);

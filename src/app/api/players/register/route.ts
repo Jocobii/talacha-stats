@@ -57,7 +57,7 @@ export async function POST(request: Request): Promise<Response> {
 
 	// 4. Omitir curpHash del response (nunca sale del servidor)
 	const { globalPlayer, ...rest } = result;
-	const { curpHash: _, ...playerPublic } = globalPlayer;
+	const { ...playerPublic } = globalPlayer;
 
 	return apiSuccess({ ...rest, globalPlayer: playerPublic }, 201);
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Clock, RefreshCw, Calendar } from "lucide-react";
 import { ParamRow } from "./ParamRow";
+import { useSaveSchedulingConfig } from "../model/useSaveSchedulingConfig";
 import type { CockpitConfig } from "../types";
 
 type ParametrosWizardProps = {
@@ -19,28 +20,14 @@ const DEFAULTS: CockpitConfig = {
 
 export function ParametrosWizard({ leagueId, onSave }: ParametrosWizardProps) {
 	const [form, setForm] = useState<CockpitConfig>(DEFAULTS);
-	const [saving, setSaving] = useState(false);
+	const saveConfig = useSaveSchedulingConfig(leagueId);
 
 	function patch(partial: Partial<CockpitConfig>) {
 		setForm((prev) => ({ ...prev, ...partial }));
 	}
 
-	async function handleSave() {
-		setSaving(true);
-		try {
-			const res = await fetch(`/api/leagues/${leagueId}/scheduling-config`, {
-				method: "PUT",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					...form,
-					regularFormat: "single",
-					allowDuplicateMatchups: false,
-				}),
-			});
-			if (res.ok) onSave();
-		} finally {
-			setSaving(false);
-		}
+	function handleSave() {
+		saveConfig.mutate(form, { onSuccess: onSave });
 	}
 
 	return (
@@ -102,10 +89,15 @@ export function ParametrosWizard({ leagueId, onSave }: ParametrosWizardProps) {
 				className="btn-primary"
 				style={{ width: "100%", justifyContent: "center" }}
 				onClick={handleSave}
-				disabled={saving}
+				disabled={saveConfig.isPending}
 			>
-				{saving ? "Guardando…" : "Guardar y continuar →"}
+				{saveConfig.isPending ? "Guardando…" : "Guardar y continuar →"}
 			</button>
+			{saveConfig.isError && (
+				<p style={{ fontSize: 12, color: "var(--color-rose)", marginTop: 10 }}>
+					{saveConfig.error.message}
+				</p>
+			)}
 		</div>
 	);
 }

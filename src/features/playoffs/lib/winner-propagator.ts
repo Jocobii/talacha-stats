@@ -10,7 +10,7 @@
 
 import { eq, or, and } from "drizzle-orm";
 import { db } from "@/db";
-import { playoffSlots, playoffBrackets, matchdays, matches } from "@/db/schema";
+import { playoffSlots, matchdays, matches } from "@/db/schema";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

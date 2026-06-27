@@ -1,22 +1,16 @@
 /**
  * shared/hooks/use-toast.ts
  *
- * Hook de conveniencia para disparar toasts sin tocar el store directamente.
+ * Shim de compatibilidad. La API real vive en `@/shared/lib/notify`, que se
+ * puede importar desde CUALQUIER lugar (no necesita ser un hook). Este wrapper
+ * existe solo para los call sites que ya usaban `const toast = useToast()`.
  *
- * Uso:
- *   const toast = useToast();
- *   toast.success("Guardado correctamente");
- *   toast.error("Algo salió mal");
+ * Para código nuevo, prefiere:
+ *   import { notify } from "@/shared/lib/notify";
+ *   notify.success("Guardado");
  */
-import { useToastStore } from "@/shared/store/toast-store";
+import { notify } from "@/shared/lib/notify";
 
 export function useToast() {
-	const add = useToastStore((s) => s.add);
-
-	return {
-		success: (message: string, duration = 4000) => add({ type: "success", message, duration }),
-		error: (message: string, duration = 5000) => add({ type: "error", message, duration }),
-		warning: (message: string, duration = 4000) => add({ type: "warning", message, duration }),
-		info: (message: string, duration = 4000) => add({ type: "info", message, duration }),
-	};
+	return notify;
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/shared/api/client";
 
 function buildSlug(name: string): string {
 	return name
@@ -18,32 +19,28 @@ function buildSlug(name: string): string {
 export default function OnboardingForm() {
 	const router = useRouter();
 	const [name, setName] = useState("");
-	const [slug, setSlug] = useState("");
 	const [error, setError] = useState("");
 	const [loading, setLoading] = useState(false);
 
-	useEffect(() => {
-		// eslint-disable-next-line react-hooks/set-state-in-effect
-		setSlug(buildSlug(name));
-	}, [name]);
+	// §7.2 — slug es un valor derivado: se calcula en render, no con un efecto + setState.
+	const slug = buildSlug(name);
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		setError("");
 		setLoading(true);
 		try {
-			const res = await fetch("/api/organizations", {
+			const result = await apiFetch("/api/organizations", {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ name, slug }),
+				body: { name, slug },
 			});
-			const data = await res.json();
-			if (!data.ok) {
-				setError(data.error ?? "No se pudo crear la liga.");
+			if (!result.ok) {
+				setError(result.error ?? "No se pudo crear la liga.");
 				return;
 			}
 			router.push("/admin");
-		} catch {
+		} catch (networkError) {
+			console.error("[OnboardingForm] create", networkError);
 			setError("Error de conexion. Intenta de nuevo.");
 		} finally {
 			setLoading(false);

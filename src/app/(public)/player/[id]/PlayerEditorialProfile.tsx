@@ -13,7 +13,7 @@
  *   font-display (Barlow Condensed) / font-body (Space Grotesk)
  */
 
-import type { PlayerView, PlayerLeagueStats, PlayerBadge } from "@/entities/player";
+import type { PlayerView, PlayerLeagueStats } from "@/entities/player";
 import type { PlayerEgoStats } from "@/entities/player";
 import ShareFooter from "./ShareFooter";
 
@@ -158,6 +158,7 @@ function pickAcreditaciones(view: PlayerView, ego: PlayerEgoStats): { l: string;
 }
 
 function isFemenilProfile(view: PlayerView): boolean {
+	console.log(view);
 	return false; // si en el futuro guardas género en `players`, devuélvelo aquí.
 	// Hoy las ligas tienen `category` (e.g. "Libre Femenil") pero está en cada liga,
 	// y un jugador puede estar en varias. Mejor depender de un campo en `players`.

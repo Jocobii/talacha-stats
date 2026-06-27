@@ -626,5 +626,5 @@ export async function getCityLeagues(
 	// Only show leagues from verified orgs (or legacy leagues without an org)
 	return rows
 		.filter((l) => !l.organization || l.organization.status === "verified")
-		.map(({ organization: _org, ...l }) => l);
+		.map(({ organization: _, ...l }) => l);
 }

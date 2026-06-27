@@ -285,10 +285,6 @@ const ANALYSIS = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function displayName(p: { fullName: string; alias: string | null }) {
-	return p.alias ? `"${p.alias}"` : p.fullName;
-}
-
 function initial(name: string, alias: string | null) {
 	return (alias ?? name).charAt(0).toUpperCase();
 }

@@ -15,6 +15,7 @@ import type { TeamFormData } from "../types";
 
 type Props = {
 	teamId: string;
+	leagueId: string;
 	initial: TeamFormData;
 };
 
@@ -29,9 +30,10 @@ const PRESET_COLORS = [
 	"#F97316",
 ];
 
-export function TeamSettingsPanel({ teamId, initial }: Props) {
+export function TeamSettingsPanel({ teamId, leagueId, initial }: Props) {
 	const { name, color, saving, saved, error, setName, setColor, handleSave } = useTeamForm(
 		teamId,
+		leagueId,
 		initial,
 	);
 

@@ -2,11 +2,12 @@
 
 /**
  * SchedulingToggle — Activa/desactiva el módulo de sorteo para una liga.
- * Solo renderizado para owners. Llama POST /api/leagues/[id]/scheduling-toggle.
+ * Disponible para owner u organizer de la liga. Llama POST /api/leagues/[id]/scheduling-toggle.
  */
 
 import { useState } from "react";
 import { ToggleLeft, ToggleRight, Loader2 } from "lucide-react";
+import { apiFetch } from "@/shared/api/client";
 
 type Props = {
 	leagueId: string;
@@ -22,17 +23,19 @@ export function SchedulingToggle({ leagueId, initialEnabled }: Props) {
 		setLoading(true);
 		setError(null);
 		try {
-			const res = await fetch(`/api/leagues/${leagueId}/scheduling-toggle`, {
+			const result = await apiFetch(`/api/leagues/${leagueId}/scheduling-toggle`, {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ enabled: !enabled }),
+				body: { enabled: !enabled },
 			});
-			const json = await res.json();
-			if (!res.ok) throw new Error(json.error ?? "Error al cambiar el estado");
+			if (!result.ok) {
+				setError(result.error ?? "Error al cambiar el estado");
+				return;
+			}
 			setEnabled(!enabled);
 			window.location.reload();
-		} catch (e) {
-			setError(e instanceof Error ? e.message : "Error inesperado");
+		} catch (networkError) {
+			console.error("[SchedulingToggle] toggle", networkError);
+			setError("Error inesperado");
 		} finally {
 			setLoading(false);
 		}

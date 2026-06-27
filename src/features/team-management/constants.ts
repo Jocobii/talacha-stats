@@ -5,6 +5,24 @@
 
 export const TEAM_API_URL = (teamId: string): string => `/api/teams/${teamId}`;
 
+/** Colección de equipos: GET listado / POST alta. */
+export const TEAMS_URL = "/api/teams";
+
+/** Presets de color para el alta de equipo (no hardcodear en la UI, §3.5). */
+export const COLOR_PRESETS = [
+	"#e53e3e",
+	"#dd6b20",
+	"#d69e2e",
+	"#38a169",
+	"#3182ce",
+	"#6b46c1",
+	"#d53f8c",
+	"#2d3748",
+] as const;
+
+/** Roster V2 (RosterEntry[]) — fuente cliente para TanStack Query. */
+export const TEAM_ROSTER_URL = (teamId: string): string => `/api/teams/${teamId}/members`;
+
 export const ROSTER_MEMBER_URL = (teamId: string, memberId: string): string =>
 	`/api/teams/${teamId}/roster/${memberId}`;
 

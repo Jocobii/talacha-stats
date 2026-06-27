@@ -8,13 +8,12 @@
 
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
-import { db, leagues, organizations } from "@/db";
+import { db, leagues } from "@/db";
 import { eq } from "drizzle-orm";
 import { getLeagueStandings } from "@/lib/standings";
 import { titleCase } from "@/shared/lib/normalize";
 import { BRAND_PALETTE as C } from "@/shared/brand/palette";
 import { BRAND } from "@/shared/brand/tokens";
-import { buildDeepLink } from "@/features/share-assets/deep-link";
 import type { TeamStanding } from "@/types";
 
 export const runtime = "nodejs";
@@ -141,22 +140,6 @@ export async function GET(request: NextRequest) {
 	]);
 
 	if (!league) return new Response("Liga no encontrada", { status: 404 });
-
-	let deepLink = `https://${BRAND.domain}`;
-
-	if (league.slug && league.organizationId) {
-		const org = await db.query.organizations.findFirst({
-			where: eq(organizations.id, league.organizationId),
-			columns: { slug: true },
-		});
-		if (org?.slug) {
-			deepLink = buildDeepLink({
-				orgSlug: org.slug,
-				leagueSlug: league.slug,
-				assetType: "standings",
-			});
-		}
-	}
 
 	const leagueName = titleCase(league.name);
 	const rh = rowHeight(standings.length);

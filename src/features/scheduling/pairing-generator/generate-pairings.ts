@@ -4,7 +4,7 @@
  * Función pura — sin efectos de red, sin DB, testeable en aislamiento.
  */
 
-import type { Pairing, GeneratedMatchday } from "../types";
+import type { GeneratedMatchday } from "../types";
 import { generateRoundRobin } from "./circle-method";
 import { applyRestRequests, type RestRequest } from "./apply-rest-requests";
 import { validateNoDuplicates } from "./validate-no-duplicates";

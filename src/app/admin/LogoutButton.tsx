@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { apiFetch } from "@/shared/api/client";
 
 export default function LogoutButton() {
 	const router = useRouter();
@@ -9,7 +10,12 @@ export default function LogoutButton() {
 
 	async function handleLogout() {
 		setBusy(true);
-		await fetch("/api/auth/logout", { method: "POST" });
+		try {
+			await apiFetch("/api/auth/logout", { method: "POST" });
+		} catch (networkError) {
+			// §18.4 — aunque falle el logout en red, igual llevamos al usuario a /login.
+			console.error("[LogoutButton] logout", networkError);
+		}
 		router.push("/login");
 	}
 

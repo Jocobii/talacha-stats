@@ -10,10 +10,11 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { apiFetch } from "@/shared/api/client";
 import { Plus } from "lucide-react";
 import { AdminTable } from "@/shared/ui/AdminTable";
 import type { AdminTableColumn, AdminTablePagination } from "@/shared/ui/AdminTable";
-import { CreateTeamModal } from "@/features/team-management/ui/CreateTeamModal";
+import { CreateTeamModal } from "@/features/team-management";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -246,18 +247,16 @@ function MergePanel({
 		setMerging(true);
 		setError("");
 		try {
-			const res = await fetch("/api/teams/merge", {
+			const result = await apiFetch<{ merged: number }>("/api/teams/merge", {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ keepId, mergeIds: [...selected] }),
+				body: { keepId, mergeIds: [...selected] },
 			});
-			const data = await res.json();
-			if (!data.ok) {
-				setError(data.error);
+			if (!result.ok) {
+				setError(result.error);
 				return;
 			}
 			setSuccess(
-				`Fusión completada: ${data.data.merged} equipo(s) eliminado(s). ` +
+				`Fusión completada: ${result.data.merged} equipo(s) eliminado(s). ` +
 					`Partidos, eventos y estadísticas reasignados.`,
 			);
 			setConfirmOpen(false);
@@ -265,6 +264,9 @@ function MergePanel({
 			setSelected(new Set());
 			// Refrescar la página para que el Server Component recargue los datos
 			window.location.href = `/admin/teams?leagueId=${leagueId}`;
+		} catch (networkError) {
+			console.error("[TeamsTable] merge", networkError);
+			setError("Error de red. Intenta de nuevo.");
 		} finally {
 			setMerging(false);
 		}

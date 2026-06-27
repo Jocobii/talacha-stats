@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { MEXICO_CITIES } from "@/shared/lib/cities";
+import { apiFetch } from "@/shared/api/client";
 
 type Organizer = { id: string; name: string; email: string };
 
@@ -107,19 +108,17 @@ export default function SeedLigaForm({
 		setResult(null);
 
 		try {
-			const body = { ...form, organizationId: form.organizationId || undefined };
-			const res = await fetch("/api/seed-liga", {
+			const result = await apiFetch<SeedResult>("/api/seed-liga", {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
+				body: { ...form, organizationId: form.organizationId || undefined },
 			});
-			const data = await res.json();
-			if (!res.ok || !data.ok) {
-				setError(data.error ?? "Error al generar la liga.");
+			if (!result.ok) {
+				setError(result.error ?? "Error al generar la liga.");
 			} else {
-				setResult(data.data as SeedResult);
+				setResult(result.data);
 			}
-		} catch {
+		} catch (networkError) {
+			console.error("[SeedLigaForm] seed", networkError);
 			setError("Error de red. Revisa la consola.");
 		} finally {
 			setLoading(false);

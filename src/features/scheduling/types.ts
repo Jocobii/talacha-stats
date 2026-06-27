@@ -2,7 +2,7 @@
 // Tipos compartidos del módulo de sorteo.
 // Los tipos de DB se infieren desde schema.ts; estos son tipos de dominio internos.
 
-import type { SchedulingPhase, MatchdayStatus, ChangeType } from "./constants";
+import type { SchedulingPhase, ChangeType } from "./constants";
 
 /** Par de equipos para una jornada. null = BYE (equipo descansa). */
 export type Pairing = {

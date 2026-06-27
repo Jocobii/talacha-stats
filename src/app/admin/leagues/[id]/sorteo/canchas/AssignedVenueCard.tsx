@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MapPin, Pencil, Trash2, Plus, Copy } from "lucide-react";
-import { WeeklyGrid, DAYS_FULL, slotCount } from "./WeeklyGrid";
+import { WeeklyGrid, slotCount } from "./WeeklyGrid";
 import { NewWindowPopover } from "./NewWindowPopover";
 import type { VenueForLeague, VenueTimeWindow } from "@/entities/venue";
 

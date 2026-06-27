@@ -11,6 +11,7 @@ import {
 	formFromVenue,
 } from "./VenueFormFields";
 import type { VenueWithStats } from "@/entities/venue";
+import { apiFetch } from "@/shared/api/client";
 
 type ModalMode = { mode: "create" } | { mode: "edit"; venue: VenueWithStats };
 
@@ -49,17 +50,20 @@ export function NewVenueModal({
 				...(!isEdit && { organizationId }),
 			};
 			const url = isEdit ? `/api/venues/${modalMode.venue.id}` : "/api/venues";
-			const res = await fetch(url, {
-				method: isEdit ? "PATCH" : "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
-			});
-			const json = await res.json();
-			if (!json.ok) {
-				setError(json.error ?? "Error al guardar");
-				return;
+			try {
+				const result = await apiFetch<VenueWithStats>(url, {
+					method: isEdit ? "PATCH" : "POST",
+					body,
+				});
+				if (!result.ok) {
+					setError(result.error ?? "Error al guardar");
+					return;
+				}
+				onSuccess(result.data);
+			} catch (networkError) {
+				console.error("[NewVenueModal] save", networkError);
+				setError("Error de red. Intenta de nuevo.");
 			}
-			onSuccess(json.data);
 		});
 	}
 

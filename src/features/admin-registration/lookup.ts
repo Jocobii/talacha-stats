@@ -84,7 +84,10 @@ export async function lookupByCurp(input: LookupInput): Promise<LookupResult> {
 				},
 			},
 		};
-	} catch {
+	} catch (dbError) {
+		// §18.4 — no tragar el error: registrarlo en server antes de devolver el código.
+		// No se loguea el CURP raw ni el hash; solo el error de DB.
+		console.error("[admin-registration/lookup] fallo al consultar global_players", dbError);
 		return {
 			ok: false,
 			error: "Error al consultar la base de datos",

@@ -6,6 +6,19 @@ import type { ResolutionStatus } from "@/db/schema";
 
 export const AUTOSAVE_DEBOUNCE_MS = 1000;
 
+/** Alta de jugador ad-hoc en un partido. */
+export const MATCH_PLAYERS_URL = (matchId: string): string => `/api/matches/${matchId}/players`;
+
+/** PATCH del partido (marcador, bonus, observaciones). */
+export const MATCH_URL = (matchId: string): string => `/api/matches/${matchId}`;
+
+/** PATCH de un stat por jugador (autosave por campo). */
+export const MATCH_STAT_URL = (matchId: string, registrationId: string): string =>
+	`/api/matches/${matchId}/stats/${registrationId}`;
+
+/** Resolución final del partido ("Guardar y siguiente"). */
+export const MATCH_RESOLVE_URL = (matchId: string): string => `/api/matches/${matchId}/resolve`;
+
 export const WALKOVER_DEFAULT_SCORE = { winner: 3, loser: 0 } as const;
 
 export const MAX_GOALS_PER_PLAYER = 20;

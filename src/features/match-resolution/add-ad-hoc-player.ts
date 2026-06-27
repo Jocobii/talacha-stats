@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { matches, globalPlayers, leagueMembers, inscriptions, matchPlayerStats } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { sanitizeToCanonical } from "@/shared/lib/normalize";
+import type { AdHocPlayerResult } from "@/entities/match-player-stat";
 
 type AddAdHocInput = {
 	matchId: string;
@@ -16,12 +17,7 @@ type AddAdHocInput = {
 	organizationId: string;
 };
 
-type AddAdHocResult = {
-	registrationId: string;
-	playerProfileId: string;
-};
-
-export async function addAdHocPlayer(input: AddAdHocInput): Promise<AddAdHocResult> {
+export async function addAdHocPlayer(input: AddAdHocInput): Promise<AdHocPlayerResult> {
 	const { matchId, teamSide, fullName, shirtNumber } = input;
 
 	// Resolver teamId y leagueId del partido

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/shared/lib/auth";
 import { getOrganizationWithDetails } from "@/entities/organization";
@@ -36,7 +37,7 @@ export default async function OrganizationDetailPage({
 				</Link>
 				<div className="flex items-start gap-4 mt-2">
 					{org.logoUrl ? (
-						<img src={org.logoUrl} alt={org.name} className="w-14 h-14 rounded-xl object-cover" />
+						<Image src={org.logoUrl} alt={org.name} className="w-14 h-14 rounded-xl object-cover" />
 					) : (
 						<div className="w-14 h-14 rounded-xl bg-brand/15 flex items-center justify-center flex-shrink-0">
 							<span className="text-brand-ink font-bold text-2xl">

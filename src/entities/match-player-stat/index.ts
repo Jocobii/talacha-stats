@@ -1,4 +1,4 @@
-export type { MatchPlayerStat } from "./model";
+export type { MatchPlayerStat, AdHocPlayerResult } from "./model";
 export type { TopScorerV2 } from "./queries";
 export {
 	upsertMatchPlayerStat,

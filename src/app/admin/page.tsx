@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Plus, Trophy, User, Layers, Upload } from "lucide-react";
+import { ChevronRight, Plus, Trophy, User, Layers } from "lucide-react";
 import { getActiveCity } from "@/shared/lib/active-city";
 import { serverFetch } from "@/shared/lib/server-fetch";
 import { PageHeader } from "@/shared/ui/PageHeader";
@@ -57,22 +57,13 @@ export default async function AdminDashboard() {
 					) : undefined
 				}
 				actions={
-					<>
-						<Link
-							href="/admin/import"
-							className="inline-flex items-center gap-2 h-9 px-4 text-sm font-semibold rounded-md bg-surface-2 text-ink border border-line hover:border-ink-3 hover:bg-surface transition"
-						>
-							<Upload size={16} strokeWidth={1.75} />
-							Importar jornada
-						</Link>
-						<Link
-							href="/admin/leagues/new"
-							className="inline-flex items-center gap-2 h-9 px-4 text-sm font-semibold rounded-md bg-brand text-pitch hover:bg-brand-dim transition"
-						>
-							<Plus size={16} strokeWidth={2} />
-							Nueva liga
-						</Link>
-					</>
+					<Link
+						href="/admin/leagues/new"
+						className="inline-flex items-center gap-2 h-9 px-4 text-sm font-semibold rounded-md bg-brand text-pitch hover:bg-brand-dim transition"
+					>
+						<Plus size={16} strokeWidth={2} />
+						Nueva liga
+					</Link>
 				}
 			/>
 

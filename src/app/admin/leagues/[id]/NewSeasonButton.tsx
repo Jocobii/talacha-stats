@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Users, MapPin, Trophy } from "lucide-react";
+import { apiFetch } from "@/shared/api/client";
 
 type Props = {
 	leagueId: string;
@@ -34,17 +35,18 @@ export default function NewSeasonButton({
 		setError("");
 		setLoading(true);
 		try {
-			const res = await fetch(`/api/leagues/${leagueId}/new-season`, {
+			const result = await apiFetch<{ id: string }>(`/api/leagues/${leagueId}/new-season`, {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ season: season.trim() }),
+				body: { season: season.trim() },
 			});
-			const data = await res.json();
-			if (!data.ok) {
-				setError(data.error ?? "Error al crear la temporada.");
+			if (!result.ok) {
+				setError(result.error ?? "Error al crear la temporada.");
 				return;
 			}
-			router.push(`/admin/leagues/${data.data.id}`);
+			router.push(`/admin/leagues/${result.data.id}`);
+		} catch (networkError) {
+			console.error("[NewSeasonButton] new-season", networkError);
+			setError("Error de red. Intenta de nuevo.");
 		} finally {
 			setLoading(false);
 		}

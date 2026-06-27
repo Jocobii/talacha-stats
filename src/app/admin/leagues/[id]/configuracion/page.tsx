@@ -22,7 +22,6 @@ import {
 import { listOrganizations } from "@/entities/organization";
 import OrganizationSection from "../OrganizerSection";
 import NewSeasonButton from "../NewSeasonButton";
-import { SchedulingToggle } from "../sorteo/SchedulingToggle";
 import { SlotsFijosSection } from "./SlotsFijosSection";
 import type { SlotRow } from "./SlotsFijosSection";
 import { PlayoffZonesSection } from "./PlayoffZonesSection";
@@ -177,20 +176,6 @@ export default async function ConfiguracionPage({ params }: Params) {
 				organizations={allOrganizations}
 				isOwner={isOwner}
 			/>
-
-			{/* ── Módulo de sorteo ──────────────────────────────────────────── */}
-			<div className="bg-surface rounded-lg shadow p-4">
-				<div className="flex items-start justify-between gap-4">
-					<div>
-						<h2 className="text-sm font-semibold text-ink">Módulo de sorteo</h2>
-						<p className="text-xs text-ink-2 mt-1">
-							Activa para sortear jornadas automáticamente, asignar canchas y gestionar el
-							calendario de la liga.
-						</p>
-					</div>
-					<SchedulingToggle leagueId={id} initialEnabled={league.schedulingEnabled} />
-				</div>
-			</div>
 
 			{/* ── Slots fijos comprados ─────────────────────────────────────── */}
 			{league.schedulingEnabled && (
