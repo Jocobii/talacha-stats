@@ -19,7 +19,7 @@ export {
 	type ThemeContrastReport,
 	type ThemeInput,
 } from "./build-tokens";
-export { tokensToCssBlock, tokensToCssVars } from "./css-vars";
+export { tokensToCssBlock, tokensToCssVars, tokensToScopeCssVars } from "./css-vars";
 export {
 	ORG_PRESETS,
 	ORG_PRESET_IDS,

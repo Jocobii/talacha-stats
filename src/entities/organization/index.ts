@@ -43,3 +43,6 @@ export type {
 	PublicMatchInfo,
 	PublicZone,
 } from "./queries";
+
+// Tema visual (docs/ORG-THEMING.md)
+export { findOrgThemeBySlug, findOrgThemeByOrgId, upsertOrgTheme } from "./theme-queries";

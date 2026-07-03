@@ -1,17 +1,21 @@
 /**
  * shared/org-theme/css-vars.ts
  *
- * Proyección CSS de los tokens de tema. Mapea OrgThemeTokens al CONTRATO
- * EXISTENTE de tokens skin (`--color-skin-*` en globals.css) — los
- * componentes que ya usan utilidades skin (bg-skin-surface,
- * text-skin-primary-ink…) se tematizan sin tocarlos.
+ * Proyección CSS de los tokens de tema. Presets y custom van por el MISMO
+ * camino: vars inline resueltas en SSR (OrgThemeScope) — sin bloques CSS
+ * por preset que puedan divergir del catálogo, y sin FOUC porque el HTML
+ * ya llega pintado.
  *
- * Se usa para `mode="custom"` (inline style en OrgThemeScope). Los presets
- * no pasan por aquí en runtime: viven como bloques [data-org-theme] en
- * globals.css (cero JS) — pero el script/bloque CSS de cada preset se
- * genera con ESTE mismo mapeo para no divergir.
+ * Dos niveles de override:
+ * - tokensToCssVars: solo el contrato skin (--color-skin-*) — módulos
+ *   tematizables opt-in, igual que tournament-skin.
+ * - tokensToScopeCssVars: contrato skin + TOKENS BASE (--color-pitch,
+ *   --color-surface, --color-ink, --color-brand…) — retematiza TODA la
+ *   experiencia pública de la org sin tocar componentes existentes.
  */
 
+import { mix } from "./color";
+import { ensureContrast, relativeLuminance } from "./contrast";
 import type { OrgThemeTokens } from "./build-tokens";
 
 export function tokensToCssVars(tokens: OrgThemeTokens): Record<string, string> {
@@ -27,9 +31,42 @@ export function tokensToCssVars(tokens: OrgThemeTokens): Record<string, string> 
 	};
 }
 
-/** Bloque CSS de un preset para pegar en globals.css:
- *  `[data-org-theme="azul-rey"] { --color-skin-primary: …; }`
- *  Herramienta de build/curaduría — no se llama en runtime. */
+/**
+ * Override COMPLETO para el scope de una organización: contrato skin + los
+ * tokens base que usan todos los componentes públicos (bg-pitch, text-ink,
+ * bg-surface, text-brand-ink…). Dentro de <OrgThemeScope> la app entera se
+ * pinta con la identidad de la org; fuera, nada cambia.
+ *
+ * Derivaciones extra (no persistidas, deterministas):
+ * - pitch: fondo de página, más profundo que surface (dirección según tema
+ *   claro/oscuro)
+ * - brand-ink: el primary ajustado para ser LEGIBLE como texto sobre surface
+ */
+export function tokensToScopeCssVars(tokens: OrgThemeTokens): Record<string, string> {
+	const surfaceIsDark = relativeLuminance(tokens.surface) < 0.5;
+	return {
+		...tokensToCssVars(tokens),
+		// Superficies
+		"--color-pitch": mix(tokens.surface, "#000000", surfaceIsDark ? 0.38 : 0.05),
+		"--color-surface": tokens.surface,
+		"--color-surface-2": tokens.surface2,
+		"--color-surface-3": mix(tokens.surface, tokens.ink, 0.1),
+		"--color-line": tokens.line,
+		"--color-line-2": mix(tokens.surface, tokens.ink, 0.24),
+		// Tinta
+		"--color-ink": tokens.ink,
+		"--color-ink-2": tokens.inkDim,
+		"--color-ink-3": mix(tokens.ink, tokens.surface, 0.55),
+		// Marca de la org (sustituye el verde TalachaStats dentro del scope)
+		"--color-brand": tokens.primary,
+		"--color-brand-dim": mix(tokens.primary, "#000000", 0.25),
+		"--color-brand-ink": ensureContrast(tokens.primary, tokens.surface, 4.5),
+		"--tint-brand": tokens.tint,
+		"--tint-brand-bd": tokens.tintBd,
+	};
+}
+
+/** Bloque CSS de un tema para tooling/depuración (no se llama en runtime). */
 export function tokensToCssBlock(selector: string, tokens: OrgThemeTokens): string {
 	const vars = tokensToCssVars(tokens);
 	const lines = Object.entries(vars)

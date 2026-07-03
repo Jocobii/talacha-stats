@@ -238,12 +238,21 @@ export default async function OrgLayout({ params, children }) {
 
 `OrgThemeScope` (server-safe, sin `"use client"`, gemelo de `SkinScope`):
 
-- `mode="preset"` → `<div data-org-theme="verde-selva" className={fontClass}>` —
-  el bloque `[data-org-theme="verde-selva"]` vive en `globals.css` junto a los
-  de skins. **Cero estilos en runtime** para presets.
-- `mode="custom"` → `<div data-org-theme="custom" style={{ "--color-skin-primary": …, /* ~10 vars */ }}>` —
-  inline vars generadas de `buildThemeTokens`. Es el único caso con estilo dinámico.
-- `theme == null` → sin atributo → tokens skin caen al brand TalachaStats (§ CSS actual).
+- **Presets y custom van por el MISMO camino** (decisión de implementación,
+  2026-07-02): vars inline generadas de `buildThemeTokens` en SSR. Se descartó
+  el plan original de bloques CSS por preset en `globals.css` — mantener 12
+  bloques generados sincronizados con `presets.ts` es duplicación que puede
+  divergir en silencio; el costo de ~700 bytes de inline style por página es
+  despreciable frente a ese riesgo.
+- El scope sobreescribe DOS contratos vía `tokensToScopeCssVars`: los tokens
+  skin (`--color-skin-*`) y los TOKENS BASE (`--color-pitch`, `--color-surface`,
+  `--color-ink`, `--color-brand`…). Las páginas públicas existentes usan tokens
+  base (`bg-pitch`, `text-ink`) — sobreescribirlos retematiza todo sin tocar
+  un solo componente.
+- `theme == null` → `OrgThemeScope` es transparente (no emite wrapper con
+  estilos) → paleta TalachaStats.
+- El wrapper usa `display: contents`: neutro para flex/grid de las páginas;
+  las custom properties se heredan igual.
 
 **Por qué no hay FOUC:** todo se resuelve en SSR — el HTML ya llega con el
 `data-attribute` / `style` puesto. No hay `useEffect`, no hay lectura de
@@ -360,8 +369,10 @@ const C = await getOrgImagePalette(orgId);
 ## 9. Orden de implementación
 
 1. `shared/org-theme/` completo (presets, fonts, contrast, build-tokens) + tests — sin tocar UI.
-2. Schema + migración (`organization_themes`) — Jocobi genera/corre drizzle-kit.
-3. `OrgThemeScope` + layout de `/org/[slug]` + 3-4 presets en `globals.css` → temas visibles.
+2. Schema + migración (`organization_themes`) — Jocobi genera/corre drizzle-kit. ✅
+3. `OrgThemeScope` + `getOrgTheme` + layout de `/org/[slug]` con override de
+   tokens base vía `tokensToScopeCssVars` → temas visibles (presets y custom
+   por el mismo camino inline, ver §5). ✅
 4. Feature UI (`PalettePickerGrid`, `FontPicker`, preview) montada en `/admin/organizacion/tema`.
 5. Onboarding wizard (reusa la UI del paso 4) + validación de slug con reservados.
 6. `getOrgImagePalette` + swap en las 5 rutas de imagen + fuentes en Satori.
