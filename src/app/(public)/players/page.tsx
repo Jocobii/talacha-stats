@@ -17,7 +17,8 @@ function PlayersContent() {
 	const searchParams = useSearchParams();
 	const city = searchParams.get("city") ?? "Tijuana";
 
-	const [query, setQuery] = useState("");
+	/* Lazy initializer: llega ?q= desde el buscador del hero del home */
+	const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
 	const [players, setPlayers] = useState<Player[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [fetched, setFetched] = useState(false);

@@ -19,7 +19,12 @@ const features = [
 	{
 		title: "Tabla de posiciones automática",
 		description:
-			"Sube tu Excel con los resultados de la jornada y la tabla se actualiza sola. Sin fórmulas, sin errores.",
+			"Captura la jornada en la cédula digital y la tabla se actualiza sola. Sin fórmulas, sin errores.",
+	},
+	{
+		title: "Cédula digital de partido",
+		description:
+			"Goles, tarjetas y MVP capturados desde tu celular en la cancha. El marcador se resuelve al cerrar la cédula.",
 	},
 	{
 		title: "Goleadores y estadísticas",
@@ -42,8 +47,9 @@ const features = [
 			"Cada jugador tiene un perfil con sus estadísticas en todas las ligas en las que ha participado.",
 	},
 	{
-		title: "Sin cuotas por jugador",
-		description: "El plan base es gratuito sin importar cuántos equipos o jugadores tenga tu liga.",
+		title: "Liguilla con bracket",
+		description:
+			"Genera el bracket de eliminación directa con seeding automático. Los ganadores avanzan solos.",
 	},
 ];
 
@@ -54,7 +60,7 @@ const faqs = [
 	},
 	{
 		q: "¿Cuánto tiempo tarda en configurarse?",
-		a: "Menos de 10 minutos. Registras tu liga, subes tu primer Excel con los resultados y listo.",
+		a: "Menos de 10 minutos. Registras tu liga, cargas tus equipos y capturas tu primera jornada con la cédula digital.",
 	},
 	{
 		q: "¿Funciona para ligas pequeñas de colonia?",
@@ -113,15 +119,17 @@ export default function ParaOrganizadoresPage() {
 				</div>
 			</section>
 
-			{/* Social proof */}
+			{/* El costo de no hacerlo (aversión a la pérdida, cierre positivo) */}
 			<section className="px-6 py-12 max-w-2xl mx-auto text-center">
-				<blockquote className="bg-surface-2 rounded-2xl p-8 border border-line">
-					<p className="text-ink text-lg leading-relaxed mb-4">
-						&ldquo;Mis jugadores me preguntan cada semana cuándo subo los datos. Ya no lo hago para
-						mí — lo hago porque ellos lo piden.&rdquo;
+				<div className="bg-surface-2 rounded-2xl p-8 border border-line">
+					<p className="text-ink text-lg leading-relaxed mb-2">
+						Cada jornada que no se registra, se pierde. Los goles de tus jugadores, el campeón de la
+						temporada pasada — si no están registrados, no existen.
 					</p>
-					<footer className="text-ink-3 text-sm">Organizador · Liga Domingos TJ</footer>
-				</blockquote>
+					<p className="text-brand-ink text-sm font-semibold">
+						Todo lo que captures desde hoy queda para siempre.
+					</p>
+				</div>
 			</section>
 
 			{/* FAQ */}

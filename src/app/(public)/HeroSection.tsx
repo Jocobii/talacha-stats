@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { MapPin, Trophy, Search, ChevronDown } from "lucide-react";
+import { MapPin, Trophy, ChevronDown } from "lucide-react";
 import HeroCard from "./HeroCard";
+import HeroPlayerSearch from "./HeroPlayerSearch";
 
 /* Números fantasma — stats reales que flotan en el fondo */
 const GHOST = [
@@ -184,24 +185,25 @@ export default function HeroSection() {
 							que puedes compartir.
 						</p>
 
-						{/* CTAs */}
+						{/* CTA primario: el buscador (auto-referencia) */}
 						<div
-							className="animate-fade-slide-up flex flex-col sm:flex-row gap-3 w-full sm:w-auto"
+							className="animate-fade-slide-up w-full flex justify-center lg:justify-start"
 							style={{ animationDelay: "0.6s", animationFillMode: "both" }}
+						>
+							<HeroPlayerSearch />
+						</div>
+
+						{/* CTA secundario */}
+						<div
+							className="animate-fade-slide-up"
+							style={{ animationDelay: "0.7s", animationFillMode: "both" }}
 						>
 							<Link
 								href="/ranking"
-								className="flex items-center justify-center gap-2 bg-brand hover:bg-brand-dim text-pitch font-bold px-7 py-3.5 rounded-xl text-sm transition font-body"
+								className="inline-flex items-center justify-center gap-2 bg-surface-2 hover:bg-line border border-line text-ink font-bold px-7 py-3.5 rounded-xl text-sm transition"
 							>
 								<Trophy size={16} strokeWidth={2} />
 								Ver ranking
-							</Link>
-							<Link
-								href="/players"
-								className="flex items-center justify-center gap-2 bg-surface-2 hover:bg-line border border-line text-ink font-bold px-7 py-3.5 rounded-xl text-sm transition"
-							>
-								<Search size={16} strokeWidth={2} />
-								Buscar jugadores
 							</Link>
 						</div>
 

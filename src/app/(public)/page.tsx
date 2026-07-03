@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import HeroSection from "./HeroSection";
 import OrganizerHero from "./OrganizerHero";
+import OrganizerBeforeAfter from "./OrganizerBeforeAfter";
+import OrganizerSteps from "./OrganizerSteps";
 import StatsBar from "./StatsBar";
 import LeaderboardTeaser from "./LeaderboardTeaser";
 import LeaguesShowcase from "./LeaguesShowcase";
@@ -52,6 +54,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 				organizador={
 					<>
 						<OrganizerHero />
+						<OrganizerBeforeAfter />
+						<OrganizerSteps />
 						<StatsBar />
 						<LeaguesShowcase leagues={showcaseLeagues} />
 					</>
