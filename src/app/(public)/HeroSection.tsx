@@ -213,14 +213,14 @@ export default function HeroSection() {
 							Ya hay jugadores de Tijuana en el ranking. ¿Estás tú?
 						</p>
 
-						{/* Puerta para el organizador */}
+						{/* Puerta para el organizador — abre su vista, no el registro en frío */}
 						<Link
-							href="/register"
+							href="/?vista=organizador"
 							className="animate-fade-slide-up inline-flex items-center gap-1.5 text-xs text-ink-3 hover:text-brand-ink border border-line hover:border-brand/40 px-3.5 py-2 rounded-xl transition"
 							style={{ animationDelay: "1s", animationFillMode: "both" }}
 						>
 							¿Organizas una liga?
-							<span className="text-brand-ink font-semibold">Registrate gratis →</span>
+							<span className="text-brand-ink font-semibold">Esto es para ti →</span>
 						</Link>
 					</div>
 
