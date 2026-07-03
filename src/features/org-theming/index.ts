@@ -7,6 +7,9 @@ export { getOrgTheme, type ResolvedOrgTheme } from "./get-org-theme";
 export { getOrgImagePalette } from "./get-org-image-palette";
 export { OrgThemeScope } from "./ui/OrgThemeScope";
 export { OrgThemePanel } from "./ui/OrgThemePanel";
+// Nota: los Client Components deben importar OrgStyleStep por su ruta profunda
+// (./ui/OrgStyleStep), no por este barrel — reexporta getOrgTheme (server/@/db).
+export { OrgStyleStep, DEFAULT_ORG_STYLE, type OrgStyleValue } from "./ui/OrgStyleStep";
 export { resolveThemeInput, type OrgThemeRow } from "./lib/resolve-theme-input";
 export {
 	themeFormToRowValues,

@@ -11,13 +11,15 @@ export default async function OnboardingPage() {
 	if (user.organizationId) redirect("/admin");
 
 	return (
-		<div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
-			<div className="w-full max-w-sm space-y-8">
+		<div className="flex min-h-screen items-center justify-center bg-pitch px-4 py-10">
+			<div className="w-full max-w-5xl space-y-8">
 				{/* Header */}
 				<div className="text-center">
-					<p className="text-4xl mb-3">⚽</p>
-					<h1 className="text-2xl font-black text-white">Bienvenido, {user.name.split(" ")[0]}</h1>
-					<p className="text-gray-400 text-sm mt-1">Cuéntanos el nombre de tu liga</p>
+					<p className="mb-3 text-4xl">⚽</p>
+					<h1 className="text-2xl font-black text-ink">Bienvenido, {user.name.split(" ")[0]}</h1>
+					<p className="mt-1 text-sm text-ink-2">
+						Crea tu organización: primero el nombre, luego cómo se ve.
+					</p>
 				</div>
 
 				<OnboardingForm />
