@@ -11,7 +11,7 @@ import type { NextRequest } from "next/server";
 import { db, leagues, teams, organizations } from "@/db";
 import { eq, and } from "drizzle-orm";
 import { titleCase } from "@/shared/lib/normalize";
-import { BRAND_PALETTE as C } from "@/shared/brand/palette";
+import { getOrgImagePalette } from "@/features/org-theming";
 import { BRAND } from "@/shared/brand/tokens";
 import { buildQrDataUrl } from "@/shared/brand/qr";
 import { buildDeepLink } from "@/features/share-assets/deep-link";
@@ -32,6 +32,9 @@ export async function GET(request: NextRequest) {
 		columns: { id: true, name: true, season: true, slug: true, organizationId: true },
 	});
 	if (!league) return new Response("Liga no encontrada", { status: 404 });
+
+	// Paleta de la org (o BRAND_PALETTE si no tiene tema)
+	const C = await getOrgImagePalette(league.organizationId);
 
 	const [teamCount, org] = await Promise.all([
 		db

@@ -4,6 +4,7 @@
  */
 
 export { getOrgTheme, type ResolvedOrgTheme } from "./get-org-theme";
+export { getOrgImagePalette } from "./get-org-image-palette";
 export { OrgThemeScope } from "./ui/OrgThemeScope";
 export { OrgThemePanel } from "./ui/OrgThemePanel";
 export { resolveThemeInput, type OrgThemeRow } from "./lib/resolve-theme-input";

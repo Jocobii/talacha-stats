@@ -1,10 +1,11 @@
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
+import { buildThemeTokens, isHexColor, mix, withAlpha } from "@/shared/org-theme";
 
 export const runtime = "edge";
 
-// ── Paleta TalachaStats ────────────────────────────────────────────────────────
-const C = {
+// ── Paleta TalachaStats (default) ─────────────────────────────────────────────
+const DEFAULT_C = {
 	pitch: "#0a0f0d", // fondo principal
 	surface: "#111814", // fondo tarjeta
 	brand: "#00e676", // verde TalachaStats
@@ -19,9 +20,31 @@ const C = {
 // s1l, s1v — stat 1: label y value
 // s2l, s2v — stat 2
 // s3l, s3v — stat 3
+// tp, ta, ts, ti — tema de la org (primary/accent/surface/ink en hex).
+//   Este runtime es edge (sin DB): el caller con acceso a DB (generateMetadata)
+//   resuelve el tema y lo pasa aquí; buildThemeTokens es puro y edge-safe,
+//   así que la derivación sigue siendo la misma fuente de verdad.
+
+function paletteFromParams(searchParams: URLSearchParams): typeof DEFAULT_C {
+	const hexes = ["tp", "ta", "ts", "ti"].map((k) => searchParams.get(k) ?? "");
+	if (!hexes.every((h) => isHexColor(h))) return DEFAULT_C;
+
+	const [primary, accent, surface, ink] = hexes;
+	const t = buildThemeTokens({ primary, accent, surface, ink });
+	return {
+		pitch: mix(t.surface, "#000000", 0.38),
+		surface: t.surface,
+		brand: t.primary,
+		ink: t.ink,
+		inkDim: t.inkDim,
+		line: t.line,
+	};
+}
 
 export async function GET(request: NextRequest) {
 	const { searchParams } = new URL(request.url);
+
+	const C = paletteFromParams(searchParams);
 
 	const title = searchParams.get("title") ?? "TalachaStats";
 	const sub = searchParams.get("sub") ?? "Estadísticas amateur en Tijuana";
@@ -54,8 +77,7 @@ export async function GET(request: NextRequest) {
 					width: 500,
 					height: 500,
 					borderRadius: "50%",
-					background:
-						"radial-gradient(ellipse at center, rgba(0,230,118,0.12) 0%, transparent 65%)",
+					background: `radial-gradient(ellipse at center, ${withAlpha(C.brand, 0.12)} 0%, transparent 65%)`,
 					display: "flex",
 				}}
 			/>
@@ -68,7 +90,7 @@ export async function GET(request: NextRequest) {
 					right: 40,
 					fontSize: 320,
 					fontWeight: 900,
-					color: "rgba(0,230,118,0.04)",
+					color: withAlpha(C.brand, 0.04),
 					lineHeight: 1,
 					display: "flex",
 					fontFamily: "sans-serif",

@@ -20,6 +20,7 @@ export {
 	type ThemeInput,
 } from "./build-tokens";
 export { tokensToCssBlock, tokensToCssVars, tokensToScopeCssVars } from "./css-vars";
+export { imagePaletteFromTokens, type ImagePalette } from "./image-palette";
 export {
 	ORG_PRESETS,
 	ORG_PRESET_IDS,

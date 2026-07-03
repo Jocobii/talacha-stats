@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 import { getPublicOrganization, getLeagueSnapshot, getOrgHubStats } from "@/entities/organization";
 import { buildLeagueStories, buildTickerItems, buildNarrativeLine } from "@/features/org-hub";
+import { getOrgTheme } from "@/features/org-theming";
 import OrgHeroHeader from "./OrgHeroHeader";
 import OrgStatsStrip from "./OrgStatsStrip";
 import OrgTicker from "./OrgTicker";
@@ -30,6 +31,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 		s2l: "Equipos",
 		s2v: String(totalTeams),
 	});
+
+	// Tema de la org → el OG sale con sus colores (/api/og es edge, sin DB:
+	// el tema viaja por params y se deriva allá con buildThemeTokens)
+	const theme = await getOrgTheme(slug);
+	if (theme) {
+		ogParams.set("tp", theme.input.primary);
+		ogParams.set("ta", theme.input.accent);
+		ogParams.set("ts", theme.input.surface);
+		ogParams.set("ti", theme.input.ink);
+	}
+
 	const ogImageUrl = `/api/og?${ogParams.toString()}`;
 
 	return {

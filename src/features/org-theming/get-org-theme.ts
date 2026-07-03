@@ -14,10 +14,13 @@ import {
 	isOrgFontId,
 	type OrgFontId,
 	type OrgThemeTokens,
+	type ThemeInput,
 } from "@/shared/org-theme";
 import { resolveThemeInput } from "./lib/resolve-theme-input";
 
 export type ResolvedOrgTheme = {
+	/** Los 4 colores fuente — útiles para reenviar el tema (ej. /api/og en edge). */
+	input: ThemeInput;
 	tokens: OrgThemeTokens;
 	fontId: OrgFontId;
 };
@@ -29,6 +32,7 @@ export const getOrgTheme = cache(async (slug: string): Promise<ResolvedOrgTheme 
 	if (!input) return null;
 
 	return {
+		input,
 		tokens: buildThemeTokens(input),
 		fontId: row && isOrgFontId(row.fontId) ? row.fontId : "brand",
 	};

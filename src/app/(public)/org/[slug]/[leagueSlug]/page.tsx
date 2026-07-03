@@ -9,6 +9,7 @@ import {
 	getPublicMatchdays,
 	getLeagueZones,
 } from "@/entities/organization";
+import { getOrgTheme } from "@/features/org-theming";
 import { db } from "@/db";
 import { playoffBrackets } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
@@ -41,6 +42,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 		s1v: String(standings.length),
 		...(jornada ? { s2l: "Jornada", s2v: `J${jornada}` } : {}),
 	});
+	// Tema de la org → OG tematizado (ver /api/og: edge, tema por params)
+	const theme = await getOrgTheme(slug);
+	if (theme) {
+		ogParams.set("tp", theme.input.primary);
+		ogParams.set("ta", theme.input.accent);
+		ogParams.set("ts", theme.input.surface);
+		ogParams.set("ti", theme.input.ink);
+	}
+
 	const ogImageUrl = `/api/og?${ogParams.toString()}`;
 
 	return {
