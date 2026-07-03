@@ -32,6 +32,7 @@ import {
 	CheckCircle2,
 	MapPin,
 	CalendarDays,
+	Palette,
 	LogOut,
 	Menu,
 	X,
@@ -150,11 +151,13 @@ export default function AdminShell({
 				{ href: "/admin/leagues", label: "Ligas", icon: Trophy },
 				{ href: "/admin/teams", label: "Equipos", icon: Users },
 				{ href: "/admin/players", label: "Jugadores", icon: UserCircle },
+				{ href: "/admin/organizacion/tema", label: "Identidad visual", icon: Palette },
 			]
 		: [
 				{ href: "/admin/players", label: "Jugadores", icon: UserCircle },
 				{ href: "/admin/leagues", label: "Ligas", icon: Trophy },
 				{ href: "/admin/teams", label: "Equipos", icon: Users },
+				{ href: "/admin/organizacion/tema", label: "Identidad visual", icon: Palette },
 			];
 
 	const navGroups: NavGroup[] = [
@@ -167,6 +170,7 @@ export default function AdminShell({
 						items: [
 							{ href: "/admin/users", label: "Usuarios", icon: UserCog },
 							{ href: "/admin/verifications", label: "Verificaciones", icon: CheckCircle2 },
+							{ href: "/admin/temas", label: "Temas", icon: Palette },
 						],
 					} as NavGroup,
 				]

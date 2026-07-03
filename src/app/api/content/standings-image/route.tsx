@@ -12,7 +12,8 @@ import { db, leagues } from "@/db";
 import { eq } from "drizzle-orm";
 import { getLeagueStandings } from "@/lib/standings";
 import { titleCase } from "@/shared/lib/normalize";
-import { BRAND_PALETTE as C } from "@/shared/brand/palette";
+import { getOrgImagePalette } from "@/features/org-theming";
+import type { ImagePalette } from "@/shared/org-theme";
 import { BRAND } from "@/shared/brand/tokens";
 import type { TeamStanding } from "@/types";
 
@@ -37,16 +38,17 @@ function rowHeight(teamCount: number): number {
 	return Math.max(26, Math.min(60, ROWS_BUDGET / teamCount));
 }
 
-function rankColor(i: number): string {
+function rankColor(i: number, C: ImagePalette): string {
 	return i === 0 ? C.gold : i === 1 ? C.silver : i === 2 ? C.bronze : C.inkDim;
 }
 
 // Ancho fijo del número de posición — debe ser idéntico en header y filas
 const RANK_W = 36;
 
-type RowProps = { s: TeamStanding; i: number; rh: number };
+// La paleta llega por props (puede ser la de la org) — nada de módulo global.
+type RowProps = { s: TeamStanding; i: number; rh: number; C: ImagePalette };
 
-function StandingRow({ s, i, rh }: RowProps) {
+function StandingRow({ s, i, rh, C }: RowProps) {
 	const isTop = i === 0;
 	const fs = Math.max(13, Math.min(20, Math.round(rh * 0.37)));
 	const fsPts = isTop ? Math.min(fs + 5, 24) : fs;
@@ -57,7 +59,7 @@ function StandingRow({ s, i, rh }: RowProps) {
 				display: "flex",
 				alignItems: "center",
 				height: rh,
-				background: isTop ? C.surfaceAlt : i % 2 === 0 ? "transparent" : "#0d1510",
+				background: isTop ? C.surfaceAlt : i % 2 === 0 ? "transparent" : C.bg,
 				borderRadius: isTop ? 10 : 0,
 				border: isTop ? `1px solid ${C.border}` : "none",
 				paddingLeft: 4,
@@ -73,7 +75,7 @@ function StandingRow({ s, i, rh }: RowProps) {
 					flexShrink: 0,
 					fontSize: Math.max(12, fs - 1),
 					fontWeight: 900,
-					color: rankColor(i),
+					color: rankColor(i, C),
 					textAlign: "center",
 				}}
 			>
@@ -140,6 +142,9 @@ export async function GET(request: NextRequest) {
 	]);
 
 	if (!league) return new Response("Liga no encontrada", { status: 404 });
+
+	// Paleta de la org (o BRAND_PALETTE si no tiene tema)
+	const C = await getOrgImagePalette(league.organizationId);
 
 	const leagueName = titleCase(league.name);
 	const rh = rowHeight(standings.length);
@@ -267,7 +272,7 @@ export async function GET(request: NextRequest) {
 				{standings.length === 0 ? (
 					<span style={{ fontSize: 18, color: C.inkMuted, marginTop: 16 }}>Sin datos aún</span>
 				) : (
-					standings.map((s, i) => <StandingRow key={s.teamId} s={s} i={i} rh={rh} />)
+					standings.map((s, i) => <StandingRow key={s.teamId} s={s} i={i} rh={rh} C={C} />)
 				)}
 			</div>
 		</div>,

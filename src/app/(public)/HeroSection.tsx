@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { MapPin, Trophy, Search, ChevronDown } from "lucide-react";
+import { MapPin, Trophy, ChevronDown } from "lucide-react";
 import HeroCard from "./HeroCard";
+import HeroPlayerSearch from "./HeroPlayerSearch";
 
 /* Números fantasma — stats reales que flotan en el fondo */
 const GHOST = [
@@ -184,24 +185,33 @@ export default function HeroSection() {
 							que puedes compartir.
 						</p>
 
-						{/* CTAs */}
+						{/* Nostalgia anticipada (P15) — capa cálida, no dominante */}
+						<p
+							className="animate-fade-slide-up text-sm text-ink-3 italic -mt-2"
+							style={{ animationDelay: "0.5s", animationFillMode: "both" }}
+						>
+							Tus goles de hoy son tus recuerdos de mañana.
+						</p>
+
+						{/* CTA primario: el buscador (auto-referencia) */}
 						<div
-							className="animate-fade-slide-up flex flex-col sm:flex-row gap-3 w-full sm:w-auto"
+							className="animate-fade-slide-up w-full flex justify-center lg:justify-start"
 							style={{ animationDelay: "0.6s", animationFillMode: "both" }}
+						>
+							<HeroPlayerSearch />
+						</div>
+
+						{/* CTA secundario */}
+						<div
+							className="animate-fade-slide-up"
+							style={{ animationDelay: "0.7s", animationFillMode: "both" }}
 						>
 							<Link
 								href="/ranking"
-								className="flex items-center justify-center gap-2 bg-brand hover:bg-brand-dim text-pitch font-bold px-7 py-3.5 rounded-xl text-sm transition font-body"
+								className="inline-flex items-center justify-center gap-2 bg-surface-2 hover:bg-line border border-line text-ink font-bold px-7 py-3.5 rounded-xl text-sm transition"
 							>
 								<Trophy size={16} strokeWidth={2} />
 								Ver ranking
-							</Link>
-							<Link
-								href="/players"
-								className="flex items-center justify-center gap-2 bg-surface-2 hover:bg-line border border-line text-ink font-bold px-7 py-3.5 rounded-xl text-sm transition"
-							>
-								<Search size={16} strokeWidth={2} />
-								Buscar jugadores
 							</Link>
 						</div>
 
@@ -213,14 +223,14 @@ export default function HeroSection() {
 							Ya hay jugadores de Tijuana en el ranking. ¿Estás tú?
 						</p>
 
-						{/* Puerta para el organizador */}
+						{/* Puerta para el organizador — abre su vista, no el registro en frío */}
 						<Link
-							href="/register"
+							href="/?vista=organizador"
 							className="animate-fade-slide-up inline-flex items-center gap-1.5 text-xs text-ink-3 hover:text-brand-ink border border-line hover:border-brand/40 px-3.5 py-2 rounded-xl transition"
 							style={{ animationDelay: "1s", animationFillMode: "both" }}
 						>
 							¿Organizas una liga?
-							<span className="text-brand-ink font-semibold">Registrate gratis →</span>
+							<span className="text-brand-ink font-semibold">Esto es para ti →</span>
 						</Link>
 					</div>
 

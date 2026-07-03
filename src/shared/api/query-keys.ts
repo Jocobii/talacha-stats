@@ -58,4 +58,13 @@ export const queryKeys = {
 		filters ? (["players", filters] as const) : (["players"] as const),
 	ranking: (filters?: Record<string, string>) =>
 		filters ? (["ranking", filters] as const) : (["ranking"] as const),
+
+	// Temas por torneo (tournament-skin)
+	// Invalidación: crear/toggle/borrar activación → skinActivations + activeSkin
+	activeSkin: () => ["active-skin"] as const,
+	skinActivations: () => ["skin-activations"] as const,
+
+	// Tema por organización (org-theming)
+	// Invalidación: guardar tema → orgTheme(organizationId)
+	orgTheme: (organizationId: string) => ["org-theme", organizationId] as const,
 } as const;

@@ -29,6 +29,20 @@
 			"when": 1782508064739,
 			"tag": "0035_demonic_madame_hydra",
 			"breakpoints": true
+		},
+		{
+			"idx": 36,
+			"version": "7",
+			"when": 1783071351911,
+			"tag": "0036_lonely_dark_beast",
+			"breakpoints": true
+		},
+		{
+			"idx": 37,
+			"version": "7",
+			"when": 1783071360000,
+			"tag": "0037_needy_hydra",
+			"breakpoints": true
 		}
 	]
 }

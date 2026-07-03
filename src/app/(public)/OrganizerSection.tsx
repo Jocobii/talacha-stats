@@ -27,9 +27,9 @@ const VALUE_PROPS = [
 
 const PERKS = [
 	"Sin cuotas por jugador",
-	"Un Excel semanal es todo lo que necesitas",
+	"Captura la jornada desde tu celular con la cédula digital",
+	"Sorteo, calendario y liguilla incluidos",
 	"Tus datos, tus ligas, tu crédito",
-	"Visible para jugadores de toda la ciudad",
 ];
 
 function ValueCard({
@@ -126,8 +126,8 @@ export default function OrganizerSection() {
 								transition: "opacity 0.5s ease 0.2s",
 							}}
 						>
-							Tú pones el trabajo. TalachaStats pone la plataforma. Sube tu Excel y tu liga tiene
-							presencia pública en minutos.
+							Tú pones el trabajo. TalachaStats pone la plataforma. Captura tu jornada en la cédula
+							digital y tu liga tiene presencia pública al instante.
 						</p>
 
 						{/* Perks */}
@@ -177,25 +177,18 @@ export default function OrganizerSection() {
 							<ValueCard key={vp.title} {...vp} visible={visible} />
 						))}
 
-						{/* Testimonio / social proof */}
-						<div
-							className="bg-pitch border border-line rounded-2xl px-4 py-4 mt-2"
+						{/* Puerta a la vista completa del organizador */}
+						<Link
+							href="/?vista=organizador"
+							className="inline-flex items-center gap-1.5 text-sm text-brand-ink hover:underline font-semibold mt-2"
 							style={{
 								opacity: visible ? 1 : 0,
 								transition: `opacity 0.6s ease 400ms`,
 							}}
 						>
-							<p className="text-sm text-ink-2 leading-relaxed italic mb-2">
-								&quot;Mis jugadores me preguntan cada semana cuándo subo los datos. Ya no lo hago
-								para mí — lo hago porque ellos lo piden.&quot;
-							</p>
-							<div className="flex items-center gap-2">
-								<div className="w-6 h-6 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center">
-									<span className="font-display font-black text-[10px] text-brand-ink">J</span>
-								</div>
-								<p className="text-xs text-ink-3 font-semibold">Organizador · Liga Domingos TJ</p>
-							</div>
-						</div>
+							Ver todo lo que incluye
+							<ChevronRight size={14} strokeWidth={2} />
+						</Link>
 					</div>
 				</div>
 			</div>

@@ -12,7 +12,8 @@ import { db, leagues, playerSeasonStats, organizations } from "@/db";
 import { eq, and, desc } from "drizzle-orm";
 import { getLeagueTopScorersV2 } from "@/entities/match-player-stat";
 import { titleCase } from "@/shared/lib/normalize";
-import { BRAND_PALETTE as C } from "@/shared/brand/palette";
+import { getOrgImagePalette } from "@/features/org-theming";
+import type { ImagePalette } from "@/shared/org-theme";
 import { BRAND } from "@/shared/brand/tokens";
 import { Watermark } from "@/shared/brand/Watermark";
 import { buildQrDataUrl } from "@/shared/brand/qr";
@@ -25,11 +26,12 @@ const H = 1350;
 
 type ScorerRow = { id: string; name: string; teamName: string; goals: number };
 
-function rankColor(i: number): string {
+function rankColor(i: number, C: ImagePalette): string {
 	return i === 0 ? C.gold : i === 1 ? C.silver : i === 2 ? C.bronze : C.inkDim;
 }
 
-function ScorerItem({ s, i }: { s: ScorerRow; i: number }) {
+// La paleta llega por props (puede ser la de la org) — nada de módulo global.
+function ScorerItem({ s, i, C }: { s: ScorerRow; i: number; C: ImagePalette }) {
 	const medals = ["🥇", "🥈", "🥉"];
 	const isTop = i === 0;
 	return (
@@ -48,7 +50,7 @@ function ScorerItem({ s, i }: { s: ScorerRow; i: number }) {
 				style={{
 					fontSize: i < 3 ? 28 : 18,
 					fontWeight: 900,
-					color: rankColor(i),
+					color: rankColor(i, C),
 					width: 52,
 					textAlign: "center",
 					flexShrink: 0,
@@ -98,6 +100,9 @@ export async function GET(request: NextRequest) {
 		columns: { id: true, name: true, season: true, slug: true, organizationId: true },
 	});
 	if (!league) return new Response("Liga no encontrada", { status: 404 });
+
+	// Paleta de la org (o BRAND_PALETTE si no tiene tema)
+	const C = await getOrgImagePalette(league.organizationId);
 
 	// Goleadores: prioridad V1 (Excel), fallback V2 (partidos capturados)
 	let scorers: ScorerRow[] = [];
@@ -225,7 +230,7 @@ export async function GET(request: NextRequest) {
 				{scorers.length === 0 ? (
 					<span style={{ fontSize: 22, color: C.inkMuted, marginTop: 24 }}>Sin goleadores aún</span>
 				) : (
-					scorers.map((s, i) => <ScorerItem key={s.id} s={s} i={i} />)
+					scorers.map((s, i) => <ScorerItem key={s.id} s={s} i={i} C={C} />)
 				)}
 			</div>
 

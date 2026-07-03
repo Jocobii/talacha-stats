@@ -18,7 +18,8 @@ import type { TeamStanding } from "@/types";
 import { generateJornadaPills } from "@/features/post-import-content";
 import { titleCase } from "@/shared/lib/normalize";
 import { getLeagueTopScorersV2 } from "@/entities/match-player-stat";
-import { BRAND_PALETTE as C } from "@/shared/brand/palette";
+import { getOrgImagePalette } from "@/features/org-theming";
+import type { ImagePalette } from "@/shared/org-theme";
 import { Watermark } from "@/shared/brand/Watermark";
 import { buildQrDataUrl } from "@/shared/brand/qr";
 import { buildDeepLink } from "@/features/share-assets/deep-link";
@@ -41,11 +42,13 @@ type Standing = TeamStanding;
 
 // ── Helpers de render ───────────────────────────────────────────────────────
 
-function rankColor(i: number): string {
+// La paleta llega por props (puede ser la de la org) — nada de módulo global.
+
+function rankColor(i: number, C: ImagePalette): string {
 	return i === 0 ? C.gold : i === 1 ? C.silver : i === 2 ? C.bronze : C.inkDim;
 }
 
-function SectionTitle({ label }: { label: string }) {
+function SectionTitle({ label, C }: { label: string; C: ImagePalette }) {
 	return (
 		<span
 			style={{ fontSize: 15, fontWeight: 700, color: C.brand, letterSpacing: 4, marginBottom: 28 }}
@@ -55,7 +58,7 @@ function SectionTitle({ label }: { label: string }) {
 	);
 }
 
-function ScorerRow({ s, i }: { s: ScorerRow; i: number }) {
+function ScorerRow({ s, i, C }: { s: ScorerRow; i: number; C: ImagePalette }) {
 	const medals = ["🥇", "🥈", "🥉"];
 	return (
 		<div
@@ -73,7 +76,7 @@ function ScorerRow({ s, i }: { s: ScorerRow; i: number }) {
 				style={{
 					fontSize: i < 3 ? 30 : 20,
 					fontWeight: 900,
-					color: rankColor(i),
+					color: rankColor(i, C),
 					width: 52,
 					textAlign: "center",
 					flexShrink: 0,
@@ -111,7 +114,17 @@ function ScorerRow({ s, i }: { s: ScorerRow; i: number }) {
 	);
 }
 
-function StandingRow({ s, i, compact }: { s: Standing; i: number; compact?: boolean }) {
+function StandingRow({
+	s,
+	i,
+	compact,
+	C,
+}: {
+	s: Standing;
+	i: number;
+	compact?: boolean;
+	C: ImagePalette;
+}) {
 	const fs = compact ? (i === 0 ? 20 : 17) : i === 0 ? 24 : 20;
 	return (
 		<div
@@ -129,7 +142,7 @@ function StandingRow({ s, i, compact }: { s: Standing; i: number; compact?: bool
 				style={{
 					fontSize: compact ? 16 : 18,
 					fontWeight: 900,
-					color: rankColor(i),
+					color: rankColor(i, C),
 					width: compact ? 40 : 44,
 					flexShrink: 0,
 					textAlign: "center",
@@ -171,7 +184,7 @@ function StandingRow({ s, i, compact }: { s: Standing; i: number; compact?: bool
 	);
 }
 
-const StatsHead = ({ compact }: { compact?: boolean }) => (
+const StatsHead = ({ compact, C }: { compact?: boolean; C: ImagePalette }) => (
 	<div
 		style={{
 			display: "flex",
@@ -229,6 +242,9 @@ export async function GET(request: NextRequest) {
 	]);
 
 	if (!league) return new Response("Liga no encontrada", { status: 404 });
+
+	// Paleta de la org (o BRAND_PALETTE si no tiene tema)
+	const C = await getOrgImagePalette(league.organizationId);
 
 	// Limitar filas según el tipo de asset (la imagen tiene altura fija)
 	const standings = allStandings.slice(0, type === "both" ? 8 : 20);
@@ -367,22 +383,22 @@ export async function GET(request: NextRequest) {
 			{/* Content */}
 			{type === "goleadores" && (
 				<div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "48px 72px" }}>
-					<SectionTitle label="GOLEADORES DEL TORNEO" />
+					<SectionTitle label="GOLEADORES DEL TORNEO" C={C} />
 					{scorers.length === 0 ? (
 						<span style={{ fontSize: 22, color: C.inkMuted }}>Sin datos aún</span>
 					) : (
-						scorers.map((s, i) => <ScorerRow key={s.id} s={s} i={i} />)
+						scorers.map((s, i) => <ScorerRow key={s.id} s={s} i={i} C={C} />)
 					)}
 				</div>
 			)}
 			{type === "standings" && (
 				<div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "48px 72px" }}>
-					<SectionTitle label="TABLA DE POSICIONES" />
-					<StatsHead />
+					<SectionTitle label="TABLA DE POSICIONES" C={C} />
+					<StatsHead C={C} />
 					{standings.length === 0 ? (
 						<span style={{ fontSize: 22, color: C.inkMuted }}>Sin datos aún</span>
 					) : (
-						standings.map((s, i) => <StandingRow key={s.teamId} s={s} i={i} />)
+						standings.map((s, i) => <StandingRow key={s.teamId} s={s} i={i} C={C} />)
 					)}
 				</div>
 			)}
@@ -391,11 +407,11 @@ export async function GET(request: NextRequest) {
 					<div
 						style={{ display: "flex", flexDirection: "column", flex: 1, padding: "40px 72px 28px" }}
 					>
-						<SectionTitle label="GOLEADORES" />
+						<SectionTitle label="GOLEADORES" C={C} />
 						{scorers.length === 0 ? (
 							<span style={{ fontSize: 18, color: C.inkMuted }}>Sin datos aún</span>
 						) : (
-							scorers.map((s, i) => <ScorerRow key={s.id} s={s} i={i} />)
+							scorers.map((s, i) => <ScorerRow key={s.id} s={s} i={i} C={C} />)
 						)}
 					</div>
 					<div
@@ -410,12 +426,12 @@ export async function GET(request: NextRequest) {
 					<div
 						style={{ display: "flex", flexDirection: "column", flex: 1, padding: "28px 72px 32px" }}
 					>
-						<SectionTitle label="TABLA" />
-						<StatsHead compact />
+						<SectionTitle label="TABLA" C={C} />
+						<StatsHead compact C={C} />
 						{standings.length === 0 ? (
 							<span style={{ fontSize: 18, color: C.inkMuted }}>Sin datos aún</span>
 						) : (
-							standings.map((s, i) => <StandingRow key={s.teamId} s={s} i={i} compact />)
+							standings.map((s, i) => <StandingRow key={s.teamId} s={s} i={i} compact C={C} />)
 						)}
 					</div>
 				</div>
@@ -451,21 +467,6 @@ export async function GET(request: NextRequest) {
 					))}
 				</div>
 			)}
-
-			{/* Sello Talacha — Regla C1: siempre presente */}
-			<Watermark
-				deepLink={deepLink}
-				qrDataUrl={qrDataUrl}
-				leagueName={leagueName}
-				orgLogoUrl={orgLogoUrl}
-			/>
 		</div>,
-		{
-			width: W,
-			height: H,
-			headers: {
-				"Content-Disposition": `attachment; filename="jornada-${jornada}-${type}-${league.name.replace(/\s+/g, "-").toLowerCase()}.png"`,
-			},
-		},
 	);
 }
