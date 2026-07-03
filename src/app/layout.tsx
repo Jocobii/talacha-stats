@@ -1,10 +1,34 @@
 import type { Metadata } from "next";
+import { Archivo, Oswald, Zilla_Slab } from "next/font/google";
 import "./globals.css";
 import TrackVisit from "@/shared/ui/TrackVisit";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/shared/theme/ThemeProvider";
 import { QueryProvider } from "@/shared/api/QueryProvider";
 import { Toaster } from "@/shared/ui/Toaster";
+
+// ── Tipografías del catálogo org-theme (shared/org-theme/fonts.ts) ───────────
+// Se declaran aquí (una sola vez, subseteadas) y exponen CSS variables que
+// consumen FontPicker y el scope de la org. La default de la app no cambia.
+const fontMarcador = Oswald({
+	subsets: ["latin"],
+	weight: ["400", "700"],
+	variable: "--font-org-marcador",
+	display: "swap",
+});
+const fontModerna = Archivo({
+	subsets: ["latin"],
+	weight: ["400", "700"],
+	variable: "--font-org-moderna",
+	display: "swap",
+});
+const fontSlab = Zilla_Slab({
+	subsets: ["latin"],
+	weight: ["400", "700"],
+	variable: "--font-org-slab",
+	display: "swap",
+});
+const orgFontVariables = `${fontMarcador.variable} ${fontModerna.variable} ${fontSlab.variable}`;
 
 const siteUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 
@@ -83,7 +107,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 					dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
 				/>
 			</head>
-			<body className="min-h-full antialiased">
+			<body className={`min-h-full antialiased ${orgFontVariables}`}>
 				<ThemeProvider>
 					<QueryProvider>
 						<TrackVisit />

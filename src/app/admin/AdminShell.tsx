@@ -151,6 +151,7 @@ export default function AdminShell({
 				{ href: "/admin/leagues", label: "Ligas", icon: Trophy },
 				{ href: "/admin/teams", label: "Equipos", icon: Users },
 				{ href: "/admin/players", label: "Jugadores", icon: UserCircle },
+				{ href: "/admin/organizacion/tema", label: "Identidad visual", icon: Palette },
 			]
 		: [
 				{ href: "/admin/players", label: "Jugadores", icon: UserCircle },

@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { isHexColor, mix, parseHex, rgbToHsl, hslToRgb, toHex, withAlpha } from "./color";
+import {
+	desaturate,
+	isHexColor,
+	mix,
+	parseHex,
+	rgbToHsl,
+	hslToRgb,
+	toHex,
+	withAlpha,
+} from "./color";
 
 describe("parseHex / toHex", () => {
 	it("hace roundtrip de un hex válido", () => {
@@ -55,6 +64,20 @@ describe("withAlpha", () => {
 
 	it("clampa alpha a [0,1]", () => {
 		expect(withAlpha("#ff0000", 7)).toBe("rgba(255, 0, 0, 1)");
+	});
+});
+
+describe("desaturate", () => {
+	it("reduce saturación conservando lightness", () => {
+		const original = rgbToHsl(parseHex("#ec4899"));
+		const softened = rgbToHsl(parseHex(desaturate("#ec4899", 0.4)));
+		expect(softened.s).toBeLessThan(original.s);
+		expect(Math.abs(softened.l - original.l)).toBeLessThan(0.02);
+	});
+
+	it("amount 0 no cambia, amount 1 da gris", () => {
+		expect(desaturate("#ec4899", 0)).toBe("#ec4899");
+		expect(rgbToHsl(parseHex(desaturate("#ec4899", 1))).s).toBe(0);
 	});
 });
 

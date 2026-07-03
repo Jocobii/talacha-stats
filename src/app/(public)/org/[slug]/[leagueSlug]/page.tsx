@@ -225,20 +225,6 @@ export default async function LeaguePublicPage({ params }: Props) {
 		<div className="text-ink flex flex-col flex-1 bg-pitch">
 			{/* ── Header ── */}
 			<header className="relative px-5 pt-8 pb-0 max-w-lg mx-auto w-full overflow-hidden">
-				<div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-					<div
-						style={{
-							position: "absolute",
-							top: "-30%",
-							right: "-15%",
-							width: "55%",
-							height: "160%",
-							background:
-								"radial-gradient(ellipse at center, rgba(0,230,118,0.07) 0%, transparent 65%)",
-						}}
-					/>
-				</div>
-
 				<div className="relative z-10 pb-6">
 					<Link
 						href={`/org/${org.slug}`}

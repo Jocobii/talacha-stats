@@ -5,17 +5,27 @@
  * FUENTE ÚNICA de los preset ids válidos (la DB guarda el id; el color vive
  * aquí). Mismo espíritu que shared/skins/registry.ts.
  *
+ * Decisión de curaduría (Jocobi, 2026-07-02): TODOS los presets comparten la
+ * base TalachaStats (surface #111814, ink #f0f4f2 — la misma de
+ * shared/brand/palette.ts) y solo varían primario + acento. Así el salto del
+ * portal principal al sitio de una org no es drástico: misma casa, otra
+ * camiseta. Un tema con fondo propio sigue siendo posible vía mode="custom".
+ *
  * Cada preset son los MISMOS 4 colores que un tema custom (ThemeInput):
  * presets y custom pasan por buildThemeTokens — un solo camino de código.
- *
- * Curaduría: paletas pensadas para el look deportivo de la app (superficies
- * oscuras salvo los "clásicos" claros). presets.test.ts valida contraste AA
- * de TODAS — agregar una paleta ilegible rompe el build, no producción.
+ * presets.test.ts valida contraste AA de TODAS las paletas: agregar una
+ * ilegible rompe CI, no producción.
  *
  * PURO y client-safe.
  */
 
 import type { ThemeInput } from "./build-tokens";
+
+/** Base compartida con la marca TalachaStats (ver shared/brand/palette.ts). */
+export const TALACHA_BASE = {
+	surface: "#111814",
+	ink: "#f0f4f2",
+} as const;
 
 export const ORG_PRESET_IDS = [
 	"azul-rey",
@@ -29,7 +39,6 @@ export const ORG_PRESET_IDS = [
 	"rosa-fucsia",
 	"turquesa",
 	"marino-oro",
-	"clasico-claro",
 ] as const;
 
 export type OrgPresetId = (typeof ORG_PRESET_IDS)[number];
@@ -43,79 +52,94 @@ export type OrgPresetDefinition = {
 	colors: ThemeInput;
 };
 
+function preset(
+	id: OrgPresetId,
+	label: string,
+	description: string,
+	primary: string,
+	accent: string,
+): OrgPresetDefinition {
+	return { id, label, description, colors: { primary, accent, ...TALACHA_BASE } };
+}
+
 export const ORG_PRESETS: Record<OrgPresetId, OrgPresetDefinition> = {
-	"azul-rey": {
-		id: "azul-rey",
-		label: "Azul Rey",
-		description: "Azul intenso con acento dorado — clásico de club grande.",
-		colors: { primary: "#2563eb", accent: "#fbbf24", surface: "#0b1220", ink: "#eef2f7" },
-	},
-	rojinegro: {
-		id: "rojinegro",
-		label: "Rojinegro",
-		description: "Rojo sobre negro con acento naranja — carácter de barrio bravo.",
-		colors: { primary: "#ef4444", accent: "#f97316", surface: "#141414", ink: "#f5f5f5" },
-	},
-	"verde-selva": {
-		id: "verde-selva",
-		label: "Verde Selva",
-		description: "Verde césped profundo con acento lima — cancha pura.",
-		colors: { primary: "#16a34a", accent: "#d9f99d", surface: "#0c1510", ink: "#eaf5ee" },
-	},
-	"dorado-negro": {
-		id: "dorado-negro",
-		label: "Dorado y Negro",
-		description: "Oro sobre negro — liga con trofeo en la mira.",
-		colors: { primary: "#eab308", accent: "#f5f5f4", surface: "#0f0e0a", ink: "#faf8f0" },
-	},
-	"morado-neon": {
-		id: "morado-neon",
-		label: "Morado Neón",
-		description: "Violeta brillante con acento cian — nocturno, moderno.",
-		colors: { primary: "#a78bfa", accent: "#22d3ee", surface: "#120f1c", ink: "#f1eefc" },
-	},
-	"naranja-fuego": {
-		id: "naranja-fuego",
-		label: "Naranja Fuego",
-		description: "Naranja encendido con acento arena — energía pura.",
-		colors: { primary: "#f97316", accent: "#fde68a", surface: "#16100b", ink: "#fbf3ec" },
-	},
-	celeste: {
-		id: "celeste",
-		label: "Celeste",
-		description: "Azul cielo con dorado — elegancia sudamericana.",
-		colors: { primary: "#0ea5e9", accent: "#fbbf24", surface: "#0a141b", ink: "#ebf6fc" },
-	},
-	tinto: {
-		id: "tinto",
-		label: "Tinto",
-		description: "Guinda profundo con dorado — tradición mexicana.",
-		colors: { primary: "#b91c1c", accent: "#fbbf24", surface: "#170d0d", ink: "#f9eeee" },
-	},
-	"rosa-fucsia": {
-		id: "rosa-fucsia",
-		label: "Rosa Fucsia",
-		description: "Fucsia con acento lima — imposible de ignorar.",
-		colors: { primary: "#ec4899", accent: "#a3e635", surface: "#170d13", ink: "#fdeef6" },
-	},
-	turquesa: {
-		id: "turquesa",
-		label: "Turquesa",
-		description: "Verde-azul mineral con ámbar — fresco y distinto.",
-		colors: { primary: "#14b8a6", accent: "#f59e0b", surface: "#0a1514", ink: "#ecfbf9" },
-	},
-	"marino-oro": {
-		id: "marino-oro",
-		label: "Marino y Oro",
-		description: "Azul marino sobrio con oro — uniforme de gala.",
-		colors: { primary: "#1d4ed8", accent: "#f59e0b", surface: "#0a0f1e", ink: "#eef1f9" },
-	},
-	"clasico-claro": {
-		id: "clasico-claro",
-		label: "Clásico Claro",
-		description: "Fondo claro tipo periódico deportivo con verde bosque.",
-		colors: { primary: "#166534", accent: "#b45309", surface: "#f6f5f0", ink: "#1c1e1c" },
-	},
+	"azul-rey": preset(
+		"azul-rey",
+		"Azul Rey",
+		"Azul intenso con acento dorado — clásico de club grande.",
+		"#2563eb",
+		"#fbbf24",
+	),
+	rojinegro: preset(
+		"rojinegro",
+		"Rojinegro",
+		"Rojo con acento naranja — carácter de barrio bravo.",
+		"#ef4444",
+		"#f97316",
+	),
+	"verde-selva": preset(
+		"verde-selva",
+		"Verde Selva",
+		"Verde césped profundo con acento lima — cancha pura.",
+		"#16a34a",
+		"#d9f99d",
+	),
+	"dorado-negro": preset(
+		"dorado-negro",
+		"Dorado",
+		"Oro sobre la base oscura — liga con trofeo en la mira.",
+		"#eab308",
+		"#f5f5f4",
+	),
+	"morado-neon": preset(
+		"morado-neon",
+		"Morado Neón",
+		"Violeta brillante con acento cian — nocturno, moderno.",
+		"#a78bfa",
+		"#22d3ee",
+	),
+	"naranja-fuego": preset(
+		"naranja-fuego",
+		"Naranja Fuego",
+		"Naranja encendido con acento arena — energía pura.",
+		"#f97316",
+		"#fde68a",
+	),
+	celeste: preset(
+		"celeste",
+		"Celeste",
+		"Azul cielo con dorado — elegancia sudamericana.",
+		"#0ea5e9",
+		"#fbbf24",
+	),
+	tinto: preset(
+		"tinto",
+		"Tinto",
+		"Guinda profundo con dorado — tradición mexicana.",
+		"#b91c1c",
+		"#fbbf24",
+	),
+	"rosa-fucsia": preset(
+		"rosa-fucsia",
+		"Rosa Fucsia",
+		"Fucsia con acento lima — imposible de ignorar.",
+		"#ec4899",
+		"#a3e635",
+	),
+	turquesa: preset(
+		"turquesa",
+		"Turquesa",
+		"Verde-azul mineral con ámbar — fresco y distinto.",
+		"#14b8a6",
+		"#f59e0b",
+	),
+	"marino-oro": preset(
+		"marino-oro",
+		"Marino y Oro",
+		"Azul marino sobrio con oro — uniforme de gala.",
+		"#1d4ed8",
+		"#f59e0b",
+	),
 };
 
 /** Lista ordenada para renderizar el picker. */

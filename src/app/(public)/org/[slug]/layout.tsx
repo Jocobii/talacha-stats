@@ -22,5 +22,9 @@ export default async function OrgLayout({ params, children }: OrgLayoutProps) {
 	const { slug } = await params;
 	const theme = await getOrgTheme(slug);
 
-	return <OrgThemeScope tokens={theme?.tokens ?? null}>{children}</OrgThemeScope>;
+	return (
+		<OrgThemeScope tokens={theme?.tokens ?? null} fontId={theme?.fontId}>
+			{children}
+		</OrgThemeScope>
+	);
 }

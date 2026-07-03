@@ -75,14 +75,6 @@ export default async function OrgPublicPage({ params }: Props) {
 		<div className="text-ink flex flex-col flex-1 bg-pitch">
 			{/* ── Header — info de org + grid de stats ── */}
 			<header className="relative px-5 pt-8 pb-5 overflow-hidden">
-				<div
-					aria-hidden="true"
-					className="pointer-events-none absolute inset-0"
-					style={{
-						background:
-							"radial-gradient(ellipse at 70% 40%, rgba(0,230,118,0.07) 0%, transparent 60%)",
-					}}
-				/>
 				<div className="relative z-10 max-w-lg mx-auto">
 					<div className="flex items-center justify-between mb-5">
 						<Link

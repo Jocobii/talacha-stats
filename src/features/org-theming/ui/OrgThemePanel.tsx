@@ -17,6 +17,7 @@ import { useMemo, useState } from "react";
 import {
 	buildThemeTokens,
 	HEX_COLOR_REGEX,
+	ORG_FONTS,
 	ORG_FONT_LIST,
 	ORG_PRESET_LIST,
 	ORG_PRESETS,
@@ -173,12 +174,6 @@ function ThemeEditor({ organizationId, orgName, initial }: ThemeEditorProps) {
 					>
 						{save.isPending ? "Guardando…" : "Guardar tema"}
 					</button>
-					{save.isSuccess && <span className="text-sm text-brand-ink">Tema guardado ✓</span>}
-					{save.isError && (
-						<span className="text-sm text-rose" role="alert">
-							{save.error.message}
-						</span>
-					)}
 				</div>
 			</div>
 
@@ -186,7 +181,13 @@ function ThemeEditor({ organizationId, orgName, initial }: ThemeEditorProps) {
 			<aside>
 				<h3 className="mb-2 text-sm font-medium text-ink">Así se verá tu sitio</h3>
 				{tokens ? (
-					<ThemePreviewCard tokens={tokens} orgName={orgName} />
+					<ThemePreviewCard
+						tokens={tokens}
+						orgName={orgName}
+						fontFamily={
+							ORG_FONTS[fontId].cssVariable ? `var(${ORG_FONTS[fontId].cssVariable})` : undefined
+						}
+					/>
 				) : (
 					<p className="text-sm text-ink-2">
 						{mode === "preset"

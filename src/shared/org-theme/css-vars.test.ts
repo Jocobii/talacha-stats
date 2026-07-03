@@ -59,6 +59,20 @@ describe("tokensToScopeCssVars", () => {
 			).toBeGreaterThanOrEqual(4.5);
 		}
 	});
+
+	it("ink e ink-2 cumplen contraste sobre la surface suavizada (todos los presets)", () => {
+		for (const preset of Object.values(ORG_PRESETS)) {
+			const vars = tokensToScopeCssVars(buildThemeTokens(preset.colors));
+			expect(
+				contrastRatio(vars["--color-ink"], vars["--color-surface"]),
+				`ink ilegible en preset ${preset.id}`,
+			).toBeGreaterThanOrEqual(4.5);
+			expect(
+				contrastRatio(vars["--color-ink-2"], vars["--color-surface"]),
+				`ink-2 ilegible en preset ${preset.id}`,
+			).toBeGreaterThanOrEqual(3);
+		}
+	});
 });
 
 describe("tokensToCssBlock", () => {

@@ -57,6 +57,13 @@ export function withAlpha(hex: string, alpha: number): string {
 	return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
+/** Reduce la saturación conservando matiz y luminosidad (amount 0..1). */
+export function desaturate(hex: string, amount: number): string {
+	const hsl = rgbToHsl(parseHex(hex));
+	const a = Math.max(0, Math.min(1, amount));
+	return toHex(hslToRgb({ ...hsl, s: hsl.s * (1 - a) }));
+}
+
 export function rgbToHsl({ r, g, b }: Rgb): Hsl {
 	const rn = r / 255;
 	const gn = g / 255;

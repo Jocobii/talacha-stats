@@ -14,7 +14,7 @@
  *   experiencia pública de la org sin tocar componentes existentes.
  */
 
-import { mix } from "./color";
+import { desaturate, mix, withAlpha } from "./color";
 import { ensureContrast, relativeLuminance } from "./contrast";
 import type { OrgThemeTokens } from "./build-tokens";
 
@@ -44,25 +44,38 @@ export function tokensToCssVars(tokens: OrgThemeTokens): Record<string, string> 
  */
 export function tokensToScopeCssVars(tokens: OrgThemeTokens): Record<string, string> {
 	const surfaceIsDark = relativeLuminance(tokens.surface) < 0.5;
+
+	// ── Dosis, no saturación total ──────────────────────────────────────────
+	// El color de marca va COMPLETO solo en fills (botones, badges). Para
+	// texto y derivados se suaviza: mezclado hacia la tinta y desaturado —
+	// evita la página "neón" cuando el primary es intenso.
+	const softSurface = desaturate(tokens.surface, 0.35); // fondos casi neutros
+	const softInk = ensureContrast(desaturate(tokens.ink, 0.4), softSurface, 4.5);
+	const brandText = ensureContrast(
+		mix(desaturate(tokens.primary, 0.25), softInk, 0.3),
+		softSurface,
+		4.5,
+	);
+
 	return {
 		...tokensToCssVars(tokens),
-		// Superficies
-		"--color-pitch": mix(tokens.surface, "#000000", surfaceIsDark ? 0.38 : 0.05),
-		"--color-surface": tokens.surface,
-		"--color-surface-2": tokens.surface2,
-		"--color-surface-3": mix(tokens.surface, tokens.ink, 0.1),
-		"--color-line": tokens.line,
-		"--color-line-2": mix(tokens.surface, tokens.ink, 0.24),
-		// Tinta
-		"--color-ink": tokens.ink,
-		"--color-ink-2": tokens.inkDim,
-		"--color-ink-3": mix(tokens.ink, tokens.surface, 0.55),
-		// Marca de la org (sustituye el verde TalachaStats dentro del scope)
+		// Superficies — apenas un tinte del tema, no un baño de color
+		"--color-pitch": mix(softSurface, "#000000", surfaceIsDark ? 0.38 : 0.05),
+		"--color-surface": softSurface,
+		"--color-surface-2": mix(softSurface, softInk, 0.06),
+		"--color-surface-3": mix(softSurface, softInk, 0.1),
+		"--color-line": mix(softSurface, softInk, 0.14),
+		"--color-line-2": mix(softSurface, softInk, 0.24),
+		// Tinta — el ink desaturado deja de arrastrar el matiz a todo el texto
+		"--color-ink": softInk,
+		"--color-ink-2": ensureContrast(mix(softInk, softSurface, 0.38), softSurface, 3),
+		"--color-ink-3": mix(softInk, softSurface, 0.55),
+		// Marca de la org: fill íntegro, texto suavizado
 		"--color-brand": tokens.primary,
 		"--color-brand-dim": mix(tokens.primary, "#000000", 0.25),
-		"--color-brand-ink": ensureContrast(tokens.primary, tokens.surface, 4.5),
-		"--tint-brand": tokens.tint,
-		"--tint-brand-bd": tokens.tintBd,
+		"--color-brand-ink": brandText,
+		"--tint-brand": withAlpha(tokens.primary, 0.09),
+		"--tint-brand-bd": withAlpha(tokens.primary, 0.22),
 	};
 }
 

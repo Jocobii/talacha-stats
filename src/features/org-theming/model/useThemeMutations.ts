@@ -11,6 +11,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/shared/api/client";
 import { queryKeys } from "@/shared/api/query-keys";
+import { notify } from "@/shared/lib/notify";
 import { orgThemeUrl, type OrgThemeDto } from "../types";
 import type { ThemeFormInput } from "./theme-form-schema";
 
@@ -27,6 +28,10 @@ export function useSaveOrgTheme(organizationId: string) {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: queryKeys.orgTheme(organizationId) });
+			notify.success("Tema guardado — tu página pública ya luce los nuevos colores.");
+		},
+		onError: (error) => {
+			notify.error(error.message || "No se pudo guardar el tema. Intenta de nuevo.");
 		},
 	});
 }

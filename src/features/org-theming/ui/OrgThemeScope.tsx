@@ -16,20 +16,36 @@
  */
 
 import type { CSSProperties, ReactNode } from "react";
-import { tokensToScopeCssVars, type OrgThemeTokens } from "@/shared/org-theme";
+import {
+	ORG_FONTS,
+	tokensToScopeCssVars,
+	type OrgFontId,
+	type OrgThemeTokens,
+} from "@/shared/org-theme";
 
 type OrgThemeScopeProps = {
 	tokens: OrgThemeTokens | null;
+	/** Tipografía del catálogo; "brand"/undefined = stack default de la app. */
+	fontId?: OrgFontId;
 	children: ReactNode;
 };
 
-export function OrgThemeScope({ tokens, children }: OrgThemeScopeProps) {
+export function OrgThemeScope({ tokens, fontId, children }: OrgThemeScopeProps) {
 	if (!tokens) return <>{children}</>;
+
+	// font-family es heredable: atraviesa display:contents hacia los hijos.
+	const fontVariable = fontId ? ORG_FONTS[fontId].cssVariable : null;
 
 	return (
 		<div
 			data-org-theme=""
-			style={{ display: "contents", ...tokensToScopeCssVars(tokens) } as CSSProperties}
+			style={
+				{
+					display: "contents",
+					...(fontVariable ? { fontFamily: `var(${fontVariable})` } : {}),
+					...tokensToScopeCssVars(tokens),
+				} as CSSProperties
+			}
 		>
 			{children}
 		</div>

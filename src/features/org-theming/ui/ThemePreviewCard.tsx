@@ -12,6 +12,8 @@ import type { OrgThemeTokens } from "@/shared/org-theme";
 type ThemePreviewCardProps = {
 	tokens: OrgThemeTokens;
 	orgName?: string;
+	/** CSS font-family (ej. "var(--font-org-marcador)"); undefined = default. */
+	fontFamily?: string;
 };
 
 const ROWS = [
@@ -20,11 +22,15 @@ const ROWS = [
 	{ pos: 3, team: "Real Otay", pts: 16, leader: false },
 ];
 
-export function ThemePreviewCard({ tokens, orgName = "Tu organización" }: ThemePreviewCardProps) {
+export function ThemePreviewCard({
+	tokens,
+	orgName = "Tu organización",
+	fontFamily,
+}: ThemePreviewCardProps) {
 	return (
 		<div
 			className="overflow-hidden rounded-xl border"
-			style={{ backgroundColor: tokens.surface, borderColor: tokens.line }}
+			style={{ backgroundColor: tokens.surface, borderColor: tokens.line, fontFamily }}
 		>
 			{/* Header estilo hub de la org */}
 			<div
