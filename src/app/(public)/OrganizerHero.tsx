@@ -49,10 +49,12 @@ export default function OrganizerHero() {
 						WhatsApp.
 					</p>
 
-					{/* Aversión a la pérdida — corto, con cierre positivo */}
+					{/* Aversión a la pérdida + cronista (P3 + P15) */}
 					<p className="text-sm text-ink-3 leading-relaxed max-w-md border-l-2 border-brand/40 pl-3 text-left">
-						Cada jornada que no se registra, se pierde. Lo que captures desde hoy queda para
-						siempre.
+						Tu liga ya tiene historia: campeones, goleadores, rivalidades. En un álbum de Facebook,
+						el algoritmo la entierra. Aquí, cada jornada que captures queda registrada{" "}
+						<strong className="text-ink font-semibold">para siempre</strong> — eres el cronista de
+						tu cancha.
 					</p>
 
 					<div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">

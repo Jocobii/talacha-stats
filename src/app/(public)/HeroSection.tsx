@@ -185,6 +185,14 @@ export default function HeroSection() {
 							que puedes compartir.
 						</p>
 
+						{/* Nostalgia anticipada (P15) — capa cálida, no dominante */}
+						<p
+							className="animate-fade-slide-up text-sm text-ink-3 italic -mt-2"
+							style={{ animationDelay: "0.5s", animationFillMode: "both" }}
+						>
+							Tus goles de hoy son tus recuerdos de mañana.
+						</p>
+
 						{/* CTA primario: el buscador (auto-referencia) */}
 						<div
 							className="animate-fade-slide-up w-full flex justify-center lg:justify-start"

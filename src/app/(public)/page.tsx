@@ -4,6 +4,7 @@ import HeroSection from "./HeroSection";
 import OrganizerHero from "./OrganizerHero";
 import OrganizerBeforeAfter from "./OrganizerBeforeAfter";
 import OrganizerSteps from "./OrganizerSteps";
+import VaultSection from "./VaultSection";
 import StatsBar from "./StatsBar";
 import LeaderboardTeaser from "./LeaderboardTeaser";
 import LeaguesShowcase from "./LeaguesShowcase";
@@ -45,6 +46,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 					<>
 						<HeroSection />
 						<StatsBar />
+						<VaultSection />
 						<LeaderboardTeaser />
 						<LeaguesShowcase leagues={showcaseLeagues} />
 						<OrganizerSection />

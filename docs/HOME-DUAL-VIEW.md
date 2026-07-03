@@ -194,7 +194,48 @@ Orden de secciones y cambios vs. lo actual:
 ## 8. Fases sugeridas
 
 1. **Fase 1:** toggle + hero organizador (O1) + corrección de copy Excel + quitar
-   testimonio falso. Lo mínimo que cambia la conversión.
+   testimonio falso. Lo mínimo que cambia la conversión. _(Implementada.)_
 2. **Fase 2:** buscador en hero jugador (J1) + antes/después (O2) + 3 pasos (O4).
+   _(Implementada.)_
 3. **Fase 3:** tarjeta espejo (J3), bloque de pérdida (O3), anclaje de precio (O6),
    FAQ en home (O7), medición completa.
+
+---
+
+## 9. Visión de marca: el baúl de los recuerdos (jul 2026)
+
+La visión de fondo del fundador: TalachaStats es **el baúl de la memoria del fútbol
+amateur**. Años después de colgar los tacos, el jugador regresa a ver sus stats, en
+qué equipos jugó, con quién compartió cancha — "mira, aquí jugaba con tu tío", o con
+un ser querido que ya no está. La identidad CURP hace esta promesa técnicamente
+creíble: el historial es permanente por diseño, no por marketing.
+
+**P15 — Nostalgia anticipada** (Sedikides & Wildschut — la nostalgia aumenta
+conexión social, sentido de significado y continuidad de identidad; la _nostalgia
+anticipada_ hace valorar más el momento presente al saber que será un recuerdo).
+El ángulo de venta con usuarios sin historial: _"tus goles de hoy son tus recuerdos
+de mañana"_. Combina con P3: cada jornada sin registrar es un recuerdo que no
+existirá.
+
+**Regla de tono:** el ego es la capa dominante (headlines y CTAs); el baúl es la
+capa cálida (subtextos y UNA sección dedicada). El home no debe sentirse
+melancólico — el jugador activo de 22 años viene a presumir, no a recordar. La
+nostalgia pega más fuerte en el organizador (mayor, ya publica álbumes de campeones
+en Facebook que el algoritmo entierra).
+
+**Dónde vive en el home:**
+
+- Vista jugador: línea bajo el subtexto del hero + sección **"El baúl"**
+  (`VaultSection`): mock de perfil envejecido — temporada, equipo y "jugaste con:
+  …" (el gancho emocional es _con quién_, no _cuánto_; los datos ya existen en
+  `match_player_stats`).
+- Vista organizador: refuerzo del bloque de pérdida con el framing de **cronista de
+  su cancha** — su liga ya tiene historia; sin registro, se entierra en un álbum de
+  Facebook.
+
+**Backlog que alimenta la visión (no home):** memorias por partido (comentarios y
+posts de goles como recuerdo del match — idea del fundador), anuario de temporada
+(asset generado al cerrar torneo: campeón, goleador, roster; el álbum permanente),
+"un día como hoy" (throwback automático = contenido recurrente gratis), y perfiles
+memoriales para jugadores fallecidos (delicado — requiere diseño propio, no
+improvisación).
