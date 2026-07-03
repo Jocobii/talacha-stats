@@ -63,4 +63,8 @@ export const queryKeys = {
 	// Invalidación: crear/toggle/borrar activación → skinActivations + activeSkin
 	activeSkin: () => ["active-skin"] as const,
 	skinActivations: () => ["skin-activations"] as const,
+
+	// Tema por organización (org-theming)
+	// Invalidación: guardar tema → orgTheme(organizationId)
+	orgTheme: (organizationId: string) => ["org-theme", organizationId] as const,
 } as const;
