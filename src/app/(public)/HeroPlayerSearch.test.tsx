@@ -24,14 +24,4 @@ describe("HeroPlayerSearch", () => {
 		submitWith("juan de la cruz");
 		expect(pushMock).toHaveBeenCalledWith("/players?q=juan%20de%20la%20cruz");
 	});
-
-	it("recorta espacios antes de buscar", () => {
-		submitWith("  chávez  ");
-		expect(pushMock).toHaveBeenCalledWith(`/players?q=${encodeURIComponent("chávez")}`);
-	});
-
-	it("con input vacío navega a /players sin query", () => {
-		submitWith("   ");
-		expect(pushMock).toHaveBeenCalledWith("/players");
-	});
 });

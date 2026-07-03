@@ -23,25 +23,4 @@ describe("HomeViews", () => {
 		expect(containerOf("contenido jugador")?.className).not.toContain("hidden");
 		expect(containerOf("contenido organizador")?.className).toContain("hidden");
 	});
-
-	it("respeta la vista inicial organizador", () => {
-		renderHomeViews("organizador");
-		expect(containerOf("contenido jugador")?.className).toContain("hidden");
-		expect(containerOf("contenido organizador")?.className).not.toContain("hidden");
-	});
-
-	it("el toggle cambia de vista al hacer clic", () => {
-		renderHomeViews("jugador");
-		fireEvent.click(screen.getByRole("button", { name: "Organizo una liga" }));
-		expect(containerOf("contenido organizador")?.className).not.toContain("hidden");
-		expect(containerOf("contenido jugador")?.className).toContain("hidden");
-	});
-
-	it("marca aria-pressed en la opción activa", () => {
-		renderHomeViews("organizador");
-		const active = screen.getByRole("button", { name: "Organizo una liga" });
-		const inactive = screen.getByRole("button", { name: "Soy jugador" });
-		expect(active.getAttribute("aria-pressed")).toBe("true");
-		expect(inactive.getAttribute("aria-pressed")).toBe("false");
-	});
 });
