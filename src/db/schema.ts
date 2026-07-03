@@ -1614,3 +1614,40 @@ export const playerGlobalStats = pgView("player_global_stats").as((qb) =>
 );
 
 export type PlayerGlobalStatsRow = typeof playerGlobalStats.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// SKIN_ACTIVATIONS — Temas visuales por torneo (Mundial, Copa América, Liga MX…)
+//
+// El catálogo visual de skins vive en CÓDIGO (shared/skins/registry.ts + bloques
+// [data-skin] en globals.css). Esta tabla solo guarda ACTIVACIONES: qué skin
+// está programado, con qué nombre, en qué rango de fechas y si está encendido.
+//
+// Resolución (features/tournament-skin): la activación habilitada cuyo rango
+// incluye HOY (la más reciente por starts_on si hay overlap). Si no hay ninguna
+// → la app usa la paleta TalachaStats de siempre (tokens --color-skin-* caen
+// al brand por default en globals.css).
+//
+// Administrada exclusivamente por rol "owner" en /admin/temas.
+// ---------------------------------------------------------------------------
+export const skinActivations = pgTable(
+	"skin_activations",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		// Id del skin en el registry de código. Se valida contra el registry en la
+		// capa de feature — si un deploy elimina un skin, la fila queda inerte.
+		skinId: text("skin_id").notNull(),
+		name: text("name").notNull(), // etiqueta humana: "Mundial 2026"
+		startsOn: date("starts_on").notNull(),
+		endsOn: date("ends_on").notNull(),
+		isEnabled: boolean("is_enabled").notNull().default(true),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		index("sa_active_lookup_idx").on(t.isEnabled, t.startsOn, t.endsOn),
+		check("chk_skin_activation_range", drizzleSql`${t.startsOn} <= ${t.endsOn}`),
+	],
+);
+
+export type SkinActivation = typeof skinActivations.$inferSelect;
+export type NewSkinActivation = typeof skinActivations.$inferInsert;

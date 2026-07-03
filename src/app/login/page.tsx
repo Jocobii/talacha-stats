@@ -41,7 +41,13 @@ function LoginForm() {
 			<div className="w-full max-w-sm space-y-8">
 				{/* Logo */}
 				<div className="text-center">
-					<Image src="/logo-icon.svg" alt="TalachaStats" className="w-10 h-10 mx-auto mb-3" />
+					<Image
+						src="/logo-icon.svg"
+						alt="TalachaStats"
+						width={40}
+						height={40}
+						className="w-10 h-10 mx-auto mb-3"
+					/>
 					<h1 className="font-display text-3xl font-black text-ink uppercase tracking-tight">
 						Talacha<span className="text-brand-ink">Stats</span>
 					</h1>

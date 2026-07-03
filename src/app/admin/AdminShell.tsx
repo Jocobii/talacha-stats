@@ -32,6 +32,7 @@ import {
 	CheckCircle2,
 	MapPin,
 	CalendarDays,
+	Palette,
 	LogOut,
 	Menu,
 	X,
@@ -167,6 +168,7 @@ export default function AdminShell({
 						items: [
 							{ href: "/admin/users", label: "Usuarios", icon: UserCog },
 							{ href: "/admin/verifications", label: "Verificaciones", icon: CheckCircle2 },
+							{ href: "/admin/temas", label: "Temas", icon: Palette },
 						],
 					} as NavGroup,
 				]

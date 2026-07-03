@@ -46,6 +46,23 @@
 	/* Scrollbar */
 	--scroll-thumb: rgba(255, 255, 255, 0.08);
 	--scroll-thumb-hv: rgba(255, 255, 255, 0.16);
+
+	/* ── Skin tokens — tema por torneo (ver docs/TOURNAMENT-SKINS.md) ──
+	   Default (sin torneo activo): el skin ES la marca TalachaStats.
+	   Un módulo envuelto en <SkinScope> con un torneo activo los
+	   sobreescribe vía [data-skin="..."] más abajo. Los componentes
+	   tematizables usan estos tokens (bg-skin-surface, text-skin-primary…)
+	   en lugar de los de brand — así se ven normales sin torneo y se
+	   "visten" solos cuando hay uno. NO usar @theme inline aquí:
+	   rompería el scoping por data-attribute. */
+	--color-skin-primary: var(--color-brand);
+	--color-skin-primary-ink: var(--color-brand-ink);
+	--color-skin-accent: var(--color-amber);
+	--color-skin-surface: var(--color-surface);
+	--color-skin-surface-2: var(--color-surface-2);
+	--color-skin-line: var(--color-line);
+	--tint-skin: var(--tint-brand);
+	--tint-skin-bd: var(--tint-brand-bd);
 }
 
 /* ── Light theme — superficies + tinta invertidas ────────────────── */
@@ -108,6 +125,36 @@ html[data-theme="light"][data-tone="cancha"] {
 	--color-surface-3: #dee3e1;
 	--color-line: #dde2e0;
 	--color-line-2: #c5cccb;
+}
+
+/* ── Tournament skins — un bloque [data-skin] por torneo ─────────── */
+/* Solo CSS variables: cero JS, cero peso extra por skin. El scope lo
+   pone <SkinScope> (features/tournament-skin) con data-skin en un div.
+   Cada skin necesita su par: bloque base (dark) + ajuste para light. */
+
+/* MUNDIAL 2026 — inspirado en el look del torneo: base negro/blanco con
+   dorado trofeo como protagonista, rojo (Canadá) de acento y líneas con
+   matiz azul (EUA). El verde (México) se omite a propósito: es el color de
+   marca TalachaStats y el tema no se distinguiría. Solo dirección cromática:
+   sin emblema, logos ni trade dress de FIFA. */
+[data-skin="mundial-2026"] {
+	--color-skin-primary: #d6a419; /* dorado trofeo */
+	--color-skin-primary-ink: #e8bf47; /* legible sobre superficies dark */
+	--color-skin-accent: #e0263d; /* rojo sede */
+	--color-skin-surface: #0e0e12; /* negro base de la identidad */
+	--color-skin-surface-2: #1a1b22;
+	--color-skin-line: #2b3050; /* gris con matiz azul sede */
+	--tint-skin: rgba(214, 164, 25, 0.12);
+	--tint-skin-bd: rgba(214, 164, 25, 0.35);
+}
+html[data-theme="light"] [data-skin="mundial-2026"] {
+	--color-skin-primary-ink: #8a6a00; /* dorado oscuro — contraste AA sobre claro */
+	--color-skin-accent: #a30d24;
+	--color-skin-surface: #faf8f2; /* blanco cálido de la identidad */
+	--color-skin-surface-2: #efeadb;
+	--color-skin-line: #cdd4ea;
+	--tint-skin: rgba(138, 106, 0, 0.1);
+	--tint-skin-bd: rgba(138, 106, 0, 0.3);
 }
 
 /* Transición suave entre temas */
