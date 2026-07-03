@@ -47,6 +47,63 @@ export const ORG_STATUSES = ["trial", "verified"] as const;
 export type OrgStatus = (typeof ORG_STATUSES)[number];
 
 // ---------------------------------------------------------------------------
+// ORGANIZATION THEMES — Identidad visual por organización (docs/ORG-THEMING.md)
+// 1:1 con organizations. Se persisten SOLO los 4 colores base (o el preset id);
+// todo lo derivado (tints, tintas, líneas) lo calcula buildThemeTokens en
+// shared/org-theme — así CSS y Satori nunca divergen.
+// El catálogo de presets/fuentes vive en CÓDIGO (shared/org-theme); la DB solo
+// guarda ids, igual que skin_activations valida contra SKIN_IDS.
+// ---------------------------------------------------------------------------
+export const organizationThemes = pgTable(
+	"organization_themes",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.unique() // 1:1 — una org, un tema
+			.references(() => organizations.id, { onDelete: "cascade" }),
+
+		// "preset" → presetId apunta al catálogo en código (isOrgPresetId)
+		// "custom" → los 4 hex de abajo son la fuente de verdad
+		mode: text("mode").notNull().default("preset"), // "preset" | "custom"
+		presetId: text("preset_id"),
+
+		// Solo mode="custom". Formato #rrggbb — validado por Zod Y por CHECK.
+		colorPrimary: text("color_primary"),
+		colorAccent: text("color_accent"),
+		colorSurface: text("color_surface"),
+		colorInk: text("color_ink"),
+
+		// Catálogo cerrado en código (shared/org-theme/fonts.ts, isOrgFontId)
+		fontId: text("font_id").notNull().default("brand"),
+
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		check("chk_org_theme_mode", drizzleSql`${t.mode} IN ('preset','custom')`),
+		// mode="preset" exige preset_id; mode="custom" exige los 4 colores
+		check(
+			"chk_org_theme_preset_complete",
+			drizzleSql`${t.mode} <> 'preset' OR ${t.presetId} IS NOT NULL`,
+		),
+		check(
+			"chk_org_theme_custom_complete",
+			drizzleSql`${t.mode} <> 'custom' OR (${t.colorPrimary} IS NOT NULL AND ${t.colorAccent} IS NOT NULL AND ${t.colorSurface} IS NOT NULL AND ${t.colorInk} IS NOT NULL)`,
+		),
+		// Formato hex estricto (null permitido — lo exige el CHECK de arriba)
+		check(
+			"chk_org_theme_hex_format",
+			drizzleSql`(${t.colorPrimary} IS NULL OR ${t.colorPrimary} ~* '^#[0-9a-f]{6}$') AND (${t.colorAccent} IS NULL OR ${t.colorAccent} ~* '^#[0-9a-f]{6}$') AND (${t.colorSurface} IS NULL OR ${t.colorSurface} ~* '^#[0-9a-f]{6}$') AND (${t.colorInk} IS NULL OR ${t.colorInk} ~* '^#[0-9a-f]{6}$')`,
+		),
+	],
+);
+
+export type OrganizationTheme = typeof organizationThemes.$inferSelect;
+export type NewOrganizationTheme = typeof organizationThemes.$inferInsert;
+export const ORG_THEME_MODES = ["preset", "custom"] as const;
+export type OrgThemeMode = (typeof ORG_THEME_MODES)[number];
+
+// ---------------------------------------------------------------------------
 // USERS — Cuentas de acceso al panel admin
 // Roles: "owner" (superadmin, ve todo) | "organizer" (solo su organización)
 // Un usuario pertenece a máximo una organización (organization_id nullable).
@@ -549,10 +606,21 @@ export const inscriptionsRelations = relations(inscriptions, ({ one }) => ({
 	}),
 }));
 
-export const organizationsRelations = relations(organizations, ({ many }) => ({
+export const organizationsRelations = relations(organizations, ({ one, many }) => ({
 	leagues: many(leagues),
 	members: many(users),
 	playerProfiles: many(playerProfiles),
+	theme: one(organizationThemes, {
+		fields: [organizations.id],
+		references: [organizationThemes.organizationId],
+	}),
+}));
+
+export const organizationThemesRelations = relations(organizationThemes, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [organizationThemes.organizationId],
+		references: [organizations.id],
+	}),
 }));
 
 export const playersRelations = relations(players, ({ many }) => ({
