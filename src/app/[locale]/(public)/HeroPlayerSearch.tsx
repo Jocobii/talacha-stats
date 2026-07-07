@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/shared/i18n/navigation";
 import { Search } from "lucide-react";
 
 /**
@@ -9,6 +10,7 @@ import { Search } from "lucide-react";
  * por un link compartido busca una sola cosa: él mismo).
  */
 export default function HeroPlayerSearch() {
+	const t = useTranslations("home");
 	const router = useRouter();
 	const [name, setName] = useState("");
 
@@ -22,10 +24,10 @@ export default function HeroPlayerSearch() {
 		<form
 			onSubmit={handleSubmit}
 			role="search"
-			aria-label="Busca tu perfil de jugador"
+			aria-label={t("heroSearch.ariaLabel")}
 			className="w-full max-w-sm"
 		>
-			<p className="text-sm font-semibold text-ink mb-2">¿Ya estás en el sistema? Búscate.</p>
+			<p className="text-sm font-semibold text-ink mb-2">{t("heroSearch.label")}</p>
 			<div className="relative">
 				<Search
 					size={16}
@@ -36,15 +38,15 @@ export default function HeroPlayerSearch() {
 					type="text"
 					value={name}
 					onChange={(event) => setName(event.target.value)}
-					placeholder="Escribe tu nombre…"
-					aria-label="Tu nombre"
+					placeholder={t("heroSearch.placeholder")}
+					aria-label={t("heroSearch.inputAriaLabel")}
 					className="w-full bg-surface-2 border border-line rounded-2xl pl-11 pr-24 py-3.5 text-sm text-ink placeholder-ink-3 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition"
 				/>
 				<button
 					type="submit"
 					className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-brand hover:bg-brand-dim text-pitch font-bold text-xs px-4 py-2.5 rounded-xl transition"
 				>
-					Buscar
+					{t("heroSearch.submit")}
 				</button>
 			</div>
 		</form>

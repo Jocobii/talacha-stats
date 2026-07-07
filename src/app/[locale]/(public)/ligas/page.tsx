@@ -1,19 +1,33 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import { Link } from "@/shared/i18n/navigation";
 import { Building2, Users, ArrowRight, MapPin } from "lucide-react";
 import { listOrganizationsPublic } from "@/entities/organization";
 import { titleCase } from "@/shared/lib/normalize";
 
-export const metadata: Metadata = {
-	title: "Ligas — TalachaStats",
-	description:
-		"Encuentra tu liga de fútbol amateur. Tablas de posiciones, goleadores y estadísticas de todas las organizaciones.",
+type LigasPageProps = {
+	params: Promise<{ locale: string }>;
 };
 
-export default async function LigasPage() {
-	const orgs = await listOrganizationsPublic();
+// TODO(i18n step 6): agregar alternates.languages (hreflang) + og:locale.
+export async function generateMetadata({ params }: LigasPageProps): Promise<Metadata> {
+	const { locale } = await params;
+	const t = await getTranslations({ locale, namespace: "ligas" });
 
+	return {
+		title: t("meta.title"),
+		description: t("meta.description"),
+	};
+}
+
+export default async function LigasPage({ params }: LigasPageProps) {
+	const { locale } = await params;
+	setRequestLocale(locale);
+	const t = await getTranslations("ligas");
+
+	const orgs = await listOrganizationsPublic();
 	const orgsWithLeagues = orgs.filter((o) => o.leagues.length > 0);
+	const totalLeagues = orgsWithLeagues.reduce((acc, o) => acc + o.leagues.length, 0);
 
 	return (
 		<div className="text-ink flex flex-col flex-1 bg-pitch">
@@ -61,13 +75,13 @@ export default async function LigasPage() {
 					<div className="flex items-center gap-2 mb-1">
 						<Building2 size={24} className="text-brand-ink" strokeWidth={2} />
 						<h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">
-							Ligas
+							{t("title")}
 						</h1>
 					</div>
 					<p className="text-ink-2 text-sm mt-1">
-						{orgsWithLeagues.reduce((acc, o) => acc + o.leagues.length, 0)} ligas activas
+						{t("activeLeagues", { count: totalLeagues })}
 						{" · "}
-						{orgsWithLeagues.length} organizaciones
+						{t("organizations", { count: orgsWithLeagues.length })}
 					</p>
 				</div>
 			</header>
@@ -77,7 +91,7 @@ export default async function LigasPage() {
 				<div className="max-w-lg mx-auto space-y-4">
 					{orgsWithLeagues.length === 0 ? (
 						<div className="bg-surface-2 border border-line rounded-2xl p-8 text-center text-ink-3 text-sm">
-							Aún no hay ligas activas registradas.
+							{t("empty")}
 						</div>
 					) : (
 						orgsWithLeagues.map((org) => <OrgCard key={org.id} org={org} />)
@@ -92,7 +106,8 @@ export default async function LigasPage() {
 
 type OrgWithLeagues = Awaited<ReturnType<typeof listOrganizationsPublic>>[number];
 
-function OrgCard({ org }: { org: OrgWithLeagues }) {
+async function OrgCard({ org }: { org: OrgWithLeagues }) {
+	const t = await getTranslations("ligas");
 	const totalTeams = org.leagues.reduce((acc, l) => acc + l.teams.length, 0);
 
 	return (
@@ -125,7 +140,7 @@ function OrgCard({ org }: { org: OrgWithLeagues }) {
 						<span className="text-xs text-ink-3">{org.city}</span>
 						<span className="text-ink-3 mx-1">·</span>
 						<Users size={12} strokeWidth={2} className="text-ink-3 shrink-0" />
-						<span className="text-xs text-ink-3">{totalTeams} equipos</span>
+						<span className="text-xs text-ink-3">{t("teams", { count: totalTeams })}</span>
 					</div>
 				</div>
 				<ArrowRight
@@ -149,7 +164,9 @@ function OrgCard({ org }: { org: OrgWithLeagues }) {
 							</span>
 							<span className="text-xs text-ink-3 shrink-0 hidden xs:block">· {league.season}</span>
 						</div>
-						<span className="text-xs text-ink-3 shrink-0 ml-2">{league.teams.length} equipos</span>
+						<span className="text-xs text-ink-3 shrink-0 ml-2">
+							{t("teams", { count: league.teams.length })}
+						</span>
 					</div>
 				))}
 			</div>

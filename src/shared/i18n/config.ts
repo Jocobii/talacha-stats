@@ -18,6 +18,15 @@ export const defaultLocale: AppLocale = "es";
 export const localePrefix = "as-needed" as const;
 
 /**
+ * Sin detección automática por cookie/`Accept-Language`. El plan (§0, §12) es
+ * explícito: "no hay demanda anglo comprobada todavía" y "el usuario elige" —
+ * un visitante con el navegador/SO en inglés NO debe ser redirigido de "/" a
+ * "/en" solo por eso. El locale se decide únicamente por el prefijo de la URL
+ * (o por el LocaleSwitcher, que sí puede fijar el cookie explícitamente).
+ */
+export const localeDetection = false;
+
+/**
  * Namespaces de mensajes = dominios de UI pública (plan §3, nota FSD).
  * Cada entrada corresponde a `messages/{locale}/{namespace}.json`.
  */

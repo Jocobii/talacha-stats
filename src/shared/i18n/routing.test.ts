@@ -14,4 +14,8 @@ describe("routing", () => {
 		const mode = typeof prefix === "string" ? prefix : prefix?.mode;
 		expect(mode).toBe("as-needed");
 	});
+
+	it("no detecta locale por cookie/Accept-Language", () => {
+		expect(routing.localeDetection).toBe(false);
+	});
 });

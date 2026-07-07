@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import HeroSection from "./HeroSection";
 import OrganizerHero from "./OrganizerHero";
 import OrganizerBeforeAfter from "./OrganizerBeforeAfter";
@@ -15,24 +16,39 @@ import { HOME_VIEW_COOKIE, HOME_VIEW_QUERY_PARAM, resolveHomeView } from "./home
 import { getLeaguesShowcase } from "@/entities/organization";
 import { getActiveCity } from "@/shared/lib/active-city";
 
-export const metadata: Metadata = {
-	title: "TalachaStats | Sistema de gestión de ligas de fútbol gratis en Tijuana",
-	description:
-		"Administra tu liga de fútbol amateur gratis en Tijuana. Tabla de posiciones automática, goleadores, sorteo de jornadas y perfil público para cada jugador. Sin cuotas.",
-	alternates: {
-		canonical: "/",
-	},
-};
-
 type HomePageProps = {
+	params: Promise<{ locale: string }>;
 	searchParams: Promise<{ [HOME_VIEW_QUERY_PARAM]?: string }>;
 };
 
-export default async function HomePage({ searchParams }: HomePageProps) {
-	const [params, cookieStore, city] = await Promise.all([searchParams, cookies(), getActiveCity()]);
+// TODO(i18n step 6): agregar alternates.languages (hreflang) + og:locale.
+export async function generateMetadata({
+	params,
+}: Pick<HomePageProps, "params">): Promise<Metadata> {
+	const { locale } = await params;
+	const t = await getTranslations({ locale, namespace: "home" });
+
+	return {
+		title: t("meta.title"),
+		description: t("meta.description"),
+		alternates: {
+			canonical: "/",
+		},
+	};
+}
+
+export default async function HomePage({ params, searchParams }: HomePageProps) {
+	const { locale } = await params;
+	setRequestLocale(locale);
+
+	const [searchParamsValue, cookieStore, city] = await Promise.all([
+		searchParams,
+		cookies(),
+		getActiveCity(),
+	]);
 	const showcaseLeagues = await getLeaguesShowcase(city, 6);
 	const initialView = resolveHomeView(
-		params[HOME_VIEW_QUERY_PARAM],
+		searchParamsValue[HOME_VIEW_QUERY_PARAM],
 		cookieStore.get(HOME_VIEW_COOKIE)?.value,
 	);
 

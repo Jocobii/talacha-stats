@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/shared/i18n/navigation";
 import { MapPin, Trophy, ChevronDown } from "lucide-react";
 import HeroCard from "./HeroCard";
 import HeroPlayerSearch from "./HeroPlayerSearch";
@@ -15,6 +16,7 @@ const GHOST = [
 ];
 
 export default function HeroSection() {
+	const t = useTranslations("home");
 	const bgRef = useRef<HTMLDivElement>(null);
 
 	/* Parallax suave: el fondo se mueve más despacio que el contenido */
@@ -156,7 +158,7 @@ export default function HeroSection() {
 							style={{ animationDelay: "0.05s", animationFillMode: "both" }}
 						>
 							<MapPin size={12} strokeWidth={2} />
-							Tijuana · Fútbol Amateur
+							{t("hero.badge")}
 						</span>
 
 						{/* Headline — título conservado exactamente */}
@@ -168,11 +170,11 @@ export default function HeroSection() {
 								animationFillMode: "both",
 							}}
 						>
-							Tus goles
+							{t("hero.titleLine1")}
 							<br />
-							<span className="text-brand-ink">hablan</span>
+							<span className="text-brand-ink">{t("hero.titleLine2")}</span>
 							<br />
-							por ti.
+							{t("hero.titleLine3")}
 						</h1>
 
 						{/* Subtexto */}
@@ -180,9 +182,9 @@ export default function HeroSection() {
 							className="animate-fade-slide-up text-ink-2 text-base sm:text-lg leading-relaxed max-w-sm"
 							style={{ animationDelay: "0.4s", animationFillMode: "both" }}
 						>
-							Juegas en varias ligas de Tijuana. TalachaStats reúne tus estadísticas de{" "}
-							<strong className="text-ink font-semibold">todas tus ligas</strong> en un solo perfil
-							que puedes compartir.
+							{t("hero.subtextPrefix")}
+							<strong className="text-ink font-semibold">{t("hero.subtextStrong")}</strong>
+							{t("hero.subtextSuffix")}
 						</p>
 
 						{/* Nostalgia anticipada (P15) — capa cálida, no dominante */}
@@ -190,7 +192,7 @@ export default function HeroSection() {
 							className="animate-fade-slide-up text-sm text-ink-3 italic -mt-2"
 							style={{ animationDelay: "0.5s", animationFillMode: "both" }}
 						>
-							Tus goles de hoy son tus recuerdos de mañana.
+							{t("hero.nostalgiaLine")}
 						</p>
 
 						{/* CTA primario: el buscador (auto-referencia) */}
@@ -211,7 +213,7 @@ export default function HeroSection() {
 								className="inline-flex items-center justify-center gap-2 bg-surface-2 hover:bg-line border border-line text-ink font-bold px-7 py-3.5 rounded-xl text-sm transition"
 							>
 								<Trophy size={16} strokeWidth={2} />
-								Ver ranking
+								{t("hero.viewRanking")}
 							</Link>
 						</div>
 
@@ -220,7 +222,7 @@ export default function HeroSection() {
 							className="animate-fade-slide-up text-xs text-ink-3"
 							style={{ animationDelay: "0.8s", animationFillMode: "both" }}
 						>
-							Ya hay jugadores de Tijuana en el ranking. ¿Estás tú?
+							{t("hero.socialProof")}
 						</p>
 
 						{/* Puerta para el organizador — abre su vista, no el registro en frío */}
@@ -229,8 +231,8 @@ export default function HeroSection() {
 							className="animate-fade-slide-up inline-flex items-center gap-1.5 text-xs text-ink-3 hover:text-brand-ink border border-line hover:border-brand/40 px-3.5 py-2 rounded-xl transition"
 							style={{ animationDelay: "1s", animationFillMode: "both" }}
 						>
-							¿Organizas una liga?
-							<span className="text-brand-ink font-semibold">Esto es para ti →</span>
+							{t("hero.organizerPrompt")}
+							<span className="text-brand-ink font-semibold">{t("hero.organizerPromptCta")}</span>
 						</Link>
 					</div>
 

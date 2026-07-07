@@ -1,15 +1,19 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
 import HomeViews from "./HomeViews";
+import homeMessages from "@/shared/i18n/messages/es/home.json";
 
 function renderHomeViews(initialView: "jugador" | "organizador" = "jugador") {
 	return render(
-		<HomeViews
-			initialView={initialView}
-			jugador={<p>contenido jugador</p>}
-			organizador={<p>contenido organizador</p>}
-		/>,
+		<NextIntlClientProvider locale="es" messages={{ home: homeMessages }}>
+			<HomeViews
+				initialView={initialView}
+				jugador={<p>contenido jugador</p>}
+				organizador={<p>contenido organizador</p>}
+			/>
+		</NextIntlClientProvider>,
 	);
 }
 

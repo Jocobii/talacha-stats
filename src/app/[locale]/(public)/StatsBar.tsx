@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 
 /* ── Hook: counter que arranca cuando el elemento entra al viewport ── */
 function useScrollCounter(target: number, duration = 1400, delay = 0) {
@@ -45,15 +46,22 @@ function useScrollCounter(target: number, duration = 1400, delay = 0) {
 }
 
 /* ── Stat individual ── */
-type StatDef = { target: number; suffix?: string; label: string; delay: number };
+type StatDef = {
+	target: number;
+	suffix?: string;
+	nsKey: "goals" | "activeLeagues" | "players";
+	delay: number;
+};
 
 const STATS: StatDef[] = [
-	{ target: 1247, suffix: "+", label: "Goles registrados", delay: 0 },
-	{ target: 8, label: "Ligas activas", delay: 160 },
-	{ target: 312, label: "Jugadores", delay: 320 },
+	{ target: 1247, suffix: "+", nsKey: "goals", delay: 0 },
+	{ target: 8, nsKey: "activeLeagues", delay: 160 },
+	{ target: 312, nsKey: "players", delay: 320 },
 ];
 
-function StatItem({ target, suffix = "", label, delay }: StatDef) {
+function StatItem({ target, suffix = "", nsKey, delay }: StatDef) {
+	const t = useTranslations("home");
+	const format = useFormatter();
 	const { count, ref, started } = useScrollCounter(target, 1400, delay);
 
 	return (
@@ -67,11 +75,11 @@ function StatItem({ target, suffix = "", label, delay }: StatDef) {
 			}}
 		>
 			<span className="font-display font-black text-5xl sm:text-6xl text-ink leading-none">
-				{count.toLocaleString("es-MX")}
+				{format.number(count)}
 				{suffix}
 			</span>
 			<span className="text-[11px] text-ink-3 uppercase tracking-widest font-semibold">
-				{label}
+				{t(`statsBar.${nsKey}`)}
 			</span>
 		</div>
 	);
@@ -86,7 +94,7 @@ export default function StatsBar() {
 
 			<div className="max-w-2xl mx-auto grid grid-cols-3 gap-6 sm:gap-12">
 				{STATS.map((s) => (
-					<StatItem key={s.label} {...s} />
+					<StatItem key={s.nsKey} {...s} />
 				))}
 			</div>
 		</section>

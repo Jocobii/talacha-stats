@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/shared/i18n/navigation";
 import { Archive, ChevronRight } from "lucide-react";
 
 /* Nombres ficticios del mock — ejemplo ilustrativo, no prueba social */
@@ -8,7 +9,9 @@ const TEAMMATES = ["M. Chávez", "El Güero", "R. Ramírez", "J. Núñez", "+9 m
  * "El baúl" — nostalgia anticipada (P15): un perfil visto 20 años después.
  * El gancho emocional es CON QUIÉN jugaste, no cuánto metiste.
  */
-export default function VaultSection() {
+export default async function VaultSection() {
+	const t = await getTranslations("home");
+
 	return (
 		<section className="bg-pitch border-t border-line px-5 py-16">
 			<div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
@@ -16,23 +19,21 @@ export default function VaultSection() {
 				<div className="text-center lg:text-left">
 					<p className="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-ink uppercase tracking-widest mb-3">
 						<Archive size={13} strokeWidth={2} />
-						El baúl
+						{t("vaultSection.eyebrow")}
 					</p>
 					<h2 className="font-display font-black text-3xl sm:text-4xl uppercase leading-[0.95] tracking-tight mb-4">
-						Dentro de 20 años vas a querer acordarte de este equipo.
+						{t("vaultSection.titleLine1")}
 						<br />
-						<span className="text-brand-ink">Aquí va a estar.</span>
+						<span className="text-brand-ink">{t("vaultSection.titleLine2")}</span>
 					</h2>
 					<p className="text-ink-2 text-base leading-relaxed max-w-md mx-auto lg:mx-0 mb-6">
-						Cada gol que registras hoy se convierte en un recuerdo: en qué equipos jugaste, con
-						quién compartiste cancha, qué temporadas ganaste. Tu historia queda guardada para
-						siempre — para ti y para los tuyos.
+						{t("vaultSection.body")}
 					</p>
 					<Link
 						href="/players"
 						className="inline-flex items-center gap-1.5 text-sm text-brand-ink hover:underline font-semibold"
 					>
-						Empieza tu baúl — búscate
+						{t("vaultSection.cta")}
 						<ChevronRight size={14} strokeWidth={2} />
 					</Link>
 				</div>
@@ -45,7 +46,7 @@ export default function VaultSection() {
 								Temporada 2026 · Liga de los Domingos
 							</p>
 							<span className="text-[10px] font-semibold bg-surface-2 border border-line text-ink-3 px-2 py-1 rounded-full whitespace-nowrap">
-								Hace 20 años
+								{t("vaultSection.pill")}
 							</span>
 						</div>
 
@@ -56,7 +57,7 @@ export default function VaultSection() {
 
 						<div className="border-t border-line pt-4">
 							<p className="text-xs font-semibold text-ink-2 uppercase tracking-wider mb-2.5">
-								Jugaste con
+								{t("vaultSection.playedWith")}
 							</p>
 							<div className="flex flex-wrap gap-2">
 								{TEAMMATES.map((name) => (

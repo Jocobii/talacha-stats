@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/shared/i18n/navigation";
 import { Trophy, MapPin, ChevronRight } from "lucide-react";
 
 /* ── Datos mock del mini ranking ── */
@@ -31,6 +32,7 @@ function Row({
 	delay: number;
 	visible: boolean;
 }) {
+	const t = useTranslations("home");
 	const isTop3 = rank <= 3;
 
 	return (
@@ -67,7 +69,9 @@ function Row({
 				>
 					{goals}
 				</p>
-				<p className="text-[10px] text-ink-3 uppercase tracking-widest">goles</p>
+				<p className="text-[10px] text-ink-3 uppercase tracking-widest">
+					{t("leaderboardTeaser.goalsUnit")}
+				</p>
 			</div>
 		</div>
 	);
@@ -75,6 +79,8 @@ function Row({
 
 /* ── Fila pulsante "¿Dónde estás tú?" ── */
 function GhostRow({ delay, visible }: { delay: number; visible: boolean }) {
+	const t = useTranslations("home");
+
 	return (
 		<div
 			className="flex items-center gap-4 px-4 py-3 rounded-xl border border-brand/25 bg-brand/5 animate-glow-pulse"
@@ -88,17 +94,19 @@ function GhostRow({ delay, visible }: { delay: number; visible: boolean }) {
 				?
 			</span>
 			<div className="flex-1 min-w-0">
-				<p className="text-sm font-semibold text-brand-ink/70 leading-tight">¿Dónde estás tú?</p>
+				<p className="text-sm font-semibold text-brand-ink/70 leading-tight">
+					{t("leaderboardTeaser.ghostPrompt")}
+				</p>
 				<p className="text-xs text-brand-ink/40 mt-0.5 flex items-center gap-1">
 					<MapPin size={10} strokeWidth={2} />
-					Tijuana · todas las ligas
+					{t("leaderboardTeaser.ghostSubtext")}
 				</p>
 			</div>
 			<Link
 				href="/ranking"
 				className="text-xs text-brand-ink font-semibold flex items-center gap-0.5 hover:underline shrink-0"
 			>
-				Ver <ChevronRight size={12} strokeWidth={2} />
+				{t("leaderboardTeaser.ghostCta")} <ChevronRight size={12} strokeWidth={2} />
 			</Link>
 		</div>
 	);
@@ -106,6 +114,7 @@ function GhostRow({ delay, visible }: { delay: number; visible: boolean }) {
 
 /* ── Sección completa ── */
 export default function LeaderboardTeaser() {
+	const t = useTranslations("home");
 	const [visible, setVisible] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
 
@@ -140,11 +149,11 @@ export default function LeaderboardTeaser() {
 					<div className="flex items-center gap-2">
 						<Trophy size={16} strokeWidth={2} className="text-brand-ink" />
 						<h2 className="font-display font-black text-xl uppercase tracking-wide text-ink">
-							Ranking Tijuana
+							{t("leaderboardTeaser.title")}
 						</h2>
 					</div>
 					<span className="text-xs text-ink-3 bg-surface border border-line px-2.5 py-1 rounded-full">
-						Todas las ligas
+						{t("leaderboardTeaser.badge")}
 					</span>
 				</div>
 
@@ -168,7 +177,7 @@ export default function LeaderboardTeaser() {
 						href="/ranking"
 						className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-2 hover:text-brand-ink transition border border-line hover:border-brand/40 px-5 py-2.5 rounded-xl"
 					>
-						Ver ranking completo
+						{t("leaderboardTeaser.viewFullRanking")}
 						<ChevronRight size={14} strokeWidth={2} />
 					</Link>
 				</div>

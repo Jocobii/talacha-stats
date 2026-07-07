@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { defaultLocale, isAppLocale, locales, localePrefix, messageNamespaces } from "./config";
+import {
+	defaultLocale,
+	isAppLocale,
+	localeDetection,
+	locales,
+	localePrefix,
+	messageNamespaces,
+} from "./config";
 
 describe("i18n config", () => {
 	it("expone es y en como locales soportados, con es de default", () => {
@@ -9,6 +16,10 @@ describe("i18n config", () => {
 
 	it("usa localePrefix 'as-needed' para no romper URLs indexadas de es", () => {
 		expect(localePrefix).toBe("as-needed");
+	});
+
+	it("no detecta locale por cookie/Accept-Language — el usuario elige (plan §0, §12)", () => {
+		expect(localeDetection).toBe(false);
 	});
 
 	it("declara los namespaces de la superficie pública", () => {

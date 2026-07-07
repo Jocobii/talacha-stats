@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname } from "@/shared/i18n/navigation";
 import {
 	Home,
 	Trophy,
@@ -17,16 +17,17 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-	{ href: "/", label: "Inicio", Icon: Home },
-	{ href: "/ligas", label: "Ligas", Icon: Building2 },
-	{ href: "/ranking", label: "Ranking", Icon: Trophy },
-	{ href: "/players", label: "Jugadores", Icon: Users },
-	{ href: "/matchday", label: "Jornada", Icon: CalendarDays },
-	{ href: "/analisis-excel", label: "Análisis", Icon: BarChart3 },
-	{ href: "/about", label: "Nosotros", Icon: Info },
+	{ href: "/", key: "home", Icon: Home },
+	{ href: "/ligas", key: "ligas", Icon: Building2 },
+	{ href: "/ranking", key: "ranking", Icon: Trophy },
+	{ href: "/players", key: "players", Icon: Users },
+	{ href: "/matchday", key: "matchday", Icon: CalendarDays },
+	{ href: "/analisis-excel", key: "analysis", Icon: BarChart3 },
+	{ href: "/about", key: "about", Icon: Info },
 ] as const;
 
 export default function PublicNav() {
+	const t = useTranslations("common");
 	const pathname = usePathname();
 	const [open, setOpen] = useState(false);
 
@@ -42,12 +43,13 @@ export default function PublicNav() {
 						href="/"
 						className="font-display font-black text-xl text-ink uppercase tracking-tight"
 					>
-						Talacha<span className="text-brand-ink">Stats</span>
+						{t("nav.brandPrefix")}
+						<span className="text-brand-ink">{t("nav.brandSuffix")}</span>
 					</Link>
 				</div>
 
 				<nav className="flex flex-col gap-1 p-3 flex-1">
-					{NAV_ITEMS.map(({ href, label, Icon }) => {
+					{NAV_ITEMS.map(({ href, key, Icon }) => {
 						const active = isActive(href);
 						return (
 							<Link
@@ -60,7 +62,7 @@ export default function PublicNav() {
 								}`}
 							>
 								<Icon size={20} strokeWidth={2} />
-								{label}
+								{t(`nav.items.${key}`)}
 							</Link>
 						);
 					})}
@@ -72,7 +74,7 @@ export default function PublicNav() {
 						className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-ink-3 hover:text-ink hover:bg-surface-2 transition-colors"
 					>
 						<Settings size={14} strokeWidth={2} className="shrink-0" />
-						Administrar mi liga
+						{t("nav.manageLeague")}
 					</Link>
 				</div>
 			</aside>
@@ -82,7 +84,7 @@ export default function PublicNav() {
 				<button
 					type="button"
 					onClick={() => setOpen(true)}
-					aria-label="Abrir menú"
+					aria-label={t("nav.openMenu")}
 					aria-expanded={open}
 					className="flex items-center justify-center w-11 h-11 -ml-2 rounded-xl text-ink-2 hover:text-ink hover:bg-surface-2 transition-colors"
 				>
@@ -92,7 +94,8 @@ export default function PublicNav() {
 					href="/"
 					className="font-display font-black text-lg text-ink uppercase tracking-tight"
 				>
-					Talacha<span className="text-brand-ink">Stats</span>
+					{t("nav.brandPrefix")}
+					<span className="text-brand-ink">{t("nav.brandSuffix")}</span>
 				</Link>
 			</header>
 
@@ -101,19 +104,19 @@ export default function PublicNav() {
 				<div className="sm:hidden fixed inset-0 z-[60]">
 					<button
 						type="button"
-						aria-label="Cerrar menú"
+						aria-label={t("nav.closeMenu")}
 						onClick={closeDrawer}
 						className="absolute inset-0 bg-black/60"
 					/>
 					<div className="absolute top-0 left-0 bottom-0 w-72 max-w-[82%] bg-surface border-l border-line flex flex-col">
 						<div className="h-14 flex items-center justify-between px-4 border-b border-line shrink-0">
 							<span className="font-display font-black text-base text-ink uppercase tracking-tight">
-								Menú
+								{t("nav.menuTitle")}
 							</span>
 							<button
 								type="button"
 								onClick={closeDrawer}
-								aria-label="Cerrar menú"
+								aria-label={t("nav.closeMenu")}
 								className="flex items-center justify-center w-11 h-11 -mr-2 rounded-xl text-ink-2 hover:text-ink hover:bg-surface-2 transition-colors"
 							>
 								<X size={24} strokeWidth={2} />
@@ -121,7 +124,7 @@ export default function PublicNav() {
 						</div>
 
 						<nav className="flex flex-col gap-1 p-3 flex-1 overflow-y-auto">
-							{NAV_ITEMS.map(({ href, label, Icon }) => {
+							{NAV_ITEMS.map(({ href, key, Icon }) => {
 								const active = isActive(href);
 								return (
 									<Link
@@ -135,7 +138,7 @@ export default function PublicNav() {
 										}`}
 									>
 										<Icon size={20} strokeWidth={2} />
-										{label}
+										{t(`nav.items.${key}`)}
 									</Link>
 								);
 							})}
@@ -148,7 +151,7 @@ export default function PublicNav() {
 								className="flex items-center gap-2.5 px-3 min-h-[44px] rounded-xl text-xs text-ink-3 hover:text-ink hover:bg-surface-2 transition-colors"
 							>
 								<Settings size={16} strokeWidth={2} className="shrink-0" />
-								Administrar mi liga
+								{t("nav.manageLeague")}
 							</Link>
 						</div>
 					</div>

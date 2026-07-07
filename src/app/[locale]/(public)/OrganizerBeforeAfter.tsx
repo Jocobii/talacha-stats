@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { ClipboardList, ArrowRight, ArrowDown, Trophy, ImageIcon, ListOrdered } from "lucide-react";
 
 /* Datos ficticios del mock — claramente de ejemplo, no prueba social */
@@ -14,15 +15,18 @@ const TABLE_ROWS = [
 ];
 
 /** O2 — antes/después: una imagen del resultado vale más que una lista de features. */
-export default function OrganizerBeforeAfter() {
+export default async function OrganizerBeforeAfter() {
+	const t = await getTranslations("home");
+
 	return (
 		<section className="bg-surface border-t border-line px-5 py-16">
 			<div className="max-w-4xl mx-auto">
 				<h2 className="font-display font-black text-3xl sm:text-4xl uppercase tracking-tight text-center mb-2">
-					Capturas una vez. <span className="text-brand-ink">Se publica todo.</span>
+					{t("organizerBeforeAfter.titlePrefix")}{" "}
+					<span className="text-brand-ink">{t("organizerBeforeAfter.titleStrong")}</span>
 				</h2>
 				<p className="text-ink-3 text-sm text-center mb-10 max-w-md mx-auto">
-					La cédula digital es el único trabajo. Lo demás lo genera la plataforma.
+					{t("organizerBeforeAfter.subtext")}
 				</p>
 
 				<div className="flex flex-col lg:flex-row items-center gap-6">
@@ -62,7 +66,7 @@ export default function OrganizerBeforeAfter() {
 							<div className="flex items-center gap-2 mb-3">
 								<ListOrdered size={14} strokeWidth={2} className="text-brand-ink" />
 								<p className="text-[11px] font-bold uppercase tracking-widest text-ink-2">
-									Tabla de posiciones
+									{t("organizerBeforeAfter.standingsLabel")}
 								</p>
 							</div>
 							<ul className="space-y-1.5">
@@ -79,14 +83,16 @@ export default function OrganizerBeforeAfter() {
 						<div className="bg-pitch border border-line rounded-2xl p-4 flex items-center gap-3">
 							<Trophy size={16} strokeWidth={2} className="text-brand-ink shrink-0" />
 							<p className="text-sm text-ink-2">
-								Goleo actualizado: <strong className="text-ink">M. Chávez — 12 goles</strong>
+								{t("organizerBeforeAfter.goleoUpdatedPrefix")}
+								<strong className="text-ink">M. Chávez — 12 goles</strong>
 							</p>
 						</div>
 
 						<div className="bg-brand/10 border border-brand/25 rounded-2xl p-4 flex items-center gap-3">
 							<ImageIcon size={16} strokeWidth={2} className="text-brand-ink shrink-0" />
 							<p className="text-sm text-ink-2">
-								Imagen de la jornada <strong className="text-ink">lista para WhatsApp</strong>
+								{t("organizerBeforeAfter.shareImagePrefix")}
+								<strong className="text-ink">{t("organizerBeforeAfter.shareImageStrong")}</strong>
 							</p>
 						</div>
 					</div>

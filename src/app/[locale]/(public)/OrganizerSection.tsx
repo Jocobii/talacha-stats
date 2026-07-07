@@ -1,50 +1,29 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/shared/i18n/navigation";
 import { Globe, BarChart3, Share2, ChevronRight, CheckCircle } from "lucide-react";
 
 const VALUE_PROPS = [
-	{
-		Icon: Globe,
-		title: "Tu liga, visible para todos",
-		desc: "Página pública con el nombre de tu liga, tabla de posiciones y goleadores. Un link que puedes compartir con tus jugadores hoy mismo.",
-		delay: 80,
-	},
-	{
-		Icon: BarChart3,
-		title: "Tus jugadores en el ranking de la ciudad",
-		desc: "Los goleadores de tu liga aparecen automáticamente en el ranking cruzado de Tijuana. Tu liga pone gente en el mapa.",
-		delay: 180,
-	},
-	{
-		Icon: Share2,
-		title: "Contenido listo para compartir",
-		desc: "Cada temporada genera una tarjeta con las stats de tu liga. La compartes en tu grupo de WhatsApp o en tus redes. Sin diseño, sin esfuerzo.",
-		delay: 280,
-	},
-];
-
-const PERKS = [
-	"Sin cuotas por jugador",
-	"Captura la jornada desde tu celular con la cédula digital",
-	"Sorteo, calendario y liguilla incluidos",
-	"Tus datos, tus ligas, tu crédito",
-];
+	{ Icon: Globe, nsKey: "visibility", delay: 80 },
+	{ Icon: BarChart3, nsKey: "cityRanking", delay: 180 },
+	{ Icon: Share2, nsKey: "shareableContent", delay: 280 },
+] as const;
 
 function ValueCard({
 	Icon,
-	title,
-	desc,
+	nsKey,
 	delay,
 	visible,
 }: {
 	Icon: typeof Globe;
-	title: string;
-	desc: string;
+	nsKey: "visibility" | "cityRanking" | "shareableContent";
 	delay: number;
 	visible: boolean;
 }) {
+	const t = useTranslations("home");
+
 	return (
 		<div
 			className="flex gap-4"
@@ -58,14 +37,20 @@ function ValueCard({
 				<Icon size={18} strokeWidth={2} className="text-brand-ink" />
 			</div>
 			<div>
-				<p className="font-semibold text-ink text-sm mb-1">{title}</p>
-				<p className="text-ink-3 text-sm leading-relaxed">{desc}</p>
+				<p className="font-semibold text-ink text-sm mb-1">
+					{t(`organizerSection.valueProps.${nsKey}.title`)}
+				</p>
+				<p className="text-ink-3 text-sm leading-relaxed">
+					{t(`organizerSection.valueProps.${nsKey}.description`)}
+				</p>
 			</div>
 		</div>
 	);
 }
 
 export default function OrganizerSection() {
+	const t = useTranslations("home");
+	const perks = t.raw("organizerSection.perks") as string[];
 	const [visible, setVisible] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
 
@@ -99,7 +84,7 @@ export default function OrganizerSection() {
 								transition: "opacity 0.4s ease",
 							}}
 						>
-							Para organizadores
+							{t("organizerSection.eyebrow")}
 						</p>
 
 						{/* Headline */}
@@ -111,11 +96,11 @@ export default function OrganizerSection() {
 								transition: "opacity 0.5s ease 0.1s, transform 0.5s ease 0.1s",
 							}}
 						>
-							Tu liga
+							{t("organizerSection.titleLine1")}
 							<br />
-							<span className="text-brand-ink">merece</span>
+							<span className="text-brand-ink">{t("organizerSection.titleLine2")}</span>
 							<br />
-							ser vista.
+							{t("organizerSection.titleLine3")}
 						</h2>
 
 						{/* Subtexto */}
@@ -126,8 +111,7 @@ export default function OrganizerSection() {
 								transition: "opacity 0.5s ease 0.2s",
 							}}
 						>
-							Tú pones el trabajo. TalachaStats pone la plataforma. Captura tu jornada en la cédula
-							digital y tu liga tiene presencia pública al instante.
+							{t("organizerSection.subtext")}
 						</p>
 
 						{/* Perks */}
@@ -138,7 +122,7 @@ export default function OrganizerSection() {
 								transition: "opacity 0.5s ease 0.3s",
 							}}
 						>
-							{PERKS.map((perk) => (
+							{perks.map((perk) => (
 								<li key={perk} className="flex items-center gap-2.5 text-sm text-ink-2">
 									<CheckCircle size={14} strokeWidth={2} className="text-brand-ink shrink-0" />
 									{perk}
@@ -159,14 +143,14 @@ export default function OrganizerSection() {
 								href="/register"
 								className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dim text-pitch font-bold px-6 py-3.5 rounded-xl text-sm transition font-body"
 							>
-								Registra tu liga gratis
+								{t("organizerSection.primaryCta")}
 								<ChevronRight size={16} strokeWidth={2} />
 							</Link>
 							<Link
 								href="/login"
 								className="text-sm text-ink-3 hover:text-ink transition-colors font-medium"
 							>
-								Ya tengo cuenta →
+								{t("organizerSection.secondaryCta")}
 							</Link>
 						</div>
 					</div>
@@ -174,7 +158,7 @@ export default function OrganizerSection() {
 					{/* ── Columna derecha: value props ── */}
 					<div className="flex flex-col gap-7">
 						{VALUE_PROPS.map((vp) => (
-							<ValueCard key={vp.title} {...vp} visible={visible} />
+							<ValueCard key={vp.nsKey} {...vp} visible={visible} />
 						))}
 
 						{/* Puerta a la vista completa del organizador */}
@@ -186,7 +170,7 @@ export default function OrganizerSection() {
 								transition: `opacity 0.6s ease 400ms`,
 							}}
 						>
-							Ver todo lo que incluye
+							{t("organizerSection.bottomCta")}
 							<ChevronRight size={14} strokeWidth={2} />
 						</Link>
 					</div>

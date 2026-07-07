@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Trophy, Flame, Star, MapPin, BarChart3 } from "lucide-react";
 
 /* ── Counter hook ────────────────────────────────────────────────
@@ -34,27 +35,28 @@ function useCounter(target: number, duration = 1200, delay = 0) {
    Cada sección entra con animationDelay escalonado.
 ──────────────────────────────────────────────────────────────── */
 export default function HeroCard() {
+	const t = useTranslations("home");
 	const goals = useCounter(47, 1200, 600);
 	const games = useCounter(89, 1200, 900);
 	const leagues = useCounter(3, 500, 1200);
 
 	const badges = [
 		{
-			label: "Artillero",
+			label: t("heroCard.badges.topScorer"),
 			Icon: Flame,
 			color: "text-orange-400",
 			bg: "bg-orange-400/10 border-orange-400/20",
 			delay: "1.6s",
 		},
 		{
-			label: "Racha 5+",
+			label: t("heroCard.badges.streak"),
 			Icon: Star,
 			color: "text-yellow-400",
 			bg: "bg-yellow-400/10 border-yellow-400/20",
 			delay: "1.75s",
 		},
 		{
-			label: "Top Ciudad",
+			label: t("heroCard.badges.topCity"),
 			Icon: Trophy,
 			color: "text-brand-ink",
 			bg: "bg-brand/10 border-brand/20",
@@ -85,7 +87,7 @@ export default function HeroCard() {
 						</p>
 						<div className="flex items-center gap-1 mt-0.5">
 							<MapPin size={12} strokeWidth={2} className="text-ink-3 shrink-0" />
-							<p className="text-xs text-ink-3 truncate">Tijuana · 3 ligas</p>
+							<p className="text-xs text-ink-3 truncate">{t("heroCard.location")}</p>
 						</div>
 					</div>
 				</div>
@@ -97,17 +99,17 @@ export default function HeroCard() {
 				>
 					{[
 						{
-							label: "Goles",
+							label: t("heroCard.stats.goals"),
 							value: goals,
 							icon: <Flame size={12} strokeWidth={2} className="text-brand-ink" />,
 						},
 						{
-							label: "Partidos",
+							label: t("heroCard.stats.matches"),
 							value: games,
 							icon: <BarChart3 size={12} strokeWidth={2} className="text-ink-3" />,
 						},
 						{
-							label: "Ligas",
+							label: t("heroCard.stats.leagues"),
 							value: leagues,
 							icon: <Star size={12} strokeWidth={2} className="text-ink-3" />,
 						},
@@ -130,7 +132,7 @@ export default function HeroCard() {
 					style={{ animationDelay: "1.45s", animationFillMode: "both" }}
 				>
 					<p className="text-[10px] font-bold text-ink-3 uppercase tracking-widest mb-2.5">
-						Logros
+						{t("heroCard.achievements")}
 					</p>
 					<div className="flex gap-2 flex-wrap">
 						{badges.map(({ label, Icon, color, bg, delay }) => (
@@ -153,7 +155,7 @@ export default function HeroCard() {
 				>
 					<div className="flex items-center gap-2">
 						<Trophy size={16} strokeWidth={2} className="text-brand-ink" />
-						<span className="text-sm font-semibold text-ink-2">Ranking Tijuana</span>
+						<span className="text-sm font-semibold text-ink-2">{t("heroCard.rankingLabel")}</span>
 					</div>
 					<span className="font-display font-black text-2xl text-brand-ink leading-none">#8</span>
 				</div>
@@ -164,7 +166,7 @@ export default function HeroCard() {
 				className="animate-fade-slide-up text-center text-xs text-ink-3 mt-3"
 				style={{ animationDelay: "2.4s", animationFillMode: "both" }}
 			>
-				Tu perfil, así de claro.
+				{t("heroCard.caption")}
 			</p>
 		</div>
 	);

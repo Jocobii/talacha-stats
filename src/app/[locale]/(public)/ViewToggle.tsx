@@ -1,10 +1,11 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { HomeView } from "./home-view";
 
-const OPTIONS: { value: HomeView; label: string }[] = [
-	{ value: "jugador", label: "Soy jugador" },
-	{ value: "organizador", label: "Organizo una liga" },
+const OPTIONS: { value: HomeView; key: "player" | "organizer" }[] = [
+	{ value: "jugador", key: "player" },
+	{ value: "organizador", key: "organizer" },
 ];
 
 type ViewToggleProps = {
@@ -14,13 +15,15 @@ type ViewToggleProps = {
 
 /** Control segmentado jugador/organizador — auto-etiquetado como micro-compromiso. */
 export default function ViewToggle({ view, onSelect }: ViewToggleProps) {
+	const t = useTranslations("home");
+
 	return (
 		<div
 			role="group"
-			aria-label="Elige tu vista"
+			aria-label={t("viewToggle.ariaLabel")}
 			className="inline-flex w-full max-w-xs sm:w-auto sm:max-w-none rounded-full border border-line bg-surface-2 p-1"
 		>
-			{OPTIONS.map(({ value, label }) => {
+			{OPTIONS.map(({ value, key }) => {
 				const isActive = view === value;
 				return (
 					<button
@@ -32,7 +35,7 @@ export default function ViewToggle({ view, onSelect }: ViewToggleProps) {
 							isActive ? "bg-brand text-pitch" : "text-ink-2 hover:text-ink"
 						}`}
 					>
-						{label}
+						{t(`viewToggle.${key}`)}
 					</button>
 				);
 			})}

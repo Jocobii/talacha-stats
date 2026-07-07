@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/shared/i18n/navigation";
 import { MapPin, ChevronRight, Users, Star } from "lucide-react";
 import { titleCase } from "@/shared/lib/normalize";
 import type { LeagueShowcaseItem } from "@/entities/organization";
@@ -16,6 +17,7 @@ function LeagueCardItem({
 	delay: number;
 	visible: boolean;
 }) {
+	const t = useTranslations("home");
 	const initial = league.name.charAt(0).toUpperCase();
 
 	return (
@@ -56,7 +58,7 @@ function LeagueCardItem({
 						</span>
 					</div>
 					<span className="text-[10px] text-ink-3 uppercase tracking-widest font-semibold">
-						Jugadores
+						{t("leaguesShowcase.playersLabel")}
 					</span>
 				</div>
 				<div className="flex flex-col items-center py-3 gap-0.5">
@@ -64,7 +66,7 @@ function LeagueCardItem({
 						{league.teamCount}
 					</span>
 					<span className="text-[10px] text-ink-3 uppercase tracking-widest font-semibold">
-						Equipos
+						{t("leaguesShowcase.teamsLabel")}
 					</span>
 				</div>
 			</div>
@@ -74,7 +76,7 @@ function LeagueCardItem({
 				<Star size={12} strokeWidth={2} className="text-brand-ink shrink-0" />
 				<div className="min-w-0 flex-1">
 					<p className="text-[11px] text-ink-3 uppercase tracking-widest font-semibold mb-0.5">
-						Goleador
+						{t("leaguesShowcase.topScorerLabel")}
 					</p>
 					{league.topScorer ? (
 						<p className="text-sm font-semibold text-ink truncate">
@@ -85,7 +87,7 @@ function LeagueCardItem({
 							)}
 						</p>
 					) : (
-						<p className="text-sm text-ink-3 italic truncate">Sin datos aún</p>
+						<p className="text-sm text-ink-3 italic truncate">{t("leaguesShowcase.noTopScorer")}</p>
 					)}
 				</div>
 				{league.topScorer && (
@@ -93,7 +95,7 @@ function LeagueCardItem({
 						<p className="font-display font-black text-xl text-brand-ink leading-none">
 							{league.topScorer.goals}
 						</p>
-						<p className="text-[10px] text-ink-3">goles</p>
+						<p className="text-[10px] text-ink-3">{t("leaguesShowcase.goalsUnit")}</p>
 					</div>
 				)}
 			</div>
@@ -105,7 +107,7 @@ function LeagueCardItem({
 						href={`/org/${league.orgSlug}/${league.leagueSlug}`}
 						className="flex items-center justify-center gap-1 w-full text-xs font-semibold text-ink-3 group-hover:text-brand-ink border border-line group-hover:border-brand/30 py-2 rounded-xl transition"
 					>
-						Ver liga
+						{t("leaguesShowcase.viewLeague")}
 						<ChevronRight size={12} strokeWidth={2} />
 					</Link>
 				</div>
@@ -116,6 +118,7 @@ function LeagueCardItem({
 
 /* ── Sección completa ─────────────────────────────────────────────────────────── */
 export default function LeaguesShowcase({ leagues }: { leagues: LeagueShowcaseItem[] }) {
+	const t = useTranslations("home");
 	const [visible, setVisible] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
 
@@ -151,22 +154,19 @@ export default function LeaguesShowcase({ leagues }: { leagues: LeagueShowcaseIt
 				>
 					<div>
 						<p className="text-[11px] font-bold text-brand-ink uppercase tracking-widest mb-1.5">
-							Ligas en la plataforma
+							{t("leaguesShowcase.eyebrow")}
 						</p>
 						<h2 className="font-display font-black text-3xl sm:text-4xl uppercase text-ink leading-tight">
-							Tu liga,
-							<br className="sm:hidden" /> en el mapa.
+							{t("leaguesShowcase.titleLine1")}
+							<br className="sm:hidden" /> {t("leaguesShowcase.titleLine2")}
 						</h2>
-						<p className="text-ink-2 text-sm mt-2 max-w-sm">
-							Estas ligas ya tienen presencia pública. Sus jugadores, sus goleadores y su historia,
-							visibles para toda la ciudad.
-						</p>
+						<p className="text-ink-2 text-sm mt-2 max-w-sm">{t("leaguesShowcase.subtext")}</p>
 					</div>
 					<Link
 						href="/about#organizadores"
 						className="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-ink border border-brand/30 hover:bg-brand/8 px-4 py-2.5 rounded-xl transition"
 					>
-						Registra la tuya
+						{t("leaguesShowcase.cta")}
 						<ChevronRight size={14} strokeWidth={2} />
 					</Link>
 				</div>
