@@ -11,7 +11,7 @@ describe("routing", () => {
 		// `defineRouting` puede normalizar el string a `{ mode: 'as-needed' }`
 		// internamente — se acepta cualquiera de las dos formas.
 		const prefix = routing.localePrefix;
-		const mode = typeof prefix === "string" ? prefix : prefix.mode;
+		const mode = typeof prefix === "string" ? prefix : prefix?.mode;
 		expect(mode).toBe("as-needed");
 	});
 });

@@ -1,35 +1,61 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import createMiddleware from "next-intl/middleware";
+import { routing } from "@/shared/i18n/routing";
 
 const SESSION_COOKIE = "ts_session";
 
 const PROTECTED_PREFIXES = ["/admin", "/onboarding"];
 const AUTH_PAGES = ["/login", "/register", "/verify-email"];
 
-export function proxy(request: NextRequest) {
+// next-intl: negociación de locale + rewrite al segmento [locale] (docs/I18N-PLAN.md §5).
+const handleI18nRouting = createMiddleware(routing);
+
+function isProtectedRoute(pathname: string): boolean {
+	return PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+function isAuthPage(pathname: string): boolean {
+	return AUTH_PAGES.some((page) => pathname.startsWith(page));
+}
+
+// Guard de sesión — SIN cambios de comportamiento respecto al original.
+// El admin y las páginas de auth nunca pasan por la negociación de locale:
+// son español-only (AGENTS.md §7.2, plan §0).
+function guardSession(request: NextRequest): NextResponse {
 	const { pathname } = request.nextUrl;
+	const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
 
-	const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-	const isAuthPage = AUTH_PAGES.some((page) => pathname.startsWith(page));
-
-	const sessionToken = request.cookies.get(SESSION_COOKIE)?.value;
-	const hasSession = Boolean(sessionToken);
-
-	// Redirect unauthenticated users away from protected routes
-	if (isProtected && !hasSession) {
+	if (isProtectedRoute(pathname) && !hasSession) {
 		const loginUrl = new URL("/login", request.url);
 		loginUrl.searchParams.set("from", pathname);
 		return NextResponse.redirect(loginUrl);
 	}
 
-	// Redirect authenticated users away from auth pages
-	if (isAuthPage && hasSession) {
+	if (isAuthPage(pathname) && hasSession) {
 		return NextResponse.redirect(new URL("/admin", request.url));
 	}
 
 	return NextResponse.next();
 }
 
+export function proxy(request: NextRequest) {
+	const { pathname } = request.nextUrl;
+
+	// Rutas protegidas/auth: se componen ANTES del i18n, nunca junto a él.
+	if (isProtectedRoute(pathname) || isAuthPage(pathname)) {
+		return guardSession(request);
+	}
+
+	// Todo lo demás (superficie pública): negociación de locale de next-intl.
+	// `as-needed` no redirige `/ligas` → `/es/ligas` (verificar con curl -I).
+	return handleI18nRouting(request);
+}
+
 export const config = {
-	matcher: ["/admin/:path*", "/onboarding/:path*", "/login", "/register", "/verify-email"],
+	// Patrón recomendado por next-intl: todo excepto /api, /_next, /_vercel y
+	// archivos con punto (assets estáticos). Cubre también /admin, /onboarding
+	// y las páginas de auth — `proxy()` las desvía a `guardSession` arriba,
+	// nunca llegan a `handleI18nRouting`.
+	matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
 };

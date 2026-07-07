@@ -1,15 +1,24 @@
 import type { Metadata } from "next";
 import { Archivo, Oswald, Zilla_Slab } from "next/font/google";
-import "./globals.css";
+import { notFound } from "next/navigation";
+import { hasLocale, NextIntlClientProvider } from "next-intl";
+import { setRequestLocale } from "next-intl/server";
+import "../globals.css";
 import TrackVisit from "@/shared/ui/TrackVisit";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/shared/theme/ThemeProvider";
 import { QueryProvider } from "@/shared/api/QueryProvider";
 import { Toaster } from "@/shared/ui/Toaster";
+import { routing } from "@/shared/i18n/routing";
 
-// ── Tipografías del catálogo org-theme (shared/org-theme/fonts.ts) ───────────
-// Se declaran aquí (una sola vez, subseteadas) y exponen CSS variables que
-// consumen FontPicker y el scope de la org. La default de la app no cambia.
+// ── Root layout de la superficie pública i18n ────────────────────────────────
+// Root real (con su propio <html>) para que next-intl pueda habilitar render
+// estático (setRequestLocale) y el `lang` sea correcto por locale — Next.js no
+// permite leer esto de forma confiable desde un root layout ancestro sin
+// forzar dynamic rendering. Hermano de app/(shell)/layout.tsx, no su hijo.
+// Ver docs/I18N-PLAN.md §4; decisión "multiple root layouts" registrada en el
+// PR de este paso (duplica fonts/providers a propósito).
+
 const fontMarcador = Oswald({
 	subsets: ["latin"],
 	weight: ["400", "700"],
@@ -32,6 +41,9 @@ const orgFontVariables = `${fontMarcador.variable} ${fontModerna.variable} ${fon
 
 const siteUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 
+// TODO(i18n step 6): localizar title/description/keywords vía getTranslations
+// y agregar alternates.languages (hreflang) por página — hoy sigue siendo el
+// mismo copy estático en español que tenía el root layout original.
 export const metadata: Metadata = {
 	metadataBase: new URL(siteUrl),
 	title: {
@@ -96,9 +108,24 @@ const jsonLd = {
 
 const antiFlash = String.raw`try{var m=localStorage.getItem("ts.theme.mode")||"dark";var t=localStorage.getItem("ts.theme.tone")||"cal";document.documentElement.dataset.theme=m;document.documentElement.dataset.tone=t;}catch(e){}`;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export function generateStaticParams() {
+	return routing.locales.map((locale) => ({ locale }));
+}
+
+type Props = {
+	children: React.ReactNode;
+	params: Promise<{ locale: string }>;
+};
+
+export default async function LocaleLayout({ children, params }: Props) {
+	const { locale } = await params;
+	if (!hasLocale(routing.locales, locale)) notFound();
+
+	// Habilita render estático de las páginas públicas (next-intl docs §routing/setup).
+	setRequestLocale(locale);
+
 	return (
-		<html lang="es" className="h-full">
+		<html lang={locale} className="h-full">
 			<head>
 				{}
 				<script dangerouslySetInnerHTML={{ __html: antiFlash }} />
@@ -108,14 +135,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				/>
 			</head>
 			<body className={`min-h-full antialiased ${orgFontVariables}`}>
-				<ThemeProvider>
-					<QueryProvider>
-						<TrackVisit />
-						<Analytics />
-						{children}
-						<Toaster />
-					</QueryProvider>
-				</ThemeProvider>
+				<NextIntlClientProvider>
+					<ThemeProvider>
+						<QueryProvider>
+							<TrackVisit />
+							<Analytics />
+							{children}
+							<Toaster />
+						</QueryProvider>
+					</ThemeProvider>
+				</NextIntlClientProvider>
 			</body>
 		</html>
 	);

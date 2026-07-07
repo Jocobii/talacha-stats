@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 
 function LoginForm() {
@@ -101,12 +102,12 @@ function LoginForm() {
 
 				<p className="text-center text-xs text-ink-3">
 					No tienes cuenta?{" "}
-					<a
+					<Link
 						href="/register"
 						className="text-brand-ink hover:text-brand-dim font-medium transition-colors"
 					>
 						Registrate gratis
-					</a>
+					</Link>
 				</p>
 			</div>
 		</div>
