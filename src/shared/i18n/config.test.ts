@@ -31,6 +31,11 @@ describe("i18n config", () => {
 			"player",
 			"matchday",
 			"org",
+			"players",
+			"about",
+			"paraOrganizadores",
+			"demo",
+			"analysis",
 		]);
 	});
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 /**
  * ShareFooter — footer editorial del perfil de jugador.
@@ -12,6 +13,7 @@ import { useState } from "react";
  *     Usa navigator.share() si está disponible; si no, copia al portapapeles.
  */
 export default function ShareFooter({ url, slug }: { url: string; slug: string }) {
+	const t = useTranslations("player.shareFooter");
 	const [state, setState] = useState<"idle" | "copied">("idle");
 
 	async function handleShare() {
@@ -35,7 +37,7 @@ export default function ShareFooter({ url, slug }: { url: string; slug: string }
 			{/* Tagline + slug */}
 			<div className="pt-3 flex justify-between items-center gap-2">
 				<span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3 shrink-0">
-					Tu liga, en serio.
+					{t("tagline")}
 				</span>
 				<span className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3 truncate max-w-[160px]">
 					{slug}
@@ -45,7 +47,7 @@ export default function ShareFooter({ url, slug }: { url: string; slug: string }
 			{/* Botón de compartir — full-width, borde, hover brand */}
 			<button
 				onClick={handleShare}
-				aria-label="Compartir perfil"
+				aria-label={t("share")}
 				className={[
 					"mt-3 w-full flex items-center justify-center gap-2.5 py-3",
 					"border transition-colors duration-150",
@@ -62,7 +64,7 @@ export default function ShareFooter({ url, slug }: { url: string; slug: string }
 							style={{ boxShadow: "0 0 6px var(--color-brand)" }}
 						/>
 						<span className="font-mono text-[11px] tracking-[0.18em] uppercase font-semibold">
-							¡Enlace copiado!
+							{t("copied")}
 						</span>
 					</>
 				) : (
@@ -85,7 +87,7 @@ export default function ShareFooter({ url, slug }: { url: string; slug: string }
 							/>
 						</svg>
 						<span className="font-mono text-[11px] tracking-[0.18em] uppercase font-semibold">
-							Compartir perfil
+							{t("share")}
 						</span>
 					</>
 				)}

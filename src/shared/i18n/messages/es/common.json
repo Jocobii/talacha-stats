@@ -22,5 +22,21 @@
 		"status": "App en demo — seguimos agregando ligas",
 		"uniqueVisitors": "visitantes únicos"
 	},
-	"loading": "Cargando..."
+	"loading": "Cargando...",
+	"backHome": "Inicio",
+	"cityFilter": {
+		"loading": "Ciudad"
+	},
+	"pagination": {
+		"ariaLabel": "Paginación",
+		"prev": "Página anterior",
+		"next": "Página siguiente"
+	},
+	"share": {
+		"share": "Compartir",
+		"copied": "¡Copiado!",
+		"copyLink": "Copiar enlace",
+		"ariaShare": "Compartir",
+		"ariaCopyLink": "Copiar enlace"
+	}
 }

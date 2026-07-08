@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/shared/i18n/navigation";
 import { Search, X, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import type { PlayerSearchResult, PlayerPositions } from "@/entities/player/ranking";
 
@@ -15,6 +16,8 @@ type Props = {
 const STORAGE_KEY = "ranking_my_player";
 
 export default function PlayerSearch({ city, leagueId }: Props) {
+	const t = useTranslations("ranking.playerSearch");
+	const tRanking = useTranslations("ranking");
 	const [saved, setSaved] = useState<SavedPlayer | null>(null);
 	const [positions, setPositions] = useState<PlayerPositions | null>(null);
 	const [loadingPos, setLoadingPos] = useState(false);
@@ -123,7 +126,7 @@ export default function PlayerSearch({ city, leagueId }: Props) {
 							{(saved.alias ?? saved.fullName).charAt(0).toUpperCase()}
 						</div>
 						<div className="min-w-0">
-							<p className="text-xs text-ink-2">Tu perfil</p>
+							<p className="text-xs text-ink-2">{t("myProfile")}</p>
 							<p className="text-sm font-semibold text-ink truncate leading-tight">
 								{saved.alias ? `"${saved.alias}" · ` : ""}
 								{saved.fullName}
@@ -135,18 +138,18 @@ export default function PlayerSearch({ city, leagueId }: Props) {
 							href={`/player/${saved.id}`}
 							className="text-xs text-brand-ink font-semibold hover:underline px-2 py-1 rounded-lg hover:bg-surface-2 transition"
 						>
-							Ver perfil ↗
+							{t("viewProfile")}
 						</Link>
 						<button
 							onClick={openSearch}
 							className="text-xs text-ink-3 hover:text-ink px-2 py-1 rounded-lg hover:bg-surface-2 transition"
 						>
-							Cambiar
+							{t("change")}
 						</button>
 						<button
 							onClick={clear}
 							className="text-ink-3 hover:text-ink p-1 rounded-lg hover:bg-surface-2 transition"
-							aria-label="Quitar perfil"
+							aria-label={t("removeProfile")}
 						>
 							<X size={12} strokeWidth={2} />
 						</button>
@@ -162,7 +165,7 @@ export default function PlayerSearch({ city, leagueId }: Props) {
 					<div className={`grid gap-2 ${positions.league ? "grid-cols-3" : "grid-cols-2"}`}>
 						{positions.league && (
 							<PositionBadge
-								label="Esta liga"
+								label={t("thisLeague")}
 								rank={positions.league.rank}
 								total={positions.league.total}
 								goals={positions.league.goals}
@@ -177,7 +180,7 @@ export default function PlayerSearch({ city, leagueId }: Props) {
 							/>
 						)}
 						<PositionBadge
-							label="México"
+							label={tRanking("national")}
 							rank={positions.global.rank}
 							total={positions.global.total}
 							goals={positions.global.goals}
@@ -203,7 +206,7 @@ export default function PlayerSearch({ city, leagueId }: Props) {
 						type="text"
 						value={query}
 						onChange={(e) => setQuery(e.target.value)}
-						placeholder="Escribe tu nombre o apodo…"
+						placeholder={t("searchPlaceholder")}
 						className="w-full bg-surface-2 border border-line rounded-2xl pl-11 pr-11 py-3.5 text-sm text-ink placeholder-ink-3 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition"
 					/>
 					<button
@@ -219,12 +222,10 @@ export default function PlayerSearch({ city, leagueId }: Props) {
 				</div>
 
 				{/* Results */}
-				{searching && <p className="text-xs text-ink-3 text-center py-4">Buscando…</p>}
+				{searching && <p className="text-xs text-ink-3 text-center py-4">{t("searching")}</p>}
 
 				{!searching && query.length >= 2 && results.length === 0 && (
-					<p className="text-xs text-ink-3 text-center py-4">
-						No se encontraron jugadores para &quot;{query}&quot;.
-					</p>
+					<p className="text-xs text-ink-3 text-center py-4">{t("noResults", { query })}</p>
 				)}
 
 				{results.length > 0 && (
@@ -249,9 +250,7 @@ export default function PlayerSearch({ city, leagueId }: Props) {
 				className="text-ink-3 group-hover:text-brand-ink transition shrink-0"
 				strokeWidth={2}
 			/>
-			<span className="text-sm text-ink-3 group-hover:text-ink transition">
-				¿Dónde estoy en el ranking?
-			</span>
+			<span className="text-sm text-ink-3 group-hover:text-ink transition">{t("findMe")}</span>
 		</button>
 	);
 }
@@ -269,6 +268,7 @@ function PositionBadge({
 	total: number;
 	goals: number;
 }) {
+	const t = useTranslations("ranking");
 	const isTop10 = rank <= 10;
 	return (
 		<div className="bg-surface rounded-xl px-3 py-2 text-center">
@@ -278,7 +278,9 @@ function PositionBadge({
 				#{rank}
 			</p>
 			<p className="text-[10px] text-ink-3 mt-0.5">de {total}</p>
-			<p className="text-[10px] text-brand-ink font-semibold mt-1">{goals} goles</p>
+			<p className="text-[10px] text-brand-ink font-semibold mt-1">
+				{goals} {t("goals")}
+			</p>
 			<p className="text-[10px] text-ink-3 truncate mt-0.5">{label}</p>
 		</div>
 	);
@@ -291,6 +293,8 @@ function DisambiguationCard({
 	player: PlayerSearchResult;
 	onSelect: (p: PlayerSearchResult) => void;
 }) {
+	const t = useTranslations("ranking");
+	const tSearch = useTranslations("ranking.playerSearch");
 	const [expanded, setExpanded] = useState(false);
 	const showToggle = player.participations.length > 1;
 
@@ -347,14 +351,14 @@ function DisambiguationCard({
 						<p className="font-display font-black text-xl text-brand-ink leading-none">
 							{player.totalGoals}
 						</p>
-						<p className="text-[10px] text-ink-3">goles</p>
+						<p className="text-[10px] text-ink-3">{t("goals")}</p>
 					</div>
 					<Link
 						href={`/player/${player.playerId}`}
 						onClick={(e) => e.stopPropagation()}
 						className="text-[11px] text-ink-3 hover:text-brand-ink hover:underline transition"
 					>
-						Ver perfil ↗
+						{tSearch("viewProfile")}
 					</Link>
 				</div>
 			</div>
@@ -370,8 +374,11 @@ function DisambiguationCard({
 				>
 					{expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
 					{expanded
-						? "Ver menos"
-						: `+${player.participations.length - 1} liga${player.participations.length - 1 !== 1 ? "s" : ""} más`}
+						? tSearch("showLess")
+						: tSearch("showMore", {
+								count: player.participations.length - 1,
+								plural: player.participations.length - 1 !== 1 ? "s" : "",
+							})}
 				</button>
 			)}
 		</button>

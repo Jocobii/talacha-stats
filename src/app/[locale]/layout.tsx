@@ -10,6 +10,8 @@ import { ThemeProvider } from "@/shared/theme/ThemeProvider";
 import { QueryProvider } from "@/shared/api/QueryProvider";
 import { Toaster } from "@/shared/ui/Toaster";
 import { routing } from "@/shared/i18n/routing";
+import { isAppLocale } from "@/shared/i18n/config";
+import { buildLocaleAlternates, ogLocale } from "@/shared/i18n/seo";
 
 // ── Root layout de la superficie pública i18n ────────────────────────────────
 // Root real (con su propio <html>) para que next-intl pueda habilitar render
@@ -41,70 +43,95 @@ const orgFontVariables = `${fontMarcador.variable} ${fontModerna.variable} ${fon
 
 const siteUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 
-// TODO(i18n step 6): localizar title/description/keywords vía getTranslations
-// y agregar alternates.languages (hreflang) por página — hoy sigue siendo el
-// mismo copy estático en español que tenía el root layout original.
-export const metadata: Metadata = {
-	metadataBase: new URL(siteUrl),
-	title: {
-		default: "TalachaStats | Gestión de ligas de fútbol gratis — Tijuana",
-		template: "%s | TalachaStats",
-	},
-	description:
-		"Sistema gratuito para administrar ligas de fútbol amateur en Tijuana. Tabla de posiciones, goleadores, sorteo automático y estadísticas de jugadores. Empieza gratis hoy.",
-	keywords: [
-		"gestión de ligas de fútbol",
-		"sistema de gestión liga futbol",
-		"administrar liga de futbol gratis",
-		"app liga futbol amateur",
-		"software torneo futbol gratis",
-		"estadísticas fútbol Tijuana",
-		"fútbol 7 Tijuana",
-	],
-	openGraph: {
-		siteName: "TalachaStats",
-		type: "website",
-		title: "TalachaStats | Gestión de ligas de fútbol gratis — Tijuana",
-		description:
-			"Sistema gratuito para administrar ligas de fútbol amateur. Tabla de posiciones, goleadores y sorteo automático. Empieza gratis hoy.",
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: "TalachaStats | Gestión de ligas de fútbol gratis",
-		description: "Sistema gratuito para administrar ligas de fútbol amateur en Tijuana.",
-	},
-};
+// TODO(i18n post-alcance): traducir title/description/keywords al inglés
+// cuando haya señal real de demanda (plan §0, §12) — hoy el copy sigue en
+// español para ambos locales. `openGraph.locale` y `alternates.languages` sí
+// son correctos por locale desde ya: son metadata de infraestructura, no
+// traducción de contenido.
+async function buildRootMetadata(locale: string): Promise<Metadata> {
+	const appLocale = isAppLocale(locale) ? locale : "es";
 
-const jsonLd = {
-	"@context": "https://schema.org",
-	"@type": "SoftwareApplication",
-	name: "TalachaStats",
-	url: siteUrl,
-	applicationCategory: "SportsApplication",
-	operatingSystem: "Web",
-	inLanguage: "es",
-	description:
-		"Sistema gratuito para administrar ligas de fútbol amateur. Tabla de posiciones, goleadores, sorteo de jornadas y estadísticas de jugadores.",
-	offers: {
-		"@type": "Offer",
-		price: "0",
-		priceCurrency: "MXN",
-		availability: "https://schema.org/InStock",
-		description: "Plan gratuito disponible para organizadores de ligas amateur",
-	},
-	featureList: [
-		"Tabla de posiciones automática",
-		"Estadísticas de goleadores",
-		"Sorteo de jornadas",
-		"Perfil público de jugadores",
-		"Importación de datos desde Excel",
-	],
-	areaServed: {
-		"@type": "City",
-		name: "Tijuana",
-		addressCountry: "MX",
-	},
-};
+	return {
+		metadataBase: new URL(siteUrl),
+		title: {
+			default: "TalachaStats | Crea y administra tu liga de fútbol gratis",
+			template: "%s | TalachaStats",
+		},
+		description:
+			"Crea tu liga de fútbol amateur gratis: tabla de posiciones automática, goleadores, sorteo de jornadas y perfil público para cada jugador. Sin cuotas, sin tarjeta.",
+		keywords: [
+			"cómo crear una liga de fútbol",
+			"cómo hacer una liga de fútbol",
+			"app para mi liga de fútbol",
+			"gestión de ligas de fútbol",
+			"sistema de gestión liga futbol",
+			"administrar liga de futbol gratis",
+			"app liga futbol amateur",
+			"software torneo futbol gratis",
+			"tabla de posiciones automática",
+			"estadísticas de jugadores de fútbol",
+		],
+		alternates: buildLocaleAlternates(appLocale, "/"),
+		openGraph: {
+			siteName: "TalachaStats",
+			type: "website",
+			locale: ogLocale(appLocale),
+			title: "TalachaStats | Crea y administra tu liga de fútbol gratis",
+			description:
+				"Sistema gratuito para crear y administrar ligas de fútbol amateur. Tabla de posiciones, goleadores y sorteo automático. Empieza gratis hoy.",
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: "TalachaStats | Crea y administra tu liga de fútbol gratis",
+			description: "Sistema gratuito para crear y administrar ligas de fútbol amateur.",
+		},
+	};
+}
+
+export async function generateMetadata({
+	params,
+}: {
+	params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+	const { locale } = await params;
+	return buildRootMetadata(locale);
+}
+
+// Nota: la `description`/`featureList` del jsonLd siguen en español incluso
+// en `/en/*` — es el mismo copy sin traducir todavía (plan §12); `inLanguage`
+// sí refleja el locale real de la página que lo embebe.
+function buildJsonLd(locale: string) {
+	return {
+		"@context": "https://schema.org",
+		"@type": "SoftwareApplication",
+		name: "TalachaStats",
+		url: siteUrl,
+		applicationCategory: "SportsApplication",
+		operatingSystem: "Web",
+		inLanguage: locale,
+		description:
+			"Sistema gratuito para administrar ligas de fútbol amateur. Tabla de posiciones, goleadores, sorteo de jornadas y estadísticas de jugadores.",
+		offers: {
+			"@type": "Offer",
+			price: "0",
+			priceCurrency: "MXN",
+			availability: "https://schema.org/InStock",
+			description: "Plan gratuito disponible para organizadores de ligas amateur",
+		},
+		featureList: [
+			"Tabla de posiciones automática",
+			"Estadísticas de goleadores",
+			"Sorteo de jornadas",
+			"Perfil público de jugadores",
+			"Importación de datos desde Excel",
+		],
+		areaServed: {
+			"@type": "City",
+			name: "Tijuana",
+			addressCountry: "MX",
+		},
+	};
+}
 
 const antiFlash = String.raw`try{var m=localStorage.getItem("ts.theme.mode")||"dark";var t=localStorage.getItem("ts.theme.tone")||"cal";document.documentElement.dataset.theme=m;document.documentElement.dataset.tone=t;}catch(e){}`;
 
@@ -125,13 +152,13 @@ export default async function LocaleLayout({ children, params }: Props) {
 	setRequestLocale(locale);
 
 	return (
-		<html lang={locale} className="h-full">
+		<html lang={locale} className="h-full" suppressHydrationWarning>
 			<head>
 				{}
 				<script dangerouslySetInnerHTML={{ __html: antiFlash }} />
 				<script
 					type="application/ld+json"
-					dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+					dangerouslySetInnerHTML={{ __html: JSON.stringify(buildJsonLd(locale)) }}
 				/>
 			</head>
 			<body className={`min-h-full antialiased ${orgFontVariables}`}>

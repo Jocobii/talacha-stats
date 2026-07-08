@@ -38,6 +38,11 @@ export const messageNamespaces = [
 	"player",
 	"matchday",
 	"org",
+	"players",
+	"about",
+	"paraOrganizadores",
+	"demo",
+	"analysis",
 ] as const;
 
 export type MessageNamespace = (typeof messageNamespaces)[number];

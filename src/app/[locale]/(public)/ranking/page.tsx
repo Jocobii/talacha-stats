@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Trophy, ArrowLeft } from "lucide-react";
+import { Link } from "@/shared/i18n/navigation";
 import {
 	getCityRanking,
 	getLeagueRanking,
@@ -14,24 +15,39 @@ import Pagination from "@/shared/ui/Pagination";
 import PlayerSearch from "./PlayerSearch";
 import LeagueSelector from "./LeagueSelector";
 import { parsePaginationParams } from "@/shared/lib/pagination";
-
-export const metadata: Metadata = {
-	title: "Ranking — TalachaStats",
-	description: "Los mejores goleadores de las ligas de fútbol amateur. Compárate con los demás.",
-};
+import { isAppLocale } from "@/shared/i18n/config";
+import { buildLocaleAlternates } from "@/shared/i18n/seo";
 
 type Scope = "city" | "league" | "global";
 
-export default async function RankingPage({
-	searchParams,
-}: {
+type RankingPageProps = {
+	params: Promise<{ locale: string }>;
 	searchParams: Promise<Record<string, string>>;
-}) {
-	const params = await searchParams;
-	const city = params.city ?? "Tijuana";
-	const scope = (params.scope ?? "city") as Scope;
-	const leagueId = params.leagueId ?? undefined;
-	const pagination = parsePaginationParams(new URLSearchParams(params as Record<string, string>), {
+};
+
+export async function generateMetadata({ params }: RankingPageProps): Promise<Metadata> {
+	const { locale } = await params;
+	const t = await getTranslations({ locale, namespace: "ranking" });
+	const appLocale = isAppLocale(locale) ? locale : "es";
+
+	return {
+		title: t("meta.title"),
+		description: t("meta.description"),
+		alternates: buildLocaleAlternates(appLocale, "/ranking"),
+	};
+}
+
+export default async function RankingPage({ params, searchParams }: RankingPageProps) {
+	const { locale } = await params;
+	setRequestLocale(locale);
+	const t = await getTranslations("ranking");
+	const tCommon = await getTranslations("common");
+
+	const sp = await searchParams;
+	const city = sp.city ?? "Tijuana";
+	const scope = (sp.scope ?? "city") as Scope;
+	const leagueId = sp.leagueId ?? undefined;
+	const pagination = parsePaginationParams(new URLSearchParams(sp as Record<string, string>), {
 		limit: 30,
 	});
 
@@ -120,7 +136,7 @@ export default async function RankingPage({
 						className="inline-flex items-center gap-1.5 text-ink-3 hover:text-ink text-sm transition mb-5"
 					>
 						<ArrowLeft size={16} strokeWidth={2} />
-						Inicio
+						{tCommon("backHome")}
 					</Link>
 
 					<div className="flex items-start justify-between gap-3 pb-6">
@@ -128,16 +144,14 @@ export default async function RankingPage({
 							<div className="flex items-center gap-2 mb-1">
 								<Trophy size={24} className="text-brand-ink" strokeWidth={2} />
 								<h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">
-									Ranking
+									{t("title")}
 								</h1>
 							</div>
 							<p className="text-ink-2 text-sm">
-								{noLeagueSelected
-									? "Selecciona una liga"
-									: `${meta.total} jugadores · Fútbol Amateur`}
+								{noLeagueSelected ? t("selectLeague") : t("subtitle", { count: meta.total })}
 								{!noLeagueSelected && meta.totalPages > 1 && (
 									<span className="ml-2 text-ink-3">
-										· pág. {meta.page}/{meta.totalPages}
+										{t("pageOf", { page: meta.page, totalPages: meta.totalPages })}
 									</span>
 								)}
 							</p>
@@ -157,13 +171,13 @@ export default async function RankingPage({
 					{/* Scope tabs */}
 					<div className="flex gap-1 bg-surface-2 border border-line p-1 rounded-xl mb-4">
 						<ScopeTab href={cityTabHref} active={scope === "city"}>
-							Ciudad
+							{t("tabs.city")}
 						</ScopeTab>
 						<ScopeTab href={leagueTabHref} active={scope === "league"}>
-							Liga
+							{t("tabs.league")}
 						</ScopeTab>
 						<ScopeTab href={globalTabHref} active={scope === "global"}>
-							Nacional
+							{t("tabs.global")}
 						</ScopeTab>
 					</div>
 
@@ -185,11 +199,11 @@ export default async function RankingPage({
 					{/* Estado vacío */}
 					{noLeagueSelected ? (
 						<div className="bg-surface-2 border border-line rounded-2xl p-8 text-center text-ink-3 text-sm">
-							Elige una liga del selector de arriba para ver el ranking.
+							{t("emptyNoLeague")}
 						</div>
 					) : meta.total === 0 ? (
 						<div className="bg-surface-2 border border-line rounded-2xl p-8 text-center text-ink-3 text-sm">
-							Aún no hay estadísticas registradas.
+							{t("emptyNoStats")}
 						</div>
 					) : (
 						<div className="space-y-2">
@@ -197,13 +211,13 @@ export default async function RankingPage({
 							{hasPodium && (
 								<div className="grid grid-cols-3 gap-2 mb-3 items-end">
 									{/* #2 — izquierda */}
-									<PodiumCard entry={ranking[1]} pos={2} />
+									<PodiumCard entry={ranking[1]} pos={2} t={t} />
 
 									{/* #1 — centro, más alto */}
-									<PodiumCard entry={ranking[0]} pos={1} />
+									<PodiumCard entry={ranking[0]} pos={1} t={t} />
 
 									{/* #3 — derecha */}
-									<PodiumCard entry={ranking[2]} pos={3} />
+									<PodiumCard entry={ranking[2]} pos={3} t={t} />
 								</div>
 							)}
 
@@ -212,7 +226,7 @@ export default async function RankingPage({
 								<div className="flex items-center gap-3 py-1 mb-1">
 									<div className="flex-1 h-px bg-line" />
 									<span className="text-[10px] font-bold text-brand-ink uppercase tracking-widest">
-										Top 10
+										{t("top10")}
 									</span>
 									<div className="flex-1 h-px bg-line" />
 								</div>
@@ -231,12 +245,17 @@ export default async function RankingPage({
 											<div className="flex items-center gap-3 py-2">
 												<div className="flex-1 h-px bg-line" />
 												<span className="text-[10px] font-semibold text-ink-3 uppercase tracking-widest">
-													Clasificados
+													{t("classified")}
 												</span>
 												<div className="flex-1 h-px bg-line" />
 											</div>
 										)}
-										<RankRow entry={entry} position={position} showCity={scope === "global"} />
+										<RankRow
+											entry={entry}
+											position={position}
+											showCity={scope === "global"}
+											t={t}
+										/>
 									</div>
 								);
 							})}
@@ -256,6 +275,8 @@ export default async function RankingPage({
 
 // ── Podium card ────────────────────────────────────────────────────────────────
 
+type Translator = Awaited<ReturnType<typeof getTranslations>>;
+
 const PODIUM_CONFIG = {
 	1: {
 		rankSize: "text-7xl",
@@ -263,10 +284,9 @@ const PODIUM_CONFIG = {
 		goalsColor: "text-brand-ink",
 		cardClass: "bg-brand/6 border border-brand/30 hover:border-brand/50",
 		avatarClass: "bg-brand text-pitch",
-		label: "CAMPEÓN",
+		labelKey: "podium.champion" as const,
 		labelClass: "text-brand-ink border-brand/30 bg-brand/10",
 		height: "pb-5 pt-4",
-		// Gradiente de fuego: amarillo brillante arriba → naranja → rojo abajo
 		rankGradient: "linear-gradient(180deg, #FFE566 0%, #FFA500 35%, #FF5722 68%, #CC2200 100%)",
 		rankAnim: "fireText1 2s ease-in-out infinite",
 	},
@@ -276,7 +296,7 @@ const PODIUM_CONFIG = {
 		goalsColor: "text-ink",
 		cardClass: "bg-surface-2 border border-line hover:border-brand/30",
 		avatarClass: "bg-surface border border-line text-ink-2",
-		label: "2° LUGAR",
+		labelKey: "podium.second" as const,
 		labelClass: "text-ink-3 border-line bg-surface",
 		height: "pb-4 pt-3",
 		rankGradient: "linear-gradient(180deg, #FFD060 0%, #FF8C00 45%, #FF6035 100%)",
@@ -288,7 +308,7 @@ const PODIUM_CONFIG = {
 		goalsColor: "text-ink-2",
 		cardClass: "bg-surface-2 border border-line hover:border-brand/30",
 		avatarClass: "bg-surface border border-line text-ink-3",
-		label: "3° LUGAR",
+		labelKey: "podium.third" as const,
 		labelClass: "text-ink-3 border-line bg-surface",
 		height: "pb-4 pt-3",
 		rankGradient: "linear-gradient(180deg, #FFBA60 0%, #FF8A65 55%, #FF7043 100%)",
@@ -296,7 +316,7 @@ const PODIUM_CONFIG = {
 	},
 } as const;
 
-function PodiumCard({ entry, pos }: { entry: RankingEntry; pos: 1 | 2 | 3 }) {
+function PodiumCard({ entry, pos, t }: { entry: RankingEntry; pos: 1 | 2 | 3; t: Translator }) {
 	const cfg = PODIUM_CONFIG[pos];
 
 	return (
@@ -308,7 +328,7 @@ function PodiumCard({ entry, pos }: { entry: RankingEntry; pos: 1 | 2 | 3 }) {
 			<span
 				className={`inline-block text-[9px] font-bold uppercase tracking-widest border rounded-full px-2 py-0.5 mb-2 ${cfg.labelClass}`}
 			>
-				{cfg.label}
+				{t(cfg.labelKey)}
 			</span>
 
 			{/* Número de posición — protagonista */}
@@ -338,7 +358,7 @@ function PodiumCard({ entry, pos }: { entry: RankingEntry; pos: 1 | 2 | 3 }) {
 			<p className={`font-display font-black leading-none ${cfg.goalsSize} ${cfg.goalsColor} mt-1`}>
 				{entry.totalGoals}
 			</p>
-			<p className="text-[10px] text-ink-3 mt-0.5">goles</p>
+			<p className="text-[10px] text-ink-3 mt-0.5">{t("goals")}</p>
 
 			{/* Ratio + delta */}
 			{entry.totalMatches > 0 && (
@@ -402,10 +422,12 @@ function RankRow({
 	entry,
 	position,
 	showCity,
+	t,
 }: {
 	entry: RankingEntry;
 	position: number;
 	showCity: boolean;
+	t: Translator;
 }) {
 	const isTop10 = position <= 10;
 
@@ -461,7 +483,7 @@ function RankRow({
 				>
 					{entry.totalGoals}
 				</p>
-				<p className="text-[10px] text-ink-3">goles</p>
+				<p className="text-[10px] text-ink-3">{t("goals")}</p>
 				{entry.totalMatches > 0 && (
 					<p className="text-[10px] text-ink-3">{entry.goalsPerMatch.toFixed(2)}/PJ</p>
 				)}

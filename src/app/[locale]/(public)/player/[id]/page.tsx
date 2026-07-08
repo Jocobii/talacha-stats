@@ -1,34 +1,45 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getPlayerProfile, getPlayerEgoStats } from "@/entities/player";
 import PlayerEditorialProfile from "./PlayerEditorialProfile";
+import { isAppLocale } from "@/shared/i18n/config";
+import { buildLocaleAlternates, ogLocale } from "@/shared/i18n/seo";
 
-export async function generateMetadata({
-	params,
-}: {
-	params: Promise<{ id: string }>;
-}): Promise<Metadata> {
-	const { id } = await params;
+type PlayerProfilePageProps = {
+	params: Promise<{ id: string; locale: string }>;
+};
+
+export async function generateMetadata({ params }: PlayerProfilePageProps): Promise<Metadata> {
+	const { id, locale } = await params;
+	const t = await getTranslations({ locale, namespace: "player" });
+	const appLocale = isAppLocale(locale) ? locale : "es";
 	const profile = await getPlayerProfile(id);
-	if (!profile) return { title: "Jugador no encontrado" };
+	if (!profile) return { title: t("notFound") };
 
 	const name = profile.alias ? `${profile.fullName} "${profile.alias}"` : profile.fullName;
 
 	const g = profile.global;
 	const desc =
 		g.totalGoals > 0
-			? `${g.totalGoals} goles en ${g.leaguesCount} liga${g.leaguesCount !== 1 ? "s" : ""}${g.totalMatches > 0 ? ` · ${g.goalsPerMatch.toFixed(2)} goles/partido` : ""}`
-			: "Jugador amateur de fútbol 7";
+			? t("descriptionGoals", { goals: g.totalGoals, leagues: g.leaguesCount }) +
+				(g.totalMatches > 0
+					? t("descriptionGoalsPerMatch", { gpm: g.goalsPerMatch.toFixed(2) })
+					: "")
+			: t("defaultDescription");
 
 	return {
 		title: `${name} — TalachaStats`,
 		description: desc,
-		openGraph: { title: name, description: desc, type: "profile" },
+		alternates: buildLocaleAlternates(appLocale, `/player/${id}`),
+		openGraph: { title: name, description: desc, type: "profile", locale: ogLocale(appLocale) },
 	};
 }
 
-export default async function PlayerProfilePage({ params }: { params: Promise<{ id: string }> }) {
-	const { id } = await params;
+export default async function PlayerProfilePage({ params }: PlayerProfilePageProps) {
+	const { id, locale } = await params;
+	setRequestLocale(locale);
+	const t = await getTranslations("player");
 	const [profile, egoStats] = await Promise.all([getPlayerProfile(id), getPlayerEgoStats(id)]);
 	if (!profile) return notFound();
 
@@ -120,7 +131,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 
 				{!hasStats && (
 					<div className="bg-surface border border-line rounded-2xl p-8 text-center text-ink-2 text-sm">
-						Este jugador aún no tiene estadísticas registradas.
+						{t("emptyStats")}
 					</div>
 				)}
 			</div>

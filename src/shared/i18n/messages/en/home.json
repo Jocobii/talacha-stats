@@ -1,8 +1,8 @@
 {
 	"_status": "placeholder-untranslated",
 	"meta": {
-		"title": "TalachaStats | Sistema de gestión de ligas de fútbol gratis en Tijuana",
-		"description": "Administra tu liga de fútbol amateur gratis en Tijuana. Tabla de posiciones automática, goleadores, sorteo de jornadas y perfil público para cada jugador. Sin cuotas."
+		"title": "TalachaStats | Crea y administra tu liga de fútbol gratis",
+		"description": "Crea tu liga de fútbol amateur gratis: tabla de posiciones automática, goleadores, sorteo de jornadas y perfil público para cada jugador. Sin cuotas, sin tarjeta."
 	},
 	"viewToggle": {
 		"ariaLabel": "Elige tu vista",
@@ -10,16 +10,16 @@
 		"organizer": "Organizo una liga"
 	},
 	"hero": {
-		"badge": "Tijuana · Fútbol Amateur",
+		"badge": "Fútbol Amateur · 100% gratis",
 		"titleLine1": "Tus goles",
 		"titleLine2": "hablan",
 		"titleLine3": "por ti.",
-		"subtextPrefix": "Juegas en varias ligas de Tijuana. TalachaStats reúne tus estadísticas de ",
+		"subtextPrefix": "Juegas en varias ligas de fútbol amateur. TalachaStats reúne tus estadísticas de ",
 		"subtextStrong": "todas tus ligas",
 		"subtextSuffix": " en un solo perfil que puedes compartir.",
 		"nostalgiaLine": "Tus goles de hoy son tus recuerdos de mañana.",
 		"viewRanking": "Ver ranking",
-		"socialProof": "Ya hay jugadores de Tijuana en el ranking. ¿Estás tú?",
+		"socialProof": "Ya hay cientos de jugadores en el ranking. ¿Estás tú?",
 		"organizerPrompt": "¿Organizas una liga?",
 		"organizerPromptCta": "Esto es para ti →"
 	},
@@ -29,14 +29,14 @@
 			"streak": "Racha 5+",
 			"topCity": "Top Ciudad"
 		},
-		"location": "Tijuana · 3 ligas",
+		"location": "3 ligas activas",
 		"stats": {
 			"goals": "Goles",
 			"matches": "Partidos",
 			"leagues": "Ligas"
 		},
 		"achievements": "Logros",
-		"rankingLabel": "Ranking Tijuana",
+		"rankingLabel": "Ranking de tu ciudad",
 		"caption": "Tu perfil, así de claro."
 	},
 	"heroSearch": {
@@ -48,7 +48,7 @@
 	},
 	"features": {
 		"ranking": {
-			"title": "Ranking de Tijuana",
+			"title": "Ranking de tu ciudad",
 			"description": "¿Cuántos están por encima de ti? El ranking cruza todas las ligas para darte tu posición real en la ciudad."
 		},
 		"leaderboard": {
@@ -81,9 +81,9 @@
 	"leaderboardTeaser": {
 		"goalsUnit": "goles",
 		"ghostPrompt": "¿Dónde estás tú?",
-		"ghostSubtext": "Tijuana · todas las ligas",
+		"ghostSubtext": "Tu ciudad · todas las ligas",
 		"ghostCta": "Ver",
-		"title": "Ranking Tijuana",
+		"title": "Ranking de tu ciudad",
 		"badge": "Todas las ligas",
 		"viewFullRanking": "Ver ranking completo"
 	},
@@ -95,7 +95,7 @@
 			},
 			"cityRanking": {
 				"title": "Tus jugadores en el ranking de la ciudad",
-				"description": "Los goleadores de tu liga aparecen automáticamente en el ranking cruzado de Tijuana. Tu liga pone gente en el mapa."
+				"description": "Los goleadores de tu liga aparecen automáticamente en el ranking cruzado de tu ciudad. Tu liga pone gente en el mapa."
 			},
 			"shareableContent": {
 				"title": "Contenido listo para compartir",

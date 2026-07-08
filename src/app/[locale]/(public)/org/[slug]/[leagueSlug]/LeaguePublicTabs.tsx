@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { Trophy, Target, CalendarDays, Swords } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { PublicMatchday } from "@/entities/organization";
 import MatchdayPublicView from "./MatchdayPublicView";
 import { PublicBracketView } from "./PublicBracketView";
@@ -30,18 +31,23 @@ export default function LeaguePublicTabs({
 	scorersSection,
 	brackets,
 }: Props) {
+	const t = useTranslations("org");
 	const showJornada = schedulingEnabled && matchdays.length > 0;
 	const showPlayoffs = brackets.length > 0;
 	const [activeTab, setActiveTab] = useState<Tab>("tabla");
 
 	const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-		{ id: "tabla", label: "Tabla", icon: <Trophy size={14} strokeWidth={2} /> },
-		{ id: "goleadores", label: "Goleadores", icon: <Target size={14} strokeWidth={2} /> },
+		{ id: "tabla", label: t("league.tabs.standings"), icon: <Trophy size={14} strokeWidth={2} /> },
+		{
+			id: "goleadores",
+			label: t("league.tabs.scorers"),
+			icon: <Target size={14} strokeWidth={2} />,
+		},
 		...(showJornada
 			? [
 					{
 						id: "jornada" as Tab,
-						label: "Jornada",
+						label: t("league.tabs.matchday"),
 						icon: <CalendarDays size={14} strokeWidth={2} />,
 					},
 				]
@@ -50,7 +56,7 @@ export default function LeaguePublicTabs({
 			? [
 					{
 						id: "playoffs" as Tab,
-						label: "Fase Final",
+						label: t("league.tabs.playoffs"),
 						icon: <Swords size={14} strokeWidth={2} />,
 					},
 				]

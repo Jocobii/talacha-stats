@@ -4,19 +4,24 @@ import { Link } from "@/shared/i18n/navigation";
 import { Building2, Users, ArrowRight, MapPin } from "lucide-react";
 import { listOrganizationsPublic } from "@/entities/organization";
 import { titleCase } from "@/shared/lib/normalize";
+import { isAppLocale } from "@/shared/i18n/config";
+import { buildLocaleAlternates } from "@/shared/i18n/seo";
 
 type LigasPageProps = {
 	params: Promise<{ locale: string }>;
 };
 
-// TODO(i18n step 6): agregar alternates.languages (hreflang) + og:locale.
 export async function generateMetadata({ params }: LigasPageProps): Promise<Metadata> {
 	const { locale } = await params;
 	const t = await getTranslations({ locale, namespace: "ligas" });
+	const appLocale = isAppLocale(locale) ? locale : "es";
 
 	return {
 		title: t("meta.title"),
 		description: t("meta.description"),
+		alternates: buildLocaleAlternates(appLocale, "/ligas"),
+		// Sin `openGraph` propio: hereda el objeto completo del layout raíz
+		// (ya localizado) — ver nota en app/[locale]/(public)/page.tsx.
 	};
 }
 

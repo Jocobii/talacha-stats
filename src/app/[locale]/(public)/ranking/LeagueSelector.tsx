@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/shared/i18n/navigation";
 
 type League = { id: string; name: string; dayOfWeek: string; season: string };
 
@@ -24,6 +25,7 @@ export default function LeagueSelector({
 	current?: string;
 }) {
 	const router = useRouter();
+	const t = useTranslations("ranking");
 
 	function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
 		router.push(
@@ -39,7 +41,7 @@ export default function LeagueSelector({
 				className="w-full bg-surface-2 border border-line text-ink text-sm font-medium rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand appearance-none cursor-pointer"
 			>
 				<option value="" disabled>
-					Selecciona una liga…
+					{t("leagueSelector.placeholder")}
 				</option>
 				{leagues.map((l) => (
 					<option key={l.id} value={l.id}>

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import type { OrgHubStats } from "@/entities/organization";
 
 type Props = {
@@ -9,14 +10,18 @@ type Props = {
  * Grid de 3 métricas: goles totales, equipos activos, última jornada.
  * Tres números dan densidad visual al header sin agregar complejidad.
  */
-export default function OrgStatsStrip({ stats, totalTeams }: Props) {
+export default async function OrgStatsStrip({ stats, totalTeams }: Props) {
 	if (stats.totalGoals === 0 && totalTeams === 0) return null;
+	const t = await getTranslations("org");
 
 	return (
 		<div className="grid grid-cols-3 gap-2 mt-5">
-			<StatBox value={stats.totalGoals} label="Goles" highlight />
-			<StatBox value={totalTeams} label="Equipos" />
-			<StatBox value={stats.lastJornada ? `J${stats.lastJornada}` : "—"} label="Jornada" />
+			<StatBox value={stats.totalGoals} label={t("stats.goals")} highlight />
+			<StatBox value={totalTeams} label={t("stats.teams")} />
+			<StatBox
+				value={stats.lastJornada ? `J${stats.lastJornada}` : "—"}
+				label={t("stats.matchday")}
+			/>
 		</div>
 	);
 }

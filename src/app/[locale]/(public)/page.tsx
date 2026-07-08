@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { isAppLocale } from "@/shared/i18n/config";
+import { buildLocaleAlternates } from "@/shared/i18n/seo";
 import HeroSection from "./HeroSection";
 import OrganizerHero from "./OrganizerHero";
 import OrganizerBeforeAfter from "./OrganizerBeforeAfter";
@@ -21,19 +23,20 @@ type HomePageProps = {
 	searchParams: Promise<{ [HOME_VIEW_QUERY_PARAM]?: string }>;
 };
 
-// TODO(i18n step 6): agregar alternates.languages (hreflang) + og:locale.
 export async function generateMetadata({
 	params,
 }: Pick<HomePageProps, "params">): Promise<Metadata> {
 	const { locale } = await params;
 	const t = await getTranslations({ locale, namespace: "home" });
+	const appLocale = isAppLocale(locale) ? locale : "es";
 
 	return {
 		title: t("meta.title"),
 		description: t("meta.description"),
-		alternates: {
-			canonical: "/",
-		},
+		alternates: buildLocaleAlternates(appLocale, "/"),
+		// Sin `openGraph` propio: hereda el objeto completo (incluido `locale`,
+		// ya localizado) del layout raíz — si esta página definiera su propio
+		// `openGraph`, reemplazaría el del layout entero en vez de fusionarse.
 	};
 }
 

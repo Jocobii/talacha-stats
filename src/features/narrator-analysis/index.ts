@@ -18,6 +18,18 @@ export { buildInputFromExcel, type BuildInputFromExcelArgs } from "./lib/build-i
 // Constantes públicas (límites del endpoint)
 export { EXCEL_LIMITS, COLUMN_SYNONYMS } from "./constants";
 
-// Export de assets (ya existentes)
-export { buildNarratorPdf } from "./export-pdf";
-export { buildNarratorPngElement } from "./export-png";
+// Export de assets — NO se re-exportan aquí a propósito: `export-pdf.ts` usa
+// `pdfkit` (Node puro) y `export-png.tsx` usa `next/og`. Si el barrel los
+// re-exporta, cualquier Client Component que importe desde aquí (como
+// AnalysisView, más abajo) arrastraría esas deps server-only al bundle del
+// navegador. El route de export ya los importa por ruta directa:
+// `@/features/narrator-analysis/export-pdf` / `.../export-png`.
+
+// ── Flujo BD (/analysis) — matchup pre-partido ──────────────────────────────
+export { useNarratorMatchup, type NarratorMatchup } from "./model/useNarratorMatchup";
+export { useNarratorAnalysisQuery } from "./model/useNarratorAnalysisQuery";
+export { NarratorReport } from "./ui/NarratorReport";
+export { MatchupForm } from "./ui/MatchupForm";
+export { NarratorReportActions } from "./ui/NarratorReportActions";
+export { MATCHUP_SELECT_CLASS } from "./constants";
+export type { TeamOption, ConfirmedMatchup, MatchupErrorCode } from "./types";

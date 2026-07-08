@@ -1,0 +1,13 @@
+{
+	"_status": "placeholder-untranslated",
+	"meta": {
+		"title": "Jugadores — TalachaStats",
+		"description": "Busca a un jugador y mira su perfil completo con estadísticas de todas sus ligas."
+	},
+	"title": "Jugadores",
+	"subtitle": "Busca a un jugador y mira su perfil completo",
+	"searchPlaceholder": "Nombre o apodo…",
+	"searching": "Buscando…",
+	"noResults": "No se encontraron jugadores.",
+	"noResultsQuery": "No se encontraron jugadores para \"{query}\"."
+}

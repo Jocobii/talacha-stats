@@ -1,8 +1,10 @@
 "use client";
 
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { MapPin } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useRouter, usePathname } from "@/shared/i18n/navigation";
 import { useCities } from "@/shared/hooks/useCities";
 
 function CityFilterInner() {
@@ -10,6 +12,7 @@ function CityFilterInner() {
 	const pathname = usePathname();
 	const params = useSearchParams();
 	const current = params.get("city") ?? "Tijuana";
+	const t = useTranslations("common");
 
 	const { data: cities = [] } = useCities();
 
@@ -54,13 +57,14 @@ function CityFilterInner() {
 }
 
 export default function CityFilter() {
+	const t = useTranslations("common");
 	return (
 		<Suspense
 			fallback={
 				<div className="flex items-center gap-1.5">
 					<MapPin size={12} className="text-ink-3 shrink-0" strokeWidth={2} />
 					<span className="bg-surface-2 border border-line text-ink text-xs font-semibold rounded-lg px-3 py-1.5">
-						Ciudad
+						{t("cityFilter.loading")}
 					</span>
 				</div>
 			}

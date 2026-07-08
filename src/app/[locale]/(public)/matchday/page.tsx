@@ -1,20 +1,36 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Star, ArrowLeft } from "lucide-react";
+import { Link } from "@/shared/i18n/navigation";
 import { getJornadaHonor } from "@/entities/player/ranking";
 import type { JornadaLeague, JornadaHero } from "@/entities/player/ranking";
 import CityFilter from "@/shared/ui/CityFilter";
+import { isAppLocale } from "@/shared/i18n/config";
+import { buildLocaleAlternates } from "@/shared/i18n/seo";
 
-export const metadata: Metadata = {
-	title: "Tabla de honor — TalachaStats",
-	description: "Los mejores goleadores de la última jornada en todas las ligas de Tijuana.",
+type MatchdayPageProps = {
+	params: Promise<{ locale: string }>;
+	searchParams: Promise<{ city?: string }>;
 };
 
-export default async function MatchdayPage({
-	searchParams,
-}: {
-	searchParams: Promise<{ city?: string }>;
-}) {
+export async function generateMetadata({ params }: MatchdayPageProps): Promise<Metadata> {
+	const { locale } = await params;
+	const t = await getTranslations({ locale, namespace: "matchday" });
+	const appLocale = isAppLocale(locale) ? locale : "es";
+
+	return {
+		title: t("meta.title"),
+		description: t("meta.description"),
+		alternates: buildLocaleAlternates(appLocale, "/matchday"),
+	};
+}
+
+export default async function MatchdayPage({ params, searchParams }: MatchdayPageProps) {
+	const { locale } = await params;
+	setRequestLocale(locale);
+	const t = await getTranslations("matchday");
+	const tCommon = await getTranslations("common");
+
 	const { city = "Tijuana" } = await searchParams;
 	const leagues = await getJornadaHonor(city);
 
@@ -26,17 +42,17 @@ export default async function MatchdayPage({
 					className="inline-flex items-center gap-1.5 text-ink-3 hover:text-ink text-sm transition mb-5"
 				>
 					<ArrowLeft size={16} strokeWidth={2} />
-					Inicio
+					{tCommon("backHome")}
 				</Link>
 				<div className="flex items-start justify-between gap-3">
 					<div>
 						<div className="flex items-center gap-2 mb-1">
 							<Star size={24} className="text-brand-ink" strokeWidth={2} />
 							<h1 className="font-display font-black text-4xl uppercase tracking-wide leading-none">
-								Tabla de honor
+								{t("title")}
 							</h1>
 						</div>
-						<p className="text-ink-2 text-sm mt-0.5">Top goleadores · última jornada por liga</p>
+						<p className="text-ink-2 text-sm mt-0.5">{t("subtitle")}</p>
 					</div>
 					<div className="shrink-0 pt-1">
 						<CityFilter />
@@ -48,12 +64,17 @@ export default async function MatchdayPage({
 				<div className="max-w-lg mx-auto space-y-4">
 					{leagues.length === 0 && (
 						<div className="bg-surface-2 border border-line rounded-2xl p-8 text-center text-ink-3 text-sm">
-							Aún no hay datos de jornadas importados.
+							{t("empty")}
 						</div>
 					)}
 
 					{leagues.map((league) => (
-						<LeagueHonorCard key={league.leagueId} league={league} />
+						<LeagueHonorCard
+							key={league.leagueId}
+							league={league}
+							jornadaLabel={t("jornadaAbbr")}
+							goalsLabel={t("goals")}
+						/>
 					))}
 				</div>
 			</div>
@@ -61,7 +82,15 @@ export default async function MatchdayPage({
 	);
 }
 
-function LeagueHonorCard({ league }: { league: JornadaLeague }) {
+function LeagueHonorCard({
+	league,
+	jornadaLabel,
+	goalsLabel,
+}: {
+	league: JornadaLeague;
+	jornadaLabel: string;
+	goalsLabel: string;
+}) {
 	const medals = ["🥇", "🥈", "🥉"];
 
 	return (
@@ -82,13 +111,19 @@ function LeagueHonorCard({ league }: { league: JornadaLeague }) {
 						<p className="font-display font-black text-lg text-brand-ink leading-none">
 							J{league.jornada}
 						</p>
-						<p className="text-[9px] text-ink-3 uppercase tracking-wide">jornada</p>
+						<p className="text-[9px] text-ink-3 uppercase tracking-wide">{jornadaLabel}</p>
 					</div>
 				</div>
 
 				<div className="space-y-2">
 					{league.heroes.map((hero, i) => (
-						<HeroRow key={hero.playerId} hero={hero} medal={medals[i]} rank={i + 1} />
+						<HeroRow
+							key={hero.playerId}
+							hero={hero}
+							medal={medals[i]}
+							rank={i + 1}
+							goalsLabel={goalsLabel}
+						/>
 					))}
 				</div>
 			</div>
@@ -96,7 +131,17 @@ function LeagueHonorCard({ league }: { league: JornadaLeague }) {
 	);
 }
 
-function HeroRow({ hero, medal, rank }: { hero: JornadaHero; medal: string; rank: number }) {
+function HeroRow({
+	hero,
+	medal,
+	rank,
+	goalsLabel,
+}: {
+	hero: JornadaHero;
+	medal: string;
+	rank: number;
+	goalsLabel: string;
+}) {
 	const isBest = rank === 1;
 
 	return (
@@ -128,7 +173,7 @@ function HeroRow({ hero, medal, rank }: { hero: JornadaHero; medal: string; rank
 					{hero.goals}
 				</p>
 				<p className="text-[10px] text-ink-3">
-					{hero.matchesPlayed > 0 ? `${hero.goalsPerMatch.toFixed(2)}/PJ` : "goles"}
+					{hero.matchesPlayed > 0 ? `${hero.goalsPerMatch.toFixed(2)}/PJ` : goalsLabel}
 				</p>
 			</div>
 		</Link>

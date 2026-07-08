@@ -46,7 +46,7 @@ const antiFlash = String.raw`try{var m=localStorage.getItem("ts.theme.mode")||"d
 
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="es" className="h-full">
+		<html lang="es" className="h-full" suppressHydrationWarning>
 			<head>
 				{}
 				<script dangerouslySetInnerHTML={{ __html: antiFlash }} />

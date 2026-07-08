@@ -1,4 +1,5 @@
 import { MapPin, Users, CalendarDays } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { titleCase } from "@/shared/lib/normalize";
 
 type Props = {
@@ -9,7 +10,14 @@ type Props = {
 	totalTeams: number;
 };
 
-export default function OrgHeroHeader({ name, city, logoUrl, totalLeagues, totalTeams }: Props) {
+export default async function OrgHeroHeader({
+	name,
+	city,
+	logoUrl,
+	totalLeagues,
+	totalTeams,
+}: Props) {
+	const t = await getTranslations("org");
 	const initial = name.charAt(0).toUpperCase();
 
 	return (
@@ -45,9 +53,12 @@ export default function OrgHeroHeader({ name, city, logoUrl, totalLeagues, total
 					<MetaChip icon={<MapPin size={12} strokeWidth={2} />} label={city} />
 					<MetaChip
 						icon={<CalendarDays size={12} strokeWidth={2} />}
-						label={`${totalLeagues} liga${totalLeagues !== 1 ? "s" : ""}`}
+						label={t("hero.leagues", { count: totalLeagues })}
 					/>
-					<MetaChip icon={<Users size={12} strokeWidth={2} />} label={`${totalTeams} equipos`} />
+					<MetaChip
+						icon={<Users size={12} strokeWidth={2} />}
+						label={t("hero.teams", { count: totalTeams })}
+					/>
 				</div>
 			</div>
 		</div>

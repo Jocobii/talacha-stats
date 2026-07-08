@@ -1,3 +1,12 @@
 {
-	"_status": "placeholder-untranslated"
+	"_status": "placeholder-untranslated",
+	"meta": {
+		"title": "Tabla de honor — TalachaStats",
+		"description": "Los mejores goleadores de la última jornada en todas las ligas registradas."
+	},
+	"title": "Tabla de honor",
+	"subtitle": "Top goleadores · última jornada por liga",
+	"empty": "Aún no hay datos de jornadas importados.",
+	"jornadaAbbr": "jornada",
+	"goals": "goles"
 }

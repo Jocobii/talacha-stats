@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ArrowLeft, Trophy, Target } from "lucide-react";
+import { Link } from "@/shared/i18n/navigation";
 import {
 	getPublicLeague,
 	getLatestStandings,
@@ -20,17 +21,24 @@ import ShareLeagueButton from "./ShareLeagueButton";
 import ScorerCard from "./ScorerCard";
 import TrialWarning from "./TrialWarning";
 import LeaguePublicTabs from "./LeaguePublicTabs";
+import { isAppLocale } from "@/shared/i18n/config";
+import { buildLocaleAlternates, ogLocale } from "@/shared/i18n/seo";
 
-type Props = { params: Promise<{ slug: string; leagueSlug: string }> };
+type Props = { params: Promise<{ slug: string; leagueSlug: string; locale: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-	const { slug, leagueSlug } = await params;
+	const { slug, leagueSlug, locale } = await params;
+	const t = await getTranslations({ locale, namespace: "org" });
+	const appLocale = isAppLocale(locale) ? locale : "es";
 	const result = await getPublicLeague(slug, leagueSlug);
-	if (!result) return { title: "Liga no encontrada" };
+	if (!result) return { title: t("league.notFound") };
 	const { org, league } = result;
 
 	const title = `${titleCase(league.name)} — ${titleCase(org.name)}`;
-	const description = `Tabla de posiciones, goleadores y estadísticas de ${titleCase(league.name)}. Temporada ${league.season}.`;
+	const description = t("league.description", {
+		leagueName: titleCase(league.name),
+		season: league.season,
+	});
 
 	// Next.js deduplica esta llamada con la del page — sin costo extra
 	const { standings, jornada } = await getLatestStandings(league.id);
@@ -56,11 +64,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	return {
 		title: `${title} · TalachaStats`,
 		description,
+		alternates: buildLocaleAlternates(appLocale, `/org/${slug}/${leagueSlug}`),
 		openGraph: {
 			title: `${title} · TalachaStats`,
 			description,
 			images: [{ url: ogImageUrl, width: 1200, height: 630, alt: league.name }],
 			type: "website",
+			locale: ogLocale(appLocale),
 		},
 		twitter: {
 			card: "summary_large_image",
@@ -72,7 +82,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function LeaguePublicPage({ params }: Props) {
-	const { slug, leagueSlug } = await params;
+	const { slug, leagueSlug, locale } = await params;
+	setRequestLocale(locale);
+	const t = await getTranslations("org");
 	const result = await getPublicLeague(slug, leagueSlug);
 	if (!result) notFound();
 
@@ -125,10 +137,10 @@ export default async function LeaguePublicPage({ params }: Props) {
 		<section>
 			<SectionHeader
 				icon={<Trophy size={16} strokeWidth={2} className="text-brand-ink" />}
-				title="Posiciones"
+				title={t("league.sections.standings")}
 			/>
 			{!hasStandings ? (
-				<EmptyState text="Aún no hay datos de posiciones para esta liga." />
+				<EmptyState text={t("league.emptyStandings")} />
 			) : (
 				<div className="bg-surface-2 border border-line rounded-2xl overflow-hidden">
 					{/* Encabezados */}
@@ -217,10 +229,10 @@ export default async function LeaguePublicPage({ params }: Props) {
 		<section>
 			<SectionHeader
 				icon={<Target size={16} strokeWidth={2} className="text-brand-ink" />}
-				title="Goleadores"
+				title={t("league.sections.scorers")}
 			/>
 			{!hasScorers ? (
-				<EmptyState text="Aún no hay estadísticas de goleadores." />
+				<EmptyState text={t("league.emptyScorers")} />
 			) : (
 				<div className="space-y-1.5">
 					{scorers.map((scorer, idx) => (

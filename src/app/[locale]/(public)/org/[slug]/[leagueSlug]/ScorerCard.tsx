@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/shared/i18n/navigation";
 import { titleCase } from "@/shared/lib/normalize";
 
 export type ScorerData = {
@@ -19,7 +20,8 @@ type Props = { scorer: ScorerData; rank: number };
  * Si no hay playerId (stats del nuevo pipeline sin claim verificado) se
  * muestra sin enlace.
  */
-export default function ScorerCard({ scorer, rank }: Props) {
+export default async function ScorerCard({ scorer, rank }: Props) {
+	const t = await getTranslations("org");
 	const isTop3 = rank <= 3;
 
 	const displayName = scorer.alias ? `"${titleCase(scorer.alias)}"` : titleCase(scorer.fullName);
@@ -72,7 +74,7 @@ export default function ScorerCard({ scorer, rank }: Props) {
 						? `${scorer.assists} ast`
 						: goalsPerGame
 							? `${goalsPerGame}/PJ`
-							: "goles"}
+							: t("scorer.goals")}
 				</p>
 			</div>
 

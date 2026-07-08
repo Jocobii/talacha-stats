@@ -67,3 +67,30 @@ export const PREVIEW_ROWS_COLLAPSED = 12;
  * Los datos se limpian al refrescar o subir otro archivo.
  */
 export const MAPPING_TEMPLATE_KEY = "ts.narrator.excel.mappingTemplate.v1";
+
+// ── URLs del flujo BD (/analysis) ───────────────────────────────────────────
+
+/** Equipos de una liga, para los <select> del formulario de matchup. */
+export const NARRATOR_TEAMS_URL = (leagueId: string): string => `/api/teams?league_id=${leagueId}`;
+
+/** Análisis pre-partido para un par de equipos dentro de una liga. */
+export const NARRATOR_ANALYSIS_URL = (leagueId: string, teamA: string, teamB: string): string =>
+	`/api/narrator?leagueId=${leagueId}&teamA=${teamA}&teamB=${teamB}`;
+
+/** Export descargable (pdf/png) del mismo análisis. */
+export const NARRATOR_EXPORT_URL = (
+	format: "pdf" | "png",
+	leagueId: string,
+	teamA: string,
+	teamB: string,
+): string =>
+	`/api/narrator/export?format=${format}&leagueId=${leagueId}&teamA=${teamA}&teamB=${teamB}`;
+
+/**
+ * Clase compartida de los <select> del matchup. Vive aquí (no en MatchupForm)
+ * porque el <select> de liga lo renderiza la capa `app/` (LeagueSelect es de
+ * `features/league-selection`; una feature no puede importar otra, §3.1) y
+ * necesita el mismo estilo que los <select> de equipo que sí vive en esta feature.
+ */
+export const MATCHUP_SELECT_CLASS =
+	"w-full bg-pitch border border-line text-ink rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand appearance-none cursor-pointer";

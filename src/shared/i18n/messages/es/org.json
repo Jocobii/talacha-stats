@@ -1,3 +1,58 @@
 {
-	"_status": "source"
+	"_status": "source",
+	"notFound": "Organización no encontrada",
+	"backToLigas": "Ligas",
+	"noActiveLeagues": "No hay ligas activas en este momento.",
+	"narrativeCta": "Ver tabla y goleadores completos",
+	"hero": {
+		"leagues": "{count, plural, one {# liga} other {# ligas}}",
+		"teams": "{count, plural, one {# equipo} other {# equipos}}"
+	},
+	"stats": {
+		"goals": "Goles",
+		"teams": "Equipos",
+		"matchday": "Jornada"
+	},
+	"league": {
+		"notFound": "Liga no encontrada",
+		"description": "Tabla de posiciones, goleadores y estadísticas de {leagueName}. Temporada {season}.",
+		"sections": {
+			"standings": "Posiciones",
+			"scorers": "Goleadores"
+		},
+		"emptyStandings": "Aún no hay datos de posiciones para esta liga.",
+		"emptyScorers": "Aún no hay estadísticas de goleadores.",
+		"tabs": {
+			"standings": "Tabla",
+			"scorers": "Goleadores",
+			"matchday": "Jornada",
+			"playoffs": "Fase Final"
+		}
+	},
+	"matchdayView": {
+		"empty": "Aún no hay jornadas publicadas para esta liga.",
+		"noMatches": "No hay partidos programados para esta jornada.",
+		"updated": "Sorteo actualizado ·",
+		"timeAgo": {
+			"lessThanHour": "hace menos de 1 hora",
+			"oneHour": "hace 1 hora",
+			"hours": "hace {count} horas",
+			"oneDay": "hace 1 día",
+			"days": "hace {count} días"
+		}
+	},
+	"bracket": {
+		"notStarted": "La fase final aún no ha comenzado.",
+		"bye": "Descansa",
+		"thirdPlace": "3er lugar",
+		"rounds": {
+			"quarters": "Cuartos",
+			"semis": "Semis",
+			"final": "Final"
+		}
+	},
+	"scorer": {
+		"goals": "goles"
+	},
+	"trialWarning": "<strong>{name}</strong> esta en <badge>modo trial</badge> — los datos no aparecen en los rankings publicos todavia."
 }

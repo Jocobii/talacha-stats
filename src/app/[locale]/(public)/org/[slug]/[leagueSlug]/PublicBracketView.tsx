@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * PublicBracketView.tsx
  *
@@ -5,6 +7,7 @@
  * Renders all zones' brackets as compact round columns.
  */
 
+import { useTranslations } from "next-intl";
 import { getZoneTokens } from "@/shared/lib/zone-colors";
 
 export type PublicSlot = {
@@ -27,18 +30,12 @@ export type PublicBracket = {
 
 type Props = { brackets: PublicBracket[] };
 
-const ROUND_LABELS: Record<string, string> = {
-	"1-multi": "Cuartos",
-	"2-multi": "Semis",
-	"3-multi": "Final",
-	"1-single": "Final",
-};
-
 export function PublicBracketView({ brackets }: Props) {
+	const t = useTranslations("org");
 	if (brackets.length === 0) {
 		return (
 			<div className="bg-surface-2 border border-line rounded-2xl p-6 text-center text-ink-3 text-sm">
-				La fase final aún no ha comenzado.
+				{t("bracket.notStarted")}
 			</div>
 		);
 	}
@@ -53,6 +50,13 @@ export function PublicBracketView({ brackets }: Props) {
 }
 
 function PublicBracketZone({ bracket }: { bracket: PublicBracket }) {
+	const t = useTranslations("org");
+	const roundLabels: Record<string, string> = {
+		"1-multi": t("bracket.rounds.quarters"),
+		"2-multi": t("bracket.rounds.semis"),
+		"3-multi": t("bracket.rounds.final"),
+		"1-single": t("bracket.rounds.final"),
+	};
 	const tokens = getZoneTokens(bracket.zoneColor);
 
 	// Group by round
@@ -83,8 +87,8 @@ function PublicBracketZone({ bracket }: { bracket: PublicBracket }) {
 						const labelKey = totalRounds === 1 ? "1-single" : `${round}-multi`;
 						const label =
 							round === rounds.at(-1) && mainSlots.length === 1
-								? "Final"
-								: (ROUND_LABELS[labelKey] ?? `R${round}`);
+								? t("bracket.rounds.final")
+								: (roundLabels[labelKey] ?? `R${round}`);
 
 						return (
 							<div key={round} className="flex flex-col items-center gap-1">
@@ -98,7 +102,7 @@ function PublicBracketZone({ bracket }: { bracket: PublicBracket }) {
 								</div>
 								{thirdSlots.length > 0 && (
 									<div className="mt-3 flex flex-col gap-2.5">
-										<p className="text-[9px] text-ink-3 text-center">3er lugar</p>
+										<p className="text-[9px] text-ink-3 text-center">{t("bracket.thirdPlace")}</p>
 										{thirdSlots.map((slot) => (
 											<PublicSlotCard key={slot.id} slot={slot} />
 										))}
@@ -114,6 +118,7 @@ function PublicBracketZone({ bracket }: { bracket: PublicBracket }) {
 }
 
 function PublicSlotCard({ slot }: { slot: PublicSlot }) {
+	const t = useTranslations("org");
 	const isHomeWinner = slot.winner !== null && slot.winner.id === slot.homeTeam?.id;
 	const isAwayWinner = slot.winner !== null && slot.winner.id === slot.awayTeam?.id;
 	const hasResult = slot.winner !== null;
@@ -121,7 +126,7 @@ function PublicSlotCard({ slot }: { slot: PublicSlot }) {
 	if (slot.isBye) {
 		return (
 			<div className="w-36 bg-surface border border-line rounded-lg px-2.5 py-2">
-				<p className="text-xs text-ink-3 italic">Descansa</p>
+				<p className="text-xs text-ink-3 italic">{t("bracket.bye")}</p>
 			</div>
 		);
 	}

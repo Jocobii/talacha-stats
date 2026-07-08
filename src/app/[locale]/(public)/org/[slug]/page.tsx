@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ArrowLeft } from "lucide-react";
+import { Link } from "@/shared/i18n/navigation";
 import { getPublicOrganization, getLeagueSnapshot, getOrgHubStats } from "@/entities/organization";
 import { buildLeagueStories, buildTickerItems, buildNarrativeLine } from "@/features/org-hub";
 import { getOrgTheme } from "@/features/org-theming";
@@ -12,13 +13,17 @@ import LeagueStoryCarousel from "./LeagueStoryCarousel";
 import LeagueNarrativeCard from "./LeagueNarrativeCard";
 import ShareButton from "@/shared/ui/ShareButton";
 import TrialWarning from "./[leagueSlug]/TrialWarning";
+import { isAppLocale } from "@/shared/i18n/config";
+import { buildLocaleAlternates, ogLocale } from "@/shared/i18n/seo";
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = { params: Promise<{ slug: string; locale: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-	const { slug } = await params;
+	const { slug, locale } = await params;
+	const t = await getTranslations({ locale, namespace: "org" });
+	const appLocale = isAppLocale(locale) ? locale : "es";
 	const org = await getPublicOrganization(slug);
-	if (!org) return { title: "Organización no encontrada" };
+	if (!org) return { title: t("notFound") };
 
 	const totalTeams = org.leagues.reduce((acc, l) => acc + l.teams.length, 0);
 	const description = `Hub de ${org.name} en TalachaStats. ${org.leagues.length} liga${org.leagues.length !== 1 ? "s" : ""} activa${org.leagues.length !== 1 ? "s" : ""} en ${org.city}.`;
@@ -47,11 +52,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	return {
 		title: `${org.name} — TalachaStats`,
 		description,
+		alternates: buildLocaleAlternates(appLocale, `/org/${slug}`),
 		openGraph: {
 			title: `${org.name} — TalachaStats`,
 			description,
 			images: [{ url: ogImageUrl, width: 1200, height: 630, alt: org.name }],
 			type: "website",
+			locale: ogLocale(appLocale),
 		},
 		twitter: {
 			card: "summary_large_image",
@@ -63,7 +70,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function OrgPublicPage({ params }: Props) {
-	const { slug } = await params;
+	const { slug, locale } = await params;
+	setRequestLocale(locale);
+	const t = await getTranslations("org");
 	const org = await getPublicOrganization(slug);
 	if (!org) notFound();
 
@@ -94,7 +103,7 @@ export default async function OrgPublicPage({ params }: Props) {
 							className="inline-flex items-center gap-1.5 text-ink-3 hover:text-ink text-sm transition"
 						>
 							<ArrowLeft size={16} strokeWidth={2} />
-							Ligas
+							{t("backToLigas")}
 						</Link>
 						<ShareButton title={org.name} variant="icon" />
 					</div>
@@ -119,9 +128,7 @@ export default async function OrgPublicPage({ params }: Props) {
 			<div className="flex-1 bg-surface px-4 pt-5 pb-16">
 				<div className="max-w-lg mx-auto space-y-8">
 					{org.leagues.length === 0 ? (
-						<p className="text-sm text-ink-3 text-center py-10">
-							No hay ligas activas en este momento.
-						</p>
+						<p className="text-sm text-ink-3 text-center py-10">{t("noActiveLeagues")}</p>
 					) : (
 						leagueData.map(({ league, snapshot, stories, narrative }) => (
 							<section key={league.id} className="space-y-3">

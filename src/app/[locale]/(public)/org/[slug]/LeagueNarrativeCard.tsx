@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { ChevronRight, Trophy, Crosshair } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/shared/i18n/navigation";
 import { titleCase } from "@/shared/lib/normalize";
 import type { LeagueSnapshot } from "@/entities/organization";
 
@@ -31,7 +32,8 @@ type Props = {
  * Muestra el copy generado por buildNarrativeLine() + stats de soporte + CTA.
  * No tiene estado: recibe todo como props desde el Server Component padre.
  */
-export default function LeagueNarrativeCard({ league, snapshot, narrative, orgSlug }: Props) {
+export default async function LeagueNarrativeCard({ league, snapshot, narrative, orgSlug }: Props) {
+	const t = await getTranslations("org");
 	const abbr =
 		DAY_ABBR[league.dayOfWeek.toLowerCase()] ?? league.dayOfWeek.slice(0, 3).toUpperCase();
 	// Si la liga no tiene slug, va a la página de la org (mejor que un "#" inútil)
@@ -47,7 +49,7 @@ export default function LeagueNarrativeCard({ league, snapshot, narrative, orgSl
 				<div className="flex-1 min-w-0">
 					<p className="font-semibold text-sm text-ink truncate">{titleCase(league.name)}</p>
 					<p className="text-xs text-ink-3">
-						{league.season} · {league.teams.length} equipo{league.teams.length !== 1 ? "s" : ""}
+						{league.season} · {t("hero.teams", { count: league.teams.length })}
 					</p>
 				</div>
 				{snapshot.lastJornada && (
@@ -85,7 +87,7 @@ export default function LeagueNarrativeCard({ league, snapshot, narrative, orgSl
 									: titleCase(snapshot.topScorer.fullName)}
 							</span>
 							<span className="text-xs font-bold text-ink-2 shrink-0">
-								{snapshot.topScorer.goals} goles
+								{snapshot.topScorer.goals} {t("scorer.goals")}
 							</span>
 						</div>
 					)}
@@ -97,7 +99,7 @@ export default function LeagueNarrativeCard({ league, snapshot, narrative, orgSl
 				href={href}
 				className="flex items-center justify-between px-4 py-3 text-xs font-semibold text-ink-3 hover:text-brand-ink group transition-colors"
 			>
-				<span>Ver tabla y goleadores completos</span>
+				<span>{t("narrativeCta")}</span>
 				<ChevronRight
 					size={14}
 					strokeWidth={2}

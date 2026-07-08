@@ -13,9 +13,12 @@
  *   font-display (Barlow Condensed) / font-body (Space Grotesk)
  */
 
+import { getTranslations } from "next-intl/server";
 import type { PlayerView, PlayerLeagueStats } from "@/entities/player";
 import type { PlayerEgoStats } from "@/entities/player";
 import ShareFooter from "./ShareFooter";
+
+type Translator = Awaited<ReturnType<typeof getTranslations>>;
 
 // ──────────────────────────────────────────────────────────────────────
 // "EL CEREBRO": qué hero stat / qué logro principal mostrar
@@ -24,17 +27,20 @@ import ShareFooter from "./ShareFooter";
 type Achievement = { title: string; rank: string; short: string };
 type Hero = { value: number | string; label: string };
 
-function pickAchievement(view: PlayerView, ego: PlayerEgoStats): Achievement | null {
+function pickAchievement(view: PlayerView, ego: PlayerEgoStats, t: Translator): Achievement | null {
 	const g = view.global;
 	const pos = ego.positions;
 	const isFemenil = isFemenilProfile(view);
 
-	const goleadorLabel = isFemenil ? "GOLEADORA" : "GOLEADOR";
+	const goleadorLabel = t(isFemenil ? "achievement.goleador.female" : "achievement.goleador.male");
 
 	// #1 de su ciudad — el flex máximo
 	if (pos.city?.rank === 1 && pos.city.goals > 0) {
 		return {
-			title: `${goleadorLabel} DE ${pos.city.cityName.toUpperCase()}`,
+			title: t("achievement.cityTitle", {
+				label: goleadorLabel,
+				city: pos.city.cityName.toUpperCase(),
+			}),
 			rank: "#1",
 			short: goleadorLabel,
 		};
@@ -42,123 +48,157 @@ function pickAchievement(view: PlayerView, ego: PlayerEgoStats): Achievement | n
 	// Top 10% de la ciudad
 	if (ego.cityTopPercent !== null && ego.cityTopPercent <= 10 && pos.city) {
 		return {
-			title: `TOP ${ego.cityTopPercent}% DE ${pos.city.cityName.toUpperCase()}`,
-			rank: `TOP ${ego.cityTopPercent}%`,
+			title: t("achievement.topPercentTitle", {
+				percent: ego.cityTopPercent,
+				city: pos.city.cityName.toUpperCase(),
+			}),
+			rank: t("achievement.topPercentRank", { percent: ego.cityTopPercent }),
 			short: goleadorLabel,
 		};
 	}
 	// #1 de su liga
 	if (pos.league?.rank === 1 && pos.league.goals > 0) {
-		return { title: `${goleadorLabel} DE LIGA`, rank: "#1", short: goleadorLabel };
+		return {
+			title: t("achievement.leagueTitle", { label: goleadorLabel }),
+			rank: "#1",
+			short: goleadorLabel,
+		};
 	}
 	// Artillero: gol por partido o más
 	if (g.goalsPerMatch >= 1 && g.totalMatches >= 5) {
+		const artilleroLabel = t(
+			isFemenil ? "achievement.artillero.female" : "achievement.artillero.male",
+		);
 		return {
-			title: isFemenil ? "ARTILLERA" : "ARTILLERO",
+			title: artilleroLabel,
 			rank: `${g.goalsPerMatch.toFixed(2)} G/PJ`,
 			short: "ARTILLERO",
 		};
 	}
 	// Racha
 	if (ego.goalStreak >= 3) {
-		return { title: "EN RACHA", rank: `${ego.goalStreak} PJ`, short: "RACHA" };
+		return {
+			title: t("achievement.racha"),
+			rank: t("achievement.rankMatches", { count: ego.goalStreak }),
+			short: "RACHA",
+		};
 	}
 	// Multiligas
 	if (g.leaguesCount >= 2) {
 		return {
-			title: "EN MÚLTIPLES LIGAS",
-			rank: `${g.leaguesCount} LIGAS`,
+			title: t("achievement.multiligas"),
+			rank: t("achievement.rankLigas", { count: g.leaguesCount }),
 			short: "MULTILIGAS",
 		};
 	}
 	// Veterano — más de 25 PJ
 	if (g.totalMatches >= 25) {
 		return {
-			title: isFemenil ? "VETERANA" : "VETERANO",
-			rank: `${g.totalMatches} PJ`,
+			title: t(isFemenil ? "achievement.veterano.female" : "achievement.veterano.male"),
+			rank: t("achievement.rankMatches", { count: g.totalMatches }),
 			short: "VETERANO",
 		};
 	}
 	// Fijo en el XI (10+ partidos en su liga principal)
 	if (g.totalMatches >= 10) {
-		return { title: "FIJO EN EL XI", rank: `${g.totalMatches} PJ`, short: "TITULAR" };
+		return {
+			title: t("achievement.titular"),
+			rank: t("achievement.rankMatches", { count: g.totalMatches }),
+			short: "TITULAR",
+		};
 	}
 	// Mínimo: activo en temporada
 	if (g.totalMatches > 0) {
 		return {
-			title: "ACTIVO EN LA TEMPORADA",
-			rank: `${g.totalMatches} PJ`,
+			title: t("achievement.activo"),
+			rank: t("achievement.rankMatches", { count: g.totalMatches }),
 			short: "ACTIVO",
 		};
 	}
 	return null;
 }
 
-function pickHero(view: PlayerView): Hero {
+function pickHero(view: PlayerView, t: Translator): Hero {
 	const g = view.global;
 
 	// Mediocampista típico: más asistencias que goles → G+A es el flex
 	if (g.totalAssists > g.totalGoals && g.totalContributions > 0) {
-		return { value: g.totalContributions, label: "GOLES + ASIST." };
+		return { value: g.totalContributions, label: t("hero.goalsAndAssists") };
 	}
 	// Goleador / standard
 	if (g.totalGoals > 0) {
-		return { value: g.totalGoals, label: "GOLES TOTALES" };
+		return { value: g.totalGoals, label: t("hero.totalGoals") };
 	}
 	// Jugador sin goles: presumir asistencias
 	if (g.totalAssists > 0) {
-		return { value: g.totalAssists, label: "ASISTENCIAS" };
+		return { value: g.totalAssists, label: t("hero.assists") };
 	}
 	// Sin contribuciones, presumir presencia
 	if (g.totalMatches > 0) {
-		return { value: g.totalMatches, label: "PJ JUGADOS" };
+		return { value: g.totalMatches, label: t("hero.matchesPlayed") };
 	}
-	return { value: 0, label: "DEBUT PENDIENTE" };
+	return { value: 0, label: t("hero.debutPending") };
 }
 
-function pickSecondaryStats(view: PlayerView, hero: Hero) {
+function pickSecondaryStats(view: PlayerView, hero: Hero, t: Translator) {
 	const g = view.global;
 	const stats: { value: string | number; label: string }[] = [];
 
 	// No repetir el hero
-	if (hero.label !== "GOLES TOTALES" && g.totalGoals > 0) {
-		stats.push({ value: g.totalGoals, label: "GOLES" });
+	if (hero.label !== t("hero.totalGoals") && g.totalGoals > 0) {
+		stats.push({ value: g.totalGoals, label: t("secondary.goals") });
 	}
 	if (g.goalsPerMatch > 0 && g.totalMatches >= 3) {
-		stats.push({ value: g.goalsPerMatch.toFixed(2), label: "G / PJ" });
+		stats.push({ value: g.goalsPerMatch.toFixed(2), label: t("secondary.goalsPerMatch") });
 	}
 	if (g.totalMatches > 0) {
-		stats.push({ value: g.totalMatches, label: "PJ" });
+		stats.push({ value: g.totalMatches, label: t("secondary.matches") });
 	}
-	stats.push({ value: g.leaguesCount, label: g.leaguesCount === 1 ? "LIGA" : "LIGAS" });
+	stats.push({
+		value: g.leaguesCount,
+		label: t(g.leaguesCount === 1 ? "secondary.league" : "secondary.leagues"),
+	});
 
 	return stats.slice(0, 3);
 }
 
-function pickAcreditaciones(view: PlayerView, ego: PlayerEgoStats): { l: string; n: string }[] {
+function pickAcreditaciones(
+	view: PlayerView,
+	ego: PlayerEgoStats,
+	t: Translator,
+): { l: string; n: string }[] {
 	const out: string[] = [];
 
-	if (ego.positions.league?.rank === 1) out.push("Goleador de liga");
-	if (view.global.leaguesCount >= 2) out.push(`Activo en ${view.global.leaguesCount} ligas`);
+	if (ego.positions.league?.rank === 1) out.push(t("acreditaciones.leagueScorer"));
+	if (view.global.leaguesCount >= 2) {
+		out.push(t("acreditaciones.activeInLeagues", { count: view.global.leaguesCount }));
+	}
 	if (ego.hatTricks > 0) {
-		out.push(ego.hatTricks === 1 ? "Hat-trick conseguido" : `${ego.hatTricks} hat-tricks`);
+		out.push(
+			ego.hatTricks === 1
+				? t("acreditaciones.hatTrick")
+				: t("acreditaciones.hatTricks", { count: ego.hatTricks }),
+		);
 	}
-	if (ego.goalStreak >= 3) out.push(`Racha activa de ${ego.goalStreak} partidos`);
+	if (ego.goalStreak >= 3) {
+		out.push(t("acreditaciones.streak", { count: ego.goalStreak }));
+	}
 	if (view.global.goalsPerMatch >= 1 && view.global.totalMatches >= 5) {
-		out.push("Promedio de 1+ gol por partido");
+		out.push(t("acreditaciones.averageGoal"));
 	}
-	if (view.global.totalMatches >= 25) out.push(`Veterano · ${view.global.totalMatches} PJ`);
+	if (view.global.totalMatches >= 25) {
+		out.push(t("acreditaciones.veteran", { count: view.global.totalMatches }));
+	}
 
 	if (out.length === 0 && view.global.totalMatches > 0) {
-		out.push(`Debut con ${view.leagues[0]?.teamName ?? "su equipo"}`);
-		out.push(`${view.global.totalMatches} partidos disputados`);
+		out.push(t("acreditaciones.debutWith", { team: view.leagues[0]?.teamName ?? "su equipo" }));
+		out.push(t("acreditaciones.matchesPlayedCount", { count: view.global.totalMatches }));
 	}
 
 	return out.slice(0, 4).map((l, i) => ({ l, n: String(i + 1).padStart(2, "0") }));
 }
 
-function isFemenilProfile(view: PlayerView): boolean {
-	console.log(view);
+function isFemenilProfile(_view: PlayerView): boolean {
 	return false; // si en el futuro guardas género en `players`, devuélvelo aquí.
 	// Hoy las ligas tienen `category` (e.g. "Libre Femenil") pero está en cada liga,
 	// y un jugador puede estar en varias. Mejor depender de un campo en `players`.
@@ -171,59 +211,64 @@ function splitHeadline(title: string): [string, string] {
 	return [words.slice(0, half).join(" "), words.slice(half).join(" ") + "."];
 }
 
-function buildDek(view: PlayerView, ego: PlayerEgoStats, achievement: Achievement | null) {
+function buildDek(
+	view: PlayerView,
+	ego: PlayerEgoStats,
+	achievement: Achievement | null,
+	t: Translator,
+) {
 	const name = view.alias ? `"${view.alias}"` : view.fullName;
 	const g = view.global;
 
-	if (achievement?.short === "GOLEADOR" || achievement?.short === "GOLEADORA") {
+	const goleadorLabels = [t("achievement.goleador.male"), t("achievement.goleador.female")];
+	if (achievement && goleadorLabels.includes(achievement.short)) {
 		const city = ego.positions.city?.cityName ?? "su ciudad";
 		const total = ego.positions.city?.total ?? 0;
-		return (
-			<>
-				<strong className="text-ink font-bold">{name}</strong> encabeza el ranking de {city} entre{" "}
-				{total} jugadores con {g.totalGoals} goles en {g.leaguesCount}{" "}
-				{g.leaguesCount === 1 ? "liga" : "ligas"}.
-			</>
-		);
+		return t.rich("dek.goleador", {
+			name,
+			city,
+			total,
+			goals: g.totalGoals,
+			leagues: g.leaguesCount,
+			strong: (chunks) => <strong className="text-ink font-bold">{chunks}</strong>,
+		});
 	}
 	if (achievement?.short === "ARTILLERO") {
-		return (
-			<>
-				<strong className="text-ink font-bold">{name}</strong> promedia {g.goalsPerMatch.toFixed(2)}{" "}
-				goles por partido en {g.totalMatches} disputados.
-			</>
-		);
+		return t.rich("dek.artillero", {
+			name,
+			gpm: g.goalsPerMatch.toFixed(2),
+			matches: g.totalMatches,
+			strong: (chunks) => <strong className="text-ink font-bold">{chunks}</strong>,
+		});
 	}
 	if (achievement?.short === "MULTILIGAS") {
-		return (
-			<>
-				<strong className="text-ink font-bold">{name}</strong> juega en {g.leaguesCount} ligas con{" "}
-				{g.totalGoals + g.totalAssists} contribuciones de gol esta temporada.
-			</>
-		);
+		return t.rich("dek.multiligas", {
+			name,
+			leagues: g.leaguesCount,
+			contributions: g.totalGoals + g.totalAssists,
+			strong: (chunks) => <strong className="text-ink font-bold">{chunks}</strong>,
+		});
 	}
 	if (achievement?.short === "RACHA") {
-		return (
-			<>
-				<strong className="text-ink font-bold">{name}</strong> anota en {ego.goalStreak} partidos
-				seguidos.
-			</>
-		);
+		return t.rich("dek.racha", {
+			name,
+			streak: ego.goalStreak,
+			strong: (chunks) => <strong className="text-ink font-bold">{chunks}</strong>,
+		});
 	}
 	if (achievement?.short === "TITULAR") {
-		return (
-			<>
-				<strong className="text-ink font-bold">{name}</strong> fue titular en {g.totalMatches}{" "}
-				partidos esta temporada.
-			</>
-		);
+		return t.rich("dek.titular", {
+			name,
+			matches: g.totalMatches,
+			strong: (chunks) => <strong className="text-ink font-bold">{chunks}</strong>,
+		});
 	}
-	return (
-		<>
-			<strong className="text-ink font-bold">{name}</strong> juega en {g.leaguesCount}{" "}
-			{g.leaguesCount === 1 ? "liga" : "ligas"} y acumula {g.totalMatches} PJ.
-		</>
-	);
+	return t.rich("dek.default", {
+		name,
+		leagues: g.leaguesCount,
+		matches: g.totalMatches,
+		strong: (chunks) => <strong className="text-ink font-bold">{chunks}</strong>,
+	});
 }
 
 function leagueShare(
@@ -239,7 +284,7 @@ function leagueShare(
 	};
 }
 
-export default function PlayerEditorialProfile({
+export default async function PlayerEditorialProfile({
 	view,
 	ego,
 	shareUrl,
@@ -248,11 +293,12 @@ export default function PlayerEditorialProfile({
 	ego: PlayerEgoStats;
 	shareUrl?: string;
 }) {
-	const achievement = pickAchievement(view, ego);
-	const hero = pickHero(view);
-	const secondary = pickSecondaryStats(view, hero);
-	const acreditaciones = pickAcreditaciones(view, ego);
-	const dek = buildDek(view, ego, achievement);
+	const t = await getTranslations("player");
+	const achievement = pickAchievement(view, ego, t);
+	const hero = pickHero(view, t);
+	const secondary = pickSecondaryStats(view, hero, t);
+	const acreditaciones = pickAcreditaciones(view, ego, t);
+	const dek = buildDek(view, ego, achievement, t);
 
 	const [line1, line2] = splitHeadline(achievement?.title ?? view.fullName);
 
@@ -278,7 +324,7 @@ export default function PlayerEditorialProfile({
 				{/* Eyebrow + Headline + Dek */}
 				<section className="mt-5">
 					<p className="font-body text-[11px] font-semibold tracking-[0.18em] uppercase text-brand-ink">
-						● {isFemenilProfile(view) ? "Perfil de jugadora" : "Perfil de jugador"}
+						● {t(isFemenilProfile(view) ? "profileEyebrow.female" : "profileEyebrow.male")}
 					</p>
 					<h1 className="mt-3 font-display font-black text-5xl sm:text-6xl leading-[0.88] tracking-tight uppercase">
 						{line1}
@@ -318,7 +364,7 @@ export default function PlayerEditorialProfile({
 				{acreditaciones.length > 0 && (
 					<section className="mt-5">
 						<p className="font-mono text-[10px] font-semibold tracking-[0.16em] uppercase text-ink-3">
-							Acreditaciones
+							{t("acreditaciones.title")}
 						</p>
 						<ul className="mt-2 flex flex-col">
 							{acreditaciones.map((row, i) => (
@@ -343,7 +389,7 @@ export default function PlayerEditorialProfile({
 				{activeLigas.length > 0 && (
 					<section className="mt-4">
 						<p className="font-mono text-[10px] font-semibold tracking-[0.16em] uppercase text-ink-3">
-							En curso
+							{t("enCurso")}
 						</p>
 						<ul className="mt-2 flex flex-col gap-2">
 							{activeLigas.map((l, i) => {
@@ -374,7 +420,7 @@ export default function PlayerEditorialProfile({
 														/>
 													</div>
 													<div className="mt-1 flex justify-between font-mono text-[10px] tracking-wide text-ink-2">
-														<span>{share.pct}% goles equipo</span>
+														<span>{t("teamGoalsShare", { pct: share.pct })}</span>
 														<span>
 															{share.teamGoals}/{share.totalTeamGoals}
 														</span>
@@ -387,7 +433,7 @@ export default function PlayerEditorialProfile({
 												{l.goals}
 											</p>
 											<p className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-3">
-												Goles
+												{t("secondary.goals")}
 											</p>
 											{l.assists > 0 && (
 												<p className="mt-1 font-mono text-[10px] tracking-[0.08em] text-ink-2">

@@ -1,14 +1,19 @@
 import { CircleAlertIcon } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
-function TrialWarning({ org }: { org: { name: string } }) {
+async function TrialWarning({ org }: { org: { name: string } }) {
+	const t = await getTranslations("org");
+
 	return (
 		<div className="w-full px-4 py-2.5 text-center">
 			<p className="text-sm inline-flex items-center justify-center gap-2">
 				<CircleAlertIcon className="w-4 h-4" />
 				<span>
-					<strong>{org.name}</strong> esta en{" "}
-					<span className="text-amber-700 font-semibold">modo trial</span> — los datos no aparecen
-					en los rankings publicos todavia.
+					{t.rich("trialWarning", {
+						name: org.name,
+						strong: (chunks) => <strong>{chunks}</strong>,
+						badge: (chunks) => <span className="text-amber-700 font-semibold">{chunks}</span>,
+					})}
 				</span>
 			</p>
 		</div>

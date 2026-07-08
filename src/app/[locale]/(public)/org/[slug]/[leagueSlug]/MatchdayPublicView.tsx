@@ -9,21 +9,22 @@
 
 import { useState, useRef } from "react";
 import { CalendarDays, Clock, MapPin, AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { PublicMatchday } from "@/entities/organization";
 
 type Props = {
 	matchdays: PublicMatchday[];
 };
 
-function timeAgo(date: Date): string {
+function timeAgo(date: Date, t: ReturnType<typeof useTranslations>): string {
 	const diffMs = Date.now() - date.getTime();
 	const diffH = Math.floor(diffMs / (1000 * 60 * 60));
-	if (diffH < 1) return "hace menos de 1 hora";
-	if (diffH === 1) return "hace 1 hora";
-	if (diffH < 24) return `hace ${diffH} horas`;
+	if (diffH < 1) return t("matchdayView.timeAgo.lessThanHour");
+	if (diffH === 1) return t("matchdayView.timeAgo.oneHour");
+	if (diffH < 24) return t("matchdayView.timeAgo.hours", { count: diffH });
 	const diffD = Math.floor(diffH / 24);
-	if (diffD === 1) return "hace 1 día";
-	return `hace ${diffD} días`;
+	if (diffD === 1) return t("matchdayView.timeAgo.oneDay");
+	return t("matchdayView.timeAgo.days", { count: diffD });
 }
 
 function fmtKickoff(kickoffAt: Date): string {
@@ -95,24 +96,27 @@ function MatchCard({ match }: { match: PublicMatchday["matches"][0] }) {
 }
 
 function RecentlyUpdatedBanner({ lastConfirmedAt }: { lastConfirmedAt: Date }) {
+	const t = useTranslations("org");
 	return (
 		<div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber/8 border border-amber/20 text-[12px] text-amber">
 			<AlertCircle size={13} className="shrink-0" />
 			<span>
-				Sorteo actualizado · <span className="font-semibold">{timeAgo(lastConfirmedAt)}</span>
+				{t("matchdayView.updated")}{" "}
+				<span className="font-semibold">{timeAgo(lastConfirmedAt, t)}</span>
 			</span>
 		</div>
 	);
 }
 
 export default function MatchdayPublicView({ matchdays }: Props) {
+	const t = useTranslations("org");
 	const [selectedIdx, setSelectedIdx] = useState(0);
 	const chipsRef = useRef<HTMLDivElement>(null);
 
 	if (matchdays.length === 0) {
 		return (
 			<div className="bg-surface-2 border border-line rounded-2xl p-6 text-center text-ink-3 text-sm">
-				Aún no hay jornadas publicadas para esta liga.
+				{t("matchdayView.empty")}
 			</div>
 		);
 	}
@@ -165,7 +169,7 @@ export default function MatchdayPublicView({ matchdays }: Props) {
 			{/* Tarjetas de partidos */}
 			{selected.matches.length === 0 ? (
 				<div className="bg-surface-2 border border-line rounded-xl p-4 text-center text-ink-3 text-sm">
-					No hay partidos programados para esta jornada.
+					{t("matchdayView.noMatches")}
 				</div>
 			) : (
 				<div className="flex flex-col gap-2">
