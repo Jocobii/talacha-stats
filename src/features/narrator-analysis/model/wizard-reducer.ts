@@ -29,10 +29,19 @@ export type WizardState = {
 	teamAId: string | null;
 	teamBId: string | null;
 	analysis: NarratorAnalysis | null;
+	sheetNames: string[]; // hojas del libro (p.ej. una por jornada); [] si aún no se parsea
+	selectedSheetIndex: number; // hoja actualmente parseada (default: la última)
 };
 
 export type WizardAction =
-	| { type: "PARSED"; grid: string[][]; headerRowIndex: number; mapping: ColumnMapping }
+	| {
+			type: "PARSED";
+			grid: string[][];
+			headerRowIndex: number;
+			mapping: ColumnMapping;
+			sheetNames: string[];
+			selectedSheetIndex: number;
+	  }
 	| { type: "SET_HEADER_ROW"; index: number }
 	| { type: "SET_MAPPING_FIELD"; field: CanonicalField; columnIndex: number | null }
 	| { type: "OPEN_MAPPING" }
@@ -56,6 +65,8 @@ export const initialWizardState: WizardState = {
 	teamAId: null,
 	teamBId: null,
 	analysis: null,
+	sheetNames: [],
+	selectedSheetIndex: 0,
 };
 
 export function wizardReducer(state: WizardState, action: WizardAction): WizardState {
@@ -66,6 +77,8 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
 				grid: action.grid,
 				headerRowIndex: action.headerRowIndex,
 				mapping: action.mapping,
+				sheetNames: action.sheetNames,
+				selectedSheetIndex: action.selectedSheetIndex,
 				teamAId: null,
 				teamBId: null,
 				analysis: null,

@@ -10,6 +10,7 @@ import {
 	ChevronRight,
 	Mail,
 	ExternalLink,
+	Archive,
 } from "lucide-react";
 import { isAppLocale } from "@/shared/i18n/config";
 import { buildLocaleAlternates } from "@/shared/i18n/seo";
@@ -207,6 +208,29 @@ export default async function AboutPage({ params }: AboutPageProps) {
 							</div>
 						))}
 					</div>
+				</div>
+			</section>
+
+			{/* ── BAÚL DE RECUERDOS ─────────────────────────────────────── */}
+			<section className="px-5 py-16 max-w-3xl mx-auto w-full">
+				<div className="flex flex-col items-center text-center">
+					<div className="w-11 h-11 rounded-xl bg-surface-2 border border-line flex items-center justify-center mb-6">
+						<Archive size={20} className="text-brand-ink" strokeWidth={2} />
+					</div>
+					<p className="text-xs font-bold text-brand-ink uppercase tracking-widest mb-4">
+						{t("vault.eyebrow")}
+					</p>
+					<h2 className="font-display font-black text-3xl sm:text-4xl uppercase leading-tight mb-6">
+						{t("vault.headline1")}
+						<br />
+						<span className="text-ink-2">{t("vault.headline2")}</span>
+					</h2>
+					<p className="text-ink-2 leading-relaxed text-sm sm:text-base max-w-xl">
+						{t("vault.body")}
+					</p>
+					<p className="text-ink-3 text-xs font-semibold uppercase tracking-wide mt-6 bg-surface-2 border border-line rounded-full px-4 py-2">
+						{t("vault.highlight")}
+					</p>
 				</div>
 			</section>
 

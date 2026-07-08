@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useCallback, useMemo, useReducer } from "react";
+import { useCallback, useMemo, useReducer, useRef } from "react";
 import { apiFetch, apiUpload } from "@/shared/api/client";
 import { useMutation } from "@tanstack/react-query";
 import type {
@@ -65,24 +65,30 @@ function saveTemplate(signature: string, mapping: ColumnMapping): void {
 
 export function useExcelNarratorWizard() {
 	const [state, dispatch] = useReducer(wizardReducer, initialWizardState);
+	// Guardamos el File ya elegido para poder re-parsear otra hoja (jornada) sin
+	// pedirle al usuario que vuelva a subir el archivo.
+	const fileRef = useRef<File | null>(null);
 
 	const parse = useMutation({
-		mutationFn: async (file: File) => {
+		mutationFn: async ({ file, sheetIndex }: { file: File; sheetIndex?: number }) => {
 			const formData = new FormData();
 			formData.append("file", file);
+			if (sheetIndex !== undefined) formData.append("sheetIndex", String(sheetIndex));
 			const res = await apiUpload<ParseExcelResult>("/api/narrator/excel/parse", formData);
 			if (!res.ok) throw new Error(res.error);
 			return res.data;
 		},
 		onSuccess: (result) => {
 			const headers = result.grid[result.headerRowIndex] ?? [];
-			// Si ya conocemos este formato de otra cancha, reusamos su mapeo.
+			// Si ya conocemos este formato de otra cancha/jornada, reusamos su mapeo.
 			const remembered = readTemplate(headerSignature(headers));
 			dispatch({
 				type: "PARSED",
 				grid: result.grid,
 				headerRowIndex: result.headerRowIndex,
 				mapping: remembered ?? result.suggestedMapping,
+				sheetNames: result.sheetNames,
+				selectedSheetIndex: result.selectedSheetIndex,
 			});
 		},
 	});
@@ -113,8 +119,18 @@ export function useExcelNarratorWizard() {
 	// ── Callbacks (componentes tontos) ─────────────────────────────────────────
 	const handleFile = useCallback(
 		(file: File) => {
+			fileRef.current = file;
 			parse.reset();
-			parse.mutate(file);
+			parse.mutate({ file }); // sin sheetIndex → el server elige la última hoja
+		},
+		[parse],
+	);
+
+	// Cambiar de hoja (jornada) del MISMO archivo ya elegido, sin re-subir.
+	const changeSheet = useCallback(
+		(sheetIndex: number) => {
+			if (!fileRef.current) return;
+			parse.mutate({ file: fileRef.current, sheetIndex });
 		},
 		[parse],
 	);
@@ -138,6 +154,7 @@ export function useExcelNarratorWizard() {
 	const changeTeams = useCallback(() => dispatch({ type: "CHANGE_TEAMS" }), []);
 	const back = useCallback(() => dispatch({ type: "BACK" }), []);
 	const reset = useCallback(() => {
+		fileRef.current = null;
 		parse.reset();
 		analyze.reset();
 		dispatch({ type: "RESET" });
@@ -165,6 +182,7 @@ export function useExcelNarratorWizard() {
 		analyzing: analyze.isPending,
 		analyzeError: analyze.error?.message ?? null,
 		handleFile,
+		changeSheet,
 		setHeaderRow,
 		setField,
 		openMapping,

@@ -42,8 +42,8 @@
 		"steps": [
 			{
 				"step": "01",
-				"title": "El organizador sube su Excel",
-				"desc": "Una vez por semana, el organizador de la liga sube los resultados en el mismo formato que ya usa. Sin cambiar su flujo de trabajo."
+				"title": "El organizador captura los resultados",
+				"desc": "Después de cada jornada, el organizador da de alta el marcador y las estadísticas en un formulario simple — la cédula. Sin subir archivos, sin cambiar de plataforma."
 			},
 			{
 				"step": "02",
@@ -62,17 +62,24 @@
 		"headline1": "Tijuana primero.",
 		"headline2": "Después el mundo.",
 		"body1": "Empezamos en Tijuana porque es nuestra ciudad y porque tiene una escena de fútbol amateur vibrante que merece ser documentada. El objetivo es que cada liga que se sume haga el ranking más completo y más competitivo — hasta que no haya duda de quién es el mejor jugador amateur de la ciudad.",
-		"body2": "Después de Tijuana, cualquier ciudad. El modelo es el mismo: un Excel semanal, un perfil por jugador, un ranking que lo dice todo.",
+		"body2": "Después de Tijuana, cualquier ciudad. El modelo es el mismo: captura semanal, un perfil por jugador, un ranking que lo dice todo.",
 		"stats": [
 			{ "value": "∞", "label": "Goles por registrar" },
 			{ "value": "1", "label": "Perfil por jugador" },
 			{ "value": "🏙️", "label": "Ciudad conectada" }
 		]
 	},
+	"vault": {
+		"eyebrow": "Más que un ranking",
+		"headline1": "Un lugar al que",
+		"headline2": "siempre puedes volver.",
+		"body": "Los años pasan, cambias de liga, dejas de jugar — tu perfil se queda. Cada gol, cada racha, cada equipo con el que jugaste, guardado para cuando quieras volver a verlo.",
+		"highlight": "Tu historial no se borra. Se guarda."
+	},
 	"cta": {
 		"eyebrow": "Para organizadores",
 		"headline": "Tus jugadores merecen esto.",
-		"body": "Activa TalachaStats en tu liga. Sin cambiar tu flujo de trabajo — solo súbenos tu Excel de cada semana y nosotros hacemos el resto. Es gratis mientras estamos en demo.",
+		"body": "Activa TalachaStats en tu liga. Sin cambiar tu flujo de trabajo — solo captura tus resultados cada semana y nosotros hacemos el resto. Es gratis mientras estamos en demo.",
 		"activate": "Quiero activarla",
 		"viewDemo": "Ver demo primero"
 	},
