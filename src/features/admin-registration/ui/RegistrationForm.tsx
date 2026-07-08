@@ -9,6 +9,7 @@
 import { Loader2, User } from "lucide-react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
+import { redirect } from "next/navigation";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { useRegistrationForm } from "../model/useRegistrationForm";
 import { StageIndicator } from "./StageIndicator";
@@ -116,7 +117,7 @@ export default function RegistrationForm({ fixedLeague, leagues = [] }: Props) {
 					sessionCount={sessionCount}
 					onNext={reset}
 					onEnd={() => {
-						/* noop */
+						redirect("/admin/players");
 					}}
 				/>
 			)}

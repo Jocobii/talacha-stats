@@ -81,7 +81,7 @@ export function NewVenueModal({
 						</div>
 						<div className="flex-1">
 							<h2
-								className="text-[26px] leading-none tracking-tight font-black"
+								className="text-[26px] leading-none tracking-tight text-ink font-bold"
 								style={{ fontFamily: "var(--font-display)" }}
 							>
 								{isEdit ? "Editar cancha" : "Registrar cancha"}

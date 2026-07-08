@@ -60,13 +60,13 @@ export default async function VenueCalendarPage() {
 					<MapPin size={40} className="mx-auto text-ink-3" />
 					<p className="font-semibold text-ink">Sin canchas registradas</p>
 					<p className="text-sm text-ink-2">
-						Registra una cancha en el módulo de sorteo para verla aquí.
+						Registra una cancha en el módulo de canchas para verla aquí.
 					</p>
 					<Link
-						href="/admin/leagues"
+						href="/admin/canchas"
 						className="inline-block text-brand-ink text-sm hover:underline mt-2"
 					>
-						Ir a ligas →
+						Ir a módulo de canchas →
 					</Link>
 				</div>
 			) : (

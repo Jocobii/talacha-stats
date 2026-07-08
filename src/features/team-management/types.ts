@@ -4,8 +4,9 @@
  */
 
 import type { RosterEntry, UpdateTeamData, UpdateRosterMemberData } from "@/entities/team";
+import type { OrgPlayerSearchResult } from "@/entities/player";
 
-export type { RosterEntry, UpdateTeamData, UpdateRosterMemberData };
+export type { RosterEntry, UpdateTeamData, UpdateRosterMemberData, OrgPlayerSearchResult };
 
 export type ModalType = "add" | "transfer" | "remove" | "edit" | null;
 
