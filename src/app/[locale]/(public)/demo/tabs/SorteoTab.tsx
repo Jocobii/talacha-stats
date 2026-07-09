@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Shuffle, RotateCcw, Check, ArrowLeftRight, Lock, Plus, MapPin } from "lucide-react";
 import { SORTEO } from "../mock";
 import { CoordHeader } from "../ui/CoordHeader";
+import { SorteoShareAnimation } from "../ui/SorteoShareAnimation";
 
 export function SorteoTab() {
 	const t = useTranslations("demo");
@@ -15,7 +16,10 @@ export function SorteoTab() {
 				subtitle={t("sorteo.subtitle", { jornada: SORTEO.jornada })}
 			/>
 			<div className="flex-1 bg-surface rounded-t-3xl px-4 pt-6 pb-12">
-				<div className="max-w-4xl mx-auto">
+				<div className="max-w-4xl mx-auto space-y-6">
+					{/* Showcase animado: generar sorteo + compartir a WhatsApp */}
+					<SorteoShareAnimation />
+
 					<section className="bg-surface-2 border border-line rounded-xl overflow-hidden">
 						{/* Toolbar */}
 						<div className="px-4 py-3.5 border-b border-line flex items-center gap-2.5 flex-wrap">
