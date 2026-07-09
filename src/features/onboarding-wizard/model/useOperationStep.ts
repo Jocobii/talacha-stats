@@ -28,7 +28,8 @@ type Params = {
 
 export function useOperationStep({ organizationId, initialVenue, onReady }: Params) {
 	const venueForm = useForm<CreateVenueInput>({
-		resolver: zodResolver(CreateVenueSchema),
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		resolver: zodResolver(CreateVenueSchema as any),
 		mode: "onBlur",
 		defaultValues: { organizationId, name: "", capacity: 1, color: "#60A5FA" },
 	});

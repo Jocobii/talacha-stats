@@ -61,6 +61,9 @@ export function ResendVerification({ email }: { email: string }) {
 
 	const canResend = remaining <= 0 && status !== "sending";
 
+	// Avoid narrowing issues in JSX branches by using a boolean flag
+	const isSending = status === "sending";
+
 	return (
 		<div className="flex flex-col items-center gap-2">
 			<div className="flex items-center justify-center gap-2 text-sm text-ink-3">
@@ -68,15 +71,11 @@ export function ResendVerification({ email }: { email: string }) {
 					<button
 						type="button"
 						onClick={handleResend}
-						disabled={status === "sending"}
+						disabled={isSending}
 						className="inline-flex items-center gap-1.5 text-brand-ink hover:text-brand font-semibold disabled:opacity-50"
 					>
-						<RefreshCw
-							size={13}
-							strokeWidth={2.25}
-							className={cn(status === "sending" && "animate-spin")}
-						/>
-						{status === "sending" ? "Enviando..." : "Reenviar correo"}
+						<RefreshCw size={13} strokeWidth={2.25} className={cn(isSending && "animate-spin")} />
+						{isSending ? "Enviando..." : "Reenviar correo"}
 					</button>
 				) : (
 					<span>

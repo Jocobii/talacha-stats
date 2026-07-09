@@ -41,7 +41,7 @@ export function useIdentityStepForm({ onIdentityReady, onDraftChange }: Params) 
 		onDraftChange({
 			name: next.name ?? current.name,
 			slug: next.slug ?? current.slug,
-			logoUrl: next.logoUrl ?? current.logoUrl,
+			logoUrl: next.logoUrl ?? current.logoUrl ?? "",
 			style: next.style ?? style,
 		});
 	}
