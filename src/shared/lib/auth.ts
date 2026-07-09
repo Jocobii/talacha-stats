@@ -9,6 +9,7 @@
  */
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { verifySession, getSessionToken } from "./session";
 import { getUserById } from "@/entities/user";
 
@@ -55,6 +56,25 @@ async function resolveUser(token: string): Promise<SessionUser | null> {
 		role: user.role as SessionUser["role"],
 		organizationId: user.organizationId ?? null,
 	};
+}
+
+/**
+ * Redirige a /login limpiando la cookie ts_session en el camino.
+ *
+ * Usar en vez de `redirect("/login")` cuando `getSessionUser()` devolvió
+ * null: el middleware (proxy.ts) solo checa presencia de cookie, no validez
+ * (por diseño — ver comentario en guardSession). Si la cookie sigue ahí pero
+ * inválida (HMAC de un SESSION_SECRET viejo, o el usuario ya no existe en
+ * DB), un `redirect("/login")` normal entra en loop: el middleware ve la
+ * cookie y rebota /login → /admin → esta página vuelve a fallar → /login…
+ * hasta ERR_TOO_MANY_REDIRECTS con pantalla en blanco. Un Server Component
+ * no puede hacer Set-Cookie, así que el clear pasa por un Route Handler.
+ */
+export function redirectToLogin(from?: string): never {
+	const url = from
+		? `/api/auth/session-expired?from=${encodeURIComponent(from)}`
+		: "/api/auth/session-expired";
+	redirect(url);
 }
 
 /**

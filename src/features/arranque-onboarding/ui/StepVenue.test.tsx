@@ -18,7 +18,7 @@ function setup(createdVenues: CreatedVenueView[] = []) {
 	render(
 		<Wrapper>
 			<StepVenue
-				organizationId="org1"
+				organizationId="11111111-1111-1111-1111-111111111111"
 				createdVenues={createdVenues}
 				onVenueCreated={onVenueCreated}
 				onContinue={onContinue}

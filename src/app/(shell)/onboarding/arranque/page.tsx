@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/shared/lib/auth";
+import { getSessionUser, redirectToLogin } from "@/shared/lib/auth";
 import { getArranqueState } from "@/entities/organization";
 import { listVenuesByOrganization } from "@/entities/venue";
 import { mapVenueToChip, type ArranqueStep } from "@/features/arranque-onboarding";
@@ -7,7 +7,7 @@ import ArranqueClient from "./ArranqueClient";
 
 export default async function ArranquePage() {
 	const user = await getSessionUser();
-	if (!user) redirect("/login");
+	if (!user) redirectToLogin();
 	if (!user.organizationId) redirect("/onboarding");
 
 	const state = await getArranqueState(user.organizationId);

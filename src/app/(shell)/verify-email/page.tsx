@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Mail, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Mail, Clock, CheckCircle2 } from "lucide-react";
+import { Stepper } from "@/shared/ui/Stepper";
+import { ResendVerification } from "@/shared/ui/ResendVerification";
 
 interface PageProps {
 	searchParams: Promise<Record<string, string>>;
@@ -27,17 +29,28 @@ function BrandLogo() {
 	);
 }
 
+function EmailPill({ email }: { email: string }) {
+	return (
+		<div className="inline-flex items-center gap-2 bg-surface border border-line rounded-full pl-3.5 pr-4 py-1.5 text-sm text-ink">
+			<span className="h-2 w-2 rounded-full bg-brand" />
+			{email}
+		</div>
+	);
+}
+
 function VerifyEmailContent({ searchParams }: { searchParams: Record<string, string> }) {
-	const { error } = searchParams;
+	const { error, email } = searchParams;
 	const isExpired = error === "token-expired";
 
 	if (isExpired) {
 		return (
 			<div className="min-h-screen bg-pitch flex items-center justify-center px-4">
-				<div className="w-full max-w-sm space-y-8 text-center">
+				<div className="w-full max-w-sm space-y-6 text-center">
 					<div className="flex justify-center">
 						<BrandLogo />
 					</div>
+
+					<Stepper steps={["Crear cuenta", "Verificar correo"]} current={1} />
 
 					<div>
 						<div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20">
@@ -51,16 +64,28 @@ function VerifyEmailContent({ searchParams }: { searchParams: Record<string, str
 						</p>
 					</div>
 
+					{email && (
+						<div className="flex justify-center">
+							<EmailPill email={email} />
+						</div>
+					)}
+
 					<div className="bg-surface border border-line rounded-2xl p-6 space-y-4">
-						<p className="text-sm text-ink-2">
-							Regístrate nuevamente para recibir un enlace fresco.
-						</p>
-						<Link
-							href="/register"
-							className="block w-full bg-brand hover:bg-brand-dim text-pitch font-bold py-3 rounded-xl transition text-sm text-center"
-						>
-							Volver al registro
-						</Link>
+						{email ? (
+							<ResendVerification email={email} />
+						) : (
+							<>
+								<p className="text-sm text-ink-2">
+									Regístrate nuevamente para recibir un enlace fresco.
+								</p>
+								<Link
+									href="/register"
+									className="block w-full bg-brand hover:bg-brand-dim text-pitch font-bold py-3 rounded-xl transition text-sm text-center"
+								>
+									Volver al registro
+								</Link>
+							</>
+						)}
 					</div>
 
 					<p className="text-xs text-ink-3">TalachaStats · Estadísticas para ligas locales</p>
@@ -71,10 +96,12 @@ function VerifyEmailContent({ searchParams }: { searchParams: Record<string, str
 
 	return (
 		<div className="min-h-screen bg-pitch flex items-center justify-center px-4">
-			<div className="w-full max-w-sm space-y-8 text-center">
+			<div className="w-full max-w-sm space-y-6 text-center">
 				<div className="flex justify-center">
 					<BrandLogo />
 				</div>
+
+				<Stepper steps={["Crear cuenta", "Verificar correo"]} current={1} />
 
 				<div>
 					<div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10 border border-brand/20">
@@ -88,6 +115,12 @@ function VerifyEmailContent({ searchParams }: { searchParams: Record<string, str
 					</p>
 				</div>
 
+				{email && (
+					<div className="flex justify-center">
+						<EmailPill email={email} />
+					</div>
+				)}
+
 				<div className="bg-surface border border-line rounded-2xl p-6 space-y-4 text-left">
 					<div className="flex items-start gap-3">
 						<CheckCircle2 size={20} strokeWidth={2} className="text-brand-ink shrink-0 mt-0.5" />
@@ -99,8 +132,12 @@ function VerifyEmailContent({ searchParams }: { searchParams: Record<string, str
 						<CheckCircle2 size={20} strokeWidth={2} className="text-brand-ink shrink-0 mt-0.5" />
 						<p className="text-sm text-ink-2">El enlace es válido por 24 horas.</p>
 					</div>
-					<div className="flex items-start gap-3">
-						<AlertTriangle size={20} strokeWidth={2} className="text-amber-500 shrink-0 mt-0.5" />
+				</div>
+
+				<div className="flex justify-center">
+					{email ? (
+						<ResendVerification email={email} />
+					) : (
 						<p className="text-sm text-ink-2">
 							Si no llega en unos minutos,{" "}
 							<Link
@@ -111,7 +148,7 @@ function VerifyEmailContent({ searchParams }: { searchParams: Record<string, str
 							</Link>
 							.
 						</p>
-					</div>
+					)}
 				</div>
 
 				<p className="text-xs text-ink-3">TalachaStats · Estadísticas para ligas locales</p>

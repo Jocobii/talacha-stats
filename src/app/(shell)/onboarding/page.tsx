@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/shared/lib/auth";
+import { getSessionUser, redirectToLogin } from "@/shared/lib/auth";
 import OnboardingForm from "./OnboardingForm";
 
 export default async function OnboardingPage() {
 	const user = await getSessionUser();
 
-	if (!user) redirect("/login");
+	if (!user) redirectToLogin();
 
 	// Already completed onboarding — go to admin
 	if (user.organizationId) redirect("/admin");

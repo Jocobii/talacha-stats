@@ -75,7 +75,7 @@ export function buildSessionCookie(userId: string, isProduction: boolean): strin
 		`${SESSION_COOKIE}=${token}`,
 		"Path=/",
 		"HttpOnly",
-		"SameSite=Strict",
+		"SameSite=Lax",
 		isProduction ? "Secure" : "",
 		`Max-Age=${7 * 24 * 60 * 60}`,
 	]
@@ -88,7 +88,7 @@ export function clearSessionCookie(isProduction: boolean): string {
 		`${SESSION_COOKIE}=`,
 		"Path=/",
 		"HttpOnly",
-		"SameSite=Strict",
+		"SameSite=Lax",
 		isProduction ? "Secure" : "",
 		"Max-Age=0",
 	]

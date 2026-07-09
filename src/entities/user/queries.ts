@@ -14,6 +14,10 @@ import type { CreateUserInput, UpdateUserInput, UserPublic, RegisterInput } from
 
 const scryptAsync = promisify(scrypt);
 
+const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+/** Debe calzar con el timer de reenvio mostrado en /verify-email. */
+const RESEND_COOLDOWN_MS = 45 * 1000;
+
 // -- Contrasenyas ---------------------------------------------------------------
 
 export async function hashPassword(password: string): Promise<string> {
@@ -67,7 +71,7 @@ export async function listUsers(): Promise<UserPublic[]> {
 export async function registerUser(input: RegisterInput) {
 	const passwordHash = await hashPassword(input.password);
 	const token = randomBytes(32).toString("hex");
-	const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+	const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
 
 	const [user] = await db
 		.insert(users)
@@ -98,6 +102,42 @@ export async function markEmailVerified(userId: string): Promise<void> {
 			emailVerificationExpiresAt: null,
 		})
 		.where(eq(users.id, userId));
+}
+
+export type RenewVerificationResult =
+	| { status: "not-found" }
+	| { status: "already-verified" }
+	| { status: "cooldown"; retryAfterMs: number }
+	| { status: "ok"; user: UserPublic; token: string };
+
+/**
+ * Regenera el token de verificacion de un usuario no verificado (flujo de reenvio).
+ * Respeta un cooldown de RESEND_COOLDOWN_MS derivado de emailVerificationExpiresAt
+ * (no requiere columna extra: ultimo envio = expiresAt - VERIFICATION_TOKEN_TTL_MS).
+ */
+export async function renewVerificationToken(email: string): Promise<RenewVerificationResult> {
+	const user = await getUserByEmail(email);
+	if (!user) return { status: "not-found" };
+	if (user.emailVerified) return { status: "already-verified" };
+
+	if (user.emailVerificationExpiresAt) {
+		const lastSentAt = user.emailVerificationExpiresAt.getTime() - VERIFICATION_TOKEN_TTL_MS;
+		const elapsed = Date.now() - lastSentAt;
+		if (elapsed < RESEND_COOLDOWN_MS) {
+			return { status: "cooldown", retryAfterMs: RESEND_COOLDOWN_MS - elapsed };
+		}
+	}
+
+	const token = randomBytes(32).toString("hex");
+	const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
+
+	const [updated] = await db
+		.update(users)
+		.set({ emailVerificationToken: token, emailVerificationExpiresAt: expiresAt })
+		.where(eq(users.id, user.id))
+		.returning();
+
+	return { status: "ok", user: toPublic(updated), token };
 }
 
 export async function createUser(input: CreateUserInput) {

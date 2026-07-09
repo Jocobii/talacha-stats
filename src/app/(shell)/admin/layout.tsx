@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
 import { ReactNode } from "react";
-import { getSessionUser } from "@/shared/lib/auth";
+import { getSessionUser, redirectToLogin } from "@/shared/lib/auth";
 import AdminSidebar from "./AdminSidebar";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
 	const user = await getSessionUser();
 
 	// Full HMAC verification + DB lookup (middleware checks cookie presence only).
-	if (!user) redirect("/login");
+	if (!user) redirectToLogin();
 
 	// Organizers without an org must complete onboarding first.
 	if (user.role === "organizer" && !user.organizationId) redirect("/onboarding");
