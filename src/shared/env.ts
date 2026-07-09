@@ -49,7 +49,8 @@ const EnvSchema = z.object({
 
 	// Email transaccional via Resend
 	RESEND_API_KEY: z.string().optional(), // requerida en produccion
-	EMAIL_FROM: z.string().optional(), // ej: "TalachaStats <noreply@tudominio.com>"
+	EMAIL_DOMAIN: z.string().optional(), // ej: "talachastats.com" — deriva support@, hello@, etc.
+	EMAIL_FROM: z.string().optional(), // legacy: remitente unico "TalachaStats <noreply@...>"
 });
 
 export type Env = z.infer<typeof EnvSchema>;

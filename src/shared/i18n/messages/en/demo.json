@@ -48,6 +48,17 @@
 		"venuesShort": "venues",
 		"addManual": "Add manual match"
 	},
+	"sorteoAnim": {
+		"eyebrow": "Draw + share",
+		"title": "Draw the matchday and send it to the group",
+		"subtitle": "One click to generate the fixtures, one to share them straight to your league's WhatsApp.",
+		"panelTitle": "Draw · Matchday 13",
+		"generate": "Generate draw",
+		"share": "Share to WhatsApp",
+		"waGroup": "Liga Compadres ⚽",
+		"waCaption": "Matchday 13 — fixtures are out! 📋",
+		"sent": "Sent"
+	},
 	"apartado": {
 		"title": "Time slot bookings",
 		"subtitle": "{venue} · teams buy their fixed slot",

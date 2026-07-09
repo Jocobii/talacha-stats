@@ -12,8 +12,31 @@ const OG_LOCALES: Record<AppLocale, string> = {
 	en: "en_US",
 };
 
+/**
+ * Única fuente de verdad para la base URL del sitio. En producción, todo
+ * primitivo de SEO (metadataBase, canonicals, hreflang, sitemap, robots)
+ * depende de esto — si `NEXT_PUBLIC_BASE_URL` falta en build de prod, Google
+ * indexaría localhost y los canonicals quedarían envenenados. Por eso el
+ * build falla en vez de caer silenciosamente a localhost; en dev/preview sin
+ * la env var seteada, sí cae a localhost para no bloquear el flujo local.
+ */
+export function getSiteUrl(): string {
+	const url = process.env.NEXT_PUBLIC_BASE_URL;
+	if (!url) {
+		if (process.env.NODE_ENV === "production") {
+			throw new Error(
+				"NEXT_PUBLIC_BASE_URL no está seteado en producción. Configúralo en Vercel " +
+					"(https://www.talachastats.com) antes de desplegar — todo el SEO (metadataBase, " +
+					"canonicals, hreflang, sitemap, robots) depende de esta variable.",
+			);
+		}
+		return "http://localhost:3000";
+	}
+	return url;
+}
+
 function siteUrl(): string {
-	return process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+	return getSiteUrl();
 }
 
 /**

@@ -48,6 +48,17 @@
 		"venuesShort": "canchas",
 		"addManual": "Agregar partido manual"
 	},
+	"sorteoAnim": {
+		"eyebrow": "Sorteo + compartir",
+		"title": "Sortea la jornada y mándala al grupo",
+		"subtitle": "Un clic para generar el rol, otro para compartirlo directo al WhatsApp de tu liga.",
+		"panelTitle": "Sorteo · Jornada 13",
+		"generate": "Generar sorteo",
+		"share": "Compartir a WhatsApp",
+		"waGroup": "Liga Compadres ⚽",
+		"waCaption": "Jornada 13 — ¡ya salió el rol! 📋",
+		"sent": "Enviado"
+	},
 	"apartado": {
 		"title": "Apartado de horarios",
 		"subtitle": "{venue} · los equipos compran su horario fijo",

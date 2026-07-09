@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
 import { locales, defaultLocale, type AppLocale } from "@/shared/i18n/config";
-import { localizedPathname } from "@/shared/i18n/seo";
+import { localizedPathname, getSiteUrl } from "@/shared/i18n/seo";
 import { listOrganizationsPublic } from "@/entities/organization";
 
-const siteUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+const siteUrl = getSiteUrl();
 
 // Rutas públicas estáticas (fuera de esta lista: admin, api, auth — nunca en
 // el sitemap, plan I18N §7.2).
@@ -17,6 +17,7 @@ const STATIC_PUBLIC_PATHS = [
 	"/para-organizadores",
 	"/demo",
 	"/analysis",
+	"/analisis-excel",
 ];
 
 function alternatesFor(pathname: string): Record<string, string> {

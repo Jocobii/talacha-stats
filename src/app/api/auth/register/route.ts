@@ -43,6 +43,7 @@ export async function POST(request: Request) {
 			to: user.email,
 			subject: "Verifica tu cuenta en TalachaStats",
 			html: verificationEmailHtml({ name: user.name, verificationUrl }),
+			sender: "noreply",
 		});
 	} catch (err) {
 		console.error("[register] Error enviando email de verificacion:", err);

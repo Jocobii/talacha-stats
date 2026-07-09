@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { getSiteUrl } from "@/shared/i18n/seo";
 
-const siteUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+const siteUrl = getSiteUrl();
 
 export default function robots(): MetadataRoute.Robots {
 	return {
@@ -27,7 +28,7 @@ export default function robots(): MetadataRoute.Robots {
 				// Resto — permitir páginas públicas
 				userAgent: "*",
 				allow: "/",
-				disallow: ["/admin/", "/login"],
+				disallow: ["/admin/", "/api/", "/login"],
 			},
 		],
 		sitemap: `${siteUrl}/sitemap.xml`,

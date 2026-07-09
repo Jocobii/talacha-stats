@@ -11,7 +11,7 @@ import { QueryProvider } from "@/shared/api/QueryProvider";
 import { Toaster } from "@/shared/ui/Toaster";
 import { routing } from "@/shared/i18n/routing";
 import { isAppLocale } from "@/shared/i18n/config";
-import { buildLocaleAlternates, ogLocale } from "@/shared/i18n/seo";
+import { buildLocaleAlternates, ogLocale, getSiteUrl } from "@/shared/i18n/seo";
 
 // ── Root layout de la superficie pública i18n ────────────────────────────────
 // Root real (con su propio <html>) para que next-intl pueda habilitar render
@@ -41,7 +41,7 @@ const fontSlab = Zilla_Slab({
 });
 const orgFontVariables = `${fontMarcador.variable} ${fontModerna.variable} ${fontSlab.variable}`;
 
-const siteUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+const siteUrl = getSiteUrl();
 
 // TODO(i18n post-alcance): traducir title/description/keywords al inglés
 // cuando haya señal real de demanda (plan §0, §12) — hoy el copy sigue en
@@ -79,11 +79,13 @@ async function buildRootMetadata(locale: string): Promise<Metadata> {
 			title: "TalachaStats | Crea y administra tu liga de fútbol gratis",
 			description:
 				"Sistema gratuito para crear y administrar ligas de fútbol amateur. Tabla de posiciones, goleadores y sorteo automático. Empieza gratis hoy.",
+			images: [{ url: "/api/og", width: 1200, height: 630, alt: "TalachaStats" }],
 		},
 		twitter: {
 			card: "summary_large_image",
 			title: "TalachaStats | Crea y administra tu liga de fútbol gratis",
 			description: "Sistema gratuito para crear y administrar ligas de fútbol amateur.",
+			images: ["/api/og"],
 		},
 	};
 }
@@ -123,7 +125,6 @@ function buildJsonLd(locale: string) {
 			"Estadísticas de goleadores",
 			"Sorteo de jornadas",
 			"Perfil público de jugadores",
-			"Importación de datos desde Excel",
 		],
 		areaServed: {
 			"@type": "City",
