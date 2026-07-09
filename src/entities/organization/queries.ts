@@ -10,11 +10,14 @@ import {
 	matchdays,
 	matches,
 	venues,
+	leagueVenues,
+	venueTimeWindows,
 	leaguePlayoffZones,
 } from "@/db/schema";
 import { eq, asc, desc, and, sql, inArray, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
+import { deriveArranqueState, type ArranqueState } from "./lib/derive-arranque-state";
 
 // ---------------------------------------------------------------------------
 // Lectura — Admin
@@ -96,6 +99,42 @@ export async function getLeaguesByOrganization(organizationId: string) {
 		where: eq(leagues.organizationId, organizationId),
 		with: { teams: true },
 		orderBy: (l, { desc }) => [desc(l.createdAt)],
+	});
+}
+
+/**
+ * Estado de "Onboarding Parte 2" (Arranque: Cancha → Liga → Horario), derivado
+ * de conteos en DB (§17: filtrado a nivel de query, no en memoria). Sin
+ * columna nueva en `organizations` — ver docs/ONBOARDING-PARTE-2.md §6.
+ */
+export async function getArranqueState(organizationId: string): Promise<ArranqueState> {
+	const [venueRows, leagueRows, scheduledRows] = await Promise.all([
+		db
+			.select({ count: sql<number>`count(*)::int` })
+			.from(venues)
+			.where(eq(venues.organizationId, organizationId)),
+		db
+			.select({ count: sql<number>`count(*)::int` })
+			.from(leagues)
+			.where(eq(leagues.organizationId, organizationId)),
+		db
+			.select({ count: sql<number>`count(distinct ${leagues.id})::int` })
+			.from(leagues)
+			.innerJoin(leagueVenues, eq(leagueVenues.leagueId, leagues.id))
+			.innerJoin(
+				venueTimeWindows,
+				and(
+					eq(venueTimeWindows.leagueId, leagues.id),
+					eq(venueTimeWindows.venueId, leagueVenues.venueId),
+				),
+			)
+			.where(eq(leagues.organizationId, organizationId)),
+	]);
+
+	return deriveArranqueState({
+		venueCount: venueRows[0]?.count ?? 0,
+		leagueCount: leagueRows[0]?.count ?? 0,
+		scheduledLeagueCount: scheduledRows[0]?.count ?? 0,
 	});
 }
 

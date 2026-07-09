@@ -92,7 +92,7 @@ export default function OnboardingForm() {
 				}
 			}
 
-			router.push("/admin");
+			router.push("/onboarding/arranque");
 		} catch (networkError) {
 			console.error("[OnboardingForm] create", networkError);
 			setError("Error de conexión. Intenta de nuevo.");

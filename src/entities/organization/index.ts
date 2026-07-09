@@ -27,12 +27,17 @@ export {
 	// Verificaciones
 	listPendingVerifications,
 	approveOrganization,
+	// Onboarding Parte 2 (Arranque)
+	getArranqueState,
 	// Escritura
 	createOrganization,
 	updateOrganization,
 	deleteOrganization,
 	setUserOrganization,
 } from "./queries";
+
+export { deriveArranqueState } from "./lib/derive-arranque-state";
+export type { ArranqueState, ArranqueCounts } from "./lib/derive-arranque-state";
 
 export type {
 	LeagueSnapshot,
