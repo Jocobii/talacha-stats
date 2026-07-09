@@ -61,7 +61,7 @@ export default async function OrganizerHero() {
 							<ChevronRight size={16} strokeWidth={2} />
 						</Link>
 						<Link
-							href="/demo"
+							href="/demo?vista=coordinador"
 							className="flex items-center justify-center gap-2 bg-surface-2 hover:bg-line border border-line text-ink font-bold px-7 py-3.5 rounded-xl text-sm transition"
 						>
 							{t("organizerHero.secondaryCta")}

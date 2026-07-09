@@ -6,11 +6,57 @@
 	},
 	"banner": "Demo interactivo · datos ficticios",
 	"subtitle": "— Así se ve tu liga",
+	"views": {
+		"players": "Para jugadores",
+		"coordinators": "Para coordinadores"
+	},
 	"tabs": {
 		"ranking": "Ranking",
 		"profile": "Perfil",
 		"matchday": "Jornada",
-		"analysis": "Análisis"
+		"analysis": "Análisis",
+		"canchas": "Canchas",
+		"sorteo": "Sorteo",
+		"apartado": "Apartado"
+	},
+	"canchas": {
+		"title": "Canchas",
+		"subtitle": "{count} canchas · asigna ligas y horarios",
+		"ligas": "Ligas",
+		"windows": "Ventanas",
+		"active": "activas",
+		"slots": "slots",
+		"inUse": "En uso",
+		"unassigned": "Sin asignar",
+		"add": "Registrar cancha",
+		"addHint": "Nombre, dirección, notas"
+	},
+	"sorteo": {
+		"title": "Sorteo",
+		"subtitle": "Jornada {jornada} · preview editable",
+		"previewEditable": "Sorteo · Preview editable",
+		"noRepeat": "Sin repetir últimas {count} jornadas",
+		"fixedSlots": "{count} slots fijos",
+		"editHint": "Click en cualquier equipo, cancha u hora para editar",
+		"saved": "Guardado",
+		"regenerate": "Regenerar",
+		"home": "Local",
+		"away": "Visita",
+		"venue": "Cancha",
+		"time": "Hora",
+		"generatedShort": "partidos",
+		"venuesShort": "canchas",
+		"addManual": "Agregar partido manual"
+	},
+	"apartado": {
+		"title": "Apartado de horarios",
+		"subtitle": "{venue} · los equipos compran su horario fijo",
+		"summaryBooked": "apartados",
+		"summaryRevenue": "recaudado",
+		"summaryFree": "libres",
+		"booked": "Apartado",
+		"free": "Libre",
+		"legend": "El sorteo respeta los horarios apartados"
 	},
 	"ranking": {
 		"title": "Ranking",

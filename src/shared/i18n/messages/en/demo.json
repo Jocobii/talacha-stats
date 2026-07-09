@@ -4,13 +4,59 @@
 		"title": "Demo — TalachaStats",
 		"description": "Mira cómo se ve tu liga en TalachaStats: ranking, perfiles de jugador, tabla de honor y análisis pre-partido."
 	},
-	"banner": "Demo interactivo · datos ficticios",
-	"subtitle": "— Así se ve tu liga",
+	"banner": "Interactive demo · sample data",
+	"subtitle": "— This is how your league looks",
+	"views": {
+		"players": "For players",
+		"coordinators": "For coordinators"
+	},
 	"tabs": {
 		"ranking": "Ranking",
-		"profile": "Perfil",
-		"matchday": "Jornada",
-		"analysis": "Análisis"
+		"profile": "Profile",
+		"matchday": "Matchday",
+		"analysis": "Analysis",
+		"canchas": "Venues",
+		"sorteo": "Draw",
+		"apartado": "Bookings"
+	},
+	"canchas": {
+		"title": "Venues",
+		"subtitle": "{count} venues · assign leagues and time slots",
+		"ligas": "Leagues",
+		"windows": "Windows",
+		"active": "active",
+		"slots": "slots",
+		"inUse": "In use",
+		"unassigned": "Unassigned",
+		"add": "Add venue",
+		"addHint": "Name, address, notes"
+	},
+	"sorteo": {
+		"title": "Draw",
+		"subtitle": "Matchday {jornada} · editable preview",
+		"previewEditable": "Draw · Editable preview",
+		"noRepeat": "No rematches in last {count} matchdays",
+		"fixedSlots": "{count} fixed slots",
+		"editHint": "Click any team, venue or time to edit",
+		"saved": "Saved",
+		"regenerate": "Regenerate",
+		"home": "Home",
+		"away": "Away",
+		"venue": "Venue",
+		"time": "Time",
+		"generatedShort": "matches",
+		"venuesShort": "venues",
+		"addManual": "Add manual match"
+	},
+	"apartado": {
+		"title": "Time slot bookings",
+		"subtitle": "{venue} · teams buy their fixed slot",
+		"summaryBooked": "booked",
+		"summaryRevenue": "collected",
+		"summaryFree": "free",
+		"booked": "Booked",
+		"free": "Free",
+		"legend": "The draw respects booked slots"
 	},
 	"ranking": {
 		"title": "Ranking",

@@ -6,6 +6,7 @@ import { buildLocaleAlternates } from "@/shared/i18n/seo";
 
 type DemoPageProps = {
 	params: Promise<{ locale: string }>;
+	searchParams: Promise<{ vista?: string; view?: string }>;
 };
 
 export async function generateMetadata({ params }: DemoPageProps): Promise<Metadata> {
@@ -20,9 +21,17 @@ export async function generateMetadata({ params }: DemoPageProps): Promise<Metad
 	};
 }
 
-export default async function DemoPage({ params }: DemoPageProps) {
+export default async function DemoPage({ params, searchParams }: DemoPageProps) {
 	const { locale } = await params;
+	const { vista, view } = await searchParams;
 	setRequestLocale(locale);
 
-	return <DemoView />;
+	// Deep-link desde el CTA de organizador → arranca en la vista de coordinador
+	const coordinatorValues = ["coordinador", "coordinators", "organizador", "organizer"];
+	const initialView =
+		coordinatorValues.includes(vista ?? "") || coordinatorValues.includes(view ?? "")
+			? "coordinators"
+			: "players";
+
+	return <DemoView initialView={initialView} />;
 }
