@@ -14,13 +14,21 @@ import LeaguesShowcase from "./LeaguesShowcase";
 import OrganizerSection from "./OrganizerSection";
 import FeaturesSection from "./FeaturesSection";
 import HomeViews from "./HomeViews";
-import { HOME_VIEW_COOKIE, HOME_VIEW_QUERY_PARAM, resolveHomeView } from "./home-view";
+import {
+	HOME_VIEW_COOKIE,
+	HOME_VIEW_QUERY_PARAM,
+	HOME_VIEW_REF_PARAM,
+	resolveHomeView,
+} from "./home-view";
 import { getLeaguesShowcase } from "@/entities/organization";
 import { getActiveCity } from "@/shared/lib/active-city";
 
 type HomePageProps = {
 	params: Promise<{ locale: string }>;
-	searchParams: Promise<{ [HOME_VIEW_QUERY_PARAM]?: string }>;
+	searchParams: Promise<{
+		[HOME_VIEW_QUERY_PARAM]?: string;
+		[HOME_VIEW_REF_PARAM]?: string;
+	}>;
 };
 
 export async function generateMetadata({
@@ -52,6 +60,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
 	const showcaseLeagues = await getLeaguesShowcase(city, 6);
 	const initialView = resolveHomeView(
 		searchParamsValue[HOME_VIEW_QUERY_PARAM],
+		searchParamsValue[HOME_VIEW_REF_PARAM],
 		cookieStore.get(HOME_VIEW_COOKIE)?.value,
 	);
 
