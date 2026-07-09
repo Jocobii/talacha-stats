@@ -1,6 +1,12 @@
-export { CreateOrganizationSchema, UpdateOrganizationSchema, generateSlug } from "./model";
+export {
+	CreateOrganizationSchema,
+	UpdateOrganizationSchema,
+	SlugAvailabilitySchema,
+	generateSlug,
+} from "./model";
 
-export type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
+export type { CreateOrganizationInput, UpdateOrganizationInput, SlugAvailability } from "./model";
+export type { Organization } from "@/db/schema";
 
 export {
 	// Admin

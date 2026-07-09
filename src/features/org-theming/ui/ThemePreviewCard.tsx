@@ -14,7 +14,16 @@ type ThemePreviewCardProps = {
 	orgName?: string;
 	/** CSS font-family (ej. "var(--font-org-marcador)"); undefined = default. */
 	fontFamily?: string;
+	/** URL del escudo. Vacío/undefined = iniciales del nombre (fallback). */
+	logoUrl?: string;
 };
+
+function initials(name: string): string {
+	const words = name.trim().split(/\s+/);
+	const first = words[0]?.[0] ?? "T";
+	const second = words[1]?.[0] ?? words[0]?.[1] ?? "L";
+	return (first + second).toUpperCase();
+}
 
 const ROWS = [
 	{ pos: 1, team: "Deportivo Centella", pts: 21, leader: true },
@@ -26,6 +35,7 @@ export function ThemePreviewCard({
 	tokens,
 	orgName = "Tu organización",
 	fontFamily,
+	logoUrl,
 }: ThemePreviewCardProps) {
 	return (
 		<div
@@ -34,12 +44,25 @@ export function ThemePreviewCard({
 		>
 			{/* Header estilo hub de la org */}
 			<div
-				className="flex items-center justify-between px-4 py-3"
+				className="flex items-center justify-between gap-3 px-4 py-3"
 				style={{ backgroundColor: tokens.primary, color: tokens.primaryInk }}
 			>
-				<span className="text-sm font-semibold">{orgName}</span>
+				<span className="flex min-w-0 items-center gap-2.5">
+					<span
+						className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md text-xs font-black"
+						style={{ backgroundColor: "rgba(0,0,0,.18)" }}
+					>
+						{logoUrl ? (
+							// eslint-disable-next-line @next/next/no-img-element -- preview vive dentro de un iframe/panel, no de next/image
+							<img src={logoUrl} alt="" className="h-full w-full object-cover" />
+						) : (
+							initials(orgName)
+						)}
+					</span>
+					<span className="truncate text-sm font-semibold">{orgName}</span>
+				</span>
 				<span
-					className="rounded-full px-2 py-0.5 text-xs font-medium"
+					className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
 					style={{ backgroundColor: tokens.accent, color: tokens.accentInk }}
 				>
 					Jornada 7

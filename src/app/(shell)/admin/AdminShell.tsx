@@ -20,7 +20,9 @@
 import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { motion } from "motion/react";
 import { apiFetch } from "@/shared/api/client";
+import { EASE_PREMIUM } from "@/shared/lib/motion";
 import {
 	Home,
 	Building2,
@@ -423,42 +425,63 @@ function NavLink({
 function LogoutButton({ collapsed }: { collapsed: boolean }) {
 	const router = useRouter();
 	const [busy, setBusy] = useState(false);
+	const [exiting, setExiting] = useState(false);
 
 	async function handleLogout() {
 		setBusy(true);
+		setExiting(true);
 		try {
 			await apiFetch("/api/auth/logout", { method: "POST" });
-			router.push("/login");
 		} catch (networkError) {
 			// §18.4 — aunque falle el logout en red, igual llevamos al usuario a /login.
 			console.error("[AdminShell] logout", networkError);
-			router.push("/login");
-		} finally {
-			setBusy(false);
 		}
+		// Deja respirar la animación de salida (~550ms) antes de navegar.
+		setTimeout(() => router.push("/login"), 550);
 	}
 
 	return (
-		<button
-			onClick={handleLogout}
-			disabled={busy}
-			className={cn(
-				"group relative flex items-center gap-2.5 h-8 rounded-md transition-colors w-full",
-				collapsed ? "justify-center px-0" : "px-2.5",
-				"text-ink-3 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-50",
+		<>
+			<button
+				onClick={handleLogout}
+				disabled={busy}
+				className={cn(
+					"group relative flex items-center gap-2.5 h-8 rounded-md transition-colors w-full",
+					collapsed ? "justify-center px-0" : "px-2.5",
+					"text-ink-3 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-50",
+				)}
+				title="Cerrar sesión"
+			>
+				<LogOut size={14} strokeWidth={1.75} className="shrink-0" />
+				{!collapsed && (
+					<span className="text-[13px] font-medium">{busy ? "Saliendo…" : "Cerrar sesión"}</span>
+				)}
+				{collapsed && (
+					<span className="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-surface-2 border border-line text-ink text-[12px] font-semibold px-2.5 py-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-50">
+						Cerrar sesión
+					</span>
+				)}
+			</button>
+
+			{exiting && (
+				<motion.div
+					className="fixed inset-0 z-[60] grid place-items-center bg-pitch"
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ duration: 0.4, ease: EASE_PREMIUM }}
+				>
+					<motion.div
+						className="flex flex-col items-center gap-3"
+						initial={{ opacity: 0, scale: 0.96 }}
+						animate={{ opacity: 1, scale: 1 }}
+						transition={{ duration: 0.4, ease: EASE_PREMIUM, delay: 0.08 }}
+					>
+						<LogOut size={20} strokeWidth={1.75} className="text-ink-3" />
+						<p className="text-sm text-ink-2">Cerrando sesión…</p>
+					</motion.div>
+				</motion.div>
 			)}
-			title="Cerrar sesión"
-		>
-			<LogOut size={14} strokeWidth={1.75} className="shrink-0" />
-			{!collapsed && (
-				<span className="text-[13px] font-medium">{busy ? "Saliendo…" : "Cerrar sesión"}</span>
-			)}
-			{collapsed && (
-				<span className="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-surface-2 border border-line text-ink text-[12px] font-semibold px-2.5 py-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-50">
-					Cerrar sesión
-				</span>
-			)}
-		</button>
+		</>
 	);
 }
 

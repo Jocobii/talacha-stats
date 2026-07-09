@@ -18,6 +18,11 @@
  * y refleja SIEMPRE la selección — incluido el default, que se pinta con la
  * paleta de marca. La matemática (buildThemeTokens) es pura; los pickers son
  * tontos — misma frontera que el resto de la feature.
+ *
+ * `showPreview=false` oculta la columna de preview interna: la usa el
+ * onboarding unificado, que ya pinta su propio preview persistente en el
+ * aside del wizard (ver features/onboarding-wizard/ui/OnboardingPreviewAside.tsx)
+ * reusando `resolveOrgStyleTokens` — evita pintar dos previews a la vez.
  */
 
 import { useMemo } from "react";
@@ -30,6 +35,7 @@ import {
 	ORG_PRESETS,
 	type OrgFontId,
 	type OrgPresetId,
+	type OrgThemeTokens,
 	type ThemeInput,
 } from "@/shared/org-theme";
 import { FontPicker } from "./FontPicker";
@@ -47,31 +53,43 @@ export const DEFAULT_ORG_STYLE: OrgStyleValue = { presetId: null, fontId: "brand
 
 /** Los 4 colores fuente del look TalachaStats por defecto — mismos que ve el
  *  público cuando la org no tiene tema (fallback de marca). Para preview/swatch. */
-const TALACHA_DEFAULT: ThemeInput = {
+export const TALACHA_DEFAULT_THEME: ThemeInput = {
 	primary: BRAND_PALETTE.brand,
 	accent: BRAND_PALETTE.gold,
 	surface: BRAND_PALETTE.surface,
 	ink: BRAND_PALETTE.ink,
 };
 
+/** Resuelve un OrgStyleValue a tokens de tema + font-family CSS. Función pura,
+ *  compartida entre este picker y cualquier preview externo que necesite
+ *  pintar la misma selección (ej. el aside del onboarding unificado). */
+export function resolveOrgStyleTokens(value: OrgStyleValue): {
+	tokens: OrgThemeTokens;
+	fontFamily?: string;
+} {
+	const colors = value.presetId ? ORG_PRESETS[value.presetId].colors : TALACHA_DEFAULT_THEME;
+	const cssVariable = ORG_FONTS[value.fontId].cssVariable;
+	return {
+		tokens: buildThemeTokens(colors),
+		fontFamily: cssVariable ? `var(${cssVariable})` : undefined,
+	};
+}
+
 type OrgStyleStepProps = {
 	value: OrgStyleValue;
 	onChange: (value: OrgStyleValue) => void;
 	orgName?: string;
+	/** false = no pintar la columna de preview interna (default: true). */
+	showPreview?: boolean;
 };
 
-export function OrgStyleStep({ value, onChange, orgName }: OrgStyleStepProps) {
-	const colors = value.presetId ? ORG_PRESETS[value.presetId].colors : TALACHA_DEFAULT;
-	const tokens = useMemo(() => buildThemeTokens(colors), [colors]);
-
-	const fontFamily = ORG_FONTS[value.fontId].cssVariable
-		? `var(${ORG_FONTS[value.fontId].cssVariable})`
-		: undefined;
+export function OrgStyleStep({ value, onChange, orgName, showPreview = true }: OrgStyleStepProps) {
+	const { tokens, fontFamily } = useMemo(() => resolveOrgStyleTokens(value), [value]);
 
 	const isDefault = value.presetId === null;
 
 	return (
-		<div className="grid gap-6 lg:grid-cols-[1fr_300px] lg:items-start">
+		<div className={showPreview ? "grid gap-6 lg:grid-cols-[1fr_300px] lg:items-start" : undefined}>
 			{/* Opciones */}
 			<div className="space-y-6">
 				<section>
@@ -90,10 +108,10 @@ export function OrgStyleStep({ value, onChange, orgName }: OrgStyleStepProps) {
 					>
 						<span className="flex shrink-0 gap-1.5" aria-hidden>
 							{[
-								TALACHA_DEFAULT.primary,
-								TALACHA_DEFAULT.accent,
-								TALACHA_DEFAULT.surface,
-								TALACHA_DEFAULT.ink,
+								TALACHA_DEFAULT_THEME.primary,
+								TALACHA_DEFAULT_THEME.accent,
+								TALACHA_DEFAULT_THEME.surface,
+								TALACHA_DEFAULT_THEME.ink,
 							].map((hex, i) => (
 								<span
 									key={i}
@@ -130,10 +148,12 @@ export function OrgStyleStep({ value, onChange, orgName }: OrgStyleStepProps) {
 			</div>
 
 			{/* Preview — columna propia, sticky: siempre visible al hacer scroll. */}
-			<aside className="lg:sticky lg:top-6">
-				<h3 className="mb-2 text-sm font-medium text-ink">Así se verá tu sitio</h3>
-				<ThemePreviewCard tokens={tokens} orgName={orgName} fontFamily={fontFamily} />
-			</aside>
+			{showPreview && (
+				<aside className="lg:sticky lg:top-6">
+					<h3 className="mb-2 text-sm font-medium text-ink">Así se verá tu sitio</h3>
+					<ThemePreviewCard tokens={tokens} orgName={orgName} fontFamily={fontFamily} />
+				</aside>
+			)}
 		</div>
 	);
 }

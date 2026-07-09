@@ -6,7 +6,7 @@ import { validateOrgSlug } from "@/shared/org-theme";
 // ---------------------------------------------------------------------------
 
 export const CreateOrganizationSchema = z.object({
-	name: z.string().min(2).max(100),
+	name: z.string().min(2, "Escribe al menos 2 caracteres.").max(100, "Máximo 100 caracteres."),
 	// El slug será mañana un subdominio (novofut.talachastats.com): validamos
 	// DNS-safe + reservados con la MISMA función que usa el form (validateOrgSlug),
 	// para que cliente y servidor rechacen exactamente lo mismo.
@@ -26,12 +26,16 @@ export const CreateOrganizationSchema = z.object({
 
 export const UpdateOrganizationSchema = CreateOrganizationSchema.partial();
 
+/** Respuesta de GET /api/organizations/check-slug (chequeo en tiempo real, §7.4). */
+export const SlugAvailabilitySchema = z.object({ available: z.boolean() });
+
 // ---------------------------------------------------------------------------
 // Tipos inferidos
 // ---------------------------------------------------------------------------
 
 export type CreateOrganizationInput = z.infer<typeof CreateOrganizationSchema>;
 export type UpdateOrganizationInput = z.infer<typeof UpdateOrganizationSchema>;
+export type SlugAvailability = z.infer<typeof SlugAvailabilitySchema>;
 
 /** Genera un slug a partir de un nombre:
  *  "Novofut Lunes" → "novofut-lunes"

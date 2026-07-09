@@ -15,18 +15,22 @@ export const PASSWORD_STRENGTH_LABELS: Record<PasswordScore, string> = {
 };
 
 /**
- * Puntua una contrasena de 0 a 4 sumando senales de complejidad:
- * longitud >= 8, mayus+minus, digito, caracter especial.
- * Una contrasena no vacia nunca puntua 0 (minimo 1) para dar feedback visible.
+ * Puntua una contrasena de 1 a 4 (0 solo para vacia) sumando senales de
+ * complejidad sobre una base de 1: longitud >= 8, mayuscula+digito juntos,
+ * caracter especial. La base de 1 es intencional (toda contrasena no vacia
+ * es al menos "Debil"), pero antes se calculaba con Math.max(score, 1) SOBRE
+ * el score de señales — eso hacia que "aaaaaaa" (0 senales) y "aaaaaaaa"
+ * (1 senal: longitud) empataran en 1 en vez de subir. Ahora la base y las
+ * senales se suman en vez de compararse, así cada senal adicional sí sube
+ * el puntaje (ver password-strength.test.ts).
  */
 export function scorePasswordStrength(value: string): PasswordScore {
 	if (!value) return 0;
 
-	let score = 0;
+	let score = 1;
 	if (value.length >= 8) score++;
-	if (/[A-Z]/.test(value) && /[a-z]/.test(value)) score++;
-	if (/\d/.test(value)) score++;
+	if (/[A-Z]/.test(value) && /\d/.test(value)) score++;
 	if (/[^A-Za-z0-9]/.test(value)) score++;
 
-	return Math.max(score, 1) as PasswordScore;
+	return Math.min(score, 4) as PasswordScore;
 }

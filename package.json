@@ -50,6 +50,7 @@
 		"drizzle-orm": "^0.45.2",
 		"exceljs": "^4.4.0",
 		"lucide-react": "^1.21.0",
+		"motion": "^12.42.2",
 		"next": "16.2.6",
 		"next-intl": "^4.13.1",
 		"pdfkit": "^0.18.0",
