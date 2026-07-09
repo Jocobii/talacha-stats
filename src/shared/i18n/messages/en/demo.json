@@ -1,0 +1,143 @@
+{
+	"_status": "placeholder-untranslated",
+	"meta": {
+		"title": "Demo — TalachaStats",
+		"description": "Mira cómo se ve tu liga en TalachaStats: ranking, perfiles de jugador, tabla de honor y análisis pre-partido."
+	},
+	"banner": "Interactive demo · sample data",
+	"subtitle": "— This is how your league looks",
+	"views": {
+		"players": "For players",
+		"coordinators": "For coordinators"
+	},
+	"tabs": {
+		"ranking": "Ranking",
+		"profile": "Profile",
+		"matchday": "Matchday",
+		"analysis": "Analysis",
+		"canchas": "Venues",
+		"sorteo": "Draw",
+		"apartado": "Bookings"
+	},
+	"canchas": {
+		"title": "Venues",
+		"subtitle": "{count} venues · assign leagues and time slots",
+		"ligas": "Leagues",
+		"windows": "Windows",
+		"active": "active",
+		"slots": "slots",
+		"inUse": "In use",
+		"unassigned": "Unassigned",
+		"add": "Add venue",
+		"addHint": "Name, address, notes"
+	},
+	"sorteo": {
+		"title": "Draw",
+		"subtitle": "Matchday {jornada} · editable preview",
+		"previewEditable": "Draw · Editable preview",
+		"noRepeat": "No rematches in last {count} matchdays",
+		"fixedSlots": "{count} fixed slots",
+		"editHint": "Click any team, venue or time to edit",
+		"saved": "Saved",
+		"regenerate": "Regenerate",
+		"home": "Home",
+		"away": "Away",
+		"venue": "Venue",
+		"time": "Time",
+		"generatedShort": "matches",
+		"venuesShort": "venues",
+		"addManual": "Add manual match"
+	},
+	"sorteoAnim": {
+		"eyebrow": "Draw + share",
+		"title": "Draw the matchday and send it to the group",
+		"subtitle": "One click to generate the fixtures, one to share them straight to your league's WhatsApp.",
+		"panelTitle": "Draw · Matchday 13",
+		"generate": "Generate draw",
+		"share": "Share to WhatsApp",
+		"waGroup": "Liga Compadres ⚽",
+		"waCaption": "Matchday 13 — fixtures are out! 📋",
+		"sent": "Sent"
+	},
+	"apartado": {
+		"title": "Time slot bookings",
+		"subtitle": "{venue} · teams buy their fixed slot",
+		"summaryBooked": "booked",
+		"summaryRevenue": "collected",
+		"summaryFree": "free",
+		"booked": "Booked",
+		"free": "Free",
+		"legend": "The draw respects booked slots"
+	},
+	"ranking": {
+		"title": "Ranking",
+		"subtitle": "{count} jugadores · Fútbol Amateur",
+		"goals": "goles",
+		"tapHint": "Toca al #1 para ver su perfil →"
+	},
+	"profile": {
+		"goalsPerMatch": "Goles por partido",
+		"goals": "goles",
+		"matches": "partidos",
+		"leagues": "ligas",
+		"leaguesCount": "Ligas ({count})",
+		"sharePlaceholder": "Compartir perfil",
+		"copyLink": "Copiar link"
+	},
+	"matchday": {
+		"title": "Tabla de honor",
+		"subtitle": "Top goleadores · última jornada por liga"
+	},
+	"analysis": {
+		"title": "Análisis",
+		"subtitle": "Pre-partido · Jornada {jornada}",
+		"winProbability": "Probabilidad de victoria",
+		"draw": "Empate",
+		"prediction": "🔮 Predicción",
+		"mostLikelyScore": "Marcador más probable",
+		"expectedGoals": "Goles esp.",
+		"total": "Total",
+		"openMatch": "Partido abierto",
+		"positionSimulator": "📈 Simulador de posición",
+		"position": "Posición:",
+		"pts": "pts",
+		"ifWin": "Si gana",
+		"ifDraw": "Si empata",
+		"ifLoss": "Si pierde",
+		"scoringThreats": "🎯 Amenazas goleadoras",
+		"goalsPerMatchInline": "{goals} goles · {gpm} x partido",
+		"narratorScript": "🎙️ Guión del narrador",
+		"funFacts": "💡 Datos curiosos",
+		"headToHead": "📋 Cara a cara",
+		"draws": "Empates",
+		"last": "Último:"
+	},
+	"team": {
+		"last5": "Últ. 5:",
+		"streakWins": "🔥 Racha: {count} victorias",
+		"streakDraws": "🔥 Racha: {count} empates",
+		"strongAttack": "Ataque fuerte",
+		"averageAttack": "Ataque regular",
+		"solidDefense": "Defensa sólida",
+		"averageDefense": "Defensa regular"
+	},
+	"roster": {
+		"player": "Jugador",
+		"danger": "Peligro"
+	},
+	"danger": {
+		"high": "ALTO",
+		"medium": "MEDIO",
+		"low": "BAJO"
+	},
+	"cta": {
+		"eyebrow": "Para coordinadores de liga",
+		"headline1": "¿Quieres esto",
+		"headlineFor": "para",
+		"headlineHighlight": "tu liga",
+		"body": "Ranking público, perfiles compartibles, análisis pre-partido para el narrador del Facebook Live. Setup en menos de una semana.",
+		"whatsapp": "WhatsApp",
+		"email": "Enviar correo",
+		"register": "Crear cuenta gratis"
+	}
+}

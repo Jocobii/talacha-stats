@@ -41,6 +41,7 @@ export const UpdateUserSchema = z.object({
 export const LoginSchema = z.object({
 	email: z.string().email(),
 	password: z.string().min(1),
+	remember: z.boolean().default(true),
 });
 
 export const RegisterSchema = z.object({
@@ -49,7 +50,12 @@ export const RegisterSchema = z.object({
 	password: z.string().min(8, "Minimo 8 caracteres"),
 });
 
+export const ResendVerificationSchema = z.object({
+	email: z.string().email("Email invalido").toLowerCase(),
+});
+
 export type CreateUserInput = z.infer<typeof CreateUserSchema>;
 export type UpdateUserInput = z.infer<typeof UpdateUserSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type RegisterInput = z.infer<typeof RegisterSchema>;
+export type ResendVerificationInput = z.infer<typeof ResendVerificationSchema>;

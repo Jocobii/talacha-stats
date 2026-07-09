@@ -1,0 +1,32 @@
+{
+	"_status": "placeholder-untranslated",
+	"meta": {
+		"title": "Análisis — TalachaStats",
+		"description": "Selecciona dos equipos y obtén el análisis pre-partido completo: probabilidades, predicción y guion para el narrador."
+	},
+	"title": "Análisis",
+	"subtitle": "Selecciona dos equipos y obtén el análisis completo del partido.",
+	"league": "Liga",
+	"teamA": "Equipo A",
+	"teamB": "Equipo B",
+	"selectPlaceholder": "— Seleccionar —",
+	"errorBothTeams": "Selecciona liga y dos equipos.",
+	"errorBothLinkTeams": "Los equipos del enlace no se encontraron en esta liga.",
+	"errorOneLinkTeam": "El equipo {team} del enlace no se encontró en esta liga.",
+	"errorNetwork": "Error de red al generar el análisis.",
+	"loading": "Cargando…",
+	"analyzing": "Analizando…",
+	"generate": "Generar análisis",
+	"actions": {
+		"share": "🔗 Compartir",
+		"copied": "✅ Copiado",
+		"pdf": "🖨️ PDF",
+		"png": "🖼️ PNG"
+	},
+	"excel": {
+		"meta": {
+			"title": "Analiza tu liga desde Excel | TalachaStats",
+			"description": "Sube la tabla de posiciones de cualquier liga en Excel y genera al instante el análisis pre-partido del narrador: probabilidades, predicción y guion. Sin registro."
+		}
+	}
+}

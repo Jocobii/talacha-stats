@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import { config as loadDotenv } from "dotenv";
 import { existsSync } from "fs";
+import createNextIntlPlugin from "next-intl/plugin";
 
 // ── Cargar .env.local antes de validar ────────────────────────────────────────
 // Next.js ya hace esto internamente, pero next.config.ts corre ANTES que ese
@@ -102,4 +103,10 @@ const nextConfig: NextConfig = {
 	},
 };
 
-export default nextConfig;
+// ── i18n (docs/I18N-PLAN.md) ──────────────────────────────────────────────────
+// `request.ts` no vive en la ruta default (`./i18n/request.ts`) sino en
+// `shared/i18n/request.ts` (FSD — infraestructura transversal, plan §3),
+// así que se lo indicamos explícitamente al plugin.
+const withNextIntl = createNextIntlPlugin("./src/shared/i18n/request.ts");
+
+export default withNextIntl(nextConfig);

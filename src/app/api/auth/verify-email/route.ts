@@ -27,7 +27,7 @@ export async function GET(request: Request) {
 	return new Response(null, {
 		status: 302,
 		headers: {
-			Location: "/onboarding",
+			Location: "/verify-email/success",
 			"Set-Cookie": sessionCookie,
 		},
 	});

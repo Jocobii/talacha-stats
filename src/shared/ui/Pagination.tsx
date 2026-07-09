@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Link, usePathname } from "@/shared/i18n/navigation";
 import type { PaginationMeta } from "@/shared/lib/pagination";
 
 // Builds the href for a given page number, preserving all other search params.
@@ -43,6 +44,7 @@ type Props = {
 };
 
 export default function Pagination({ meta, buildHref, className = "" }: Props) {
+	const t = useTranslations("common");
 	const defaultBuildHref = usePageHref();
 	const href = buildHref ?? defaultBuildHref;
 
@@ -58,12 +60,12 @@ export default function Pagination({ meta, buildHref, className = "" }: Props) {
 
 	return (
 		<nav
-			aria-label="Paginación"
+			aria-label={t("pagination.ariaLabel")}
 			className={`flex items-center justify-center gap-1 flex-wrap ${className}`}
 		>
 			{/* Prev */}
 			{meta.hasPrev ? (
-				<Link href={href(meta.page - 1)} className={normalLink} aria-label="Página anterior">
+				<Link href={href(meta.page - 1)} className={normalLink} aria-label={t("pagination.prev")}>
 					<ChevronLeft size={16} strokeWidth={2} />
 				</Link>
 			) : (
@@ -94,7 +96,7 @@ export default function Pagination({ meta, buildHref, className = "" }: Props) {
 
 			{/* Next */}
 			{meta.hasNext ? (
-				<Link href={href(meta.page + 1)} className={normalLink} aria-label="Página siguiente">
+				<Link href={href(meta.page + 1)} className={normalLink} aria-label={t("pagination.next")}>
 					<ChevronRight size={16} strokeWidth={2} />
 				</Link>
 			) : (

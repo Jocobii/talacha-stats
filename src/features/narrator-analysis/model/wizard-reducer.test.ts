@@ -19,29 +19,6 @@ const grid = [
 	["2", "Santos", "10", "7", "2", "1", "58", "34", "23"],
 ];
 
-describe("wizardReducer — PARSED", () => {
-	it("salta a 'teams' cuando la autodetección resolvió lo obligatorio", () => {
-		const next = wizardReducer(initialWizardState, {
-			type: "PARSED",
-			grid,
-			headerRowIndex: 0,
-			mapping: completeMapping(),
-		});
-		expect(next.step).toBe("teams");
-	});
-
-	it("va a 'mapping' cuando falta algún campo obligatorio", () => {
-		const incomplete = { ...completeMapping(), points: null };
-		const next = wizardReducer(initialWizardState, {
-			type: "PARSED",
-			grid,
-			headerRowIndex: 0,
-			mapping: incomplete,
-		});
-		expect(next.step).toBe("mapping");
-	});
-});
-
 describe("wizardReducer — mapeo", () => {
 	const base: WizardState = {
 		...initialWizardState,

@@ -1,0 +1,42 @@
+{
+	"_status": "source",
+	"nav": {
+		"brandPrefix": "Talacha",
+		"brandSuffix": "Stats",
+		"items": {
+			"home": "Inicio",
+			"ligas": "Ligas",
+			"ranking": "Ranking",
+			"players": "Jugadores",
+			"matchday": "Jornada",
+			"analysis": "Análisis",
+			"about": "Nosotros"
+		},
+		"manageLeague": "Administrar mi liga",
+		"openMenu": "Abrir menú",
+		"closeMenu": "Cerrar menú",
+		"menuTitle": "Menú"
+	},
+	"footer": {
+		"brand": "TalachaStats",
+		"status": "App en demo — seguimos agregando ligas",
+		"uniqueVisitors": "visitantes únicos"
+	},
+	"loading": "Cargando...",
+	"backHome": "Inicio",
+	"cityFilter": {
+		"loading": "Ciudad"
+	},
+	"pagination": {
+		"ariaLabel": "Paginación",
+		"prev": "Página anterior",
+		"next": "Página siguiente"
+	},
+	"share": {
+		"share": "Compartir",
+		"copied": "¡Copiado!",
+		"copyLink": "Copiar enlace",
+		"ariaShare": "Compartir",
+		"ariaCopyLink": "Copiar enlace"
+	}
+}

@@ -12,7 +12,8 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
 export const SESSION_COOKIE = "ts_session";
-const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
+const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días — "mantener sesión iniciada"
+const SESSION_DURATION_SHORT_MS = 24 * 60 * 60 * 1000; // 1 día — sin "mantener sesión iniciada"
 
 function secret(): string {
 	const s = process.env.SESSION_SECRET;
@@ -27,8 +28,8 @@ function secret(): string {
 
 // ── Firma ─────────────────────────────────────────────────────────────────────
 
-export function signSession(userId: string): string {
-	const exp = Date.now() + SESSION_DURATION_MS;
+export function signSession(userId: string, durationMs: number = SESSION_DURATION_MS): string {
+	const exp = Date.now() + durationMs;
 	const payload = `${userId}|${exp}`;
 	const hmac = createHmac("sha256", secret()).update(payload).digest("hex");
 	return Buffer.from(`${payload}|${hmac}`).toString("base64url");
@@ -69,15 +70,26 @@ export function verifySession(token: string): { userId: string } | null {
 
 // ── Cookie helpers ────────────────────────────────────────────────────────────
 
-export function buildSessionCookie(userId: string, isProduction: boolean): string {
-	const token = signSession(userId);
+/**
+ * Construye el header Set-Cookie de la sesión.
+ * `remember=true` (default): token y cookie duran 7 días — "mantener sesión iniciada".
+ * `remember=false`: token dura 1 día y la cookie no lleva Max-Age (cookie de sesión,
+ * se borra al cerrar el navegador) — usado cuando el usuario destilda esa opción en /login.
+ */
+export function buildSessionCookie(
+	userId: string,
+	isProduction: boolean,
+	remember: boolean = true,
+): string {
+	const durationMs = remember ? SESSION_DURATION_MS : SESSION_DURATION_SHORT_MS;
+	const token = signSession(userId, durationMs);
 	return [
 		`${SESSION_COOKIE}=${token}`,
 		"Path=/",
 		"HttpOnly",
-		"SameSite=Strict",
+		"SameSite=Lax",
 		isProduction ? "Secure" : "",
-		`Max-Age=${7 * 24 * 60 * 60}`,
+		remember ? `Max-Age=${7 * 24 * 60 * 60}` : "",
 	]
 		.filter(Boolean)
 		.join("; ");
@@ -88,7 +100,7 @@ export function clearSessionCookie(isProduction: boolean): string {
 		`${SESSION_COOKIE}=`,
 		"Path=/",
 		"HttpOnly",
-		"SameSite=Strict",
+		"SameSite=Lax",
 		isProduction ? "Secure" : "",
 		"Max-Age=0",
 	]

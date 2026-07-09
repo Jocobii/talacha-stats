@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 	const parsed = LoginSchema.safeParse(body);
 	if (!parsed.success) return apiError("Email y contrasena requeridos", 400);
 
-	const { email, password } = parsed.data;
+	const { email, password, remember } = parsed.data;
 
 	const user = await getUserByEmail(email);
 	if (!user || !user.active) {
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 	}
 
 	const isProduction = process.env.NODE_ENV === "production";
-	const sessionCookie = buildSessionCookie(user.id, isProduction);
+	const sessionCookie = buildSessionCookie(user.id, isProduction, remember);
 
 	// Solo setear ciudad si no existe cookie previa
 	const existingCity = request.headers

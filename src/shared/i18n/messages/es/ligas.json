@@ -1,0 +1,12 @@
+{
+	"_status": "source",
+	"meta": {
+		"title": "Ligas — TalachaStats",
+		"description": "Encuentra tu liga de fútbol amateur. Tablas de posiciones, goleadores y estadísticas de todas las organizaciones."
+	},
+	"title": "Ligas",
+	"activeLeagues": "{count, plural, one {# liga activa} other {# ligas activas}}",
+	"organizations": "{count, plural, one {# organización} other {# organizaciones}}",
+	"empty": "Aún no hay ligas activas registradas.",
+	"teams": "{count, plural, one {# equipo} other {# equipos}}"
+}

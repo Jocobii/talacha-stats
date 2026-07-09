@@ -59,6 +59,14 @@ export const queryKeys = {
 	ranking: (filters?: Record<string, string>) =>
 		filters ? (["ranking", filters] as const) : (["ranking"] as const),
 
+	// Narrador — análisis pre-partido (flujo BD, /analysis)
+	// Key propia (no comparte con `leagueTeams`): el mapper de esta feature
+	// devuelve un shape distinto (TeamOption sin color) y no debe pisar la
+	// caché de team-management.
+	narratorTeams: (leagueId: string) => ["narrator-teams", leagueId] as const,
+	narratorAnalysis: (leagueId: string, teamA: string, teamB: string) =>
+		["narrator-analysis", leagueId, teamA, teamB] as const,
+
 	// Temas por torneo (tournament-skin)
 	// Invalidación: crear/toggle/borrar activación → skinActivations + activeSkin
 	activeSkin: () => ["active-skin"] as const,

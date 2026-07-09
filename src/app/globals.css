@@ -239,6 +239,45 @@ body {
 	animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+/* ── Confetti (paso final del onboarding unificado) ──────────────── */
+@keyframes confettiFall {
+	to {
+		transform: translateY(105vh) rotate(720deg);
+		opacity: 0;
+	}
+}
+
+.animate-confetti-fall {
+	animation-name: confettiFall;
+	animation-timing-function: linear;
+	animation-fill-mode: forwards;
+}
+
+/* ── Check de éxito (paso 3 del wizard de registro) ──────────────── */
+@keyframes drawCircle {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes drawCheck {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+.animate-draw-circle {
+	stroke-dasharray: 126;
+	stroke-dashoffset: 126;
+	animation: drawCircle 0.5s ease-out forwards;
+}
+
+.animate-draw-check {
+	stroke-dasharray: 24;
+	stroke-dashoffset: 24;
+	animation: drawCheck 0.35s 0.45s ease-out forwards;
+}
+
 /* ── Toast animations ─────────────────────────────────────────── */
 @keyframes toastIn {
 	0% {
@@ -552,6 +591,40 @@ body {
 		opacity: 1;
 		transform: none;
 	}
+
+	.animate-draw-circle,
+	.animate-draw-check {
+		animation: none;
+		stroke-dashoffset: 0;
+	}
+
+	.animate-confetti-fall {
+		display: none;
+	}
+}
+
+/* ── Panel de marca (auth split-layout: /register) ───────────────── */
+.auth-brand-glow {
+	background-color: var(--color-pitch);
+	background-image:
+		radial-gradient(
+			circle at 20% 15%,
+			color-mix(in srgb, var(--color-brand) 16%, transparent),
+			transparent 55%
+		),
+		radial-gradient(
+			circle at 80% 85%,
+			color-mix(in srgb, var(--color-brand) 8%, transparent),
+			transparent 50%
+		);
+}
+
+.auth-brand-grid {
+	background-image:
+		linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+	background-size: 42px 42px;
+	mask-image: radial-gradient(circle at 30% 20%, black, transparent 70%);
 }
 
 /* ── Sorteo Cockpit utilities ─────────────────────────────────── */

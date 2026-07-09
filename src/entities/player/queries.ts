@@ -29,6 +29,7 @@ import type {
 	PlayerBadge,
 } from "./model";
 import { getPlayerPositions } from "./ranking";
+import { sanitizeToCanonical } from "@/shared/lib/normalize";
 
 // ── Función principal ─────────────────────────────────────────────────────────
 
@@ -1019,6 +1020,91 @@ export async function listOrgPlayers(
 		})),
 		total: countResult[0]?.total ?? 0,
 	};
+}
+
+// ---------------------------------------------------------------------------
+// Búsqueda por nombre para "Agregar jugador existente" a un equipo
+//
+// Busca global_players que ya tienen al menos un league_member en alguna liga
+// de la organización dada (scope org, decisión de producto). El match es por
+// nombre canónico (sin acentos) para tolerar tildes. Marca alreadyInLeagueTeam
+// cuando el jugador ya está inscrito en un equipo de la liga destino, para que
+// la UI lo muestre deshabilitado y se evite el duplicado.
+// ---------------------------------------------------------------------------
+
+export type OrgPlayerSearchResult = {
+	globalPlayerId: string;
+	fullName: string;
+	birthDate: string;
+	avatarUrl: string | null;
+	alreadyInLeagueTeam: boolean;
+};
+
+export async function searchOrgGlobalPlayers(
+	organizationId: string,
+	q: string,
+	leagueId: string,
+): Promise<OrgPlayerSearchResult[]> {
+	const canonical = sanitizeToCanonical(q);
+	if (canonical.length < 2) return [];
+
+	const like = `%${canonical}%`;
+	const rows = await db
+		.selectDistinctOn([globalPlayers.id], {
+			globalPlayerId: globalPlayers.id,
+			fullName: globalPlayers.fullName,
+			birthDate: globalPlayers.birthDate,
+			avatarUrl: globalPlayers.avatarUrl,
+		})
+		.from(globalPlayers)
+		.innerJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+		.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+		.where(
+			and(
+				eq(leagues.organizationId, organizationId),
+				sql`COALESCE(${globalPlayers.fullNameCanonical}, LOWER(${globalPlayers.fullName})) LIKE ${like}`,
+			),
+		)
+		.orderBy(asc(globalPlayers.id))
+		.limit(15);
+
+	if (rows.length === 0) return [];
+
+	const inTeam = await fetchPlayersAlreadyInLeagueTeam(
+		rows.map((r) => r.globalPlayerId),
+		leagueId,
+	);
+
+	return rows
+		.map((r) => ({
+			globalPlayerId: r.globalPlayerId,
+			fullName: r.fullName,
+			birthDate: r.birthDate,
+			avatarUrl: r.avatarUrl ?? null,
+			alreadyInLeagueTeam: inTeam.has(r.globalPlayerId),
+		}))
+		.sort((a, b) => a.fullName.localeCompare(b.fullName));
+}
+
+/** Subconjunto de globalPlayerIds que ya tienen inscripción a un equipo en la liga. */
+async function fetchPlayersAlreadyInLeagueTeam(
+	globalPlayerIds: string[],
+	leagueId: string,
+): Promise<Set<string>> {
+	if (globalPlayerIds.length === 0) return new Set();
+
+	const rows = await db
+		.selectDistinct({ globalPlayerId: leagueMembers.globalPlayerId })
+		.from(inscriptions)
+		.innerJoin(leagueMembers, eq(leagueMembers.id, inscriptions.leagueMemberId))
+		.where(
+			and(
+				eq(leagueMembers.leagueId, leagueId),
+				inArray(leagueMembers.globalPlayerId, globalPlayerIds),
+			),
+		);
+
+	return new Set(rows.map((r) => r.globalPlayerId));
 }
 
 // ---------------------------------------------------------------------------

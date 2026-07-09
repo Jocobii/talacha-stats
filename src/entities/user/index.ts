@@ -4,6 +4,7 @@ export {
 	getUserByVerificationToken,
 	registerUser,
 	markEmailVerified,
+	renewVerificationToken,
 	listUsers,
 	createUser,
 	updateUser,
@@ -12,11 +13,20 @@ export {
 	verifyPassword,
 } from "./queries";
 
-export { LoginSchema, RegisterSchema, CreateUserSchema, UpdateUserSchema } from "./model";
+export type { RenewVerificationResult } from "./queries";
+
+export {
+	LoginSchema,
+	RegisterSchema,
+	ResendVerificationSchema,
+	CreateUserSchema,
+	UpdateUserSchema,
+} from "./model";
 
 export type {
 	UserPublic,
 	RegisterInput,
+	ResendVerificationInput,
 	UserRole,
 	CreateUserInput,
 	UpdateUserInput,

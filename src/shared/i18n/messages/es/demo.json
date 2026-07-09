@@ -1,0 +1,143 @@
+{
+	"_status": "source",
+	"meta": {
+		"title": "Demo — TalachaStats",
+		"description": "Mira cómo se ve tu liga en TalachaStats: ranking, perfiles de jugador, tabla de honor y análisis pre-partido."
+	},
+	"banner": "Demo interactivo · datos ficticios",
+	"subtitle": "— Así se ve tu liga",
+	"views": {
+		"players": "Para jugadores",
+		"coordinators": "Para coordinadores"
+	},
+	"tabs": {
+		"ranking": "Ranking",
+		"profile": "Perfil",
+		"matchday": "Jornada",
+		"analysis": "Análisis",
+		"canchas": "Canchas",
+		"sorteo": "Sorteo",
+		"apartado": "Apartado"
+	},
+	"canchas": {
+		"title": "Canchas",
+		"subtitle": "{count} canchas · asigna ligas y horarios",
+		"ligas": "Ligas",
+		"windows": "Ventanas",
+		"active": "activas",
+		"slots": "slots",
+		"inUse": "En uso",
+		"unassigned": "Sin asignar",
+		"add": "Registrar cancha",
+		"addHint": "Nombre, dirección, notas"
+	},
+	"sorteo": {
+		"title": "Sorteo",
+		"subtitle": "Jornada {jornada} · preview editable",
+		"previewEditable": "Sorteo · Preview editable",
+		"noRepeat": "Sin repetir últimas {count} jornadas",
+		"fixedSlots": "{count} slots fijos",
+		"editHint": "Click en cualquier equipo, cancha u hora para editar",
+		"saved": "Guardado",
+		"regenerate": "Regenerar",
+		"home": "Local",
+		"away": "Visita",
+		"venue": "Cancha",
+		"time": "Hora",
+		"generatedShort": "partidos",
+		"venuesShort": "canchas",
+		"addManual": "Agregar partido manual"
+	},
+	"sorteoAnim": {
+		"eyebrow": "Sorteo + compartir",
+		"title": "Sortea la jornada y mándala al grupo",
+		"subtitle": "Un clic para generar el rol, otro para compartirlo directo al WhatsApp de tu liga.",
+		"panelTitle": "Sorteo · Jornada 13",
+		"generate": "Generar sorteo",
+		"share": "Compartir a WhatsApp",
+		"waGroup": "Liga Compadres ⚽",
+		"waCaption": "Jornada 13 — ¡ya salió el rol! 📋",
+		"sent": "Enviado"
+	},
+	"apartado": {
+		"title": "Apartado de horarios",
+		"subtitle": "{venue} · los equipos compran su horario fijo",
+		"summaryBooked": "apartados",
+		"summaryRevenue": "recaudado",
+		"summaryFree": "libres",
+		"booked": "Apartado",
+		"free": "Libre",
+		"legend": "El sorteo respeta los horarios apartados"
+	},
+	"ranking": {
+		"title": "Ranking",
+		"subtitle": "{count} jugadores · Fútbol Amateur",
+		"goals": "goles",
+		"tapHint": "Toca al #1 para ver su perfil →"
+	},
+	"profile": {
+		"goalsPerMatch": "Goles por partido",
+		"goals": "goles",
+		"matches": "partidos",
+		"leagues": "ligas",
+		"leaguesCount": "Ligas ({count})",
+		"sharePlaceholder": "Compartir perfil",
+		"copyLink": "Copiar link"
+	},
+	"matchday": {
+		"title": "Tabla de honor",
+		"subtitle": "Top goleadores · última jornada por liga"
+	},
+	"analysis": {
+		"title": "Análisis",
+		"subtitle": "Pre-partido · Jornada {jornada}",
+		"winProbability": "Probabilidad de victoria",
+		"draw": "Empate",
+		"prediction": "🔮 Predicción",
+		"mostLikelyScore": "Marcador más probable",
+		"expectedGoals": "Goles esp.",
+		"total": "Total",
+		"openMatch": "Partido abierto",
+		"positionSimulator": "📈 Simulador de posición",
+		"position": "Posición:",
+		"pts": "pts",
+		"ifWin": "Si gana",
+		"ifDraw": "Si empata",
+		"ifLoss": "Si pierde",
+		"scoringThreats": "🎯 Amenazas goleadoras",
+		"goalsPerMatchInline": "{goals} goles · {gpm} x partido",
+		"narratorScript": "🎙️ Guión del narrador",
+		"funFacts": "💡 Datos curiosos",
+		"headToHead": "📋 Cara a cara",
+		"draws": "Empates",
+		"last": "Último:"
+	},
+	"team": {
+		"last5": "Últ. 5:",
+		"streakWins": "🔥 Racha: {count} victorias",
+		"streakDraws": "🔥 Racha: {count} empates",
+		"strongAttack": "Ataque fuerte",
+		"averageAttack": "Ataque regular",
+		"solidDefense": "Defensa sólida",
+		"averageDefense": "Defensa regular"
+	},
+	"roster": {
+		"player": "Jugador",
+		"danger": "Peligro"
+	},
+	"danger": {
+		"high": "ALTO",
+		"medium": "MEDIO",
+		"low": "BAJO"
+	},
+	"cta": {
+		"eyebrow": "Para coordinadores de liga",
+		"headline1": "¿Quieres esto",
+		"headlineFor": "para",
+		"headlineHighlight": "tu liga",
+		"body": "Ranking público, perfiles compartibles, análisis pre-partido para el narrador del Facebook Live. Setup en menos de una semana.",
+		"whatsapp": "WhatsApp",
+		"email": "Enviar correo",
+		"register": "Crear cuenta gratis"
+	}
+}

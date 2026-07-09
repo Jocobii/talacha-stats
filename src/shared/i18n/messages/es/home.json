@@ -1,0 +1,183 @@
+{
+	"_status": "source",
+	"meta": {
+		"title": "TalachaStats | Crea y administra tu liga de fútbol gratis",
+		"description": "Crea tu liga de fútbol amateur gratis: tabla de posiciones automática, goleadores, sorteo de jornadas y perfil público para cada jugador. Sin cuotas, sin tarjeta."
+	},
+	"viewToggle": {
+		"ariaLabel": "Elige tu vista",
+		"player": "Soy jugador",
+		"organizer": "Organizo una liga"
+	},
+	"hero": {
+		"badge": "Fútbol Amateur · 100% gratis",
+		"titleLine1": "Tus goles",
+		"titleLine2": "hablan",
+		"titleLine3": "por ti.",
+		"subtextPrefix": "Juegas en varias ligas de fútbol amateur. TalachaStats reúne tus estadísticas de ",
+		"subtextStrong": "todas tus ligas",
+		"subtextSuffix": " en un solo perfil que puedes compartir.",
+		"nostalgiaLine": "Tus goles de hoy son tus recuerdos de mañana.",
+		"viewRanking": "Ver ranking",
+		"socialProof": "Ya hay cientos de jugadores en el ranking. ¿Estás tú?",
+		"organizerPrompt": "¿Organizas una liga?",
+		"organizerPromptCta": "Esto es para ti →"
+	},
+	"heroCard": {
+		"badges": {
+			"topScorer": "Artillero",
+			"streak": "Racha 5+",
+			"topCity": "Top Ciudad"
+		},
+		"location": "3 ligas activas",
+		"stats": {
+			"goals": "Goles",
+			"matches": "Partidos",
+			"leagues": "Ligas"
+		},
+		"achievements": "Logros",
+		"rankingLabel": "Ranking de tu ciudad",
+		"caption": "Tu perfil, así de claro."
+	},
+	"heroSearch": {
+		"ariaLabel": "Busca tu perfil de jugador",
+		"label": "¿Ya estás en el sistema? Búscate.",
+		"placeholder": "Escribe tu nombre…",
+		"inputAriaLabel": "Tu nombre",
+		"submit": "Buscar"
+	},
+	"features": {
+		"ranking": {
+			"title": "Ranking de tu ciudad",
+			"description": "¿Cuántos están por encima de ti? El ranking cruza todas las ligas para darte tu posición real en la ciudad."
+		},
+		"leaderboard": {
+			"title": "Tabla de honor",
+			"description": "Los mejores de cada jornada, por liga. El reconocimiento que se gana con goles."
+		},
+		"shareableProfile": {
+			"title": "Perfil compartible",
+			"description": "Tu link personal. Lo mandas por WhatsApp y quien lo abre ve tus goles en todas las ligas."
+		}
+	},
+	"statsBar": {
+		"goals": "Goles registrados",
+		"activeLeagues": "Ligas activas",
+		"players": "Jugadores"
+	},
+	"leaguesShowcase": {
+		"playersLabel": "Jugadores",
+		"teamsLabel": "Equipos",
+		"topScorerLabel": "Goleador",
+		"noTopScorer": "Sin datos aún",
+		"goalsUnit": "goles",
+		"viewLeague": "Ver liga",
+		"eyebrow": "Ligas en la plataforma",
+		"titleLine1": "Tu liga,",
+		"titleLine2": "en el mapa.",
+		"subtext": "Estas ligas ya tienen presencia pública. Sus jugadores, sus goleadores y su historia, visibles para toda la ciudad.",
+		"cta": "Registra la tuya"
+	},
+	"leaderboardTeaser": {
+		"goalsUnit": "goles",
+		"ghostPrompt": "¿Dónde estás tú?",
+		"ghostSubtext": "Tu ciudad · todas las ligas",
+		"ghostCta": "Ver",
+		"title": "Ranking de tu ciudad",
+		"badge": "Todas las ligas",
+		"viewFullRanking": "Ver ranking completo"
+	},
+	"organizerSection": {
+		"valueProps": {
+			"visibility": {
+				"title": "Tu liga, visible para todos",
+				"description": "Página pública con el nombre de tu liga, tabla de posiciones y goleadores. Un link que puedes compartir con tus jugadores hoy mismo."
+			},
+			"cityRanking": {
+				"title": "Tus jugadores en el ranking de la ciudad",
+				"description": "Los goleadores de tu liga aparecen automáticamente en el ranking cruzado de tu ciudad. Tu liga pone gente en el mapa."
+			},
+			"shareableContent": {
+				"title": "Contenido listo para compartir",
+				"description": "Cada temporada genera una tarjeta con las stats de tu liga. La compartes en tu grupo de WhatsApp o en tus redes. Sin diseño, sin esfuerzo."
+			}
+		},
+		"perks": [
+			"Sin cuotas por jugador",
+			"Captura la jornada desde tu celular con la cédula digital",
+			"Sorteo, calendario y liguilla incluidos",
+			"Tus datos, tus ligas, tu crédito"
+		],
+		"eyebrow": "Para organizadores",
+		"titleLine1": "Tu liga",
+		"titleLine2": "merece",
+		"titleLine3": "ser vista.",
+		"subtext": "Tú pones el trabajo. TalachaStats pone la plataforma. Captura tu jornada en la cédula digital y tu liga tiene presencia pública al instante.",
+		"primaryCta": "Registra tu liga gratis",
+		"secondaryCta": "Ya tengo cuenta →",
+		"bottomCta": "Ver todo lo que incluye"
+	},
+	"organizerHero": {
+		"badge": "Para organizadores · Gratis",
+		"features": [
+			"Sorteo y calendario automáticos",
+			"Cédula digital de partido: goles, tarjetas y MVP desde tu celular",
+			"Tabla de posiciones y goleo que se actualizan solos",
+			"Liguilla con bracket de eliminación directa",
+			"Página pública de tu liga, con tus colores",
+			"Tus jugadores en el ranking de la ciudad"
+		],
+		"titleLine1": "Tu liga ya funciona.",
+		"titleLine2Strong": "Hazla ver",
+		"titleLine2Suffix": " tan en serio como es.",
+		"subtextPrefix": "Captura la jornada en la ",
+		"subtextStrong": "cédula digital",
+		"subtextSuffix": " y TalachaStats genera solo la tabla, los goleadores, el calendario y el contenido listo para tu grupo de WhatsApp.",
+		"lossAversionPrefix": "Tu liga ya tiene historia: campeones, goleadores, rivalidades. En un álbum de Facebook, el algoritmo la entierra. Aquí, cada jornada que captures queda registrada ",
+		"lossAversionStrong": "para siempre",
+		"lossAversionSuffix": " — eres el cronista de tu cancha.",
+		"primaryCta": "Registra tu liga gratis",
+		"secondaryCta": "Ver una liga de ejemplo",
+		"pricePrefix": "Otros sistemas cobran por equipo o por jugador. Aquí: ",
+		"priceStrong": "$0",
+		"priceSuffix": ", sin tarjeta y sin límite de equipos.",
+		"cardEyebrow": "Lo que tu liga obtiene"
+	},
+	"organizerSteps": {
+		"titlePrefix": "Tu liga pública ",
+		"titleStrong": "en 3 pasos",
+		"steps": [
+			{
+				"title": "Registra tu liga",
+				"description": "2 minutos. Nombre, ciudad y listo — ya diste el paso más difícil."
+			},
+			{
+				"title": "Sube tus equipos y jugadores",
+				"description": "Carga bulk de equipos y registro de jugadores en ventanilla."
+			},
+			{
+				"title": "Captura tu primera jornada",
+				"description": "Con la cédula digital. En ese momento tu liga ya es pública."
+			}
+		],
+		"cta": "Empezar con el paso 1"
+	},
+	"organizerBeforeAfter": {
+		"titlePrefix": "Capturas una vez. ",
+		"titleStrong": "Se publica todo.",
+		"subtext": "La cédula digital es el único trabajo. Lo demás lo genera la plataforma.",
+		"standingsLabel": "Tabla de posiciones",
+		"goleoUpdatedPrefix": "Goleo actualizado: ",
+		"shareImagePrefix": "Imagen de la jornada ",
+		"shareImageStrong": "lista para WhatsApp"
+	},
+	"vaultSection": {
+		"eyebrow": "El baúl",
+		"titleLine1": "Dentro de 20 años vas a querer acordarte de este equipo.",
+		"titleLine2": "Aquí va a estar.",
+		"body": "Cada gol que registras hoy se convierte en un recuerdo: en qué equipos jugaste, con quién compartiste cancha, qué temporadas ganaste. Tu historia queda guardada para siempre — para ti y para los tuyos.",
+		"cta": "Empieza tu baúl — búscate",
+		"pill": "Hace 20 años",
+		"playedWith": "Jugaste con"
+	}
+}

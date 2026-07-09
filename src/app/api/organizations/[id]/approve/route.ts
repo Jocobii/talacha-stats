@@ -29,6 +29,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 				orgName: org.name,
 				dashboardUrl: `${baseUrl}/admin`,
 			}),
+			sender: "notifications",
 		}).catch((err: unknown) => {
 			console.error("[approve] Error sending verification email:", err);
 		});

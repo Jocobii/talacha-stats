@@ -1,0 +1,90 @@
+{
+	"_status": "placeholder-untranslated",
+	"meta": {
+		"title": "¿Qué es TalachaStats? — Conoce la plataforma",
+		"description": "TalachaStats es la primera plataforma de estadísticas cross-liga para fútbol amateur. Crea tu liga, comparte tu perfil y ve tu ranking en toda la ciudad."
+	},
+	"hero": {
+		"badge": "Tijuana · Fútbol Amateur",
+		"headline1": "Por primera vez,",
+		"headline2": "Tijuana sabrá quién es",
+		"headline3": "el mejor.",
+		"body": "TalachaStats es la primera plataforma de estadísticas para fútbol amateur que conecta <strong>todas las ligas de la ciudad</strong> en un solo perfil por jugador."
+	},
+	"problem": {
+		"eyebrow": "El problema",
+		"headline1": "Llevas años jugando.",
+		"headline2": "Nadie lleva la cuenta.",
+		"body": "En el fútbol amateur cada liga vive en su propia burbuja. Los goles que metiste el lunes no cuentan en la liga del martes. No hay un historial, no hay un perfil, no hay forma de saber quién es realmente el mejor jugador de la ciudad. Eso hasta ahora."
+	},
+	"whatIs": {
+		"eyebrow": "Qué es TalachaStats",
+		"headline": "Un perfil. Todas tus ligas.",
+		"features": [
+			{
+				"title": "Perfil de jugador",
+				"desc": "Cada jugador tiene su propia página con goles, partidos, rachas y badges ganados a lo largo de su carrera amateur."
+			},
+			{
+				"title": "Historial cross-liga",
+				"desc": "No importa en cuántas ligas juegas — todo suma al mismo perfil. Tu carrera completa en un solo lugar."
+			},
+			{
+				"title": "Ranking de la ciudad",
+				"desc": "Un ranking unificado que cruza todas las ligas registradas. Por primera vez, Tijuana tiene un top de jugadores amateurs."
+			}
+		]
+	},
+	"howItWorks": {
+		"eyebrow": "Cómo funciona",
+		"headline1": "Simple para el organizador.",
+		"headline2": "Poderoso para el jugador.",
+		"steps": [
+			{
+				"step": "01",
+				"title": "El organizador captura los resultados",
+				"desc": "Después de cada jornada, el organizador da de alta el marcador y las estadísticas en un formulario simple — la cédula. Sin subir archivos, sin cambiar de plataforma."
+			},
+			{
+				"step": "02",
+				"title": "TalachaStats procesa todo",
+				"desc": "La plataforma identifica a cada jugador, acumula sus estadísticas y actualiza el ranking de la ciudad automáticamente."
+			},
+			{
+				"step": "03",
+				"title": "El jugador comparte su perfil",
+				"desc": "Cada jugador recibe su link personal. Lo manda por WhatsApp, lo pone en su bio, lo presume cuando alguien le pregunte si juega bien."
+			}
+		]
+	},
+	"vision": {
+		"eyebrow": "Nuestra visión",
+		"headline1": "Tijuana primero.",
+		"headline2": "Después el mundo.",
+		"body1": "Empezamos en Tijuana porque es nuestra ciudad y porque tiene una escena de fútbol amateur vibrante que merece ser documentada. El objetivo es que cada liga que se sume haga el ranking más completo y más competitivo — hasta que no haya duda de quién es el mejor jugador amateur de la ciudad.",
+		"body2": "Después de Tijuana, cualquier ciudad. El modelo es el mismo: captura semanal, un perfil por jugador, un ranking que lo dice todo.",
+		"stats": [
+			{ "value": "∞", "label": "Goles por registrar" },
+			{ "value": "1", "label": "Perfil por jugador" },
+			{ "value": "🏙️", "label": "Ciudad conectada" }
+		]
+	},
+	"vault": {
+		"eyebrow": "Más que un ranking",
+		"headline1": "Un lugar al que",
+		"headline2": "siempre puedes volver.",
+		"body": "Los años pasan, cambias de liga, dejas de jugar — tu perfil se queda. Cada gol, cada racha, cada equipo con el que jugaste, guardado para cuando quieras volver a verlo.",
+		"highlight": "Tu historial no se borra. Se guarda."
+	},
+	"cta": {
+		"eyebrow": "Para organizadores",
+		"headline": "Tus jugadores merecen esto.",
+		"body": "Activa TalachaStats en tu liga. Sin cambiar tu flujo de trabajo — solo captura tus resultados cada semana y nosotros hacemos el resto. Es gratis mientras estamos en demo.",
+		"activate": "Quiero activarla",
+		"viewDemo": "Ver demo primero"
+	},
+	"social": {
+		"title": "Síguenos en redes",
+		"subtitle": "Contenido, stats destacadas y novedades de la app."
+	}
+}

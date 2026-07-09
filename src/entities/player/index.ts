@@ -34,6 +34,7 @@ export {
 export type {
 	TeamRosterEntry,
 	OrgPlayerRow,
+	OrgPlayerSearchResult,
 	GlobalPlayerLeagueMember,
 	GlobalPlayerBasic,
 } from "./queries";

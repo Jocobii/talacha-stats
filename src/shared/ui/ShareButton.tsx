@@ -2,6 +2,7 @@
 
 import { Share2, Check, Link } from "lucide-react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Variant = "icon" | "full";
 
@@ -27,6 +28,7 @@ type Props = {
  */
 export default function ShareButton({ title, url, text, variant = "full", className = "" }: Props) {
 	const [state, setState] = useState<"idle" | "copied">("idle");
+	const t = useTranslations("common");
 
 	async function handleShare() {
 		const shareUrl = url ?? (typeof window !== "undefined" ? window.location.href : "");
@@ -56,7 +58,7 @@ export default function ShareButton({ title, url, text, variant = "full", classN
 		return (
 			<button
 				onClick={handleShare}
-				aria-label="Compartir"
+				aria-label={t("share.ariaShare")}
 				className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-colors ${
 					isCopied
 						? "border-brand/40 bg-brand/10 text-brand-ink"
@@ -79,12 +81,12 @@ export default function ShareButton({ title, url, text, variant = "full", classN
 			{isCopied ? (
 				<>
 					<Check size={16} strokeWidth={2} className="text-brand-ink" />
-					<span>¡Copiado!</span>
+					<span>{t("share.copied")}</span>
 				</>
 			) : (
 				<>
 					<Share2 size={16} strokeWidth={2} />
-					<span>Compartir</span>
+					<span>{t("share.share")}</span>
 				</>
 			)}
 		</button>
@@ -97,6 +99,7 @@ export default function ShareButton({ title, url, text, variant = "full", classN
  */
 export function CopyLinkButton({ url, className = "" }: { url?: string; className?: string }) {
 	const [copied, setCopied] = useState(false);
+	const t = useTranslations("common");
 
 	async function handleCopy() {
 		const target = url ?? (typeof window !== "undefined" ? window.location.href : "");
@@ -112,7 +115,7 @@ export function CopyLinkButton({ url, className = "" }: { url?: string; classNam
 	return (
 		<button
 			onClick={handleCopy}
-			aria-label="Copiar enlace"
+			aria-label={t("share.ariaCopyLink")}
 			className={`inline-flex items-center gap-1.5 text-xs text-ink-3 hover:text-brand-ink transition-colors ${className}`}
 		>
 			{copied ? (
@@ -120,7 +123,7 @@ export function CopyLinkButton({ url, className = "" }: { url?: string; classNam
 			) : (
 				<Link size={12} strokeWidth={2} />
 			)}
-			{copied ? "¡Copiado!" : "Copiar enlace"}
+			{copied ? t("share.copied") : t("share.copyLink")}
 		</button>
 	);
 }

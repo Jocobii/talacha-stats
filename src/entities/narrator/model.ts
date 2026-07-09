@@ -241,6 +241,8 @@ export type ParseExcelResult = {
 	grid: string[][]; // matriz completa, acotada a los límites
 	headerRowIndex: number; // mejor adivinanza de la fila de encabezados
 	suggestedMapping: ColumnMapping; // detectado sobre grid[headerRowIndex]
+	sheetNames: string[]; // nombres de todas las hojas del libro (p.ej. una por jornada)
+	selectedSheetIndex: number; // hoja que se parseó (default: la última)
 };
 
 // ── Request del route /analyze ──────────────────────────────────────────────

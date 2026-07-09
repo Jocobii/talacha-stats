@@ -6,7 +6,7 @@
  */
 
 import { db, teams, leagueMembers, inscriptions } from "@/db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import type { Team, LeagueMember, Inscription } from "@/db";
 import type { UpdateTeamData, UpdateRosterMemberData } from "./types";
 import { sanitizeToCanonical } from "@/shared/lib/normalize";
@@ -92,4 +92,93 @@ export async function transferPlayer(memberId: string, targetTeamId: string): Pr
 		if (!newInscription) throw new Error("Error al crear inscripcion en equipo destino");
 		return newInscription;
 	});
+}
+
+/**
+ * Agrega un jugador YA EXISTENTE (global_player) a un equipo.
+ *
+ * A diferencia del flujo de ventanilla (registerPlayer), aquí NO se crea
+ * identidad: el jugador ya existe. Crear jugadores nuevos es responsabilidad
+ * del módulo /admin/registro. Este flujo solo:
+ *   1. Reutiliza el league_member de la liga (o lo crea si aún no es miembro).
+ *   2. Crea la inscription al equipo.
+ *
+ * Todo en una transacción. Si el jugador ya está inscrito en un equipo de la
+ * liga, retorna un error legible (la constraint UNIQUE(league_member_id) es el
+ * último guardia).
+ */
+export type AddExistingResult =
+	| { ok: true; memberId: string; inscriptionId: string }
+	| { ok: false; code: "ALREADY_IN_TEAM"; error: string };
+
+export async function addExistingPlayerToTeam(input: {
+	globalPlayerId: string;
+	leagueId: string;
+	teamId: string;
+	dorsal: number | null;
+}): Promise<AddExistingResult> {
+	try {
+		return await db.transaction(async (tx) => {
+			const member = await resolveLeagueMember(tx, input);
+
+			const existing = await tx.query.inscriptions.findFirst({
+				where: eq(inscriptions.leagueMemberId, member.id),
+			});
+			if (existing) {
+				throw Object.assign(new Error("El jugador ya está en un equipo de esta liga"), {
+					code: "ALREADY_IN_TEAM" as const,
+				});
+			}
+
+			const [ins] = await tx
+				.insert(inscriptions)
+				.values({ leagueMemberId: member.id, teamId: input.teamId })
+				.returning();
+			if (!ins) throw new Error("No se pudo inscribir al equipo");
+
+			return { ok: true as const, memberId: member.id, inscriptionId: ins.id };
+		});
+	} catch (err: unknown) {
+		if (err instanceof Error && "code" in err && err.code === "ALREADY_IN_TEAM") {
+			return { ok: false, code: "ALREADY_IN_TEAM", error: err.message };
+		}
+		console.error("[addExistingPlayerToTeam] error inesperado", err);
+		throw err;
+	}
+}
+
+/** Reutiliza el league_member de la liga o lo crea si el jugador aún no es miembro. */
+async function resolveLeagueMember(
+	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+	input: { globalPlayerId: string; leagueId: string; dorsal: number | null },
+): Promise<LeagueMember> {
+	const existing = await tx.query.leagueMembers.findFirst({
+		where: and(
+			eq(leagueMembers.globalPlayerId, input.globalPlayerId),
+			eq(leagueMembers.leagueId, input.leagueId),
+		),
+	});
+
+	if (existing) {
+		if (input.dorsal !== null) {
+			await tx
+				.update(leagueMembers)
+				.set({ dorsal: input.dorsal })
+				.where(eq(leagueMembers.id, existing.id));
+		}
+		return existing;
+	}
+
+	const [created] = await tx
+		.insert(leagueMembers)
+		.values({
+			globalPlayerId: input.globalPlayerId,
+			leagueId: input.leagueId,
+			status: "active",
+			dorsal: input.dorsal,
+			inscriptionDate: new Date().toISOString().slice(0, 10),
+		})
+		.returning();
+	if (!created) throw new Error("No se pudo crear la membresía en la liga");
+	return created;
 }

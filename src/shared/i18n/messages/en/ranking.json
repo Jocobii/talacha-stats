@@ -1,0 +1,43 @@
+{
+	"_status": "placeholder-untranslated",
+	"meta": {
+		"title": "Ranking — TalachaStats",
+		"description": "Los mejores goleadores de las ligas de fútbol amateur. Compárate con los demás."
+	},
+	"title": "Ranking",
+	"selectLeague": "Selecciona una liga",
+	"subtitle": "{count, plural, one {# jugador} other {# jugadores}} · Fútbol Amateur",
+	"pageOf": "· pág. {page}/{totalPages}",
+	"tabs": {
+		"city": "Ciudad",
+		"league": "Liga",
+		"global": "Nacional"
+	},
+	"emptyNoLeague": "Elige una liga del selector de arriba para ver el ranking.",
+	"emptyNoStats": "Aún no hay estadísticas registradas.",
+	"top10": "Top 10",
+	"classified": "Clasificados",
+	"podium": {
+		"champion": "CAMPEÓN",
+		"second": "2° LUGAR",
+		"third": "3° LUGAR"
+	},
+	"goals": "goles",
+	"national": "México",
+	"leagueSelector": {
+		"placeholder": "Selecciona una liga…"
+	},
+	"playerSearch": {
+		"myProfile": "Tu perfil",
+		"viewProfile": "Ver perfil ↗",
+		"change": "Cambiar",
+		"removeProfile": "Quitar perfil",
+		"thisLeague": "Esta liga",
+		"searchPlaceholder": "Escribe tu nombre o apodo…",
+		"searching": "Buscando…",
+		"noResults": "No se encontraron jugadores para \"{query}\".",
+		"findMe": "¿Dónde estoy en el ranking?",
+		"showLess": "Ver menos",
+		"showMore": "+{count} liga{plural} más"
+	}
+}

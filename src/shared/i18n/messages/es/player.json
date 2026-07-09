@@ -1,0 +1,77 @@
+{
+	"_status": "source",
+	"notFound": "Jugador no encontrado",
+	"defaultDescription": "Jugador amateur de fútbol 7",
+	"descriptionGoals": "{goals} goles en {leagues, plural, one {# liga} other {# ligas}}",
+	"descriptionGoalsPerMatch": " · {gpm} goles/partido",
+	"emptyStats": "Este jugador aún no tiene estadísticas registradas.",
+	"profileEyebrow": {
+		"male": "Perfil de jugador",
+		"female": "Perfil de jugadora"
+	},
+	"achievement": {
+		"goleador": {
+			"male": "GOLEADOR",
+			"female": "GOLEADORA"
+		},
+		"cityTitle": "{label} DE {city}",
+		"topPercentTitle": "TOP {percent}% DE {city}",
+		"topPercentRank": "TOP {percent}%",
+		"leagueTitle": "{label} DE LIGA",
+		"artillero": {
+			"male": "ARTILLERO",
+			"female": "ARTILLERA"
+		},
+		"racha": "EN RACHA",
+		"multiligas": "EN MÚLTIPLES LIGAS",
+		"veterano": {
+			"male": "VETERANO",
+			"female": "VETERANA"
+		},
+		"titular": "FIJO EN EL XI",
+		"activo": "ACTIVO EN LA TEMPORADA",
+		"rankMatches": "{count} PJ",
+		"rankLigas": "{count} LIGAS"
+	},
+	"hero": {
+		"goalsAndAssists": "GOLES + ASIST.",
+		"totalGoals": "GOLES TOTALES",
+		"assists": "ASISTENCIAS",
+		"matchesPlayed": "PJ JUGADOS",
+		"debutPending": "DEBUT PENDIENTE"
+	},
+	"secondary": {
+		"goals": "GOLES",
+		"goalsPerMatch": "G / PJ",
+		"matches": "PJ",
+		"league": "LIGA",
+		"leagues": "LIGAS"
+	},
+	"acreditaciones": {
+		"title": "Acreditaciones",
+		"leagueScorer": "Goleador de liga",
+		"activeInLeagues": "Activo en {count} ligas",
+		"hatTrick": "Hat-trick conseguido",
+		"hatTricks": "{count} hat-tricks",
+		"streak": "Racha activa de {count} partidos",
+		"averageGoal": "Promedio de 1+ gol por partido",
+		"veteran": "Veterano · {count} PJ",
+		"debutWith": "Debut con {team}",
+		"matchesPlayedCount": "{count} partidos disputados"
+	},
+	"dek": {
+		"goleador": "<strong>{name}</strong> encabeza el ranking de {city} entre {total} jugadores con {goals} goles en {leagues, plural, one {# liga} other {# ligas}}.",
+		"artillero": "<strong>{name}</strong> promedia {gpm} goles por partido en {matches} disputados.",
+		"multiligas": "<strong>{name}</strong> juega en {leagues} ligas con {contributions} contribuciones de gol esta temporada.",
+		"racha": "<strong>{name}</strong> anota en {streak} partidos seguidos.",
+		"titular": "<strong>{name}</strong> fue titular en {matches} partidos esta temporada.",
+		"default": "<strong>{name}</strong> juega en {leagues, plural, one {# liga} other {# ligas}} y acumula {matches} PJ."
+	},
+	"enCurso": "En curso",
+	"teamGoalsShare": "{pct}% goles equipo",
+	"shareFooter": {
+		"tagline": "Tu liga, en serio.",
+		"share": "Compartir perfil",
+		"copied": "¡Enlace copiado!"
+	}
+}

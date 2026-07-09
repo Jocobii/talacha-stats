@@ -31,6 +31,16 @@ export const TRANSFER_URL = (teamId: string, memberId: string): string =>
 
 export const TEAMS_BY_LEAGUE_URL = (leagueId: string): string => `/api/teams?league_id=${leagueId}`;
 
+/** Búsqueda por nombre de jugadores existentes de la organización (scope liga). */
+export const ORG_PLAYER_SEARCH_URL = (leagueId: string, q: string): string =>
+	`/api/players/org-search?leagueId=${leagueId}&q=${encodeURIComponent(q)}`;
+
+/** Ventanilla de registro — destino del shortcut "Crear jugador nuevo". */
+export const REGISTRO_URL = (leagueId: string): string => `/admin/registro?leagueId=${leagueId}`;
+
+/** Debounce (ms) del buscador por nombre en el modal Agregar jugador. */
+export const PLAYER_SEARCH_DEBOUNCE_MS = 300;
+
 export const ROSTER_STATUSES = ["active", "suspended", "inactive"] as const;
 
 export const ROSTER_STATUS_LABEL: Record<string, string> = {

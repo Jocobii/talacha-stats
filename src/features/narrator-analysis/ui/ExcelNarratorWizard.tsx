@@ -14,6 +14,7 @@ import { StickyBar, PrimaryButton } from "./wizard/StickyBar";
 import { UploadStep } from "./wizard/UploadStep";
 import { MappingStep } from "./wizard/MappingStep";
 import { TeamSelectStep } from "./wizard/TeamSelectStep";
+import { SheetPicker } from "./wizard/SheetPicker";
 import { NarratorReport } from "./NarratorReport";
 
 export function ExcelNarratorWizard() {
@@ -36,6 +37,14 @@ export function ExcelNarratorWizard() {
 					Analiza tu liga
 				</h1>
 				<WizardProgress current={step} />
+				{(step === "mapping" || step === "teams") && (
+					<SheetPicker
+						sheetNames={w.state.sheetNames}
+						selectedIndex={w.state.selectedSheetIndex}
+						onChange={w.changeSheet}
+						loading={w.parsing}
+					/>
+				)}
 			</header>
 
 			<main className="flex-1 px-4 py-4 max-w-2xl mx-auto w-full">
