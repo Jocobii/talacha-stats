@@ -13,6 +13,7 @@ export { PageHeader } from "./PageHeader";
 export { SectionLabel } from "./SectionLabel";
 export { KeyHint } from "./KeyHint";
 export { EmptyState } from "./EmptyState";
+export { Modal } from "./Modal";
 export { Stepper } from "./Stepper";
 export { StatTile } from "./StatTile";
 

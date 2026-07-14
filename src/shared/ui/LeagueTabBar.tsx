@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutList, Shuffle, CalendarDays, Settings, MapPin, ScrollText } from "lucide-react";
+import { LayoutList, Shuffle, CalendarDays, Settings, MapPin, ScrollText, Ban } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 
 type Tab = {
@@ -51,6 +51,11 @@ export function LeagueTabBar({ leagueId, schedulingEnabled }: Props) {
 			label: "Reglamento",
 			href: `/admin/leagues/${leagueId}/reglamento`,
 			icon: ScrollText,
+		},
+		{
+			label: "Suspensiones",
+			href: `/admin/leagues/${leagueId}/suspensiones`,
+			icon: Ban,
 		},
 		{
 			label: "Configuración",

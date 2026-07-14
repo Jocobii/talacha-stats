@@ -6,10 +6,26 @@
  * match-resolution (mismo patrón que entities/league-config).
  */
 
-import { and, count, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { suspensions } from "@/db/schema";
-import type { SuspensionDto } from "./model";
+import {
+	suspensions,
+	globalPlayers,
+	leagueMembers,
+	inscriptions,
+	teams,
+	leagues,
+} from "@/db/schema";
+import type {
+	GlobalSuspensionListItemDto,
+	SuspensionDto,
+	SuspensionLeagueOption,
+	SuspensionListItemDto,
+	SuspensionRosterPlayer,
+} from "./model";
+
+/** A qué ligas puede ver/operar el usuario — owner: todas; organizer: solo las de su organización. */
+export type SuspensionScope = { kind: "all" } | { kind: "org"; organizationId: string };
 
 type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbOrTx = typeof db | DbTx;
@@ -55,6 +71,104 @@ export async function listSuspensionsByLeague(
 		columns: SUSPENSION_DTO_COLUMNS,
 		orderBy: (s, { desc }) => [desc(s.createdAt)],
 	});
+}
+
+/**
+ * Todas las suspensiones de una liga con nombre del jugador y equipo ACTUAL
+ * (via inscriptions — no el equipo al momento de la sanción, que no se
+ * guarda) — para el listado de admin (B7). Más recientes primero.
+ */
+export async function listSuspensionsByLeagueDetailed(
+	leagueId: string,
+	client: DbOrTx = db,
+): Promise<SuspensionListItemDto[]> {
+	const rows = await client
+		.select({
+			...SUSPENSION_DTO_COLUMNS,
+			playerName: globalPlayers.fullName,
+			teamName: teams.name,
+		})
+		.from(suspensions)
+		.innerJoin(globalPlayers, eq(suspensions.globalPlayerId, globalPlayers.id))
+		.innerJoin(
+			leagueMembers,
+			and(eq(leagueMembers.globalPlayerId, globalPlayers.id), eq(leagueMembers.leagueId, leagueId)),
+		)
+		.innerJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.innerJoin(teams, eq(teams.id, inscriptions.teamId))
+		.where(eq(suspensions.leagueId, leagueId))
+		.orderBy(desc(suspensions.createdAt));
+
+	return rows;
+}
+
+/**
+ * Suspensiones de TODAS las ligas visibles para el usuario (B7b,
+ * /admin/suspensiones) — mismo shape que listSuspensionsByLeagueDetailed
+ * más el nombre de la liga, para operar sanciones de varias ligas sin
+ * cambiar de pantalla.
+ */
+export async function listSuspensionsForScopeDetailed(
+	scope: SuspensionScope,
+	client: DbOrTx = db,
+): Promise<GlobalSuspensionListItemDto[]> {
+	const rows = await client
+		.select({
+			...SUSPENSION_DTO_COLUMNS,
+			playerName: globalPlayers.fullName,
+			teamName: teams.name,
+			leagueName: leagues.name,
+		})
+		.from(suspensions)
+		.innerJoin(globalPlayers, eq(suspensions.globalPlayerId, globalPlayers.id))
+		.innerJoin(leagues, eq(leagues.id, suspensions.leagueId))
+		.innerJoin(
+			leagueMembers,
+			and(
+				eq(leagueMembers.globalPlayerId, globalPlayers.id),
+				eq(leagueMembers.leagueId, leagues.id),
+			),
+		)
+		.innerJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.innerJoin(teams, eq(teams.id, inscriptions.teamId))
+		.where(scope.kind === "org" ? eq(leagues.organizationId, scope.organizationId) : undefined)
+		.orderBy(desc(suspensions.createdAt));
+
+	return rows;
+}
+
+/** Ligas visibles para el usuario — para el selector de liga en el alta manual global (B7b). */
+export async function listLeagueOptionsForScope(
+	scope: SuspensionScope,
+	client: DbOrTx = db,
+): Promise<SuspensionLeagueOption[]> {
+	return client
+		.select({ id: leagues.id, name: leagues.name })
+		.from(leagues)
+		.where(scope.kind === "org" ? eq(leagues.organizationId, scope.organizationId) : undefined)
+		.orderBy(leagues.name);
+}
+
+/**
+ * Roster vigente de la liga (jugador + equipo actual) — para el picker de
+ * "Registrar sanción" (B7, modo manual desde cero).
+ */
+export async function listLeagueRosterForDiscipline(
+	leagueId: string,
+	client: DbOrTx = db,
+): Promise<SuspensionRosterPlayer[]> {
+	return client
+		.select({
+			globalPlayerId: globalPlayers.id,
+			fullName: globalPlayers.fullName,
+			teamName: teams.name,
+		})
+		.from(leagueMembers)
+		.innerJoin(globalPlayers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+		.innerJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.innerJoin(teams, eq(teams.id, inscriptions.teamId))
+		.where(eq(leagueMembers.leagueId, leagueId))
+		.orderBy(globalPlayers.fullName);
 }
 
 /**
@@ -161,6 +275,31 @@ export async function countSuspensionsByReason(
 			),
 		);
 	return row?.total ?? 0;
+}
+
+/**
+ * ¿El jugador tiene alguna suspensión `status='active'` en esta liga, sin
+ * importar `reason`/`duration_type`? El sync de `leagueMembers.status` (B5)
+ * usa esto: cualquier tipo de sanción vigente debe reflejarse en el roster,
+ * no solo las de 'matches'.
+ */
+export async function hasActiveSuspension(
+	globalPlayerId: string,
+	leagueId: string,
+	client: DbOrTx = db,
+): Promise<boolean> {
+	const rows = await client
+		.select({ id: suspensions.id })
+		.from(suspensions)
+		.where(
+			and(
+				eq(suspensions.globalPlayerId, globalPlayerId),
+				eq(suspensions.leagueId, leagueId),
+				eq(suspensions.status, "active"),
+			),
+		)
+		.limit(1);
+	return rows.length > 0;
 }
 
 export async function insertSuspension(

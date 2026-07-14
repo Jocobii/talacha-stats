@@ -30,6 +30,8 @@ export const queryKeys = {
 	leagueConfig: (leagueId: string) => ["league-config", leagueId] as const,
 	topScorers: (leagueId: string) => ["top-scorers", leagueId] as const,
 	topAssists: (leagueId: string) => ["top-assists", leagueId] as const,
+	suspensions: (leagueId: string) => ["suspensions", leagueId] as const,
+	adminSuspensions: () => ["admin-suspensions"] as const,
 
 	// Liguilla / sorteo
 	playoffs: (leagueId: string) => ["playoffs", leagueId] as const,

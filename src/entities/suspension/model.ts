@@ -72,3 +72,61 @@ export const EscalateSuspensionSchema = z.discriminatedUnion("action", [
 	}),
 ]);
 export type EscalateSuspensionInput = z.infer<typeof EscalateSuspensionSchema>;
+
+/**
+ * POST /api/leagues/[id]/suspensions — alta manual desde cero (organizador
+ * registra un caso, ej. agresión, que no pasó por el motor automático).
+ * `reason` siempre es "manual" — el motor automático es la única vía para
+ * "red_card"/"yellow_accumulation" (B3). Discriminado por `durationType`
+ * porque cada modo pide campos distintos, igual que EscalateSuspensionSchema.
+ */
+export const CreateManualSuspensionSchema = z.discriminatedUnion("durationType", [
+	z.object({
+		durationType: z.literal("matches"),
+		globalPlayerId: z.string().uuid(),
+		matchesTotal: z.number().int().min(1).max(20),
+		reasonDetail: z.string().min(1).max(500),
+	}),
+	z.object({
+		durationType: z.literal("time"),
+		globalPlayerId: z.string().uuid(),
+		durationValue: z.number().int().min(1).max(52),
+		durationUnit: z.enum(SUSPENSION_DURATION_UNITS),
+		reasonDetail: z.string().min(1).max(500),
+	}),
+	z.object({
+		durationType: z.literal("permanent"),
+		globalPlayerId: z.string().uuid(),
+		reasonDetail: z.string().min(1).max(500),
+	}),
+]);
+export type CreateManualSuspensionInput = z.infer<typeof CreateManualSuspensionSchema>;
+
+/** Fila de listado (B7): la suspensión + lo mínimo del jugador/equipo para pintar la lista. */
+export type SuspensionListItemDto = SuspensionDto & {
+	playerName: string;
+	teamName: string;
+};
+
+/** Jugador elegible para "Registrar sanción" — roster vigente de la liga. */
+export type SuspensionRosterPlayer = {
+	globalPlayerId: string;
+	fullName: string;
+	teamName: string;
+};
+
+/**
+ * Fila de listado GLOBAL (B7b, /admin/suspensiones): igual que
+ * SuspensionListItemDto pero con el nombre de la liga, para poder ver y
+ * operar sanciones de varias ligas sin cambiar de pantalla — flujo de
+ * "domingo en la noche" con lista de suspendidos de distintas ligas.
+ */
+export type GlobalSuspensionListItemDto = SuspensionListItemDto & {
+	leagueName: string;
+};
+
+/** Liga elegible en los filtros/selector de la vista global. */
+export type SuspensionLeagueOption = {
+	id: string;
+	name: string;
+};

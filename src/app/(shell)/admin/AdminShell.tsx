@@ -35,6 +35,7 @@ import {
 	MapPin,
 	CalendarDays,
 	Palette,
+	Ban,
 	LogOut,
 	Menu,
 	X,
@@ -153,12 +154,14 @@ export default function AdminShell({
 				{ href: "/admin/leagues", label: "Ligas", icon: Trophy },
 				{ href: "/admin/teams", label: "Equipos", icon: Users },
 				{ href: "/admin/players", label: "Jugadores", icon: UserCircle },
+				{ href: "/admin/suspensiones", label: "Suspensiones", icon: Ban },
 				{ href: "/admin/organizacion/tema", label: "Identidad visual", icon: Palette },
 			]
 		: [
 				{ href: "/admin/players", label: "Jugadores", icon: UserCircle },
 				{ href: "/admin/leagues", label: "Ligas", icon: Trophy },
 				{ href: "/admin/teams", label: "Equipos", icon: Users },
+				{ href: "/admin/suspensiones", label: "Suspensiones", icon: Ban },
 				{ href: "/admin/organizacion/tema", label: "Identidad visual", icon: Palette },
 			];
 

@@ -16,8 +16,13 @@ import { lockLeagueConfigTx } from "@/entities/league-config/queries";
 
 type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-/** Statuses que cuentan como "el torneo ya arrancó" (mismo criterio que standings.ts, sin "completed" — V1 legacy no pasa por esta feature). */
-const COUNTED_RESOLUTION_STATUSES = ["played", "walkover_home", "walkover_away"] as const;
+/**
+ * Statuses que cuentan como "el torneo ya arrancó" (mismo criterio que
+ * standings.ts, sin "completed" — V1 legacy no pasa por esta feature).
+ * Exportado: también lo usa el motor de disciplina (B5) para decidir cuándo
+ * una cédula "sirve" una fecha de suspensión.
+ */
+export const COUNTED_RESOLUTION_STATUSES = ["played", "walkover_home", "walkover_away"] as const;
 
 export async function maybeFreezeLeagueConfig(
 	tx: DbTx,

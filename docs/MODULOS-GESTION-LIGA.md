@@ -299,12 +299,14 @@ Cada línea = un paso cerrable con su commit `conventional-commits`. Orden pensa
       `feat(discipline): card accumulation and auto-suspension engine`
 - [x] **B4** Hook en `match-resolution`: al resolver cédula, recalcular disciplina.
       `feat(discipline): recompute suspensions on cedula resolution`
-- [ ] **B5** Decremento de fechas pendientes al avanzar jornada + sync `leagueMembers.status`.
+- [x] **B5** Decremento de fechas pendientes al avanzar jornada + sync `leagueMembers.status`.
       `feat(discipline): decrement served matches and sync member status`
-- [ ] **B6** Escalado manual: editar una suspensión a `duration_type: 'time'` (semanas/meses, calcula `ends_on`) o `'permanent'` (veto), con `reason_detail` libre y `recorded_by` para auditoría. Endpoint `PATCH /api/suspensions/[id]`.
-      `feat(discipline): manual escalation to time-based or permanent suspensions`
-- [ ] **B7** 🎨 UI-GATE — lista de suspendidos por liga/jornada (admin) + señalización + acción "escalar sanción".
+- [x] **B6** Escalado manual: editar una suspensión a `duration_type: 'time'` (semanas/meses, calcula `ends_on`) o `'permanent'` (veto), con `reason_detail` libre y `recorded_by` para auditoría. Endpoint `PATCH /api/suspensions/[id]`. También incluye alta manual desde cero (`POST /api/leagues/[id]/suspensions`, `reason: 'manual'`) — necesaria para el panel "Registrar sanción" del mockup de B7.
+      `feat(discipline): manual escalation and from-scratch suspension creation`
+- [x] **B7** 🎨 UI — lista de suspendidos por liga (admin) + señalización + acciones "escalar"/"levantar"/"registrar sanción". Mockup: `Suspensiones.html` (admin-redesign/screen-suspensions.jsx). Modal centrado (`shared/ui/Modal`) en vez del drawer lateral del mockup — mismo patrón que el resto del admin.
       `feat(admin): suspensions list view with manual escalation`
+- [x] **B7b** Vista global `/admin/suspensiones` en el sidebar principal (grupo Gestión): todas las ligas visibles para el usuario (owner=todas, organizer=su org) en una sola pantalla — filtro de liga/estado/tipo, alta manual con selector de liga (roster cargado bajo demanda) y escalar/levantar sin cambiar de pantalla. Pedido explícito: flujo "domingo en la noche" con sanciones de varias ligas a la vez.
+      `feat(admin): global cross-league suspensions view`
 - [ ] **B8** Píldora de contenido "suspendidos de la jornada" (`post-import-content`).
       `feat(content): suspended-players matchday pill`
 

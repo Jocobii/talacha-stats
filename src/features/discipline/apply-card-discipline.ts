@@ -33,6 +33,7 @@ import {
 	findSuspensionBySourceMatch,
 	insertSuspension,
 } from "@/entities/suspension/queries";
+import { syncLeagueMemberStatus } from "./sync-league-member-status";
 
 type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -106,6 +107,7 @@ async function maybeSuspendForRedCard(
 		},
 		tx,
 	);
+	await syncLeagueMemberStatus(tx, globalPlayerId, leagueId);
 }
 
 async function maybeSuspendForYellowAccumulation(
@@ -125,12 +127,13 @@ async function maybeSuspendForYellowAccumulation(
 	if (alreadyFromThisMatch) return;
 
 	const totalYellows = await sumYellowCardsForPlayer(tx, globalPlayerId, leagueId);
-	let cyclesUsed = await countSuspensionsByReason(
+	const priorCycles = await countSuspensionsByReason(
 		globalPlayerId,
 		leagueId,
 		"yellow_accumulation",
 		tx,
 	);
+	let cyclesUsed = priorCycles;
 
 	while (totalYellows >= (cyclesUsed + 1) * yellowThreshold) {
 		await insertSuspension(
@@ -153,6 +156,9 @@ async function maybeSuspendForYellowAccumulation(
 			tx,
 		);
 		cyclesUsed += 1;
+	}
+	if (cyclesUsed > priorCycles) {
+		await syncLeagueMemberStatus(tx, globalPlayerId, leagueId);
 	}
 }
 
