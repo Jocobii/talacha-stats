@@ -614,6 +614,10 @@ export const organizationsRelations = relations(organizations, ({ one, many }) =
 		fields: [organizations.id],
 		references: [organizationThemes.organizationId],
 	}),
+	config: one(organizationConfig, {
+		fields: [organizations.id],
+		references: [organizationConfig.organizationId],
+	}),
 }));
 
 export const organizationThemesRelations = relations(organizationThemes, ({ one }) => ({
@@ -663,6 +667,11 @@ export const leaguesRelations = relations(leagues, ({ one, many }) => ({
 	schedulingConfig: one(leagueSchedulingConfig, {
 		fields: [leagues.id],
 		references: [leagueSchedulingConfig.leagueId],
+	}),
+	// Reglamento del torneo (desempates, disciplina, refuerzos, finanzas)
+	config: one(leagueConfig, {
+		fields: [leagues.id],
+		references: [leagueConfig.leagueId],
 	}),
 	leagueVenues: many(leagueVenues),
 	matchdays: many(matchdays),
@@ -1169,6 +1178,77 @@ export type LeagueSchedulingConfig = typeof leagueSchedulingConfig.$inferSelect;
 export type NewLeagueSchedulingConfig = typeof leagueSchedulingConfig.$inferInsert;
 
 // ---------------------------------------------------------------------------
+// LEAGUE_CONFIG — Reglamento del torneo (1:1). Home de la configurabilidad
+// (desempates, disciplina, refuerzos, nivel financiero). Se congela al
+// resolver la primera cédula (locked_at) — ver features/tournament-rules.
+// ---------------------------------------------------------------------------
+export const leagueConfig = pgTable("league_config", {
+	leagueId: uuid("league_id")
+		.primaryKey()
+		.references(() => leagues.id, { onDelete: "cascade" }),
+	pointsWin: integer("points_win").notNull().default(3),
+	pointsDraw: integer("points_draw").notNull().default(1),
+	// Orden de criterios de desempate. Default = comportamiento actual de
+	// standings.ts + head-to-head como segundo criterio.
+	tiebreakers: jsonb("tiebreakers")
+		.$type<string[]>()
+		.notNull()
+		.default(drizzleSql`'["points","head_to_head","goal_diff","goals_for","name"]'::jsonb`),
+	// Amarillas acumuladas que disparan 1 fecha de suspensión.
+	yellowThreshold: integer("yellow_threshold").notNull().default(5),
+	// Fechas de suspensión por roja directa.
+	redCardMatches: integer("red_card_matches").notNull().default(1),
+	// Significado de la tarjeta azul (no estándar entre ligas amateur):
+	// 'temp' = expulsión temporal (5 min), 'yellow' = cuenta como amarilla, 'none' = no se usa.
+	blueCardMeaning: text("blue_card_meaning").notNull().default("temp"),
+	// null = sin límite de refuerzos.
+	reinforcementLimit: integer("reinforcement_limit"),
+	// 0 = sin finanzas, 1 = liga formal, 2 = liga fuerte.
+	financeLevel: integer("finance_level").notNull().default(0),
+	// Se setea al resolver la primera cédula de la liga; después de eso,
+	// la config es solo lectura salvo acción explícita del owner.
+	lockedAt: timestamp("locked_at", { withTimezone: true }),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type LeagueConfig = typeof leagueConfig.$inferSelect;
+export type NewLeagueConfig = typeof leagueConfig.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// ORGANIZATION_CONFIG — Default de reglamento por organización (§4.5 de
+// docs/MODULOS-GESTION-LIGA.md). Se COPIA a league_config al crear una liga
+// nueva — no hay herencia en vivo ni resolución org→liga en cada lectura.
+// Nunca se congela (a diferencia de league_config): es solo una plantilla.
+// ---------------------------------------------------------------------------
+export const organizationConfig = pgTable("organization_config", {
+	organizationId: uuid("organization_id")
+		.primaryKey()
+		.references(() => organizations.id, { onDelete: "cascade" }),
+	pointsWin: integer("points_win").notNull().default(3),
+	pointsDraw: integer("points_draw").notNull().default(1),
+	tiebreakers: jsonb("tiebreakers")
+		.$type<string[]>()
+		.notNull()
+		.default(drizzleSql`'["points","head_to_head","goal_diff","goals_for","name"]'::jsonb`),
+	yellowThreshold: integer("yellow_threshold").notNull().default(5),
+	redCardMatches: integer("red_card_matches").notNull().default(1),
+	blueCardMeaning: text("blue_card_meaning").notNull().default("temp"),
+	reinforcementLimit: integer("reinforcement_limit"),
+	financeLevel: integer("finance_level").notNull().default(0),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type OrganizationConfig = typeof organizationConfig.$inferSelect;
+export type NewOrganizationConfig = typeof organizationConfig.$inferInsert;
+
+export const organizationConfigRelations = relations(organizationConfig, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [organizationConfig.organizationId],
+		references: [organizations.id],
+	}),
+}));
+
+// ---------------------------------------------------------------------------
 // LEAGUE_VENUES — Pivote: qué canchas usa una liga y con qué prioridad
 // ---------------------------------------------------------------------------
 export const leagueVenues = pgTable(
@@ -1413,6 +1493,13 @@ export const venueRentalsRelations = relations(venueRentals, ({ one }) => ({
 export const leagueSchedulingConfigRelations = relations(leagueSchedulingConfig, ({ one }) => ({
 	league: one(leagues, {
 		fields: [leagueSchedulingConfig.leagueId],
+		references: [leagues.id],
+	}),
+}));
+
+export const leagueConfigRelations = relations(leagueConfig, ({ one }) => ({
+	league: one(leagues, {
+		fields: [leagueConfig.leagueId],
 		references: [leagues.id],
 	}),
 }));

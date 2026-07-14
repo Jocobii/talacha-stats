@@ -30,6 +30,7 @@ import {
 	generateLeagueCode,
 	resolveUniqueCode,
 } from "@/features/league-management/lib/generate-league-code";
+import { findLeagueConfigOrDefaults, insertLeagueConfig } from "@/entities/league-config/queries";
 
 const NewSeasonSchema = z.object({
 	season: z.string().min(1, "La temporada no puede estar vacía").max(50),
@@ -98,35 +99,39 @@ export async function POST(request: Request, { params }: Params) {
 	const newCode = resolveUniqueCode(baseCode, existingCodes);
 
 	// ── Cargar datos a copiar ─────────────────────────────────────────────────
-	const [sourceTeams, sourceZones, sourceConfig, sourceVenues, sourceWindows] = await Promise.all([
-		db.query.teams.findMany({
-			where: and(eq(teams.leagueId, sourceId), eq(teams.status, "active")),
-			columns: { name: true, nameCanonical: true, color: true },
-		}),
-		db.query.leaguePlayoffZones.findMany({
-			where: eq(leaguePlayoffZones.leagueId, sourceId),
-			columns: { name: true, fromPosition: true, toPosition: true, color: true, order: true },
-		}),
-		db.query.leagueSchedulingConfig.findFirst({
-			where: eq(leagueSchedulingConfig.leagueId, sourceId),
-			columns: {
-				regularMatchdays: true,
-				regularFormat: true,
-				matchDurationMinutes: true,
-				bufferMinutes: true,
-				allowDuplicateMatchups: true,
-				noRepeatWithin: true,
-			},
-		}),
-		db.query.leagueVenues.findMany({
-			where: eq(leagueVenues.leagueId, sourceId),
-			columns: { venueId: true, priority: true },
-		}),
-		db.query.venueTimeWindows.findMany({
-			where: eq(venueTimeWindows.leagueId, sourceId),
-			columns: { venueId: true, dayOfWeek: true, startTime: true, endTime: true, isActive: true },
-		}),
-	]);
+	const [sourceTeams, sourceZones, sourceConfig, sourceVenues, sourceWindows, sourceRules] =
+		await Promise.all([
+			db.query.teams.findMany({
+				where: and(eq(teams.leagueId, sourceId), eq(teams.status, "active")),
+				columns: { name: true, nameCanonical: true, color: true },
+			}),
+			db.query.leaguePlayoffZones.findMany({
+				where: eq(leaguePlayoffZones.leagueId, sourceId),
+				columns: { name: true, fromPosition: true, toPosition: true, color: true, order: true },
+			}),
+			db.query.leagueSchedulingConfig.findFirst({
+				where: eq(leagueSchedulingConfig.leagueId, sourceId),
+				columns: {
+					regularMatchdays: true,
+					regularFormat: true,
+					matchDurationMinutes: true,
+					bufferMinutes: true,
+					allowDuplicateMatchups: true,
+					noRepeatWithin: true,
+				},
+			}),
+			db.query.leagueVenues.findMany({
+				where: eq(leagueVenues.leagueId, sourceId),
+				columns: { venueId: true, priority: true },
+			}),
+			db.query.venueTimeWindows.findMany({
+				where: eq(venueTimeWindows.leagueId, sourceId),
+				columns: { venueId: true, dayOfWeek: true, startTime: true, endTime: true, isActive: true },
+			}),
+			// Reglamento resuelto de la liga origen (propio o heredado de defaults) —
+			// se copia tal cual, no desde organization_config (§4.5 doc).
+			findLeagueConfigOrDefaults(sourceId),
+		]);
 
 	// ── Transacción: crear todo o nada ────────────────────────────────────────
 	const newLeague = await db.transaction(async (tx) => {
@@ -222,7 +227,25 @@ export async function POST(request: Request, { params }: Params) {
 			);
 		}
 
-		// 7. Marcar liga origen como terminada
+		// 7. Reglamento del torneo (league_config) — copia el de la liga origen,
+		// nunca el de la organización: preserva las reglas propias de esta liga
+		// (incluidas las de un torneo relámpago) temporada tras temporada.
+		await insertLeagueConfig(
+			newId,
+			{
+				pointsWin: sourceRules.pointsWin,
+				pointsDraw: sourceRules.pointsDraw,
+				tiebreakers: sourceRules.tiebreakers,
+				yellowThreshold: sourceRules.yellowThreshold,
+				redCardMatches: sourceRules.redCardMatches,
+				blueCardMeaning: sourceRules.blueCardMeaning,
+				reinforcementLimit: sourceRules.reinforcementLimit,
+				financeLevel: sourceRules.financeLevel,
+			},
+			tx,
+		);
+
+		// 8. Marcar liga origen como terminada
 		await tx.update(leagues).set({ status: "finished" }).where(eq(leagues.id, sourceId));
 
 		return created;

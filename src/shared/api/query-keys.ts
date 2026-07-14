@@ -27,6 +27,7 @@ export const queryKeys = {
 	league: (leagueId: string) => ["league", leagueId] as const,
 	leagueTeams: (leagueId: string) => ["league-teams", leagueId] as const,
 	standings: (leagueId: string) => ["standings", leagueId] as const,
+	leagueConfig: (leagueId: string) => ["league-config", leagueId] as const,
 	topScorers: (leagueId: string) => ["top-scorers", leagueId] as const,
 	topAssists: (leagueId: string) => ["top-assists", leagueId] as const,
 

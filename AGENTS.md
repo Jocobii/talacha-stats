@@ -384,6 +384,16 @@ POST   /api/[recurso]/[accion]      → acción especial (ej: /merge, /confirm, 
   - Reserva `useEffect` para sincronizar con sistemas externos (escribir a localStorage, suscripciones, DOM). Llamar `setState` solo dentro de un **callback** de evento o de suscripción, nunca en el cuerpo del efecto.
   - Referencia: https://react.dev/learn/you-might-not-need-an-effect
 
+### 7.2b Feedback obligatorio en toda mutación (regla no negociable)
+
+**Toda acción que guarda, actualiza, elimina o crea algo — sin excepción — debe mostrarle feedback al usuario.** Nunca una mutación silenciosa: ni éxito mudo ni error tragado.
+
+- **Transporte:** `notify` de `@/shared/lib/notify` (`notify.success(...)` / `notify.error(...)`). Nadie importa `sileo` directamente (§ nota en `shared/lib/notify/index.ts`).
+- **Éxito:** todo `onSuccess` de un `useMutation` (o equivalente) llama `notify.success("...")` con un mensaje concreto ("Reglamento guardado", "Equipo eliminado" — no "Listo" genérico si hay contexto mejor).
+- **Error:** todo `onError` / rama `!ok` llama `notify.error(...)` con el mensaje que vino del backend (`res.error`) cuando exista, no un genérico que oculte la causa.
+- Mensajes inline en la propia UI (ej. un `<p>` de error bajo un botón) **no sustituyen** el toast — pueden coexistir, pero el toast es obligatorio porque el usuario puede no tener el ojo puesto ahí cuando la mutación resuelve.
+- Aplica también a acciones fuera de TanStack Query (server actions, `fetch` directo en un handler) — mismo criterio: si cambia estado en el servidor, el usuario se entera.
+
 ### 7.3 Datos del frontend — 5 capas y caché (contrato)
 
 > Detalle, racional y plan de migración en `docs/FRONTEND-DATA-STRATEGY.md`. Esto es el contrato corto.
@@ -532,6 +542,7 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 - [ ] ¿Si toqué algo en `src/lib/`, lo migré a FSD?
 - [ ] ¿Las nuevas dependencias no tienen CVEs HIGH/CRITICAL sin fix?
 - [ ] ¿Si agregué algo a `.trivyignore`, tiene comentario de justificación?
+- [ ] ¿Toda mutación (guardar/actualizar/eliminar/crear) muestra `notify.success`/`notify.error` al usuario? (§7.2b)
 - [ ] ¿Usé early returns y me mantuve en ≤ 3 niveles de indentación? (§18.1–18.2)
 - [ ] ¿Todo `try/catch` maneja o re-propaga el error explícitamente? (§18.4)
 - [ ] ¿El código nuevo expone `XView` a la UI vía mapper, no el DTO crudo? (§19)

@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 import type { ResolveMatchInput } from "@/entities/match/model";
 import { upsertMatchPlayerStat, deleteMatchPlayerStats } from "@/entities/match-player-stat";
 import { applyWalkoverDefaults } from "./lib/walkover-defaults";
+import { maybeFreezeLeagueConfig } from "./lib/freeze-league-config";
 import { CLEAR_STATS_STATUSES } from "./constants";
 
 export async function resolveMatch(
@@ -62,7 +63,7 @@ export async function resolveMatch(
 		}
 
 		// 4. Actualizar el partido
-		await tx
+		const [updated] = await tx
 			.update(matches)
 			.set({
 				status: input.status,
@@ -74,6 +75,13 @@ export async function resolveMatch(
 				resolvedAt: new Date(),
 				resolvedBy: userId,
 			})
-			.where(eq(matches.id, matchId));
+			.where(eq(matches.id, matchId))
+			.returning({ leagueId: matches.leagueId });
+
+		// 5. Si es la primera cédula "real" de la liga, congelar el reglamento
+		// (league_config.locked_at) — §4.4 de docs/MODULOS-GESTION-LIGA.md.
+		if (updated) {
+			await maybeFreezeLeagueConfig(tx, updated.leagueId, matchId, input.status);
+		}
 	});
 }

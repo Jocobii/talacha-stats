@@ -11,6 +11,7 @@ import {
 	generateLeagueCode,
 	resolveUniqueCode,
 } from "@/features/league-management/lib/generate-league-code";
+import { seedLeagueConfig } from "@/features/tournament-rules/seed-league-config";
 
 const LeagueFiltersSchema = z.object({
 	status: z.enum(["active", "finished"]).optional(),
@@ -134,6 +135,10 @@ export async function POST(request: Request) {
 			color: "green",
 			order: 0,
 		});
+
+		// Reglamento: copia el default de la organización si existe (§4.5
+		// docs/MODULOS-GESTION-LIGA.md); no-op si no hay uno configurado.
+		await seedLeagueConfig(tx, created.id, organizationId);
 
 		return created;
 	});
