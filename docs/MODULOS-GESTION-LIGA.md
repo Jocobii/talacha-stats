@@ -297,7 +297,7 @@ Cada línea = un paso cerrable con su commit `conventional-commits`. Orden pensa
       `feat(suspension): add entity model and queries`
 - [x] **B3** Feature `features/discipline/`: motor que acumula tarjetas vs `yellow_threshold`/`red_card_matches` y materializa suspensiones `duration_type: 'matches'`.
       `feat(discipline): card accumulation and auto-suspension engine`
-- [ ] **B4** Hook en `match-resolution`: al resolver cédula, recalcular disciplina.
+- [x] **B4** Hook en `match-resolution`: al resolver cédula, recalcular disciplina.
       `feat(discipline): recompute suspensions on cedula resolution`
 - [ ] **B5** Decremento de fechas pendientes al avanzar jornada + sync `leagueMembers.status`.
       `feat(discipline): decrement served matches and sync member status`
