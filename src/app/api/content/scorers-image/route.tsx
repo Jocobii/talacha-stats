@@ -10,7 +10,7 @@ import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 import { db, leagues, playerSeasonStats, organizations } from "@/db";
 import { eq, and, desc } from "drizzle-orm";
-import { getLeagueTopScorersV2 } from "@/entities/match-player-stat";
+import { getLeagueTopScorersV2 } from "@/entities/match-player-stat/queries";
 import { titleCase } from "@/shared/lib/normalize";
 import { getOrgImagePalette } from "@/features/org-theming";
 import type { ImagePalette } from "@/shared/org-theme";

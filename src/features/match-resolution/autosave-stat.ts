@@ -5,7 +5,7 @@
 import { db } from "@/db";
 import { matches } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { patchMatchPlayerStat } from "@/entities/match-player-stat";
+import { patchMatchPlayerStat } from "@/entities/match-player-stat/queries";
 import type { AutosaveStatInput, AutosaveMatchFieldsInput } from "@/entities/match/model";
 
 /** Autosave parcial de las stats de un jugador en un partido */

@@ -170,7 +170,7 @@ organization_config
 - Entidad: `entities/organization-config/` (model + queries) — reusa los enums de `entities/league-config` (`TiebreakerCriterion`, `BlueCardMeaning`) para no duplicar el catálogo.
 - Seed: `seedLeagueConfig(dbOrTx, leagueId, organizationId)` — copia `organization_config` a la liga nueva si existe; no-op si la organización no configuró nada (el fallback a defaults del sistema ya lo cubre `findLeagueConfigOrDefaults`). Se llama desde los flujos de alta de liga (`POST /api/leagues`, `quickCreateLeague`).
 - `new-season` copia el `league_config` **resuelto de la liga origen** (no de la organización) a la liga nueva — preserva las reglas propias de esa liga temporada tras temporada, incluidas las de un torneo relámpago que se repite.
-- UI de "Reglamento por defecto de la organización" queda como paso propio, UI-GATE, cuando se necesite (no bloquea A9-A11 — el seed funciona sin pantalla, se puede sembrar por SQL/consola mientras tanto).
+- UI de "Reglamento por defecto de la organización" queda como paso propio, UI-GATE, cuando se necesite (no bloquea A9-A11 — el seed funciona sin pantalla, se puede sembrar por SQL/consola mientras tanto). **Ver `docs/ORG-SETTINGS.md`** — ahí vive el plan completo del futuro hub de configuración de la organización (nombre, logo, slug, tema, y este reglamento por defecto todos juntos).
 
 ### 5.2 Disciplina — `suspensions`
 
@@ -291,11 +291,11 @@ Cada línea = un paso cerrable con su commit `conventional-commits`. Orden pensa
 > Dos capas: motor automático por partidos (amarillas/roja directa) + escalado
 > manual por tiempo calendario o veto indefinido para casos graves.
 
-- [ ] **B1** Schema: tabla `suspensions` (con `duration_type` matches/time/permanent) + migración.
+- [x] **B1** Schema: tabla `suspensions` (con `duration_type` matches/time/permanent) + migración.
       `feat(db): add suspensions table with matches, time and permanent duration modes`
-- [ ] **B2** Entidad `entities/suspension/` (model + queries: vigencia según `duration_type`).
+- [x] **B2** Entidad `entities/suspension/` (model + queries: vigencia según `duration_type`).
       `feat(suspension): add entity model and queries`
-- [ ] **B3** Feature `features/discipline/`: motor que acumula tarjetas vs `yellow_threshold`/`red_card_matches` y materializa suspensiones `duration_type: 'matches'`.
+- [x] **B3** Feature `features/discipline/`: motor que acumula tarjetas vs `yellow_threshold`/`red_card_matches` y materializa suspensiones `duration_type: 'matches'`.
       `feat(discipline): card accumulation and auto-suspension engine`
 - [ ] **B4** Hook en `match-resolution`: al resolver cédula, recalcular disciplina.
       `feat(discipline): recompute suspensions on cedula resolution`

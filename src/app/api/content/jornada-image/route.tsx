@@ -17,7 +17,7 @@ import { getLeagueStandings } from "@/lib/standings";
 import type { TeamStanding } from "@/types";
 import { generateJornadaPills } from "@/features/post-import-content";
 import { titleCase } from "@/shared/lib/normalize";
-import { getLeagueTopScorersV2 } from "@/entities/match-player-stat";
+import { getLeagueTopScorersV2 } from "@/entities/match-player-stat/queries";
 import { getOrgImagePalette } from "@/features/org-theming";
 import type { ImagePalette } from "@/shared/org-theme";
 import { Watermark } from "@/shared/brand/Watermark";

@@ -6,7 +6,10 @@ import { db } from "@/db";
 import { matches } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import type { ResolveMatchInput } from "@/entities/match/model";
-import { upsertMatchPlayerStat, deleteMatchPlayerStats } from "@/entities/match-player-stat";
+import {
+	upsertMatchPlayerStat,
+	deleteMatchPlayerStats,
+} from "@/entities/match-player-stat/queries";
 import { applyWalkoverDefaults } from "./lib/walkover-defaults";
 import { maybeFreezeLeagueConfig } from "./lib/freeze-league-config";
 import { CLEAR_STATS_STATUSES } from "./constants";
