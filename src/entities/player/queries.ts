@@ -752,6 +752,7 @@ export async function findLeagueMember(
 		institutionPhotoUrl: row.institutionPhotoUrl ?? null,
 		internalNotes: row.internalNotes ?? null,
 		createdAt: row.createdAt,
+		credentialCode: row.credentialCode ?? null,
 	};
 }
 
@@ -1156,11 +1157,17 @@ export async function listAllGlobalPlayers(opts: {
 // ---------------------------------------------------------------------------
 // Búsqueda por nombre para "Agregar jugador existente" a un equipo
 //
-// Busca global_players que ya tienen al menos un league_member en alguna liga
-// de la organización dada (scope org, decisión de producto). El match es por
+// global_players es identidad de plataforma (§14 AGENTS.md — "toda la
+// plataforma", igual que el lookup por CURP): la búsqueda NO se limita a
+// jugadores con membresía previa en la organización. Antes usaba un
+// INNER JOIN contra league_members que dejaba invisibles a los jugadores
+// registrados sin liga ("Camino E" de admin-registration/register.ts) y a
+// los que solo tienen historial en otra organización — para esos casos la
+// única forma de inscribirlos era volver a /admin/registro. El match es por
 // nombre canónico (sin acentos) para tolerar tildes. Marca alreadyInLeagueTeam
-// cuando el jugador ya está inscrito en un equipo de la liga destino, para que
-// la UI lo muestre deshabilitado y se evite el duplicado.
+// cuando el jugador ya está inscrito en un equipo de la liga destino (para
+// deshabilitarlo en la UI) y hasAnyLeagueMembership para distinguir "nunca
+// inscrito en ninguna liga" de "ya jugó en otra liga" — solo informativo.
 // ---------------------------------------------------------------------------
 
 export type OrgPlayerSearchResult = {
@@ -1169,10 +1176,10 @@ export type OrgPlayerSearchResult = {
 	birthDate: string;
 	avatarUrl: string | null;
 	alreadyInLeagueTeam: boolean;
+	hasAnyLeagueMembership: boolean;
 };
 
 export async function searchOrgGlobalPlayers(
-	organizationId: string,
 	q: string,
 	leagueId: string,
 ): Promise<OrgPlayerSearchResult[]> {
@@ -1181,21 +1188,19 @@ export async function searchOrgGlobalPlayers(
 
 	const like = `%${canonical}%`;
 	const rows = await db
-		.selectDistinctOn([globalPlayers.id], {
+		.select({
 			globalPlayerId: globalPlayers.id,
 			fullName: globalPlayers.fullName,
 			birthDate: globalPlayers.birthDate,
 			avatarUrl: globalPlayers.avatarUrl,
+			leagueMemberCount: sql<number>`COUNT(${leagueMembers.id})`.as("league_member_count"),
 		})
 		.from(globalPlayers)
-		.innerJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
-		.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+		.leftJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
 		.where(
-			and(
-				eq(leagues.organizationId, organizationId),
-				sql`COALESCE(${globalPlayers.fullNameCanonical}, LOWER(${globalPlayers.fullName})) LIKE ${like}`,
-			),
+			sql`COALESCE(${globalPlayers.fullNameCanonical}, LOWER(${globalPlayers.fullName})) LIKE ${like}`,
 		)
+		.groupBy(globalPlayers.id)
 		.orderBy(asc(globalPlayers.id))
 		.limit(15);
 
@@ -1213,6 +1218,7 @@ export async function searchOrgGlobalPlayers(
 			birthDate: r.birthDate,
 			avatarUrl: r.avatarUrl ?? null,
 			alreadyInLeagueTeam: inTeam.has(r.globalPlayerId),
+			hasAnyLeagueMembership: Number(r.leagueMemberCount) > 0,
 		}))
 		.sort((a, b) => a.fullName.localeCompare(b.fullName));
 }
