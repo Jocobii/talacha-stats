@@ -7,7 +7,7 @@
 import { eq, desc, sql, and, or, ilike, inArray, isNull } from "drizzle-orm";
 import {
 	db,
-	players,
+	globalPlayers,
 	playerSeasonStats,
 	playerSeasonStatsSnapshot,
 	leagues,
@@ -212,9 +212,9 @@ export async function getCityRanking(
 ): Promise<PaginatedResult<RankingEntry>> {
 	const rows = await db
 		.select({
-			playerId: playerSeasonStats.legacyPlayerId,
-			fullName: players.fullName,
-			alias: players.alias,
+			playerId: playerSeasonStats.globalPlayerId,
+			fullName: globalPlayers.fullName,
+			alias: sql<string | null>`null`,
 			goals: playerSeasonStats.goals,
 			matches: playerSeasonStats.matchesPlayed,
 			leagueId: playerSeasonStats.leagueId,
@@ -223,7 +223,7 @@ export async function getCityRanking(
 			teamName: teams.name,
 		})
 		.from(playerSeasonStats)
-		.innerJoin(players, eq(playerSeasonStats.legacyPlayerId, players.id))
+		.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
 		.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
 		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
 		.leftJoin(organizations, eq(leagues.organizationId, organizations.id))
@@ -297,16 +297,16 @@ export async function getLeagueRanking(
 ): Promise<PaginatedResult<RankingEntry>> {
 	const rows = await db
 		.select({
-			playerId: playerSeasonStats.legacyPlayerId,
-			fullName: players.fullName,
-			alias: players.alias,
+			playerId: playerSeasonStats.globalPlayerId,
+			fullName: globalPlayers.fullName,
+			alias: sql<string | null>`null`,
 			goals: playerSeasonStats.goals,
 			matches: playerSeasonStats.matchesPlayed,
 			leagueName: leagues.name,
 			teamName: teams.name,
 		})
 		.from(playerSeasonStats)
-		.innerJoin(players, eq(playerSeasonStats.legacyPlayerId, players.id))
+		.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
 		.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
 		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
 		.where(and(eq(playerSeasonStats.leagueId, leagueId), sql`${playerSeasonStats.goals} > 0`))
@@ -337,9 +337,9 @@ export async function getGlobalRanking(
 ): Promise<PaginatedResult<RankingEntry>> {
 	const rows = await db
 		.select({
-			playerId: playerSeasonStats.legacyPlayerId,
-			fullName: players.fullName,
-			alias: players.alias,
+			playerId: playerSeasonStats.globalPlayerId,
+			fullName: globalPlayers.fullName,
+			alias: sql<string | null>`null`,
 			goals: playerSeasonStats.goals,
 			matches: playerSeasonStats.matchesPlayed,
 			leagueId: playerSeasonStats.leagueId,
@@ -348,7 +348,7 @@ export async function getGlobalRanking(
 			city: leagues.city,
 		})
 		.from(playerSeasonStats)
-		.innerJoin(players, eq(playerSeasonStats.legacyPlayerId, players.id))
+		.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
 		.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
 		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
 		.leftJoin(organizations, eq(leagues.organizationId, organizations.id))
@@ -432,9 +432,9 @@ export async function searchPlayersForDisambiguation(q: string): Promise<PlayerS
 
 	const rows = await db
 		.select({
-			playerId: players.id,
-			fullName: players.fullName,
-			alias: players.alias,
+			playerId: globalPlayers.id,
+			fullName: globalPlayers.fullName,
+			alias: sql<string | null>`null`,
 			goals: playerSeasonStats.goals,
 			leagueId: leagues.id,
 			leagueName: leagues.name,
@@ -442,11 +442,11 @@ export async function searchPlayersForDisambiguation(q: string): Promise<PlayerS
 			city: leagues.city,
 			teamName: teams.name,
 		})
-		.from(players)
-		.innerJoin(playerSeasonStats, eq(playerSeasonStats.legacyPlayerId, players.id))
+		.from(globalPlayers)
+		.innerJoin(playerSeasonStats, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
 		.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
 		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-		.where(or(ilike(players.fullName, `%${q}%`), ilike(players.alias, `%${q}%`)))
+		.where(ilike(globalPlayers.fullName, `%${q}%`))
 		.limit(50);
 
 	const map = new Map<string, PlayerSearchResult>();
@@ -485,7 +485,7 @@ export async function getPlayerPositions(
 	let league: PlayerPositions["league"] = null;
 	if (opts.leagueId) {
 		const rows = await db
-			.select({ playerId: playerSeasonStats.legacyPlayerId, goals: playerSeasonStats.goals })
+			.select({ playerId: playerSeasonStats.globalPlayerId, goals: playerSeasonStats.goals })
 			.from(playerSeasonStats)
 			.where(eq(playerSeasonStats.leagueId, opts.leagueId))
 			.orderBy(desc(playerSeasonStats.goals));
@@ -500,7 +500,7 @@ export async function getPlayerPositions(
 	let city: PlayerPositions["city"] = null;
 	if (opts.city) {
 		const cityRows = await db
-			.select({ playerId: playerSeasonStats.legacyPlayerId, goals: playerSeasonStats.goals })
+			.select({ playerId: playerSeasonStats.globalPlayerId, goals: playerSeasonStats.goals })
 			.from(playerSeasonStats)
 			.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
 			.where(eq(leagues.city, opts.city));
@@ -522,7 +522,7 @@ export async function getPlayerPositions(
 
 	// --- Scope Global ---
 	const globalRows = await db
-		.select({ playerId: playerSeasonStats.legacyPlayerId, goals: playerSeasonStats.goals })
+		.select({ playerId: playerSeasonStats.globalPlayerId, goals: playerSeasonStats.goals })
 		.from(playerSeasonStats);
 
 	const globalTotals = new Map<string, number>();
@@ -566,15 +566,15 @@ export async function getJornadaHonor(city: string): Promise<JornadaLeague[]> {
 
 		const topRows = await db
 			.select({
-				playerId: playerSeasonStats.legacyPlayerId,
-				fullName: players.fullName,
-				alias: players.alias,
+				playerId: playerSeasonStats.globalPlayerId,
+				fullName: globalPlayers.fullName,
+				alias: sql<string | null>`null`,
 				goals: playerSeasonStats.goals,
 				matchesPlayed: playerSeasonStats.matchesPlayed,
 				teamName: teams.name,
 			})
 			.from(playerSeasonStats)
-			.innerJoin(players, eq(playerSeasonStats.legacyPlayerId, players.id))
+			.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
 			.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
 			.where(
 				and(

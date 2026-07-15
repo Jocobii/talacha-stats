@@ -17,7 +17,7 @@ export type AdminSuspensionsData = {
 	leagues: SuspensionLeagueOption[];
 };
 
-export function useAdminSuspensions(initialData?: AdminSuspensionsData) {
+export function useAdminSuspensions(initialData: AdminSuspensionsData) {
 	return useQuery<AdminSuspensionsData>({
 		queryKey: queryKeys.adminSuspensions(),
 		queryFn: async () => {

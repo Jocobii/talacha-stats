@@ -17,7 +17,7 @@ export type SuspensionsData = {
 	roster: SuspensionRosterPlayer[];
 };
 
-export function useSuspensions(leagueId: string, initialData?: SuspensionsData) {
+export function useSuspensions(leagueId: string, initialData: SuspensionsData) {
 	return useQuery<SuspensionsData>({
 		queryKey: queryKeys.suspensions(leagueId),
 		queryFn: async () => {

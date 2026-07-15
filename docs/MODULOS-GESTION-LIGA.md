@@ -307,8 +307,7 @@ Cada línea = un paso cerrable con su commit `conventional-commits`. Orden pensa
       `feat(admin): suspensions list view with manual escalation`
 - [x] **B7b** Vista global `/admin/suspensiones` en el sidebar principal (grupo Gestión): todas las ligas visibles para el usuario (owner=todas, organizer=su org) en una sola pantalla — filtro de liga/estado/tipo, alta manual con selector de liga (roster cargado bajo demanda) y escalar/levantar sin cambiar de pantalla. Pedido explícito: flujo "domingo en la noche" con sanciones de varias ligas a la vez.
       `feat(admin): global cross-league suspensions view`
-- [ ] **B8** Píldora de contenido "suspendidos de la jornada" (`post-import-content`).
-      `feat(content): suspended-players matchday pill`
+- [~] **B8** Píldora de contenido "suspendidos de la jornada" (`post-import-content`). **Descartado por decisión del usuario** — no se construye.
 
 ### Épica C — Finanzas Nivel 0 (¿quién debe?)
 

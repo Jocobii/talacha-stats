@@ -49,6 +49,30 @@ export const SUSPENSION_DTO_COLUMNS = {
 	createdAt: suspensions.createdAt,
 } as const;
 
+/**
+ * Mismas columnas que SUSPENSION_DTO_COLUMNS pero en el shape que espera
+ * `columns` de la API relacional (`db.query.suspensions.findMany`) — ahí
+ * es un mapa de booleans, no las referencias de columna que usa `.select()`.
+ */
+const SUSPENSION_QUERY_COLUMNS = {
+	id: true,
+	globalPlayerId: true,
+	leagueId: true,
+	reason: true,
+	reasonDetail: true,
+	durationType: true,
+	matchesTotal: true,
+	matchesServed: true,
+	durationValue: true,
+	durationUnit: true,
+	startsOn: true,
+	endsOn: true,
+	status: true,
+	sourceMatchId: true,
+	recordedBy: true,
+	createdAt: true,
+} as const;
+
 export async function findSuspension(
 	id: string,
 	client: DbOrTx = db,
@@ -68,7 +92,7 @@ export async function listSuspensionsByLeague(
 ): Promise<SuspensionDto[]> {
 	return client.query.suspensions.findMany({
 		where: eq(suspensions.leagueId, leagueId),
-		columns: SUSPENSION_DTO_COLUMNS,
+		columns: SUSPENSION_QUERY_COLUMNS,
 		orderBy: (s, { desc }) => [desc(s.createdAt)],
 	});
 }
@@ -183,7 +207,7 @@ export async function listActiveSuspensionsByLeague(
 ): Promise<SuspensionDto[]> {
 	return client.query.suspensions.findMany({
 		where: and(eq(suspensions.leagueId, leagueId), eq(suspensions.status, "active")),
-		columns: SUSPENSION_DTO_COLUMNS,
+		columns: SUSPENSION_QUERY_COLUMNS,
 	});
 }
 
@@ -223,7 +247,7 @@ export async function listActiveMatchesSuspensionsByLeague(
 			eq(suspensions.durationType, "matches"),
 			eq(suspensions.status, "active"),
 		),
-		columns: SUSPENSION_DTO_COLUMNS,
+		columns: SUSPENSION_QUERY_COLUMNS,
 	});
 }
 

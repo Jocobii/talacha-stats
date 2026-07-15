@@ -17,6 +17,7 @@ export {
 	getOrganizationWithDetails,
 	getUsersByOrganization,
 	getLeaguesByOrganization,
+	listAllLeaguesWithTeamCount,
 	// Público — directorio
 	listOrganizationsPublic,
 	getPublicOrganization,
@@ -53,6 +54,7 @@ export type {
 	PublicMatchday,
 	PublicMatchInfo,
 	PublicZone,
+	LeagueWithTeamCount,
 } from "./queries";
 
 // Tema visual (docs/ORG-THEMING.md)
