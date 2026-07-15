@@ -3,6 +3,7 @@
 
 export { SearchControl } from "./SearchControl";
 export { SelectControl } from "./SelectControl";
+export { ComboboxControl } from "./ComboboxControl";
 export { MultiSelectControl } from "./MultiSelectControl";
 export type { FilterOption } from "./MultiSelectControl";
 export { NumberRangeControl } from "./NumberRangeControl";

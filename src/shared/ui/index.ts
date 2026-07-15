@@ -16,6 +16,7 @@ export { SectionLabel } from "./SectionLabel";
 export { KeyHint } from "./KeyHint";
 export { EmptyState } from "./EmptyState";
 export { ErrorState } from "./ErrorState";
+export { NoOrganizationView } from "./NoOrganizationView";
 export { ListSkeleton } from "./ListSkeleton";
 export { Modal } from "./Modal";
 export { Stepper } from "./Stepper";

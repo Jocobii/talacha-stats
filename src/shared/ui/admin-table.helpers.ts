@@ -27,6 +27,16 @@ export type AdminTablePagination = {
 /** Tamaño de página por defecto para todas las tablas administrativas. */
 export const DEFAULT_PAGE_SIZE = 25;
 
+/**
+ * Tamaño de página y opciones de "Filas por página" para los listados del
+ * molde "módulo data-heavy" (FilterBar + tabla con selector de page size) —
+ * jugadores, equipos, … Antes vivían duplicados en cada features/[recurso]-
+ * admin/constants.ts; centralizados aquí porque son el mismo contrato de
+ * paginación, no un detalle específico del recurso.
+ */
+export const DEFAULT_LIST_PAGE_SIZE = 10;
+export const LIST_PAGE_SIZE_OPTIONS = [10, 30, 50, 100] as const;
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**

@@ -19,6 +19,7 @@ import { SlidersHorizontal } from "lucide-react";
 import {
 	SearchControl,
 	SelectControl,
+	ComboboxControl,
 	MultiSelectControl,
 	NumberRangeControl,
 	type FilterOption,
@@ -85,7 +86,7 @@ export function PlayersFilterBar({ leagueOptions }: { leagueOptions: FilterOptio
 				values={estados}
 				onChange={(vals) => apply({ estado: vals.length ? vals.join(",") : null })}
 			/>
-			<SelectControl
+			<ComboboxControl
 				className="w-full sm:w-[190px]"
 				value={liga}
 				onApply={(v) => apply({ liga: v || null, equipo: null })}
