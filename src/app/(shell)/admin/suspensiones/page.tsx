@@ -1,33 +1,39 @@
 /**
- * app/admin/suspensiones/page.tsx
+ * /admin/suspensiones — Lista de suspensiones (B7b)
  *
- * Vista global de suspensiones (B7b) — sidebar principal, grupo Gestión.
- * Todas las ligas visibles para el usuario (owner: todas; organizer: las de
- * su organización) en una sola pantalla, para operar sanciones de varias
- * ligas sin entrar una por una. SSR→props: la página baja el listado + ligas
- * inicial y delega a <GlobalSuspensionsScreen>.
+ * Server Component "controlador delgado" (AGENTS.md §3.2/§3.7): resuelve la
+ * sesión, decide qué vista renderizar según el rol, y delega TODA la carga
+ * de datos a features/discipline (que a su vez solo llama a entities/).
+ * Cero acceso a @/db aquí — eso está prohibido en la capa app/.
+ * Espejo de app/admin/players/page.tsx y app/admin/teams/page.tsx.
  */
+
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/shared/lib/auth";
-import {
-	listLeaguesForScope,
-	listSuspensionsForScope,
-	scopeForUser,
-} from "@/features/discipline/manage-suspensions";
-import { GlobalSuspensionsScreen, type AdminSuspensionsData } from "@/features/discipline";
+import { getOwnerSuspensionsView, getOrgSuspensionsView } from "@/features/discipline";
+import { OwnerSuspensionesView } from "./OwnerSuspensionesView";
+import { OrgSuspensionesView } from "./OrgSuspensionesView";
+import { NoOrganizationView } from "./NoOrganizationView";
 
 export const metadata = { title: "Suspensiones · TalachaStats" };
 
-export default async function SuspensionesGlobalPage() {
-	const user = await getSessionUser();
+export default async function SuspensionesPage({
+	searchParams,
+}: {
+	searchParams: Promise<Record<string, string>>;
+}) {
+	const [user, params] = await Promise.all([getSessionUser(), searchParams]);
 	if (!user) redirect("/login");
 
-	const scope = scopeForUser(user);
-	const initialData: AdminSuspensionsData = scope
-		? await Promise.all([listSuspensionsForScope(scope), listLeaguesForScope(scope)]).then(
-				([suspensions, leagues]) => ({ suspensions, leagues }),
-			)
-		: { suspensions: [], leagues: [] };
+	if (user.role === "owner") {
+		const view = await getOwnerSuspensionsView(params);
+		return <OwnerSuspensionesView {...view} currentUserName={user.name} />;
+	}
 
-	return <GlobalSuspensionsScreen currentUserName={user.name} initialData={initialData} />;
+	if (!user.organizationId) {
+		return <NoOrganizationView />;
+	}
+
+	const view = await getOrgSuspensionsView(user.organizationId, params);
+	return <OrgSuspensionesView {...view} currentUserName={user.name} />;
 }

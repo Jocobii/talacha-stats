@@ -15,15 +15,18 @@
 import { db } from "@/db";
 import type { SessionUser } from "@/shared/lib/auth";
 import {
+	countSuspensionsForScope,
 	findSuspension,
 	insertSuspension,
 	listLeagueOptionsForScope,
 	listLeagueRosterForDiscipline,
 	listSuspensionsByLeagueDetailed,
 	listSuspensionsForScopeDetailed,
+	listSuspensionsForScopePaged,
 	updateSuspension,
 	type SuspensionScope,
 } from "@/entities/suspension/queries";
+import type { ListQuery } from "@/shared/lib/list-query";
 import type {
 	CreateManualSuspensionInput,
 	EscalateSuspensionInput,
@@ -67,6 +70,23 @@ export async function listLeaguesForScope(
 	scope: SuspensionScope,
 ): Promise<SuspensionLeagueOption[]> {
 	return listLeagueOptionsForScope(scope);
+}
+
+/**
+ * Listado paginado/filtrado/ordenado (molde data-heavy, /admin/suspensiones)
+ * — contrato ListQuery. Usado tanto por la vista owner (búsqueda simple) como
+ * por la vista organizador (FilterBar completo).
+ */
+export async function listSuspensionsForScopePage(
+	scope: SuspensionScope,
+	query: ListQuery,
+): Promise<{ rows: GlobalSuspensionListItemDto[]; total: number }> {
+	return listSuspensionsForScopePaged(scope, query);
+}
+
+/** Total sin filtros — distingue "vacío sin datos" de "vacío por filtros". */
+export async function countSuspensionsForScopeTotal(scope: SuspensionScope): Promise<number> {
+	return countSuspensionsForScope(scope);
 }
 
 export type CreateManualSuspensionResult =

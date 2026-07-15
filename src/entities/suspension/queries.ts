@@ -6,7 +6,7 @@
  * match-resolution (mismo patrón que entities/league-config).
  */
 
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
 	suspensions,
@@ -16,6 +16,9 @@ import {
 	teams,
 	leagues,
 } from "@/db/schema";
+import type { ListQuery } from "@/shared/lib/list-query";
+import { buildWhere, buildOrderBy } from "@/shared/lib/list-query";
+import { orgSuspensionFilters } from "./filters";
 import type {
 	GlobalSuspensionListItemDto,
 	SuspensionDto,
@@ -345,4 +348,86 @@ export async function updateSuspension(
 		.where(eq(suspensions.id, id))
 		.returning(SUSPENSION_DTO_COLUMNS);
 	return rows[0] ?? null;
+}
+
+/**
+ * Listado paginado/filtrado/ordenado de suspensiones para el molde
+ * "módulo data-heavy" de /admin/suspensiones (AdminTable + FilterBar en URL,
+ * espejo de listOrgPlayers/listOrgTeams) — contrato ListQuery. `scope` decide
+ * el alcance de negocio (owner: todas las ligas; organizer: solo las suyas),
+ * igual que listSuspensionsForScopeDetailed, pero aquí se combina con los
+ * filtros/orden/paginación que manda la URL.
+ */
+export async function listSuspensionsForScopePaged(
+	scope: SuspensionScope,
+	query: ListQuery,
+	client: DbOrTx = db,
+): Promise<{ rows: GlobalSuspensionListItemDto[]; total: number }> {
+	const filterWhere = buildWhere(orgSuspensionFilters, query.filters);
+	const scopeWhere =
+		scope.kind === "org" ? eq(leagues.organizationId, scope.organizationId) : undefined;
+	const where = and(scopeWhere, filterWhere);
+	const orderBy = buildOrderBy(orgSuspensionFilters, query.sort);
+	const offset = (query.page - 1) * query.pageSize;
+
+	const [rows, countResult] = await Promise.all([
+		client
+			.select({
+				...SUSPENSION_DTO_COLUMNS,
+				playerName: globalPlayers.fullName,
+				teamName: teams.name,
+				leagueName: leagues.name,
+			})
+			.from(suspensions)
+			.innerJoin(globalPlayers, eq(suspensions.globalPlayerId, globalPlayers.id))
+			.innerJoin(leagues, eq(leagues.id, suspensions.leagueId))
+			.innerJoin(
+				leagueMembers,
+				and(
+					eq(leagueMembers.globalPlayerId, globalPlayers.id),
+					eq(leagueMembers.leagueId, leagues.id),
+				),
+			)
+			.innerJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
+			.innerJoin(teams, eq(teams.id, inscriptions.teamId))
+			.where(where)
+			.orderBy(...(orderBy.length > 0 ? orderBy : [desc(suspensions.createdAt)]))
+			.limit(query.pageSize)
+			.offset(offset),
+
+		client
+			.select({ total: sql<number>`COUNT(*)::int` })
+			.from(suspensions)
+			.innerJoin(globalPlayers, eq(suspensions.globalPlayerId, globalPlayers.id))
+			.innerJoin(leagues, eq(leagues.id, suspensions.leagueId))
+			.innerJoin(
+				leagueMembers,
+				and(
+					eq(leagueMembers.globalPlayerId, globalPlayers.id),
+					eq(leagueMembers.leagueId, leagues.id),
+				),
+			)
+			.innerJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
+			.innerJoin(teams, eq(teams.id, inscriptions.teamId))
+			.where(where),
+	]);
+
+	return { rows, total: countResult[0]?.total ?? 0 };
+}
+
+/**
+ * Total de suspensiones visibles para el scope, sin filtros — para distinguir
+ * "vacío sin datos" de "vacío por filtros" y para el label "X de Y" (mismo
+ * patrón que countOrgPlayers).
+ */
+export async function countSuspensionsForScope(
+	scope: SuspensionScope,
+	client: DbOrTx = db,
+): Promise<number> {
+	const rows = await client
+		.select({ total: sql<number>`COUNT(*)::int` })
+		.from(suspensions)
+		.innerJoin(leagues, eq(leagues.id, suspensions.leagueId))
+		.where(scope.kind === "org" ? eq(leagues.organizationId, scope.organizationId) : undefined);
+	return rows[0]?.total ?? 0;
 }
