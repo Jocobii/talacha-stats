@@ -17,6 +17,9 @@ export type AdminTablePagination = {
 	baseHref: string;
 	pageParam?: string;
 	extraParams?: Record<string, string>;
+	/** Si se pasa, AdminTable muestra un selector "Filas por página" con estas opciones. */
+	pageSizeOptions?: number[];
+	pageSizeParam?: string;
 };
 
 // ── Constantes ────────────────────────────────────────────────────────────────
@@ -38,6 +41,8 @@ export function buildPagination(
 		pageSize?: number;
 		extraParams?: Record<string, string>;
 		pageParam?: string;
+		pageSizeOptions?: number[];
+		pageSizeParam?: string;
 	},
 ): AdminTablePagination {
 	return {
@@ -47,5 +52,7 @@ export function buildPagination(
 		baseHref,
 		...(opts?.pageParam ? { pageParam: opts.pageParam } : {}),
 		...(opts?.extraParams ? { extraParams: opts.extraParams } : {}),
+		...(opts?.pageSizeOptions ? { pageSizeOptions: opts.pageSizeOptions } : {}),
+		...(opts?.pageSizeParam ? { pageSizeParam: opts.pageSizeParam } : {}),
 	};
 }

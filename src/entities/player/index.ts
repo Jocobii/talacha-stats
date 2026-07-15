@@ -37,6 +37,7 @@ export type {
 	OrgPlayerSearchResult,
 	GlobalPlayerLeagueMember,
 	GlobalPlayerBasic,
+	GlobalPlayerRow,
 } from "./queries";
 export {
 	getPlayerProfile,
@@ -52,6 +53,8 @@ export {
 	findLeagueMemberView,
 	getTeamRoster,
 	listOrgPlayers,
+	countOrgPlayers,
+	listAllGlobalPlayers,
 	getGlobalPlayerLeagueMembers,
 	getGlobalPlayerBasic,
 } from "./queries";

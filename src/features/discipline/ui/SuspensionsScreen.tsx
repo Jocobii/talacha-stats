@@ -12,7 +12,7 @@
 
 import { useMemo, useState } from "react";
 import { Ban, Clock, Gavel, ArrowUpCircle } from "lucide-react";
-import { PageHeader, Button, Select, EmptyState } from "@/shared/ui";
+import { PageHeader, Button, Listbox, EmptyState } from "@/shared/ui";
 import type { SuspensionDurationType, SuspensionStatus } from "@/entities/suspension";
 import { useSuspensions, type SuspensionsData } from "../model/useSuspensions";
 import { useCreateManualSuspension } from "../model/useCreateManualSuspension";
@@ -106,16 +106,17 @@ export function SuspensionsScreen({ leagueId, leagueName, currentUserName, initi
 							</EstadoChip>
 						))}
 					</div>
-					<Select
+					<Listbox
 						value={tipo}
-						onChange={(e) => setTipo(e.target.value as SuspensionDurationType | "todos")}
-						className="!w-auto min-w-[190px]"
-					>
-						<option value="todos">Todos los tipos</option>
-						<option value="matches">Por partidos</option>
-						<option value="time">Por tiempo</option>
-						<option value="permanent">Veto indefinido</option>
-					</Select>
+						onChange={(v) => setTipo(v as SuspensionDurationType | "todos")}
+						className="w-auto min-w-[190px]"
+						options={[
+							{ value: "todos", label: "Todos los tipos" },
+							{ value: "matches", label: "Por partidos" },
+							{ value: "time", label: "Por tiempo" },
+							{ value: "permanent", label: "Veto indefinido" },
+						]}
+					/>
 				</div>
 
 				{filtered.length === 0 ? (

@@ -9,7 +9,7 @@ import { forwardRef } from "react";
 import { Loader2, Search, IdCard } from "lucide-react";
 import { Card } from "@/shared/ui/Card";
 import { Field } from "@/shared/ui/Field";
-import { Select } from "@/shared/ui/Select";
+import { Listbox } from "@/shared/ui/Listbox";
 import { KeyHint } from "@/shared/ui/KeyHint";
 import { SectionLabel } from "@/shared/ui/SectionLabel";
 import type { League } from "../types";
@@ -81,14 +81,12 @@ export const CurpSearchCard = forwardRef<HTMLInputElement, Props>(function CurpS
 						</Field>
 					) : (
 						<Field label="Liga" required>
-							<Select value={leagueId} onChange={(e) => onLeagueChange(e.target.value)}>
-								<option value="">— Seleccionar liga —</option>
-								{leagues.map((l) => (
-									<option key={l.id} value={l.id}>
-										{l.name} &middot; {l.season}
-									</option>
-								))}
-							</Select>
+							<Listbox
+								value={leagueId}
+								onChange={onLeagueChange}
+								placeholder="— Seleccionar liga —"
+								options={leagues.map((l) => ({ value: l.id, label: `${l.name} · ${l.season}` }))}
+							/>
 						</Field>
 					)}
 				</div>

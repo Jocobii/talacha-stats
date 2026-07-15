@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useTransition } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
+import { Listbox } from "./Listbox";
 
 // ── Filter config types ───────────────────────────────────────────────────────
 
@@ -89,20 +90,15 @@ export default function FilterBar({ fields, className = "" }: FilterBarProps) {
 
 				if (field.type === "select") {
 					return (
-						<select
+						<Listbox
 							key={field.name}
 							value={current}
+							onChange={(v) => applyFilter(field.name, v)}
+							options={field.options}
+							placeholder={field.placeholder ?? `— ${field.label} —`}
 							aria-label={field.label}
-							onChange={(e) => applyFilter(field.name, e.target.value)}
-							className={`${inputBase} appearance-none cursor-pointer pr-8`}
-						>
-							<option value="">{field.placeholder ?? `— ${field.label} —`}</option>
-							{field.options.map((opt) => (
-								<option key={opt.value} value={opt.value}>
-									{opt.label}
-								</option>
-							))}
-						</select>
+							className="w-auto min-w-[160px]"
+						/>
 					);
 				}
 			})}

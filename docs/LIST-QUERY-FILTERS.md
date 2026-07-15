@@ -38,8 +38,14 @@ cliente — ver regla del split barrel).
 - `sort=-campo` → desc; `sort=campo` → asc. Solo campos `sortable`.
 - `page`, `pageSize` → paginación (pageSize se clampa a `MAX_LIST_PAGE_SIZE`).
 
-Operadores soportados: `eq, ne, in, nin, gt, gte, lt, lte, contains, between,
-isNull`.
+Operadores soportados: `eq, ne, in, nin, gt, gte, lt, lte, contains,
+containsWords, between, isNull`.
+
+`contains` vs `containsWords`: `contains` exige la frase completa contigua
+(`ILIKE '%valor%'`) — buscar "pedro aguilar" NO matchea "Pedro Flores
+Aguilar". `containsWords` parte el valor en palabras y exige que cada una
+aparezca en la columna, en cualquier orden — es lo que casi siempre se
+quiere para un buscador de nombre (ver `entities/player/filters.ts`).
 
 ---
 

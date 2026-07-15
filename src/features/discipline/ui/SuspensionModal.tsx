@@ -10,7 +10,7 @@
 
 import { useState } from "react";
 import { Ban, Calendar, Check, Undo2, User } from "lucide-react";
-import { Modal, Field, Input, Select, Button } from "@/shared/ui";
+import { Modal, Field, Input, Button, Listbox } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import type {
 	CreateManualSuspensionInput,
@@ -180,33 +180,26 @@ function EscalatePanel({
 
 				{isGlobal && (
 					<Field label="Liga" required>
-						<Select value={leagueId} onChange={(e) => setLeagueId(e.target.value)}>
-							{leagues!.map((l) => (
-								<option key={l.id} value={l.id}>
-									{l.name}
-								</option>
-							))}
-						</Select>
+						<Listbox
+							value={leagueId}
+							onChange={setLeagueId}
+							options={leagues!.map((l) => ({ value: l.id, label: l.name }))}
+						/>
 					</Field>
 				)}
 
 				{mode === "new" && (
 					<Field label="Jugador" required>
-						<Select
+						<Listbox
 							value={globalPlayerId}
-							onChange={(e) => setGlobalPlayerIdChoice(e.target.value)}
-							disabled={isGlobal && rosterQuery.isLoading}
-						>
-							{isGlobal && rosterQuery.isLoading ? (
-								<option value="">Cargando roster…</option>
-							) : (
-								roster.map((p) => (
-									<option key={p.globalPlayerId} value={p.globalPlayerId}>
-										{p.fullName} — {p.teamName}
-									</option>
-								))
-							)}
-						</Select>
+							onChange={setGlobalPlayerIdChoice}
+							loading={isGlobal && rosterQuery.isLoading}
+							placeholder="Cargando roster…"
+							options={roster.map((p) => ({
+								value: p.globalPlayerId,
+								label: `${p.fullName} — ${p.teamName}`,
+							}))}
+						/>
 					</Field>
 				)}
 
@@ -258,14 +251,15 @@ function EscalatePanel({
 								/>
 							</Field>
 							<Field label="Unidad" required>
-								<Select
+								<Listbox
 									value={unit}
-									onChange={(e) => setUnit(e.target.value as SuspensionDurationUnit)}
-								>
-									<option value="days">Días</option>
-									<option value="weeks">Semanas</option>
-									<option value="months">Meses</option>
-								</Select>
+									onChange={(v) => setUnit(v as SuspensionDurationUnit)}
+									options={[
+										{ value: "days", label: "Días" },
+										{ value: "weeks", label: "Semanas" },
+										{ value: "months", label: "Meses" },
+									]}
+								/>
 							</Field>
 						</div>
 						<div className="bg-surface-2/60 border border-line rounded-md px-3.5 py-3 flex items-center gap-2.5">

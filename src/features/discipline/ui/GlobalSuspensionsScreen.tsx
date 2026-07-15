@@ -11,7 +11,7 @@
 
 import { useMemo, useState } from "react";
 import { Ban, Clock, Gavel, ArrowUpCircle } from "lucide-react";
-import { PageHeader, Button, Select, EmptyState } from "@/shared/ui";
+import { PageHeader, Button, Listbox, EmptyState } from "@/shared/ui";
 import type { SuspensionDurationType, SuspensionStatus } from "@/entities/suspension";
 import { useAdminSuspensions, type AdminSuspensionsData } from "../model/useAdminSuspensions";
 import { useCreateManualSuspensionGlobal } from "../model/useCreateManualSuspensionGlobal";
@@ -106,28 +106,26 @@ export function GlobalSuspensionsScreen({ currentUserName, initialData }: Props)
 						))}
 					</div>
 					<div className="flex flex-wrap items-center gap-2">
-						<Select
+						<Listbox
 							value={ligaId}
-							onChange={(e) => setLigaId(e.target.value)}
-							className="!w-auto min-w-[190px]"
-						>
-							<option value="todas">Todas las ligas</option>
-							{data.leagues.map((l) => (
-								<option key={l.id} value={l.id}>
-									{l.name}
-								</option>
-							))}
-						</Select>
-						<Select
+							onChange={setLigaId}
+							className="w-auto min-w-[190px]"
+							options={[
+								{ value: "todas", label: "Todas las ligas" },
+								...data.leagues.map((l) => ({ value: l.id, label: l.name })),
+							]}
+						/>
+						<Listbox
 							value={tipo}
-							onChange={(e) => setTipo(e.target.value as SuspensionDurationType | "todos")}
-							className="!w-auto min-w-[190px]"
-						>
-							<option value="todos">Todos los tipos</option>
-							<option value="matches">Por partidos</option>
-							<option value="time">Por tiempo</option>
-							<option value="permanent">Veto indefinido</option>
-						</Select>
+							onChange={(v) => setTipo(v as SuspensionDurationType | "todos")}
+							className="w-auto min-w-[190px]"
+							options={[
+								{ value: "todos", label: "Todos los tipos" },
+								{ value: "matches", label: "Por partidos" },
+								{ value: "time", label: "Por tiempo" },
+								{ value: "permanent", label: "Veto indefinido" },
+							]}
+						/>
 					</div>
 				</div>
 
