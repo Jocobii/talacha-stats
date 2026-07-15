@@ -11,7 +11,7 @@ import type { RegistrationStage } from "../types";
 const STAGES: { id: RegistrationStage; label: string }[] = [
 	{ id: "search", label: "Buscar CURP" },
 	{ id: "review", label: "Revisar jugador" },
-	{ id: "done", label: "Asignar equipo" },
+	{ id: "done", label: "Liga y equipo (opcional)" },
 ];
 
 type Props = { current: RegistrationStage };

@@ -162,6 +162,11 @@ export const players = pgTable("players", {
 //   curp_hash = sha256("PENDING_" + legacy_player_id)
 // El oficinista los regulariza cuando vuelven a ventanilla con su INE.
 // ---------------------------------------------------------------------------
+// Género del jugador — opcional, nunca bloquea el registro de jugadores
+// migrados/legacy (columna nullable). Capturado en el alta manual (NewPlayerCard).
+export const GENDER_OPTIONS = ["masculino", "femenino", "otro"] as const;
+export type Gender = (typeof GENDER_OPTIONS)[number];
+
 export const globalPlayers = pgTable(
 	"global_players",
 	{
@@ -173,12 +178,17 @@ export const globalPlayers = pgTable(
 		// Se usa para búsquedas y agrupaciones cross-liga sin depender de f_unaccent en PG.
 		fullNameCanonical: text("full_name_canonical"),
 		birthDate: date("birth_date").notNull(),
+		gender: text("gender").$type<Gender | null>(),
 		avatarUrl: text("avatar_url"),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
 		index("global_players_curp_idx").on(t.curpHash),
 		index("global_players_name_canonical_idx").on(t.fullNameCanonical),
+		check(
+			"chk_global_player_gender",
+			drizzleSql`${t.gender} IS NULL OR ${t.gender} IN ('masculino','femenino','otro')`,
+		),
 	],
 );
 
@@ -387,16 +397,34 @@ export const leagueMembers = pgTable(
 		inscriptionDate: date("inscription_date").notNull(),
 		institutionPhotoUrl: text("institution_photo_url"), // foto tomada por la institución
 		internalNotes: text("internal_notes"), // notas privadas de la liga — data siloing
+		// Datos de contacto — opcionales, capturados "por si hay una emergencia".
+		// Data siloing igual que internalNotes: privados de cada liga, nunca cross-liga.
+		phone: text("phone"), // teléfono del jugador
+		residenceArea: text("residence_area"), // ciudad / colonia de residencia
+		emergencyContactName: text("emergency_contact_name"), // ej. "madre, esposo — nombre"
+		emergencyContactPhone: text("emergency_contact_phone"),
+		medicalNotes: text("medical_notes"), // alergias, tipo de sangre, condición — opcional
+		// Código de credencial — identificador humano corto, único por liga, usado
+		// por el árbitro para ubicar al jugador en la lista de asistencia sin
+		// depender del dorsal. Nullable durante migración; NOT NULL objetivo tras
+		// backfill (ver docs/CREDENCIAL-CODIGO-JUGADOR.md). Se genera en el server
+		// con assignNextCredential(); nunca lo propone el cliente. Inmutable.
+		credentialCode: integer("credential_code"),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
 		unique("uq_league_member").on(t.globalPlayerId, t.leagueId),
+		unique("uq_league_member_credential").on(t.leagueId, t.credentialCode),
 		index("league_members_global_player_idx").on(t.globalPlayerId),
 		index("league_members_league_idx").on(t.leagueId),
 		check("chk_league_member_status", drizzleSql`${t.status} IN ('active','suspended','inactive')`),
 		check(
 			"chk_dorsal_range",
 			drizzleSql`${t.dorsal} IS NULL OR (${t.dorsal} >= 1 AND ${t.dorsal} <= 99)`,
+		),
+		check(
+			"chk_credential_code_positive",
+			drizzleSql`${t.credentialCode} IS NULL OR ${t.credentialCode} >= 1`,
 		),
 	],
 );

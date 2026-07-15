@@ -63,6 +63,7 @@ function makeRoster(
 				leagueId: team.leagueId,
 				status: "active",
 				dorsal: i + 1,
+				credentialCode: i + 1,
 				inscriptionDate: "2026-01-01",
 				institutionPhotoUrl: null,
 				internalNotes: null,

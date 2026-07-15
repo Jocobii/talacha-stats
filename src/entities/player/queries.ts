@@ -642,6 +642,7 @@ export async function listTopScorers(opts: {
 // ===========================================================================
 
 import { globalPlayers, leagueMembers, inscriptions } from "@/db/schema";
+import { assignNextCredential } from "./lib/assign-credential";
 import type {
 	GlobalPlayer,
 	CreateGlobalPlayer,
@@ -763,33 +764,42 @@ export async function findLeagueMember(
 export async function createLeagueMember(data: CreateLeagueMember): Promise<LeagueMember> {
 	const today = new Date().toISOString().slice(0, 10);
 
-	const rows = await db
-		.insert(leagueMembers)
-		.values({
-			globalPlayerId: data.globalPlayerId,
-			leagueId: data.leagueId,
-			status: data.status ?? "active",
-			dorsal: data.dorsal ?? null,
-			inscriptionDate: data.inscriptionDate ?? today,
-			institutionPhotoUrl: data.institutionPhotoUrl ?? null,
-			internalNotes: data.internalNotes ?? null,
-		})
-		.returning();
+	return await db.transaction(async (tx) => {
+		// credential_code se asigna en el server, dentro de la misma tx que
+		// crea el league_member — nunca lo propone el cliente (ver
+		// docs/CREDENCIAL-CODIGO-JUGADOR.md).
+		const credentialCode = await assignNextCredential(tx, data.leagueId);
 
-	const row = rows[0];
-	if (!row) throw new Error("createLeagueMember: insert no retornó ninguna fila");
+		const rows = await tx
+			.insert(leagueMembers)
+			.values({
+				globalPlayerId: data.globalPlayerId,
+				leagueId: data.leagueId,
+				status: data.status ?? "active",
+				dorsal: data.dorsal ?? null,
+				credentialCode,
+				inscriptionDate: data.inscriptionDate ?? today,
+				institutionPhotoUrl: data.institutionPhotoUrl ?? null,
+				internalNotes: data.internalNotes ?? null,
+			})
+			.returning();
 
-	return {
-		id: row.id,
-		globalPlayerId: row.globalPlayerId,
-		leagueId: row.leagueId,
-		status: row.status,
-		dorsal: row.dorsal ?? null,
-		inscriptionDate: row.inscriptionDate,
-		institutionPhotoUrl: row.institutionPhotoUrl ?? null,
-		internalNotes: row.internalNotes ?? null,
-		createdAt: row.createdAt,
-	};
+		const row = rows[0];
+		if (!row) throw new Error("createLeagueMember: insert no retornó ninguna fila");
+
+		return {
+			id: row.id,
+			globalPlayerId: row.globalPlayerId,
+			leagueId: row.leagueId,
+			status: row.status,
+			dorsal: row.dorsal ?? null,
+			credentialCode: row.credentialCode ?? null,
+			inscriptionDate: row.inscriptionDate,
+			institutionPhotoUrl: row.institutionPhotoUrl ?? null,
+			internalNotes: row.internalNotes ?? null,
+			createdAt: row.createdAt,
+		};
+	});
 }
 
 // ---------------------------------------------------------------------------

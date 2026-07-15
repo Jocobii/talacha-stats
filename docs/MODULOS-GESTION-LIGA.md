@@ -68,13 +68,41 @@ Autoservicio: el capitán ve su rol, su roster y —cuando exista lo financiero�
 
 ## 3. Capa FINANCIERA (opt-in, escalonada)
 
-Regla anti-informalidad: **nunca forzar pasarela de pago.** Default en efectivo. Cada liga prende solo el nivel que necesita. Los tres niveles comparten el mismo `catálogo de conceptos` + `estado de cuenta`; "fianza", "arbitraje" y "cierre" son capas encima. Un solo producto, progresivo.
+Regla anti-informalidad: **nunca forzar pasarela de pago.** Default en efectivo. Cada liga prende solo el nivel que necesita. Los tres niveles comparten el mismo **motor de cobros** (catálogo de conceptos + cuentas + ledger); "fianza", "arbitraje" y "cierre" son capas encima. Un solo producto, progresivo.
 
-- **Nivel 0 — "¿Quién debe?"** (hasta el más informal lo usa). Catálogo de conceptos (inscripción, credencial, cuota de horario) + estado de cuenta por equipo (cargo, abono en efectivo, saldo). Sustituye el cuaderno del organizador.
+> **Actualización (jul 2026, revisión con Jocobi):** en una liga real **todo se cobra** — no solo la inscripción del equipo. Se cobra registrar un equipo, registrar jugadores (credencial), rentar el horario fijo de la liga, rentar una cancha suelta (alguien que solo quiere ir a jugar con amigos, sin liga de por medio), el arbitraje, e incluso una fianza de fondo por si un equipo deja de presentarse. Nivel 0 deja de ser "catálogo + estado de cuenta por equipo" y pasa a ser un **motor de cobros genérico**: cualquier cobro nuevo se agrega como dato (una fila en el catálogo), no como código nuevo, y cada cobro se puede vincular a la acción del formulario que lo origina (alta de equipo, alta de jugador, reservar horario, resolver cédula). Ver §5.3 para el modelo revisado y §3.1 para el diseño del motor.
+
+- **Nivel 0 — "¿Quién debe?"** (hasta el más informal lo usa). Motor de cobros: catálogo de conceptos + cuenta de cobro (equipo, jugador individual, o cliente externo sin liga) + ledger (cargo, abono en efectivo, saldo). Sustituye el cuaderno del organizador. Incluye ya el _tracking_ de rentas sueltas de cancha (§3.1.3) porque Jocobi la cobra hoy y no hay dónde anotarla.
 - **Nivel 1 — Liga formal.** Fianza como saldo retenido que se castiga con sanciones; arbitraje (tarifa por partido + cuenta por pagar al árbitro); egresos (cancha, balones, premios).
 - **Nivel 2 — Liga fuerte.** Cierre financiero por torneo (ingresos − egresos = utilidad), corte de caja por jornada, recibos. Es el nivel que justifica que la liga cara pague por la plataforma.
 
 > Referencia de mercado (jul 2026): FLM System / nadugol / iBeeScore son fuertes en lo deportivo pero flojos en contabilidad; LeagueApps/TeamSnap asumen pago digital con tarjeta (no calza con efectivo/fianza mexicanos); Clupik sí modela costo de arbitraje. El hueco defendible = **stats + finanzas del organizador + realidad mexicana (efectivo, fianza, horario fijo)**.
+
+### 3.1 Diseño del motor de cobros (Nivel 0)
+
+> **Ver `docs/FINANCE-ENGINE.md`** para la especificación completa de arquitectura del motor (contratos, modelo de datos final, gate por `finance_level`, guía de adopción, testing). Lo que sigue aquí es el resumen orientado a producto/decisión; ese doc es la fuente de verdad técnica que implementa Épica C.
+
+Tres decisiones de diseño para que agregar un cobro nuevo sea barato y no se pierda precisión:
+
+#### 3.1.1 Montos en centavos, enteros
+
+Todo monto (`fee_concepts.default_amount_cents`, `ledger_entries.amount_cents`) se guarda como **entero en centavos** (ej. $150.00 → `15000`), no `numeric`/`decimal` ni float. Evita el redondeo silencioso de JS (`0.1 + 0.2 !== 0.3`) al sumar saldos en el cliente/servidor y es el estándar de sistemas de cobro (Stripe, etc.). La UI formatea a pesos solo para mostrar; toda la aritmética del motor (sumas de saldo, comparaciones) ocurre en centavos.
+
+#### 3.1.2 Catálogo dirigido por `trigger`, no por código nuevo
+
+Cada `fee_concept` declara un `trigger`: la acción que dispara el cobro automáticamente. El motor (`features/finance/engine`) expone **un solo punto de entrada**, `chargeForTrigger(trigger, context)`, que:
+
+1. Busca conceptos activos de esa liga (u organización, si es renta suelta sin liga) con ese `trigger`.
+2. Resuelve o crea la `billing_account` del sujeto (equipo, jugador o cliente externo — §3.1.3).
+3. Inserta el `ledger_entry` de cargo con el monto del concepto.
+
+Agregar un cobro nuevo que reutiliza un trigger ya conectado (ej. otra cuota que se cobre "al registrar jugador") es **solo una fila nueva en `fee_concepts`**, cero código. Conectar un trigger a una acción que hoy no cobra nada (ej. un nuevo tipo de alta) sí requiere un hook de una línea que llame `chargeForTrigger(...)` desde esa acción — se hace una vez por acción, no una vez por concepto.
+
+Triggers previstos en Nivel 0: `team_registration` (alta de equipo), `player_registration` (alta de jugador → credencial, cobro **al jugador**, no al equipo — decisión de Jocobi), `schedule_booking` (renta del horario fijo de la liga), `venue_ad_hoc_rental` (renta suelta de cancha, con o sin liga), `manual` (cualquier cargo/abono que el organizador registra a mano, como hoy en Nivel 0 de `ledger_entries` original).
+
+#### 3.1.3 Cuenta de cobro genérica (`billing_accounts`) — incluye clientes sin liga
+
+Antes el ledger solo conocía `team_id`. Ahora un cobro puede ser de un equipo, de un jugador individual (credencial) o de alguien que **ni siquiera pertenece a una liga** (fulano que solo renta la cancha para jugar con amigos). En vez de tres FKs nullable sueltos en `ledger_entries`, se centraliza en una entidad `billing_accounts` (§5.3) que el ledger referencia una sola vez. Esto adelanta, a propósito, un _tracking_ mínimo de rentas sueltas de cancha (sin construir todavía un calendario de reservas completo — eso sigue siendo de `venue-management` a futuro): por ahora el organizador registra la renta suelta como un cargo manual contra una cuenta externa (nombre + teléfono), suficiente para saber quién debe.
 
 ---
 
@@ -213,31 +241,82 @@ suspensions
   - Vigencia: para `'matches'` es `matches_served < matches_total`; para `'time'` es `today < ends_on`; para `'permanent'` siempre activa hasta `status = 'lifted'`.
 - Conecta al norte: alimenta píldoras de contenido y sincroniza `leagueMembers.status`.
 
-### 5.3 Finanzas — catálogo + ledger (Nivel 0)
+### 5.3 Finanzas — motor de cobros (Nivel 0)
+
+> Modelo revisado jul 2026 tras decidir con Jocobi: "todo se cobra" (equipo, jugador, horario, cancha suelta, arbitraje, fondo), montos en **centavos enteros**, y motor dirigido por `trigger` (§3.1) en vez de catálogo fijo por equipo. Ver §3.1 para el porqué de cada decisión.
 
 ```
 fee_concepts
-  id          uuid
-  league_id   uuid FK
-  name        text        -- 'Inscripción', 'Credencial', 'Fianza', 'Horario fijo'
-  kind        text        -- 'charge' | 'deposit' (fianza) | 'expense'
-  default_amount numeric null
+  id                  uuid
+  league_id           uuid null FK   -- null = concepto de organización, reusable sin liga (ej. renta suelta de cancha)
+  organization_id     uuid FK
+  name                text           -- 'Inscripción', 'Credencial', 'Fianza', 'Horario fijo', 'Renta de cancha', 'Arbitraje'
+  kind                text           -- 'charge' | 'deposit' (fianza) | 'expense'
+  subject_type        text           -- 'team' | 'player' | 'external' | 'any'
+  trigger             text           -- 'manual' | 'team_registration' | 'player_registration' | 'schedule_booking' | 'venue_ad_hoc_rental' | 'match_referee'
+  default_amount_cents int null      -- entero en centavos, no numeric/float (§3.1.1)
+  is_active           boolean default true
+  created_at          timestamptz
+
+billing_accounts
+  id                 uuid
+  organization_id    uuid FK
+  league_id          uuid null FK        -- null si es cuenta externa sin liga (renta suelta)
+  account_type       text                -- 'team' | 'player' | 'external'
+  team_id            uuid null FK        -- set si account_type = 'team'
+  global_player_id   uuid null FK        -- set si account_type = 'player'
+  external_name      text null           -- set si account_type = 'external'
+  external_phone     text null
+  created_at         timestamptz
+  -- constraint: exactamente uno de team_id/global_player_id/(external_name) no-null según account_type
 
 ledger_entries
-  id           uuid
-  league_id    uuid FK
-  team_id      uuid null FK   -- cargo/abono por equipo
-  concept_id   uuid null FK
-  direction    text           -- 'charge' | 'payment' | 'refund'
-  amount       numeric
-  method       text default 'cash'  -- 'cash' | 'transfer' | 'spei'
-  note         text null
-  created_at   timestamptz
+  id                 uuid
+  league_id          uuid null FK        -- null si billing_account es externa sin liga
+  billing_account_id uuid FK
+  concept_id         uuid null FK        -- null en abonos/ajustes manuales sin concepto
+  direction          text                -- 'charge' | 'payment' | 'refund'
+  amount_cents       int                 -- entero en centavos (§3.1.1) ; > 0 (el signo lo da direction)
+  method             text default 'cash' -- 'cash' | 'transfer' | 'spei' (informativo, no integración)
+  note               text null
+  source_type        text null           -- 'team_registration' | 'player_registration' | 'booking' | 'match' | 'manual'
+  source_id          uuid null           -- id de la entidad que originó el cargo (team.id, player.id, match.id, etc.)
+  idempotency_key    text null           -- `${trigger}:${concept}:${sourceType}:${sourceId}`; null en manuales. UNIQUE parcial → no duplica cargos
+  status             text default 'active' -- 'active' | 'voided' (nunca se borra un cargo — se anula)
+  voided_reason      text null
+  voided_by          uuid null FK        -- users.id que anuló (auditoría)
+  voided_at          timestamptz null
+  recorded_by        uuid null FK        -- users.id — quién capturó el cargo/abono manual (auditoría)
+  created_at         timestamptz
+
+finance_events   -- bitácora append-only del motor ("tracking de logs detallado", decisión Jocobi)
+  id                 uuid
+  organization_id    uuid FK
+  league_id          uuid null FK
+  correlation_id     uuid                -- ata todos los eventos de una misma acción de negocio
+  event_type         text                -- charge_created | charge_skipped_duplicate | charge_skipped_no_concept | charge_failed | payment_recorded | entry_voided | concept_* | catalog_seeded
+  actor_type         text                -- 'system' | 'user'
+  actor_id           uuid null           -- users.id si actor_type='user'
+  billing_account_id uuid null
+  ledger_entry_id    uuid null           -- set si el evento produjo/afectó una fila del ledger
+  payload            jsonb               -- contexto: { trigger, conceptId, amountCents, result, error, ... }
+  created_at         timestamptz
+  -- APPEND-ONLY: sin UPDATE ni DELETE. Registra incluso lo que NO cambió el ledger (duplicado omitido, cobro fallido).
 ```
 
-- Entidad: `entities/ledger/`. Feature: `features/finance/`.
-- Saldo por equipo = SUM(charges) − SUM(payments). Fianza = concepto `deposit` que se castiga con `charge` ligado a una suspensión.
-- Niveles 1-2 (arbitraje, egresos, cierre) se agregan como conceptos/vistas encima; **no** tablas nuevas por nivel.
+- Entidades: `entities/fee-concept/`, `entities/billing-account/`, `entities/ledger/` (model + queries + cálculo de saldo), `entities/finance-event/` (bitácora).
+- Feature: `features/finance/`:
+  - `engine/` — `chargeForTrigger(trigger, context)`: punto único que resuelve conceptos activos del trigger, resuelve/crea la `billing_account` del sujeto, inserta el `ledger_entry`. Agregar un cobro que reusa un trigger existente es una fila en `fee_concepts`, sin código (§3.1.2).
+  - Hooks de una línea en las acciones que ya existen: alta de equipo (`team-management`), alta de jugador (`admin-registration`), reserva de horario/cancha (`scheduling` / `venue-management` — el "tracking" mínimo de renta suelta vive aquí también, §3.1.3), resolución de cédula para arbitraje (Nivel 1, `match-resolution`).
+  - Catálogo + registro manual de cargo/abono (incl. cuenta externa sin liga) para lo que no tiene trigger todavía.
+- **Decisiones de resiliencia (jul 2026, ver `docs/FINANCE-ENGINE.md` P3–P7):**
+  - **No bloqueante** — el cobro corre _después_ de que la acción de negocio commitea, fuera de esa transacción; si el cobro falla, el alta **igual** tiene éxito (un error de finanzas nunca impide operar la liga). El motor no lanza: devuelve `ChargeResult`.
+  - **Idempotente** — cada cargo automático lleva `idempotency_key` con `UNIQUE` parcial; re-ejecutar un trigger no duplica el cargo.
+  - **Anulación, no borrado** — un cargo errado o de un sujeto eliminado se marca `status='voided'` con motivo y auditoría; el saldo lo ignora, el histórico y la bitácora quedan.
+  - **Bitácora detallada** — cada operación (cargo, duplicado omitido, cobro fallido, pago, anulación, seed) escribe en `finance_events` (append-only) con `correlation_id`.
+- Saldo por cuenta = SUM(charges) − SUM(payments) − SUM(refunds), todo en centavos, **ignorando `voided`**. Fianza = concepto `deposit` que se castiga con `charge` ligado a una suspensión (Nivel 1).
+- Seed de conceptos por organización sigue el mismo patrón de `organization_config` → `league_config` (§4.5): conceptos "de organización" (`league_id null`) se copian a la liga al crearla; los de renta suelta sin liga quedan a nivel organización.
+- Niveles 1-2 (arbitraje como cuenta por pagar al árbitro, egresos, cierre) se agregan como conceptos/triggers/vistas encima; **no** tablas nuevas por nivel.
 
 ---
 
@@ -309,18 +388,33 @@ Cada línea = un paso cerrable con su commit `conventional-commits`. Orden pensa
       `feat(admin): global cross-league suspensions view`
 - [~] **B8** Píldora de contenido "suspendidos de la jornada" (`post-import-content`). **Descartado por decisión del usuario** — no se construye.
 
-### Épica C — Finanzas Nivel 0 (¿quién debe?)
+### Épica C — Finanzas Nivel 0: motor de cobros ("todo se cobra")
 
-- [ ] **C1** Schema: `fee_concepts` + `ledger_entries` + migración.
-      `feat(db): add fee_concepts and ledger_entries tables`
-- [ ] **C2** Entidad `entities/ledger/` (model + queries + cálculo de saldo).
-      `feat(ledger): add entity, queries and balance computation`
-- [ ] **C3** Feature `features/finance/`: catálogo de conceptos + registrar cargo/abono.
-      `feat(finance): fee concepts catalog and charge/payment recording`
-- [ ] **C4** Endpoints `/api/leagues/[id]/fee-concepts` y `/api/leagues/[id]/ledger`.
-      `feat(api): finance concepts and ledger endpoints`
-- [ ] **C5** 🎨 UI-GATE — estado de cuenta por equipo ("quién debe" + registrar pago en efectivo).
-      `feat(admin): team account statement screen`
+> Modelo revisado jul 2026 tras decidir con Jocobi (ver §3.1 y §5.3): montos en
+> centavos enteros, cuenta de cobro genérica (equipo / jugador / cliente
+> externo sin liga) y motor dirigido por `trigger` para que un cobro nuevo sea
+> una fila de catálogo, no código nuevo. Arquitectura completa del motor en
+> **`docs/FINANCE-ENGINE.md`** — cada paso de esta épica debe cumplir los
+> principios P1–P8 de ese doc.
+
+- [ ] **C1** Schema: `fee_concepts` (con `subject_type`/`trigger`/`default_amount_cents`), `billing_accounts` (equipo/jugador/externo), `ledger_entries` (`amount_cents`, `billing_account_id`, `source_type`/`source_id`, **`idempotency_key` UNIQUE parcial**, **`status`/`voided_*`**) y **`finance_events`** (bitácora append-only) + migración.
+      `feat(db): add fee_concepts, billing_accounts, ledger_entries and finance_events tables`
+- [ ] **C2** Entidades `entities/fee-concept/`, `entities/billing-account/`, `entities/ledger/` (model + queries + `computeBalanceCents` que ignora `voided`) y `entities/finance-event/` (append/list de bitácora).
+      `feat(finance): add fee-concept, billing-account, ledger and finance-event entities`
+- [ ] **C3** Motor `features/finance/engine`: `chargeForTrigger(ctx): ChargeResult` — resuelve conceptos activos, resuelve/crea `billing_account`, inserta el cargo **idempotente** y **no lanza** (P3/P4), y registra la bitácora (P7). Sin UI todavía, solo la función y sus tests (incl. cuenta externa, duplicado, `no_concept`, `failed`).
+      `feat(finance): add trigger-driven charge engine (idempotent, non-blocking, audited)`
+- [ ] **C4** Hooks de una línea del motor **después del commit de negocio, fuera de la transacción** (P3): alta de equipo (`team-management` → `team_registration`) y alta de jugador (`admin-registration` → `player_registration`, cobro al jugador). El resultado alimenta `notify` (§7.2b AGENTS).
+      `feat(finance): wire charge engine into team and player registration`
+- [ ] **C5** Hook del motor en reserva de horario/cancha (`scheduling`/`venue-management` → triggers `schedule_booking` y `venue_ad_hoc_rental`). Para la renta suelta (sin liga), si todavía no existe flujo de reserva para terceros, este paso agrega el registro manual mínimo (cuenta externa + cargo) — no un calendario de reservas completo.
+      `feat(finance): wire charge engine into schedule and venue rental flows`
+- [ ] **C6** Feature `features/finance/`: catálogo de conceptos (alta/edición) + registro manual de cargo/abono (incl. cuenta externa) para lo que no tiene trigger.
+      `feat(finance): fee concepts catalog and manual charge/payment recording`
+- [ ] **C7** Endpoints `/api/leagues/[id]/fee-concepts` (+ `/[cid]`), `/api/leagues/[id]/billing-accounts`, `/api/leagues/[id]/ledger` y `/api/leagues/[id]/ledger/[eid]/void` (anular, P5).
+      `feat(api): finance concepts, billing accounts, ledger and void endpoints`
+- [ ] **C8** Seed de conceptos por organización → liga al crearla (mismo patrón copy-on-create de §4.5).
+      `feat(league-onboarding): seed fee_concepts from organization catalog`
+- [ ] **C9** 🎨 UI-GATE — estado de cuenta por equipo y por jugador ("quién debe" + registrar pago en efectivo) + pantalla de rentas sueltas (clientes externos).
+      `feat(admin): account statement screens for teams, players and external rentals`
 
 ### Épica D — Avisos + panel del capitán
 

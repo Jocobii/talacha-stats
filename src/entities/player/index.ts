@@ -31,6 +31,7 @@ export {
 	LookupResponseSchema,
 	LeagueMemberViewSchema,
 } from "./model";
+export { CREDENTIAL_PAD_WIDTH, formatCredentialCode } from "./lib/credential";
 export type {
 	TeamRosterEntry,
 	OrgPlayerRow,

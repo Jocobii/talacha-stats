@@ -31,11 +31,11 @@ export function LeagueAssignmentFields({
 					<span className="text-ink-3">&middot; {fixedLeague.season}</span>
 				</div>
 			) : (
-				<Field label="Liga" required>
+				<Field label="Liga" hint="Opcional — no bloquea el alta del jugador">
 					<Listbox
 						value={leagueId}
 						onChange={onLeagueChange}
-						placeholder="— Seleccionar liga —"
+						placeholder="— Sin asignar —"
 						options={leagues.map((l) => ({ value: l.id, label: `${l.name} · ${l.season}` }))}
 					/>
 				</Field>

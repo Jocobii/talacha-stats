@@ -64,6 +64,20 @@
 			"when": 1784072792831,
 			"tag": "0040_volatile_bug",
 			"breakpoints": true
+		},
+		{
+			"idx": 41,
+			"version": "7",
+			"when": 1784126727225,
+			"tag": "0041_little_wallop",
+			"breakpoints": true
+		},
+		{
+			"idx": 42,
+			"version": "7",
+			"when": 1784128579888,
+			"tag": "0042_clear_morlun",
+			"breakpoints": true
 		}
 	]
 }

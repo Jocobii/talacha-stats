@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { X } from "lucide-react";
+import { notify } from "@/shared/lib/notify";
 import { DAYS_FULL, parseTime } from "./WeeklyGrid";
 
 const inputCls =
@@ -74,9 +75,12 @@ export function NewWindowPopover({
 			}
 			const json = await res.json();
 			if (!json.ok) {
-				setError(json.error ?? "Error al guardar");
+				const message = json.error ?? "Error al guardar";
+				setError(message);
+				notify.error(message);
 				return;
 			}
+			notify.success(isEdit ? "Ventana actualizada" : "Ventana creada");
 			onSuccess(json.data as VenueTimeWindow);
 		});
 	}
@@ -87,9 +91,12 @@ export function NewWindowPopover({
 			const res = await fetch(`/api/venue-windows/${mode.window.id}`, { method: "DELETE" });
 			const json = await res.json();
 			if (!json.ok) {
-				setError(json.error ?? "Error al eliminar");
+				const message = json.error ?? "Error al eliminar";
+				setError(message);
+				notify.error(message);
 				return;
 			}
+			notify.success("Ventana eliminada");
 			onDeleted?.(mode.window.id);
 		});
 	}

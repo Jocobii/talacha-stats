@@ -8,6 +8,7 @@ import { matches, globalPlayers, leagueMembers, inscriptions, matchPlayerStats }
 import { eq, and } from "drizzle-orm";
 import { sanitizeToCanonical } from "@/shared/lib/normalize";
 import type { AdHocPlayerResult } from "@/entities/match-player-stat";
+import { assignNextCredential } from "@/entities/player/lib/assign-credential";
 
 type AddAdHocInput = {
 	matchId: string;
@@ -72,12 +73,18 @@ export async function addAdHocPlayer(input: AddAdHocInput): Promise<AdHocPlayerR
 
 		const today = new Date().toISOString().slice(0, 10);
 
+		// credential_code se asigna aunque el jugador sea ad-hoc: también
+		// aparece en la lista de asistencia del partido (ver
+		// docs/CREDENCIAL-CODIGO-JUGADOR.md §6).
+		const credentialCode = await assignNextCredential(tx, leagueId);
+
 		const [member] = await tx
 			.insert(leagueMembers)
 			.values({
 				globalPlayerId: player.id,
 				leagueId,
 				status: "active",
+				credentialCode,
 				inscriptionDate: today,
 			})
 			.returning({ id: leagueMembers.id });
