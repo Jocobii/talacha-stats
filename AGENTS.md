@@ -410,6 +410,21 @@ apiFetch/serverFetch (transporte) → entities (DTO) → lib/map-*.ts (mapper) �
 - **Invalidación explícita** tras cada mutación con `queryClient.invalidateQueries`, según el mapa de invalidación (ver doc y comentario de `query-keys.ts`). No usar `router.refresh()` para refrescar datos de una query.
 - **Patrón SSR→props:** el Server Component baja el DTO mapeado como `initialData` del hook; el cliente invalida puntualmente en vez de recargar la ruta.
 
+### 7.3b Filtros + fetching (patrón obligatorio, no negociable)
+
+**Todo módulo que hace peticiones y necesita filtros usa TanStack Query, con el mismo patrón de dos hooks separados.** No hay excepción por "es un caso simple": el patrón es barato y evita fetch-on-every-keystroke, carreras de estado y filtros no sincronizados con la URL.
+
+```
+model/useXFilters.ts   (estado de filtro: URL sync + confirmación, sin useEffect+setState)
+        ↓ objeto de filtro tipado
+model/useXQuery.ts      (useQuery: key desde queryKeys.*, enabled gatea el fetch)
+```
+
+- **Hook de filtro** (`useXFilters`/`useXMatchup`/etc.): dueño del estado de filtro. Si sincroniza con la URL, usa `useSearchParams`/`router.replace`, con **lazy initializer**, nunca `setState` dentro de `useEffect` (§7.2). Devuelve un objeto de filtro tipado — si el filtro requiere confirmación explícita antes de disparar la petición (ej. selección de equipos), devuelve `null` hasta que el usuario confirme.
+- **Hook de query** (`useXQuery`): recibe el objeto de filtro del hook anterior, arma la key con la fábrica central `queryKeys.*` (§7.3, prohibido armar el array a mano) incluyendo los valores de filtro relevantes, y usa `enabled` para no disparar la petición hasta que el filtro sea válido/confirmado. Para búsquedas de texto libre, además debounce y un mínimo de caracteres (`enabled: q.length >= N`).
+- Referencia canónica: `src/features/narrator-analysis/model/useNarratorMatchup.ts` (filtro confirmado) + `src/features/narrator-analysis/model/useNarratorAnalysisQuery.ts` (query gateada). Variante ligera con debounce: `src/features/team-management/model/useOrgPlayerSearch.ts`.
+- Si el filtrado es sobre datos ya cacheados (barato, sin nueva petición), usar `select` de la query existente en vez de una key nueva — ver `src/features/team-management/model/useLeagueTeams.ts`.
+
 ### 7.4 El tipo de respuesta es un DTO nombrado en `entities/` — nunca inline ni exportado desde el route
 
 El genérico `T` de `apiFetch<T>` y el `data` que el route pasa a `apiSuccess(data)` son **el mismo contrato** y deben salir de **un solo tipo nombrado que vive en `entities/[recurso]`** (inferido con `$inferSelect` §4.1, o un `z.infer` de un schema en el módulo de la entidad). Define el tipo una vez; el route lo importa para tipar su salida y el callsite lo importa para el genérico.

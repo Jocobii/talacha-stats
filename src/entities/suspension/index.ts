@@ -12,6 +12,7 @@ export {
 	SUSPENSION_REASONS,
 	SUSPENSION_STATUSES,
 	type CreateManualSuspensionInput,
+	type DisciplinePlayerSearchResult,
 	type EscalateSuspensionInput,
 	type GlobalSuspensionListItemDto,
 	type NewSuspension,

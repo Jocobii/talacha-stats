@@ -2,23 +2,24 @@
 
 /**
  * features/discipline/model/useLeagueRosterForDiscipline.ts
- * Roster de UNA liga, cargado bajo demanda cuando el usuario elige la liga
- * en el selector del alta manual global (B7b) — reusa el mismo endpoint que
- * la pantalla por liga (GET .../suspensions ya trae `roster`), sin duplicar
- * una ruta solo para esto.
+ * Roster de UNA liga con búsqueda por nombre server-side (primeros 10, o los
+ * que matcheen `q`) — picker "autocomplete" del jugador en "Registrar
+ * sanción" (B7/B7b), cargado bajo demanda al elegir liga / escribir. Reusa
+ * el mismo endpoint que la pantalla por liga (GET .../suspensions ya trae
+ * `roster`), sin duplicar una ruta solo para esto.
  */
 
 import { useQuery } from "@tanstack/react-query";
 import type { SuspensionRosterPlayer } from "@/entities/suspension";
 import { apiFetch } from "@/shared/api/client";
-import { LEAGUE_SUSPENSIONS_URL } from "../constants";
+import { LEAGUE_ROSTER_SEARCH_URL } from "../constants";
 
-export function useLeagueRosterForDiscipline(leagueId: string | null) {
+export function useLeagueRosterForDiscipline(leagueId: string | null, q: string) {
 	return useQuery<SuspensionRosterPlayer[]>({
-		queryKey: ["league-roster-for-discipline", leagueId],
+		queryKey: ["league-roster-for-discipline", leagueId, q] as const,
 		queryFn: async () => {
 			const res = await apiFetch<{ roster: SuspensionRosterPlayer[] }>(
-				LEAGUE_SUSPENSIONS_URL(leagueId!),
+				LEAGUE_ROSTER_SEARCH_URL(leagueId!, q),
 			);
 			if (!res.ok) throw new Error(res.error);
 			return res.data.roster;

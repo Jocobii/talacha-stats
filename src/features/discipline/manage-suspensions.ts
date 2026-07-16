@@ -23,12 +23,15 @@ import {
 	listSuspensionsByLeagueDetailed,
 	listSuspensionsForScopeDetailed,
 	listSuspensionsForScopePaged,
+	searchLeagueRosterForDiscipline,
+	searchPlayersForDiscipline,
 	updateSuspension,
 	type SuspensionScope,
 } from "@/entities/suspension/queries";
 import type { ListQuery } from "@/shared/lib/list-query";
 import type {
 	CreateManualSuspensionInput,
+	DisciplinePlayerSearchResult,
 	EscalateSuspensionInput,
 	GlobalSuspensionListItemDto,
 	SuspensionDto,
@@ -45,6 +48,30 @@ export async function listSuspensionsForLeague(leagueId: string): Promise<Suspen
 
 export async function listRosterForLeague(leagueId: string): Promise<SuspensionRosterPlayer[]> {
 	return listLeagueRosterForDiscipline(leagueId);
+}
+
+/**
+ * Roster con búsqueda por nombre y límite — picker "autocomplete" del
+ * jugador en "Registrar sanción" (B7/B7b). Sin `q`, primeros `limit`
+ * alfabéticamente.
+ */
+export async function searchRosterForLeague(
+	leagueId: string,
+	opts: { q?: string; limit?: number },
+): Promise<SuspensionRosterPlayer[]> {
+	return searchLeagueRosterForDiscipline(leagueId, opts);
+}
+
+/**
+ * Búsqueda de jugador por nombre org/owner-wide, con sus membresías de liga
+ * — paso 1 de "Registrar sanción" en modo global (B7b). Ver detalle en
+ * entities/suspension/queries.ts.
+ */
+export async function searchPlayersForScope(
+	scope: SuspensionScope,
+	opts: { q: string; limit?: number },
+): Promise<DisciplinePlayerSearchResult[]> {
+	return searchPlayersForDiscipline(scope, opts);
 }
 
 /**

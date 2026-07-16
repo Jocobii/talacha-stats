@@ -13,8 +13,8 @@ import { eq } from "drizzle-orm";
 import { CreateManualSuspensionSchema } from "@/entities/suspension";
 import {
 	createManualSuspension,
-	listRosterForLeague,
 	listSuspensionsForLeague,
+	searchRosterForLeague,
 } from "@/features/discipline/manage-suspensions";
 
 type Params = { params: Promise<{ id: string }> };
@@ -39,9 +39,15 @@ export async function GET(request: Request, { params }: Params) {
 	const { error } = await resolveLeagueWithGuard(request, id);
 	if (error) return error;
 
+	// `q` (opcional): búsqueda por nombre para el picker "Registrar sanción"
+	// (autocomplete) — sin `q`, primeros 10 alfabéticamente. Nunca afecta el
+	// listado de `suspensions`, que sigue completo.
+	const { searchParams } = new URL(request.url);
+	const q = searchParams.get("q") ?? undefined;
+
 	const [suspensions, roster] = await Promise.all([
 		listSuspensionsForLeague(id),
-		listRosterForLeague(id),
+		searchRosterForLeague(id, { q, limit: 10 }),
 	]);
 	return apiSuccess({ suspensions, roster });
 }

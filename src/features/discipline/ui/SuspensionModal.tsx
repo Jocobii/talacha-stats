@@ -14,6 +14,7 @@ import { Modal, Field, Input, Button, Listbox } from "@/shared/ui";
 import { cn } from "@/shared/lib/cn";
 import type {
 	CreateManualSuspensionInput,
+	DisciplinePlayerSearchResult,
 	EscalateSuspensionInput,
 	SuspensionDurationUnit,
 	SuspensionLeagueOption,
@@ -22,7 +23,8 @@ import type {
 } from "@/entities/suspension";
 import { addDurationIso, todayIso } from "../lib/add-duration";
 import { fmtIsoDate } from "../lib/format-suspension";
-import { useLeagueRosterForDiscipline } from "../model/useLeagueRosterForDiscipline";
+import { GlobalPlayerLeaguePicker } from "./GlobalPlayerLeaguePicker";
+import { PlayerAutocompleteField } from "./PlayerAutocompleteField";
 
 export type SuspensionModalState =
 	| { mode: "new" }
@@ -31,9 +33,9 @@ export type SuspensionModalState =
 
 type Props = {
 	modal: SuspensionModalState;
-	/** Vista por liga: roster ya resuelto. Vista global (B7b): omitir y pasar `leagues`. */
-	roster?: SuspensionRosterPlayer[];
-	/** Vista global (B7b): selector de liga — el roster se carga bajo demanda por liga elegida. */
+	/** Vista por liga: id fijo — el picker de jugador busca dentro de esta liga. */
+	leagueId?: string;
+	/** Vista global (B7b): selector de liga — el picker busca en la liga elegida. */
 	leagues?: SuspensionLeagueOption[];
 	currentUserName: string;
 	onClose: () => void;
@@ -44,7 +46,7 @@ type Props = {
 
 export function SuspensionModal({
 	modal,
-	roster,
+	leagueId,
 	leagues,
 	currentUserName,
 	onClose,
@@ -67,7 +69,7 @@ export function SuspensionModal({
 		<EscalatePanel
 			mode={modal.mode}
 			subject={modal.mode === "escalate" ? modal.subject : null}
-			roster={roster ?? []}
+			fixedLeagueId={leagueId}
 			leagues={leagues}
 			currentUserName={currentUserName}
 			onClose={onClose}
@@ -83,7 +85,7 @@ type DurationChoice = "matches" | "time" | "permanent";
 function EscalatePanel({
 	mode,
 	subject,
-	roster: staticRoster,
+	fixedLeagueId,
 	leagues,
 	currentUserName,
 	onClose,
@@ -93,7 +95,7 @@ function EscalatePanel({
 }: {
 	mode: "new" | "escalate";
 	subject: SuspensionListItemDto | null;
-	roster: SuspensionRosterPlayer[];
+	fixedLeagueId?: string;
 	leagues?: SuspensionLeagueOption[];
 	currentUserName: string;
 	onClose: () => void;
@@ -104,18 +106,36 @@ function EscalatePanel({
 	const isGlobal = mode === "new" && leagues !== undefined;
 
 	const [type, setType] = useState<DurationChoice>(mode === "escalate" ? "time" : "matches");
-	const [leagueId, setLeagueId] = useState(leagues?.[0]?.id ?? "");
-	const rosterQuery = useLeagueRosterForDiscipline(isGlobal ? leagueId : null);
-	const roster = isGlobal ? (rosterQuery.data ?? []) : staticRoster;
 
-	// Selección explícita del usuario, si sigue siendo válida contra el roster actual;
-	// si no (cambió de liga, o el roster todavía no cargó), cae al primero — derivado en
-	// render, no en efecto (§7.2 AGENTS.md: nada de setState dentro de useEffect).
-	const [globalPlayerIdChoice, setGlobalPlayerIdChoice] = useState<string | null>(null);
-	const globalPlayerId =
-		globalPlayerIdChoice && roster.some((p) => p.globalPlayerId === globalPlayerIdChoice)
-			? globalPlayerIdChoice
-			: (roster[0]?.globalPlayerId ?? "");
+	// Modo global (B7b): se busca al jugador primero (org/owner-wide) y la
+	// liga se deriva de sus membresías SIN sanción activa — autoseleccionada
+	// si solo hay una disponible, elegida a mano si hay varias. Las ligas ya
+	// sancionadas nunca se auto-seleccionan ni se aceptan como elección (ver
+	// GlobalPlayerLeaguePicker, que además las muestra deshabilitadas).
+	const [globalSelectedPlayer, setGlobalSelectedPlayer] =
+		useState<DisciplinePlayerSearchResult | null>(null);
+	const [membershipLeagueId, setMembershipLeagueId] = useState<string | null>(null);
+	const memberships = globalSelectedPlayer?.memberships ?? [];
+	const availableMemberships = memberships.filter((m) => !m.hasActiveSuspension);
+	const derivedLeagueId =
+		availableMemberships.length === 1
+			? availableMemberships[0].leagueId
+			: (availableMemberships.find((m) => m.leagueId === membershipLeagueId)?.leagueId ?? "");
+
+	function chooseGlobalPlayer(p: DisciplinePlayerSearchResult) {
+		setGlobalSelectedPlayer(p);
+		setMembershipLeagueId(null);
+	}
+
+	// Modo por liga fija (tab de una liga): roster de esa liga, sin selector.
+	const [fixedSelectedPlayer, setFixedSelectedPlayer] = useState<SuspensionRosterPlayer | null>(
+		null,
+	);
+
+	const leagueId = isGlobal ? derivedLeagueId : (fixedLeagueId ?? "");
+	const globalPlayerId = isGlobal
+		? (globalSelectedPlayer?.globalPlayerId ?? "")
+		: (fixedSelectedPlayer?.globalPlayerId ?? "");
 
 	const [matchesTotal, setMatchesTotal] = useState(2);
 	const [amount, setAmount] = useState(3);
@@ -179,26 +199,20 @@ function EscalatePanel({
 				)}
 
 				{isGlobal && (
-					<Field label="Liga" required>
-						<Listbox
-							value={leagueId}
-							onChange={setLeagueId}
-							options={leagues!.map((l) => ({ value: l.id, label: l.name }))}
-						/>
-					</Field>
+					<GlobalPlayerLeaguePicker
+						selectedPlayer={globalSelectedPlayer}
+						onSelectPlayer={chooseGlobalPlayer}
+						leagueId={derivedLeagueId}
+						onChooseLeague={setMembershipLeagueId}
+					/>
 				)}
 
-				{mode === "new" && (
+				{mode === "new" && !isGlobal && (
 					<Field label="Jugador" required>
-						<Listbox
-							value={globalPlayerId}
-							onChange={setGlobalPlayerIdChoice}
-							loading={isGlobal && rosterQuery.isLoading}
-							placeholder="Cargando roster…"
-							options={roster.map((p) => ({
-								value: p.globalPlayerId,
-								label: `${p.fullName} — ${p.teamName}`,
-							}))}
+						<PlayerAutocompleteField
+							leagueId={fixedLeagueId ?? null}
+							selected={fixedSelectedPlayer}
+							onSelect={setFixedSelectedPlayer}
 						/>
 					</Field>
 				)}

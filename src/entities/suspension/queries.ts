@@ -6,7 +6,7 @@
  * match-resolution (mismo patrón que entities/league-config).
  */
 
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
 	suspensions,
@@ -18,8 +18,10 @@ import {
 } from "@/db/schema";
 import type { ListQuery } from "@/shared/lib/list-query";
 import { buildWhere, buildOrderBy } from "@/shared/lib/list-query";
+import { sanitizeToCanonical } from "@/shared/lib/normalize";
 import { orgSuspensionFilters } from "./filters";
 import type {
+	DisciplinePlayerSearchResult,
 	GlobalSuspensionListItemDto,
 	SuspensionDto,
 	SuspensionLeagueOption,
@@ -178,7 +180,9 @@ export async function listLeagueOptionsForScope(
 
 /**
  * Roster vigente de la liga (jugador + equipo actual) — para el picker de
- * "Registrar sanción" (B7, modo manual desde cero).
+ * "Registrar sanción" (B7, modo manual desde cero). Sin límite ni búsqueda —
+ * usado solo por la carga SSR inicial de la page (app/admin/leagues/[id]/
+ * suspensiones/page.tsx); el picker en vivo usa searchLeagueRosterForDiscipline.
  */
 export async function listLeagueRosterForDiscipline(
 	leagueId: string,
@@ -196,6 +200,126 @@ export async function listLeagueRosterForDiscipline(
 		.innerJoin(teams, eq(teams.id, inscriptions.teamId))
 		.where(eq(leagueMembers.leagueId, leagueId))
 		.orderBy(globalPlayers.fullName);
+}
+
+/**
+ * Roster de la liga con búsqueda por nombre y límite — picker "autocomplete"
+ * del jugador en "Registrar sanción" (reemplaza el Listbox con todo el
+ * roster, que en ligas grandes era impracticable de desplazar). Sin `q`,
+ * devuelve los primeros `limit` alfabéticamente — el picker le indica al
+ * usuario que escriba si no encuentra al jugador ahí.
+ */
+export async function searchLeagueRosterForDiscipline(
+	leagueId: string,
+	opts: { q?: string; limit?: number },
+	client: DbOrTx = db,
+): Promise<SuspensionRosterPlayer[]> {
+	const q = opts.q?.trim();
+	const canonical = q ? sanitizeToCanonical(q) : "";
+	const limit = opts.limit ?? 10;
+
+	return client
+		.select({
+			globalPlayerId: globalPlayers.id,
+			fullName: globalPlayers.fullName,
+			teamName: teams.name,
+		})
+		.from(leagueMembers)
+		.innerJoin(globalPlayers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+		.innerJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.innerJoin(teams, eq(teams.id, inscriptions.teamId))
+		.where(
+			canonical
+				? and(
+						eq(leagueMembers.leagueId, leagueId),
+						ilike(globalPlayers.fullNameCanonical, `%${canonical}%`),
+					)
+				: eq(leagueMembers.leagueId, leagueId),
+		)
+		.orderBy(globalPlayers.fullName)
+		.limit(limit);
+}
+
+/**
+ * Búsqueda de jugador por nombre org/owner-wide (según `scope`), con sus
+ * membresías de liga incluidas — paso 1 del flujo invertido de "Registrar
+ * sanción" en modo global (B7b): primero se busca al jugador, luego se
+ * deriva/elige la liga entre sus membresías, en vez de elegir liga primero y
+ * navegar su roster completo. Requiere `q` (mínimo 2 letras, igual que
+ * searchOrgGlobalPlayers) — a diferencia del roster de una sola liga, un
+ * "primeros 10" sin texto sobre TODOS los jugadores de la organización no es
+ * útil. Dos queries: primero los `limit` jugadores distintos que matchean
+ * (paginación real), luego todas sus membresías — evita que un jugador con
+ * muchas ligas desplace a otros jugadores del límite.
+ */
+export async function searchPlayersForDiscipline(
+	scope: SuspensionScope,
+	opts: { q: string; limit?: number },
+	client: DbOrTx = db,
+): Promise<DisciplinePlayerSearchResult[]> {
+	const canonical = sanitizeToCanonical(opts.q.trim());
+	const limit = opts.limit ?? 10;
+	if (!canonical) return [];
+
+	const scopeWhere =
+		scope.kind === "org" ? eq(leagues.organizationId, scope.organizationId) : undefined;
+
+	const playerRows = await client
+		.selectDistinctOn([globalPlayers.id], {
+			globalPlayerId: globalPlayers.id,
+			fullName: globalPlayers.fullName,
+		})
+		.from(globalPlayers)
+		.innerJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+		.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+		.where(and(scopeWhere, ilike(globalPlayers.fullNameCanonical, `%${canonical}%`)))
+		.orderBy(globalPlayers.id)
+		.limit(limit);
+
+	if (playerRows.length === 0) return [];
+	const ids = playerRows.map((p) => p.globalPlayerId);
+
+	const [memberRows, activeSuspensionRows] = await Promise.all([
+		client
+			.select({
+				globalPlayerId: globalPlayers.id,
+				leagueId: leagues.id,
+				leagueName: leagues.name,
+				teamName: teams.name,
+			})
+			.from(leagueMembers)
+			.innerJoin(globalPlayers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+			.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+			.innerJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
+			.innerJoin(teams, eq(teams.id, inscriptions.teamId))
+			.where(and(inArray(globalPlayers.id, ids), scopeWhere))
+			.orderBy(leagues.name),
+
+		// Para marcar en el picker qué membresías ya tienen una sanción activa —
+		// no tiene sentido registrar otra sobre la misma liga (ver nota en model.ts).
+		client
+			.select({ globalPlayerId: suspensions.globalPlayerId, leagueId: suspensions.leagueId })
+			.from(suspensions)
+			.where(and(inArray(suspensions.globalPlayerId, ids), eq(suspensions.status, "active"))),
+	]);
+
+	const activeSet = new Set(activeSuspensionRows.map((r) => `${r.globalPlayerId}:${r.leagueId}`));
+
+	const memberships = new Map<string, DisciplinePlayerSearchResult["memberships"]>();
+	for (const r of memberRows) {
+		const list = memberships.get(r.globalPlayerId) ?? [];
+		list.push({
+			leagueId: r.leagueId,
+			leagueName: r.leagueName,
+			teamName: r.teamName,
+			hasActiveSuspension: activeSet.has(`${r.globalPlayerId}:${r.leagueId}`),
+		});
+		memberships.set(r.globalPlayerId, list);
+	}
+
+	return playerRows
+		.map((p) => ({ ...p, memberships: memberships.get(p.globalPlayerId) ?? [] }))
+		.sort((a, b) => a.fullName.localeCompare(b.fullName));
 }
 
 /**

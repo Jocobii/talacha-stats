@@ -130,3 +130,23 @@ export type SuspensionLeagueOption = {
 	id: string;
 	name: string;
 };
+
+/**
+ * Resultado de búsqueda de jugador por nombre para "Registrar sanción" en
+ * modo global (B7b) — flujo invertido: primero se busca al jugador
+ * (org/owner-wide), luego se elige entre las ligas donde juega
+ * (`memberships`, ya acotadas al scope del usuario). `hasActiveSuspension`
+ * por membresía: no tiene sentido registrar una sanción manual sobre una
+ * liga donde el jugador ya tiene una activa — el picker lo marca y bloquea
+ * en vez de dejar que el usuario la duplique sin darse cuenta.
+ */
+export type DisciplinePlayerSearchResult = {
+	globalPlayerId: string;
+	fullName: string;
+	memberships: {
+		leagueId: string;
+		leagueName: string;
+		teamName: string;
+		hasActiveSuspension: boolean;
+	}[];
+};

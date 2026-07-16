@@ -142,7 +142,7 @@ export function SuspensionsScreen({ leagueId, leagueName, currentUserName, initi
 			{modal && (
 				<SuspensionModal
 					modal={modal}
-					roster={data.roster}
+					leagueId={leagueId}
 					currentUserName={currentUserName}
 					onClose={closeModal}
 					pending={createMutation.isPending || escalateMutation.isPending}
