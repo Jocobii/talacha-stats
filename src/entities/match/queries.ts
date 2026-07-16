@@ -5,9 +5,17 @@
 
 import { db } from "@/db";
 import { matches, matchPlayerStats, inscriptions, leagueMembers, globalPlayers } from "@/db/schema";
-import { eq, and, or, sql, asc } from "drizzle-orm";
+import { eq, and, or, sql, asc, inArray, isNotNull } from "drizzle-orm";
 import type { Match } from "@/db/schema";
-import type { MatchResolutionData, PlayerResolutionRow } from "./model";
+import type {
+	MatchResolutionData,
+	PlayerResolutionRow,
+	CedulaMatchData,
+	CedulaPlayerRow,
+} from "./model";
+import { listActiveSuspensionsByLeague } from "@/entities/suspension/queries";
+import { buildSuspendedMapForMatchDate, type CedulaSuspensionLabel } from "@/entities/suspension";
+import type { LeaguePermissionContext } from "@/entities/league";
 
 const WITH_RELATIONS = {
 	matchday: { columns: { id: true, number: true, phase: true, scheduledDate: true } },
@@ -152,6 +160,183 @@ export async function listMatchesByRound(matchdayId: string) {
 			awayTeam: { columns: { id: true, name: true, color: true } },
 		},
 		orderBy: [asc(matches.kickoffAt), asc(matches.matchDate)],
+	});
+}
+
+/**
+ * Lo mínimo para resolver `canManageLeague(user, ...)` desde una page — evita
+ * que `app/(print)/cedula/partido/[matchId]/page.tsx` arme su propio
+ * `db.query.matches.findFirst` (§3.3 AGENTS.md: la page llama a entities).
+ */
+export async function getMatchPermissionContext(
+	matchId: string,
+): Promise<LeaguePermissionContext | null> {
+	const row = await db.query.matches.findFirst({
+		where: eq(matches.id, matchId),
+		columns: { leagueId: true },
+		with: { league: { columns: { organizationId: true } } },
+	});
+	if (!row) return null;
+	return { leagueId: row.leagueId, organizationId: row.league?.organizationId ?? null };
+}
+
+// ---------------------------------------------------------------------------
+// Cédula imprimible (docs/PLAN-CEDULA-IMPRESA.md)
+// ---------------------------------------------------------------------------
+
+const CEDULA_MATCH_RELATIONS = {
+	matchday: { columns: { id: true, number: true, scheduledDate: true } },
+	venue: { columns: { id: true, name: true } },
+	homeTeam: { columns: { id: true, name: true } },
+	awayTeam: { columns: { id: true, name: true } },
+	league: { columns: { id: true, name: true, code: true, season: true, category: true } },
+} as const;
+
+type CedulaRosterRow = {
+	globalPlayerId: string;
+	fullName: string;
+	dorsal: number | null;
+	credentialCode: number | null;
+};
+
+/** Filas del roster con `credentialCode`, sólo jugadores con credencial asignada (decisión Jocobi, plan §12.2). */
+function fetchCedulaRoster(teamId: string, leagueId: string) {
+	return db
+		.select({
+			globalPlayerId: globalPlayers.id,
+			fullName: globalPlayers.fullName,
+			dorsal: leagueMembers.dorsal,
+			credentialCode: leagueMembers.credentialCode,
+		})
+		.from(inscriptions)
+		.innerJoin(leagueMembers, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.innerJoin(globalPlayers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+		.where(
+			and(
+				eq(inscriptions.teamId, teamId),
+				eq(leagueMembers.leagueId, leagueId),
+				isNotNull(leagueMembers.credentialCode),
+			),
+		)
+		.orderBy(asc(leagueMembers.credentialCode));
+}
+
+function buildCedulaRows(
+	roster: CedulaRosterRow[],
+	suspendedMap: Map<string, CedulaSuspensionLabel>,
+): CedulaPlayerRow[] {
+	return roster.map((p) => ({
+		globalPlayerId: p.globalPlayerId,
+		fullName: p.fullName,
+		credentialCode: p.credentialCode as number, // NOT NULL por el where de fetchCedulaRoster
+		dorsal: p.dorsal,
+		suspended: suspendedMap.get(p.globalPlayerId) ?? null,
+	}));
+}
+
+/** Datos de la cédula de UN partido — impresión individual. */
+export async function getCedulaDataForMatch(matchId: string): Promise<CedulaMatchData | null> {
+	const row = await db.query.matches.findFirst({
+		where: eq(matches.id, matchId),
+		with: CEDULA_MATCH_RELATIONS,
+	});
+	if (!row) return null;
+
+	const [leagueSuspensions, homeRoster, awayRoster] = await Promise.all([
+		listActiveSuspensionsByLeague(row.leagueId),
+		fetchCedulaRoster(row.homeTeamId, row.leagueId),
+		fetchCedulaRoster(row.awayTeamId, row.leagueId),
+	]);
+
+	const suspendedMap = buildSuspendedMapForMatchDate(leagueSuspensions, row.matchDate);
+
+	return {
+		matchId: row.id,
+		cedula: row.cedula ?? null,
+		matchdayNumber: row.matchday?.number ?? null,
+		matchDate: row.matchDate,
+		kickoffAt: row.kickoffAt ?? null,
+		venueName: row.venue?.name ?? null,
+		league: {
+			name: row.league.name,
+			code: row.league.code ?? null,
+			season: row.league.season,
+			category: row.league.category ?? null,
+		},
+		homeTeam: { id: row.homeTeam.id, name: row.homeTeam.name },
+		awayTeam: { id: row.awayTeam.id, name: row.awayTeam.name },
+		homePlayers: buildCedulaRows(homeRoster, suspendedMap),
+		awayPlayers: buildCedulaRows(awayRoster, suspendedMap),
+	};
+}
+
+/**
+ * Datos de cédula de TODOS los partidos de una jornada — impresión en lote.
+ * Una sola query de roster (batched por equipos de la jornada, no N+1) y una
+ * sola carga de suspensiones activas de la liga; el cruce por fecha se hace
+ * en memoria por partido (la fecha puede variar si hay reprogramados).
+ */
+export async function getCedulaDataForMatchday(matchdayId: string): Promise<CedulaMatchData[]> {
+	const matchRows = await db.query.matches.findMany({
+		where: eq(matches.matchdayId, matchdayId),
+		with: CEDULA_MATCH_RELATIONS,
+		orderBy: [asc(matches.kickoffAt), asc(matches.matchDate)],
+	});
+	if (matchRows.length === 0) return [];
+
+	const leagueId = matchRows[0]!.leagueId;
+	const teamIds = Array.from(new Set(matchRows.flatMap((m) => [m.homeTeamId, m.awayTeamId])));
+
+	const [leagueSuspensions, rosterRows] = await Promise.all([
+		listActiveSuspensionsByLeague(leagueId),
+		db
+			.select({
+				teamId: inscriptions.teamId,
+				globalPlayerId: globalPlayers.id,
+				fullName: globalPlayers.fullName,
+				dorsal: leagueMembers.dorsal,
+				credentialCode: leagueMembers.credentialCode,
+			})
+			.from(inscriptions)
+			.innerJoin(leagueMembers, eq(inscriptions.leagueMemberId, leagueMembers.id))
+			.innerJoin(globalPlayers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+			.where(
+				and(
+					inArray(inscriptions.teamId, teamIds),
+					eq(leagueMembers.leagueId, leagueId),
+					isNotNull(leagueMembers.credentialCode),
+				),
+			)
+			.orderBy(asc(leagueMembers.credentialCode)),
+	]);
+
+	const rosterByTeam = new Map<string, CedulaRosterRow[]>();
+	for (const r of rosterRows) {
+		const list = rosterByTeam.get(r.teamId) ?? [];
+		list.push(r);
+		rosterByTeam.set(r.teamId, list);
+	}
+
+	return matchRows.map((row) => {
+		const suspendedMap = buildSuspendedMapForMatchDate(leagueSuspensions, row.matchDate);
+		return {
+			matchId: row.id,
+			cedula: row.cedula ?? null,
+			matchdayNumber: row.matchday?.number ?? null,
+			matchDate: row.matchDate,
+			kickoffAt: row.kickoffAt ?? null,
+			venueName: row.venue?.name ?? null,
+			league: {
+				name: row.league.name,
+				code: row.league.code ?? null,
+				season: row.league.season,
+				category: row.league.category ?? null,
+			},
+			homeTeam: { id: row.homeTeam.id, name: row.homeTeam.name },
+			awayTeam: { id: row.awayTeam.id, name: row.awayTeam.name },
+			homePlayers: buildCedulaRows(rosterByTeam.get(row.homeTeamId) ?? [], suspendedMap),
+			awayPlayers: buildCedulaRows(rosterByTeam.get(row.awayTeamId) ?? [], suspendedMap),
+		};
 	});
 }
 

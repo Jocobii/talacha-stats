@@ -9,7 +9,7 @@ import { ArrowLeftRight } from "lucide-react";
 import { Modal } from "@/shared/ui/Modal";
 import { Button } from "@/shared/ui/Button";
 import { Avatar } from "@/shared/ui/Avatar";
-import { Select } from "@/shared/ui/Select";
+import { Listbox } from "@/shared/ui/Listbox";
 import { useTransferModal } from "../model/useTransferModal";
 import { useLeagueTeams } from "../model/useLeagueTeams";
 import type { RosterEntry, TeamOption } from "../types";
@@ -67,14 +67,12 @@ export function TransferModal({
 					{loadingTeams ? (
 						<p className="text-[12px] text-ink-3 py-2">Cargando equipos...</p>
 					) : (
-						<Select value={targetTeamId} onChange={(e) => setTargetTeamId(e.target.value)}>
-							<option value="">Selecciona un equipo</option>
-							{availableTeams.map((t: TeamOption) => (
-								<option key={t.id} value={t.id}>
-									{t.name}
-								</option>
-							))}
-						</Select>
+						<Listbox
+							value={targetTeamId}
+							onChange={setTargetTeamId}
+							placeholder="Selecciona un equipo"
+							options={availableTeams.map((t: TeamOption) => ({ value: t.id, label: t.name }))}
+						/>
 					)}
 				</div>
 

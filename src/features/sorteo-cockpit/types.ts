@@ -35,6 +35,7 @@ export type CockpitConfig = {
 	bufferMinutes: number;
 	noRepeatWithin: number;
 	regularMatchdays: number;
+	allowDuplicateMatchups: boolean;
 };
 
 // Return type for useCockpitState — co-located for import reuse

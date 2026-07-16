@@ -124,7 +124,14 @@ export default async function PosicionesPage({ params }: { params: Promise<{ id:
 													className={`border-l-4 ${tokens ? `${tokens.leftBorder} ${tokens.rowBg}` : "border-l-transparent"} ${i === 0 && !zone ? "bg-brand/10" : "hover:bg-surface-2"}`}
 												>
 													<td className="px-3 py-2 text-ink-2">{pos}</td>
-													<td className="px-3 py-2 font-medium text-ink">{s.teamName}</td>
+													<td className="px-3 py-2 font-medium text-ink">
+														<Link
+															href={`/admin/teams/${s.teamId}`}
+															className="hover:underline hover:text-brand-ink"
+														>
+															{s.teamName}
+														</Link>
+													</td>
 													<td className="px-3 py-2 text-center text-ink">{s.played}</td>
 													<td className="px-3 py-2 text-center text-brand-ink">{s.wins}</td>
 													<td className="px-3 py-2 text-center text-ink-2">{s.draws}</td>

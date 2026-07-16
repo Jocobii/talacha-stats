@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef } from "react";
-import { Clock, RefreshCw, Calendar, Info } from "lucide-react";
+import { Clock, RefreshCw, Calendar, Info, Repeat } from "lucide-react";
 import { ParamRow } from "./ParamRow";
+import { ParamCheckboxRow } from "./ParamCheckboxRow";
 import { ParametrosWizard } from "./ParametrosWizard";
 import { COCKPIT_DEBOUNCE_MS } from "../constants";
 import { putSchedulingConfig } from "../lib/cockpit-api";
@@ -83,6 +84,13 @@ export function ParametrosTab({ leagueId, config, onConfigChange, onSave }: Para
 					value={config.regularMatchdays}
 					unit="jornadas"
 					onChange={(v) => handleChange({ regularMatchdays: v })}
+				/>
+				<ParamCheckboxRow
+					icon={<Repeat size={13} />}
+					label="Permitir rivales repetidos"
+					help="Ignora el limite de jornadas segun el numero de equipos. Util si el numero de equipos crecera durante la temporada."
+					checked={config.allowDuplicateMatchups}
+					onChange={(v) => handleChange({ allowDuplicateMatchups: v })}
 				/>
 			</div>
 

@@ -13,6 +13,7 @@ const config = {
 	bufferMinutes: 0,
 	noRepeatWithin: 3,
 	regularMatchdays: 14,
+	allowDuplicateMatchups: false,
 };
 
 describe("useSaveSchedulingConfig", () => {

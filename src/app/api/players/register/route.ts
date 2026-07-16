@@ -5,14 +5,20 @@
  * Llamado por el RegistrationForm cuando el oficinista confirma el registro.
  *
  * Body (JSON):
- *   curp           string   — CURP del jugador (nunca se persiste)
- *   fullName       string   — Nombre completo (requerido, usado si el jugador es nuevo)
- *   birthDate      string   — YYYY-MM-DD
- *   leagueId       string   — UUID de la liga
- *   teamId?        string   — UUID del equipo (opcional en v1)
- *   dorsal?        number   — 1–99 (opcional)
- *   internalNotes? string   — Notas privadas de la liga (opcional)
- *   avatarUrl?     string   — URL de foto (opcional)
+ *   curp                    string — CURP del jugador (nunca se persiste)
+ *   fullName                string — Nombre completo (requerido, usado si el jugador es nuevo)
+ *   birthDate               string — YYYY-MM-DD
+ *   gender?                 string — "masculino" | "femenino" | "otro" (opcional)
+ *   leagueId?                string — UUID de la liga (opcional — el paso 3 nunca bloquea el alta)
+ *   teamId?                 string — UUID del equipo (opcional)
+ *   dorsal?                 number — 1–99 (opcional)
+ *   internalNotes?          string — Notas privadas de la liga (opcional)
+ *   phone?                  string — Teléfono del jugador (opcional)
+ *   residenceArea?          string — Ciudad/colonia de residencia (opcional)
+ *   emergencyContactName?   string — Contacto de emergencia (opcional)
+ *   emergencyContactPhone?  string — Teléfono de emergencia (opcional)
+ *   medicalNotes?           string — Alergias/tipo de sangre/condición (opcional)
+ *   avatarUrl?              string — URL de foto (opcional)
  *
  * Responses:
  *   201 { ok: true, data: { isNew, globalPlayer, leagueMember, inscription } }

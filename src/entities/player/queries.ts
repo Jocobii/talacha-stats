@@ -7,7 +7,7 @@
  *  2. match_events          → fallback si no hay import para esa liga
  */
 
-import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
+import { eq, and, inArray, desc, asc, sql, ilike } from "drizzle-orm";
 import {
 	db,
 	players,
@@ -642,6 +642,7 @@ export async function listTopScorers(opts: {
 // ===========================================================================
 
 import { globalPlayers, leagueMembers, inscriptions } from "@/db/schema";
+import { assignNextCredential } from "./lib/assign-credential";
 import type {
 	GlobalPlayer,
 	CreateGlobalPlayer,
@@ -751,6 +752,7 @@ export async function findLeagueMember(
 		institutionPhotoUrl: row.institutionPhotoUrl ?? null,
 		internalNotes: row.internalNotes ?? null,
 		createdAt: row.createdAt,
+		credentialCode: row.credentialCode ?? null,
 	};
 }
 
@@ -763,33 +765,42 @@ export async function findLeagueMember(
 export async function createLeagueMember(data: CreateLeagueMember): Promise<LeagueMember> {
 	const today = new Date().toISOString().slice(0, 10);
 
-	const rows = await db
-		.insert(leagueMembers)
-		.values({
-			globalPlayerId: data.globalPlayerId,
-			leagueId: data.leagueId,
-			status: data.status ?? "active",
-			dorsal: data.dorsal ?? null,
-			inscriptionDate: data.inscriptionDate ?? today,
-			institutionPhotoUrl: data.institutionPhotoUrl ?? null,
-			internalNotes: data.internalNotes ?? null,
-		})
-		.returning();
+	return await db.transaction(async (tx) => {
+		// credential_code se asigna en el server, dentro de la misma tx que
+		// crea el league_member — nunca lo propone el cliente (ver
+		// docs/CREDENCIAL-CODIGO-JUGADOR.md).
+		const credentialCode = await assignNextCredential(tx, data.leagueId);
 
-	const row = rows[0];
-	if (!row) throw new Error("createLeagueMember: insert no retornó ninguna fila");
+		const rows = await tx
+			.insert(leagueMembers)
+			.values({
+				globalPlayerId: data.globalPlayerId,
+				leagueId: data.leagueId,
+				status: data.status ?? "active",
+				dorsal: data.dorsal ?? null,
+				credentialCode,
+				inscriptionDate: data.inscriptionDate ?? today,
+				institutionPhotoUrl: data.institutionPhotoUrl ?? null,
+				internalNotes: data.internalNotes ?? null,
+			})
+			.returning();
 
-	return {
-		id: row.id,
-		globalPlayerId: row.globalPlayerId,
-		leagueId: row.leagueId,
-		status: row.status,
-		dorsal: row.dorsal ?? null,
-		inscriptionDate: row.inscriptionDate,
-		institutionPhotoUrl: row.institutionPhotoUrl ?? null,
-		internalNotes: row.internalNotes ?? null,
-		createdAt: row.createdAt,
-	};
+		const row = rows[0];
+		if (!row) throw new Error("createLeagueMember: insert no retornó ninguna fila");
+
+		return {
+			id: row.id,
+			globalPlayerId: row.globalPlayerId,
+			leagueId: row.leagueId,
+			status: row.status,
+			dorsal: row.dorsal ?? null,
+			credentialCode: row.credentialCode ?? null,
+			inscriptionDate: row.inscriptionDate,
+			institutionPhotoUrl: row.institutionPhotoUrl ?? null,
+			internalNotes: row.internalNotes ?? null,
+			createdAt: row.createdAt,
+		};
+	});
 }
 
 // ---------------------------------------------------------------------------
@@ -943,68 +954,92 @@ export async function getTeamRoster(teamId: string): Promise<TeamRosterEntry[]> 
 // Lista de jugadores por organización — para /admin/players
 // ---------------------------------------------------------------------------
 
+import type { AnyColumn, SQLWrapper } from "drizzle-orm";
+import type { ListQuery, SortRule } from "@/shared/lib/list-query";
+import { buildWhere } from "@/shared/lib/list-query";
+import { orgPlayerFilters } from "./filters";
+
 export type OrgPlayerRow = {
 	globalPlayerId: string;
 	fullName: string;
 	birthDate: string;
 	avatarUrl: string | null;
 	leagueCount: number;
-	// Liga más reciente en la org
+	// Liga/equipo/estado/dorsal de la membresía más reciente que matchea los
+	// filtros activos (ver nota de semántica en listOrgPlayers).
 	latestLeagueName: string | null;
+	latestTeamName: string | null;
 	latestStatus: "active" | "suspended" | "inactive" | null;
 	latestDorsal: number | null;
 };
 
 /**
  * Lista paginada de jugadores que tienen al menos un league_member
- * en alguna liga de la organización dada.
+ * en alguna liga de la organización dada. Contrato ListQuery (ver
+ * docs/LIST-QUERY-FILTERS.md) — filtros/orden llegan ya normalizados desde
+ * parseListQuery en la page.
  *
- * Devuelve jugadores únicos (una fila por global_player).
+ * Devuelve jugadores únicos (una fila por global_player): cada fila muestra
+ * los datos de la membresía más reciente que cumple los filtros activos. Si
+ * se filtra por estado/liga/equipo/dorsal, "más reciente" se calcula sobre
+ * el subconjunto de membresías que matchean — así la fila mostrada siempre
+ * es consistente con lo que se filtró.
+ *
+ * Nota: "leagueCount" cuenta las membresías que matchean el filtro (no el
+ * total histórico del jugador) — es el trade-off de resolver esto con una
+ * window function dentro del WHERE filtrado, en vez de una subquery aparte.
  */
 export async function listOrgPlayers(
 	organizationId: string,
-	opts: { page: number; pageSize: number; search?: string },
+	query: ListQuery,
 ): Promise<{ rows: OrgPlayerRow[]; total: number }> {
-	const { page, pageSize, search } = opts;
-	const offset = (page - 1) * pageSize;
+	const filterWhere = buildWhere(orgPlayerFilters, query.filters);
+	// El scope de negocio (organización) se combina aparte — nunca es un filtro de usuario.
+	const where = and(eq(leagues.organizationId, organizationId), filterWhere);
+	const offset = (query.page - 1) * query.pageSize;
 
-	// Subquery: IDs de ligas que pertenecen a esta org
-	// Usamos un join en la query principal para filtrar
+	const inner = db
+		.selectDistinctOn([globalPlayers.id], {
+			globalPlayerId: globalPlayers.id,
+			fullName: globalPlayers.fullName,
+			birthDate: globalPlayers.birthDate,
+			avatarUrl: globalPlayers.avatarUrl,
+			leagueCount:
+				sql<number>`COUNT(${leagueMembers.id}) OVER (PARTITION BY ${globalPlayers.id})::int`.as(
+					"league_count",
+				),
+			// leagues.name y teams.name colisionan (ambas se llaman "name" en su
+			// tabla) — sin alias explícito, Postgres las expone sin distinguir y
+			// falla con "column reference \"name\" is ambiguous" al envolver esto
+			// en una subquery reusada desde afuera. .as() fuerza un nombre único.
+			latestLeagueName: sql<string | null>`${leagues.name}`.as("latest_league_name"),
+			latestTeamName: sql<string | null>`${teams.name}`.as("latest_team_name"),
+			latestStatus: sql<string>`${leagueMembers.status}`.as("latest_status"),
+			latestDorsal: sql<number | null>`${leagueMembers.dorsal}`.as("latest_dorsal"),
+		})
+		.from(globalPlayers)
+		.innerJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+		.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+		.leftJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.leftJoin(teams, eq(teams.id, inscriptions.teamId))
+		.where(where)
+		// Fija qué fila representa a cada jugador dentro del DISTINCT ON: la
+		// membresía más reciente. El orden visible (nombre/dorsal/ligas) se
+		// aplica DESPUÉS, en la query externa — no puede ir aquí porque el
+		// DISTINCT ON debe empezar por la columna de agrupación.
+		.orderBy(asc(globalPlayers.id), desc(leagues.createdAt))
+		.as("org_players");
 
-	// Query principal: un global_player por fila, con datos agregados
-	const baseFilter = and(
-		eq(leagues.organizationId, organizationId),
-		search
-			? sql`LOWER(${globalPlayers.fullName}) LIKE ${"%" + search.toLowerCase() + "%"}`
-			: undefined,
-	);
+	const outerOrderBy = buildOrgPlayersOrderBy(inner, query.sort);
 
 	const [rowsResult, countResult] = await Promise.all([
 		db
-			.selectDistinctOn([globalPlayers.id], {
-				globalPlayerId: globalPlayers.id,
-				fullName: globalPlayers.fullName,
-				birthDate: globalPlayers.birthDate,
-				avatarUrl: globalPlayers.avatarUrl,
-				leagueCount: sql<number>`COUNT(${leagueMembers.id}) OVER (PARTITION BY ${globalPlayers.id})::int`,
-				latestLeagueName: leagues.name,
-				latestStatus: leagueMembers.status,
-				latestDorsal: leagueMembers.dorsal,
-			})
-			.from(globalPlayers)
-			.innerJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
-			.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
-			.where(baseFilter)
-			.orderBy(asc(globalPlayers.id), desc(leagues.createdAt))
-			.limit(pageSize)
+			.select()
+			.from(inner)
+			.orderBy(...outerOrderBy)
+			.limit(query.pageSize)
 			.offset(offset),
-
-		db
-			.select({ total: sql<number>`COUNT(DISTINCT ${globalPlayers.id})::int` })
-			.from(globalPlayers)
-			.innerJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
-			.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
-			.where(baseFilter),
+		db.select({ total: sql<number>`COUNT(*)::int` }).from(inner),
 	]);
 
 	return {
@@ -1015,8 +1050,105 @@ export async function listOrgPlayers(
 			avatarUrl: r.avatarUrl ?? null,
 			leagueCount: r.leagueCount,
 			latestLeagueName: r.latestLeagueName ?? null,
+			latestTeamName: r.latestTeamName ?? null,
 			latestStatus: (r.latestStatus as OrgPlayerRow["latestStatus"]) ?? null,
 			latestDorsal: r.latestDorsal ?? null,
+		})),
+		total: countResult[0]?.total ?? 0,
+	};
+}
+
+/**
+ * Orden de la query externa a listOrgPlayers. No usa buildOrderBy genérico
+ * porque los campos ordenables (nombre, dorsal, ligas) viven en la subquery
+ * "org_players" (alias), no en las columnas originales del FilterMap —
+ * buildOrderBy asume columnas de tabla, no de subquery proyectada.
+ */
+function buildOrgPlayersOrderBy(
+	inner: {
+		fullName: AnyColumn | SQLWrapper;
+		latestDorsal: AnyColumn | SQLWrapper;
+		leagueCount: AnyColumn | SQLWrapper;
+	},
+	sort: SortRule[],
+) {
+	const clauses = sort.flatMap((rule) => {
+		const dir = rule.dir === "desc" ? desc : asc;
+		if (rule.field === "nombre") return [dir(inner.fullName)];
+		if (rule.field === "dorsal") return [dir(inner.latestDorsal)];
+		if (rule.field === "ligas") return [dir(inner.leagueCount)];
+		return [];
+	});
+	return clauses.length > 0 ? clauses : [asc(inner.fullName)];
+}
+
+/**
+ * Cuenta jugadores únicos (global_player) con al menos un league_member en
+ * alguna liga de la organización — total sin filtros, usado para distinguir
+ * "vacío sin datos" de "vacío por filtros" y para el label "X de Y".
+ */
+export async function countOrgPlayers(organizationId: string): Promise<number> {
+	const rows = await db
+		.select({ total: sql<number>`COUNT(DISTINCT ${leagueMembers.globalPlayerId})::int` })
+		.from(leagueMembers)
+		.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+		.where(eq(leagues.organizationId, organizationId));
+	return rows[0]?.total ?? 0;
+}
+
+// ---------------------------------------------------------------------------
+// Lista de todos los global_players — vista del owner en /admin/players
+// ---------------------------------------------------------------------------
+
+export type GlobalPlayerRow = {
+	globalPlayerId: string;
+	fullName: string;
+	birthDate: string;
+	leagueCount: number;
+};
+
+/**
+ * Lista paginada de todos los global_players de la plataforma (vista owner,
+ * sin scope de organización). Búsqueda simple por nombre — este listado no
+ * usa el contrato ListQuery porque no tiene FilterBar (fuera del alcance del
+ * brief de diseño data-heavy, que cubre la vista de organizador).
+ */
+export async function listAllGlobalPlayers(opts: {
+	page: number;
+	pageSize: number;
+	search?: string;
+}): Promise<{ rows: GlobalPlayerRow[]; total: number }> {
+	const { page, pageSize, search } = opts;
+	const whereFilter = search ? ilike(globalPlayers.fullName, `%${search}%`) : undefined;
+
+	const [rows, countResult] = await Promise.all([
+		db
+			.select({
+				globalPlayerId: globalPlayers.id,
+				fullName: globalPlayers.fullName,
+				birthDate: globalPlayers.birthDate,
+				leagueCount: sql<number>`COUNT(DISTINCT ${leagueMembers.id})::int`.as("league_count"),
+			})
+			.from(globalPlayers)
+			.leftJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+			.where(whereFilter)
+			.groupBy(globalPlayers.id)
+			.orderBy(asc(globalPlayers.fullName))
+			.limit(pageSize)
+			.offset((page - 1) * pageSize),
+
+		db
+			.select({ total: sql<number>`COUNT(*)::int` })
+			.from(globalPlayers)
+			.where(whereFilter),
+	]);
+
+	return {
+		rows: rows.map((r) => ({
+			globalPlayerId: r.globalPlayerId,
+			fullName: r.fullName,
+			birthDate: r.birthDate,
+			leagueCount: r.leagueCount,
 		})),
 		total: countResult[0]?.total ?? 0,
 	};
@@ -1025,11 +1157,17 @@ export async function listOrgPlayers(
 // ---------------------------------------------------------------------------
 // Búsqueda por nombre para "Agregar jugador existente" a un equipo
 //
-// Busca global_players que ya tienen al menos un league_member en alguna liga
-// de la organización dada (scope org, decisión de producto). El match es por
+// global_players es identidad de plataforma (§14 AGENTS.md — "toda la
+// plataforma", igual que el lookup por CURP): la búsqueda NO se limita a
+// jugadores con membresía previa en la organización. Antes usaba un
+// INNER JOIN contra league_members que dejaba invisibles a los jugadores
+// registrados sin liga ("Camino E" de admin-registration/register.ts) y a
+// los que solo tienen historial en otra organización — para esos casos la
+// única forma de inscribirlos era volver a /admin/registro. El match es por
 // nombre canónico (sin acentos) para tolerar tildes. Marca alreadyInLeagueTeam
-// cuando el jugador ya está inscrito en un equipo de la liga destino, para que
-// la UI lo muestre deshabilitado y se evite el duplicado.
+// cuando el jugador ya está inscrito en un equipo de la liga destino (para
+// deshabilitarlo en la UI) y hasAnyLeagueMembership para distinguir "nunca
+// inscrito en ninguna liga" de "ya jugó en otra liga" — solo informativo.
 // ---------------------------------------------------------------------------
 
 export type OrgPlayerSearchResult = {
@@ -1038,10 +1176,10 @@ export type OrgPlayerSearchResult = {
 	birthDate: string;
 	avatarUrl: string | null;
 	alreadyInLeagueTeam: boolean;
+	hasAnyLeagueMembership: boolean;
 };
 
 export async function searchOrgGlobalPlayers(
-	organizationId: string,
 	q: string,
 	leagueId: string,
 ): Promise<OrgPlayerSearchResult[]> {
@@ -1050,21 +1188,19 @@ export async function searchOrgGlobalPlayers(
 
 	const like = `%${canonical}%`;
 	const rows = await db
-		.selectDistinctOn([globalPlayers.id], {
+		.select({
 			globalPlayerId: globalPlayers.id,
 			fullName: globalPlayers.fullName,
 			birthDate: globalPlayers.birthDate,
 			avatarUrl: globalPlayers.avatarUrl,
+			leagueMemberCount: sql<number>`COUNT(${leagueMembers.id})`.as("league_member_count"),
 		})
 		.from(globalPlayers)
-		.innerJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
-		.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+		.leftJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
 		.where(
-			and(
-				eq(leagues.organizationId, organizationId),
-				sql`COALESCE(${globalPlayers.fullNameCanonical}, LOWER(${globalPlayers.fullName})) LIKE ${like}`,
-			),
+			sql`COALESCE(${globalPlayers.fullNameCanonical}, LOWER(${globalPlayers.fullName})) LIKE ${like}`,
 		)
+		.groupBy(globalPlayers.id)
 		.orderBy(asc(globalPlayers.id))
 		.limit(15);
 
@@ -1082,6 +1218,7 @@ export async function searchOrgGlobalPlayers(
 			birthDate: r.birthDate,
 			avatarUrl: r.avatarUrl ?? null,
 			alreadyInLeagueTeam: inTeam.has(r.globalPlayerId),
+			hasAnyLeagueMembership: Number(r.leagueMemberCount) > 0,
 		}))
 		.sort((a, b) => a.fullName.localeCompare(b.fullName));
 }

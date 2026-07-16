@@ -27,8 +27,19 @@ export const queryKeys = {
 	league: (leagueId: string) => ["league", leagueId] as const,
 	leagueTeams: (leagueId: string) => ["league-teams", leagueId] as const,
 	standings: (leagueId: string) => ["standings", leagueId] as const,
+	leagueConfig: (leagueId: string) => ["league-config", leagueId] as const,
+
+	// Hub de organización (docs/ORG-PROFILE-HUB.md)
+	organizationGeneral: (organizationId: string) =>
+		["organization-general", organizationId] as const,
+	organizationConfig: (organizationId: string) => ["organization-config", organizationId] as const,
+	organizationSchedulingConfig: (organizationId: string) =>
+		["organization-scheduling-config", organizationId] as const,
+	organizationSlugAvailability: (slug: string) => ["organization-slug-availability", slug] as const,
 	topScorers: (leagueId: string) => ["top-scorers", leagueId] as const,
 	topAssists: (leagueId: string) => ["top-assists", leagueId] as const,
+	suspensions: (leagueId: string) => ["suspensions", leagueId] as const,
+	adminSuspensions: () => ["admin-suspensions"] as const,
 
 	// Liguilla / sorteo
 	playoffs: (leagueId: string) => ["playoffs", leagueId] as const,

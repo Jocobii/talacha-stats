@@ -1,4 +1,5 @@
 import type { ComponentType, ButtonHTMLAttributes } from "react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 
 type IconC = ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
@@ -10,6 +11,9 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 	size?: Size;
 	icon?: IconC;
 	iconRight?: IconC;
+	/** Muestra un spinner en vez del icono y deshabilita el botón — usar en
+	 *  toda acción async (guardar, eliminar, etc.) en vez de deshabilitar a mano. */
+	loading?: boolean;
 };
 
 export function Button({
@@ -17,9 +21,11 @@ export function Button({
 	size = "md",
 	icon: Icon,
 	iconRight: IconRight,
+	loading = false,
 	className,
 	type = "button",
 	children,
+	disabled,
 	...rest
 }: ButtonProps) {
 	const base =
@@ -40,10 +46,20 @@ export function Button({
 	};
 
 	return (
-		<button type={type} className={cn(base, sizes[size], variants[variant], className)} {...rest}>
-			{Icon && <Icon size={16} strokeWidth={2} />}
+		<button
+			type={type}
+			disabled={disabled || loading}
+			aria-busy={loading}
+			className={cn(base, sizes[size], variants[variant], className)}
+			{...rest}
+		>
+			{loading ? (
+				<Loader2 size={16} strokeWidth={2} className="animate-spin" />
+			) : (
+				Icon && <Icon size={16} strokeWidth={2} />
+			)}
 			{children}
-			{IconRight && <IconRight size={16} strokeWidth={2} />}
+			{!loading && IconRight && <IconRight size={16} strokeWidth={2} />}
 		</button>
 	);
 }

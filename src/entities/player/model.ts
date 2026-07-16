@@ -119,7 +119,7 @@ export type PlayerGlobalStats = {
 // ===========================================================================
 
 import { z } from "zod";
-import { LEAGUE_MEMBER_STATUSES } from "@/db/schema";
+import { LEAGUE_MEMBER_STATUSES, GENDER_OPTIONS } from "@/db/schema";
 
 // ---------------------------------------------------------------------------
 // Helpers de validación compartidos
@@ -154,6 +154,10 @@ const isoDate = z
 	.string()
 	.regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe estar en formato YYYY-MM-DD");
 
+/** Género del jugador — opcional en toda la cadena (columna nullable en DB). */
+export const GenderSchema = z.enum(GENDER_OPTIONS);
+export type Gender = z.infer<typeof GenderSchema>;
+
 // ---------------------------------------------------------------------------
 // GlobalPlayer — identidad global del jugador
 // ---------------------------------------------------------------------------
@@ -163,6 +167,10 @@ export const GlobalPlayerSchema = z.object({
 	curpHash: CurpHashSchema,
 	fullName: z.string().min(2).max(100),
 	birthDate: isoDate,
+	// Opcional (no solo nullable): la mayoría de jugadores existentes no tienen
+	// este dato — no forzar a todos los sitios que construyen un GlobalPlayer
+	// a declararlo explícitamente.
+	gender: GenderSchema.nullable().optional(),
 	avatarUrl: z.string().url().nullable(),
 	createdAt: z.coerce.date(),
 });
@@ -177,6 +185,7 @@ export const CreateGlobalPlayerSchema = z.object({
 	curpHash: CurpHashSchema,
 	fullName: z.string().min(2).max(100).trim(),
 	birthDate: isoDate,
+	gender: GenderSchema.nullable().optional(),
 	avatarUrl: z.string().url().nullable().optional(),
 });
 
@@ -194,11 +203,23 @@ export const LeagueMemberSchema = z.object({
 	leagueId: z.string().uuid(),
 	status: LeagueMemberStatusSchema,
 	dorsal: z.number().int().min(1).max(99).nullable(),
+	// Código de credencial — único por liga, inmutable, asignado por el server
+	// con assignNextCredential(). Nunca viene del cliente (no está en
+	// CreateLeagueMemberSchema). Ver docs/CREDENCIAL-CODIGO-JUGADOR.md.
+	credentialCode: z.number().int().min(1).nullable(),
 	inscriptionDate: isoDate,
 	// Data siloing: estos campos son privados de la liga.
 	// Solo se incluyen en queries scoped a una liga — nunca cross-liga.
 	institutionPhotoUrl: z.string().url().nullable(),
 	internalNotes: z.string().max(500).nullable(),
+	// Datos de contacto — opcionales (no solo nullable), "por si hay una
+	// emergencia". Mismo siloing que internalNotes. Opcional para no romper
+	// los sitios existentes que construyen un LeagueMember sin estos campos.
+	phone: z.string().max(30).nullable().optional(),
+	residenceArea: z.string().max(150).nullable().optional(),
+	emergencyContactName: z.string().max(150).nullable().optional(),
+	emergencyContactPhone: z.string().max(30).nullable().optional(),
+	medicalNotes: z.string().max(500).nullable().optional(),
 	createdAt: z.coerce.date(),
 });
 
@@ -212,6 +233,11 @@ export const CreateLeagueMemberSchema = z.object({
 	inscriptionDate: isoDate,
 	institutionPhotoUrl: z.string().url().nullable().optional(),
 	internalNotes: z.string().max(500).nullable().optional(),
+	phone: z.string().max(30).nullable().optional(),
+	residenceArea: z.string().max(150).nullable().optional(),
+	emergencyContactName: z.string().max(150).nullable().optional(),
+	emergencyContactPhone: z.string().max(30).nullable().optional(),
+	medicalNotes: z.string().max(500).nullable().optional(),
 });
 
 export type CreateLeagueMember = z.infer<typeof CreateLeagueMemberSchema>;

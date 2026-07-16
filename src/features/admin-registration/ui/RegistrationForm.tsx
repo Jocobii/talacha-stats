@@ -30,20 +30,7 @@ export default function RegistrationForm({ fixedLeague, leagues = [] }: Props) {
 	const { step, currentStage, sessionCount, reset, handleSubmit, curpInputRef } = form;
 
 	return (
-		<div className="flex flex-col gap-8 max-w-[920px] mx-auto">
-			<PageHeader
-				breadcrumb={[{ label: "Admin", href: "/admin" }, { label: "Registro de jugadores" }]}
-				title="Registro de jugadores"
-				subtitle="Ventanilla — captura uno por uno con el jugador frente a ti"
-				actions={
-					sessionCount > 0 ? (
-						<Button variant="ghost" size="sm" icon={User}>
-							{sessionCount} registrado{sessionCount !== 1 ? "s" : ""} hoy
-						</Button>
-					) : undefined
-				}
-			/>
-
+		<div className="flex flex-col gap-8 max-w-full mx-auto">
 			<StageIndicator current={currentStage} />
 
 			{(step.type === "idle" || step.type === "searching") && (
@@ -51,11 +38,7 @@ export default function RegistrationForm({ fixedLeague, leagues = [] }: Props) {
 					ref={curpInputRef}
 					curp={form.curp}
 					onCurpChange={form.setCurpInput}
-					leagueId={form.leagueId}
-					leagues={leagues}
-					fixedLeague={fixedLeague}
 					isSearching={step.type === "searching"}
-					onLeagueChange={form.onLeagueChange}
 				/>
 			)}
 
@@ -83,7 +66,9 @@ export default function RegistrationForm({ fixedLeague, leagues = [] }: Props) {
 				<NewPlayerCard
 					curp={form.curp}
 					fullName={form.fullName}
+					lastName={form.lastName}
 					birthDate={form.birthDate}
+					gender={form.gender}
 					fixedLeague={fixedLeague}
 					leagues={leagues}
 					leagueId={form.leagueId}
@@ -93,7 +78,19 @@ export default function RegistrationForm({ fixedLeague, leagues = [] }: Props) {
 					dorsal={form.dorsal}
 					onLeagueChange={form.onLeagueChange}
 					onFullNameChange={form.onFullNameChange}
+					onLastNameChange={form.onLastNameChange}
 					onBirthDateChange={form.onBirthDateChange}
+					onGenderChange={form.onGenderChange}
+					phone={form.phone}
+					residenceArea={form.residenceArea}
+					emergencyContactName={form.emergencyContactName}
+					emergencyContactPhone={form.emergencyContactPhone}
+					medicalNotes={form.medicalNotes}
+					onPhoneChange={form.onPhoneChange}
+					onResidenceAreaChange={form.onResidenceAreaChange}
+					onEmergencyContactNameChange={form.onEmergencyContactNameChange}
+					onEmergencyContactPhoneChange={form.onEmergencyContactPhoneChange}
+					onMedicalNotesChange={form.onMedicalNotesChange}
 					onTeamChange={form.onTeamChange}
 					onDorsalChange={form.onDorsalChange}
 					onSubmit={handleSubmit}

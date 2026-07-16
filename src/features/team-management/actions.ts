@@ -10,6 +10,7 @@ import { eq, and } from "drizzle-orm";
 import type { Team, LeagueMember, Inscription } from "@/db";
 import type { UpdateTeamData, UpdateRosterMemberData } from "./types";
 import { sanitizeToCanonical } from "@/shared/lib/normalize";
+import { assignNextCredential } from "@/entities/player/lib/assign-credential";
 
 /** Actualiza nombre y/o color de un equipo. */
 export async function updateTeamInfo(id: string, data: UpdateTeamData): Promise<Team> {
@@ -169,6 +170,8 @@ async function resolveLeagueMember(
 		return existing;
 	}
 
+	const credentialCode = await assignNextCredential(tx, input.leagueId);
+
 	const [created] = await tx
 		.insert(leagueMembers)
 		.values({
@@ -176,6 +179,7 @@ async function resolveLeagueMember(
 			leagueId: input.leagueId,
 			status: "active",
 			dorsal: input.dorsal,
+			credentialCode,
 			inscriptionDate: new Date().toISOString().slice(0, 10),
 		})
 		.returning();

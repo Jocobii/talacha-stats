@@ -87,7 +87,12 @@ export function PlayerFoundCard({
 
 					{/* Asignación a liga y equipo */}
 					<div className="mt-7 pt-7 border-t border-line">
-						<SectionLabel className="mb-3">Paso 2 &middot; Asignar a liga y equipo</SectionLabel>
+						<SectionLabel className="mb-3">
+							Paso 2 &middot; Liga y equipo{" "}
+							<span className="normal-case font-normal text-ink-3 tracking-normal">
+								&mdash; opcional
+							</span>
+						</SectionLabel>
 						<LeagueAssignmentFields
 							fixedLeague={fixedLeague}
 							leagues={leagues}
@@ -116,9 +121,9 @@ export function PlayerFoundCard({
 							size="md"
 							iconRight={ArrowRight}
 							type="submit"
-							disabled={submitting || !leagueId}
+							disabled={submitting}
 						>
-							{league ? `Registrar en ${league.name}` : "Selecciona una liga"}
+							{league ? `Registrar en ${league.name}` : "Registrar sin liga"}
 						</Button>
 					</div>
 				</div>

@@ -34,7 +34,7 @@ export async function upsertSchedulingConfig(
 	const teamCount = teamCountRow?.total ?? 0;
 	const maxMatchdays = teamCount <= 1 ? 1 : teamCount - 1;
 
-	if (input.regularMatchdays > maxMatchdays && teamCount > 0) {
+	if (input.regularMatchdays > maxMatchdays && teamCount > 0 && !input.allowDuplicateMatchups) {
 		return {
 			ok: false,
 			error: `Con ${teamCount} equipos el máximo de jornadas regulares es ${maxMatchdays}`,

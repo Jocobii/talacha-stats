@@ -2,11 +2,16 @@
  * GET /api/players/org-search?leagueId=uuid&q=texto
  *
  * Búsqueda por nombre para el flujo "Agregar jugador existente" a un equipo.
- * Devuelve global_players de la organización dueña de la liga (scope org).
+ * global_players es identidad de plataforma (§14 AGENTS.md) — la búsqueda NO
+ * se limita a jugadores con membresía previa en la organización, para poder
+ * encontrar jugadores registrados sin liga todavía o con historial solo en
+ * otra organización (ver docs/CREDENCIAL-CODIGO-JUGADOR.md). El nombre de la
+ * ruta ("org-search") queda por compatibilidad con la URL ya usada por el
+ * cliente; el filtro real de "puedes gestionar esta liga" sigue aplicando.
  *
- * Autenticación obligatoria. La org se resuelve desde la liga, no desde la
- * sesión: así los owners (sin org propia) también pueden buscar en la org de
- * la liga que gestionan. Los organizers solo pueden buscar en su propia org.
+ * Autenticación obligatoria. El permiso se resuelve desde la liga: los
+ * owners (sin org propia) pueden buscar para cualquier liga que gestionan,
+ * los organizers solo para ligas de su propia org.
  */
 
 import { eq } from "drizzle-orm";
@@ -36,9 +41,6 @@ export async function GET(request: Request) {
 	if (!canManageLeague(session, league.organizationId ?? null)) {
 		return apiError("Sin permiso para buscar en esta liga", 403);
 	}
-	// Ligas legacy sin organización: no hay universo org donde buscar.
-	if (!league.organizationId) return apiSuccess([]);
-
-	const results = await searchOrgGlobalPlayers(league.organizationId, q, leagueId);
+	const results = await searchOrgGlobalPlayers(q, leagueId);
 	return apiSuccess(results);
 }

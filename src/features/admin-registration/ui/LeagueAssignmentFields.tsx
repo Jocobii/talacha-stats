@@ -9,7 +9,7 @@
 import { Hash } from "lucide-react";
 import { Field } from "@/shared/ui/Field";
 import { Input } from "@/shared/ui/Input";
-import { Select } from "@/shared/ui/Select";
+import { Listbox } from "@/shared/ui/Listbox";
 import type { AssignmentFieldsProps } from "../types";
 
 export function LeagueAssignmentFields({
@@ -31,27 +31,24 @@ export function LeagueAssignmentFields({
 					<span className="text-ink-3">&middot; {fixedLeague.season}</span>
 				</div>
 			) : (
-				<Field label="Liga" required>
-					<Select value={leagueId} onChange={(e) => onLeagueChange(e.target.value)}>
-						<option value="">— Seleccionar liga —</option>
-						{leagues.map((l) => (
-							<option key={l.id} value={l.id}>
-								{l.name} &middot; {l.season}
-							</option>
-						))}
-					</Select>
+				<Field label="Liga" hint="Opcional — no bloquea el alta del jugador">
+					<Listbox
+						value={leagueId}
+						onChange={onLeagueChange}
+						placeholder="— Sin asignar —"
+						options={leagues.map((l) => ({ value: l.id, label: `${l.name} · ${l.season}` }))}
+					/>
 				</Field>
 			)}
 
 			<Field label="Equipo">
-				<Select value={teamId} onChange={(e) => onTeamChange(e.target.value)} disabled={!leagueId}>
-					<option value="">— Sin asignar —</option>
-					{teams.map((t) => (
-						<option key={t.id} value={t.id}>
-							{t.name}
-						</option>
-					))}
-				</Select>
+				<Listbox
+					value={teamId}
+					onChange={onTeamChange}
+					disabled={!leagueId}
+					placeholder="— Sin asignar —"
+					options={teams.map((t) => ({ value: t.id, label: t.name }))}
+				/>
 			</Field>
 
 			<Field label="Dorsal" hint="Opcional">

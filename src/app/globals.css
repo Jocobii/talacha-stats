@@ -44,8 +44,8 @@
 	--color-amber-dim: #92400e;
 
 	/* Scrollbar */
-	--scroll-thumb: rgba(255, 255, 255, 0.08);
-	--scroll-thumb-hv: rgba(255, 255, 255, 0.16);
+	--scroll-thumb: rgba(255, 255, 255, 0.22);
+	--scroll-thumb-hv: rgba(255, 255, 255, 0.36);
 
 	/* ── Skin tokens — tema por torneo (ver docs/TOURNAMENT-SKINS.md) ──
 	   Default (sin torneo activo): el skin ES la marca TalachaStats.
@@ -93,8 +93,8 @@ html[data-theme="light"] {
 	--tint-blue: rgba(30, 108, 217, 0.08);
 	--tint-blue-bd: rgba(30, 108, 217, 0.25);
 
-	--scroll-thumb: rgba(0, 0, 0, 0.12);
-	--scroll-thumb-hv: rgba(0, 0, 0, 0.22);
+	--scroll-thumb: rgba(0, 0, 0, 0.22);
+	--scroll-thumb-hv: rgba(0, 0, 0, 0.38);
 }
 
 /* ── Tonos de blanco — Cal (recomendado), Papel, Cancha ─────────── */
@@ -168,6 +168,32 @@ body {
 body {
 	font-family: var(--font-body);
 	-webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar — usa los tokens --scroll-thumb/-hv definidos arriba
+   (dark/light), en vez del scrollbar nativo del SO. Aplica a toda la
+   app, incluyendo paneles flotantes como Listbox. ── */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: var(--scroll-thumb) transparent;
+}
+
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--scroll-thumb);
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--scroll-thumb-hv);
 }
 
 /* ── Animaciones hero ─────────────────────────────────────────── */

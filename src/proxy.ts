@@ -5,7 +5,12 @@ import { routing } from "@/shared/i18n/routing";
 
 const SESSION_COOKIE = "ts_session";
 
-const PROTECTED_PREFIXES = ["/admin", "/onboarding"];
+// "/cedula" = hojas imprimibles (docs/PLAN-CEDULA-IMPRESA.md) — viven en
+// app/(print), fuera de [locale] (español-only, igual que /admin), y
+// requieren sesión igual que el resto del panel. Sin este prefijo, next-intl
+// las trataba como superficie pública e intentaba reescribirlas a
+// /[locale]/cedula/... (que no existe) → 404 antes de llegar a la página.
+const PROTECTED_PREFIXES = ["/admin", "/onboarding", "/cedula"];
 const AUTH_PAGES = ["/login", "/register", "/verify-email"];
 
 // next-intl: negociación de locale + rewrite al segmento [locale] (docs/I18N-PLAN.md §5).

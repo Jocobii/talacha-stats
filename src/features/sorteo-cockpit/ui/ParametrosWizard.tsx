@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, RefreshCw, Calendar } from "lucide-react";
+import { Clock, RefreshCw, Calendar, Repeat } from "lucide-react";
 import { ParamRow } from "./ParamRow";
+import { ParamCheckboxRow } from "./ParamCheckboxRow";
 import { useSaveSchedulingConfig } from "../model/useSaveSchedulingConfig";
 import type { CockpitConfig } from "../types";
 
@@ -12,10 +13,11 @@ type ParametrosWizardProps = {
 };
 
 const DEFAULTS: CockpitConfig = {
-	matchDurationMinutes: 60,
+	matchDurationMinutes: 50,
 	bufferMinutes: 0,
 	noRepeatWithin: 3,
 	regularMatchdays: 14,
+	allowDuplicateMatchups: false,
 };
 
 export function ParametrosWizard({ leagueId, onSave }: ParametrosWizardProps) {
@@ -82,6 +84,13 @@ export function ParametrosWizard({ leagueId, onSave }: ParametrosWizardProps) {
 					value={form.regularMatchdays}
 					unit="jornadas"
 					onChange={(v) => patch({ regularMatchdays: v })}
+				/>
+				<ParamCheckboxRow
+					icon={<Repeat size={13} />}
+					label="Permitir rivales repetidos"
+					help="Ignora el límite de jornadas según el número de equipos. Útil si el número de equipos crecerá durante la temporada."
+					checked={form.allowDuplicateMatchups}
+					onChange={(v) => patch({ allowDuplicateMatchups: v })}
 				/>
 			</div>
 

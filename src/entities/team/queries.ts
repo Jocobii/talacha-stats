@@ -5,9 +5,13 @@
  */
 
 import { db, teams, leagues, inscriptions, leagueMembers, globalPlayers } from "@/db";
-import { eq, ne, and, asc } from "drizzle-orm";
+import { eq, ne, and, asc, desc, sql, ilike } from "drizzle-orm";
+import type { AnyColumn, SQLWrapper } from "drizzle-orm";
 import type { Team } from "@/db";
 import type { RosterEntry, TeamWithLeague } from "./model";
+import type { ListQuery, SortRule } from "@/shared/lib/list-query";
+import { buildWhere } from "@/shared/lib/list-query";
+import { orgTeamFilters } from "./filters";
 
 export async function getTeam(id: string): Promise<Team | null> {
 	const row = await db.query.teams.findFirst({ where: eq(teams.id, id) });
@@ -85,4 +89,176 @@ export async function getTeamRoster(teamId: string): Promise<RosterEntry[]> {
 		status: r.status as RosterEntry["status"],
 		inscriptionDate: r.inscriptionDate,
 	}));
+}
+
+// ---------------------------------------------------------------------------
+// Lista de equipos de la organización — vista organizador en /admin/teams
+//
+// Espejo de listOrgPlayers/countOrgPlayers (entities/player/queries.ts).
+// Contrato ListQuery: filtros/orden llegan ya normalizados desde
+// parseListQuery en la page. Sin columna "estado" (decisión de diseño, ver
+// mockup) — el filtro de equipo disuelto queda fuera de esta pantalla.
+// ---------------------------------------------------------------------------
+
+export type OrgTeamRow = {
+	id: string;
+	name: string;
+	leagueId: string;
+	leagueName: string;
+	playerCount: number;
+};
+
+export async function listOrgTeams(
+	organizationId: string,
+	query: ListQuery,
+): Promise<{ rows: OrgTeamRow[]; total: number }> {
+	const filterWhere = buildWhere(orgTeamFilters, query.filters);
+	// El scope de negocio (organización) se combina aparte — nunca es un filtro de usuario.
+	const where = and(eq(leagues.organizationId, organizationId), filterWhere);
+	const offset = (query.page - 1) * query.pageSize;
+
+	const inner = db
+		.select({
+			id: teams.id,
+			// teams.name y leagues.name colisionan (ambas se llaman "name" en su
+			// tabla) — sin alias explícito, Postgres las expone sin distinguir y
+			// falla con "column reference \"name\" is ambiguous" al envolver esto
+			// en una subquery reusada desde afuera. .as() fuerza un nombre único
+			// (mismo problema documentado en entities/player/queries.ts).
+			name: sql<string>`${teams.name}`.as("team_name"),
+			leagueId: teams.leagueId,
+			leagueName: sql<string>`${leagues.name}`.as("league_name"),
+			playerCount: sql<number>`COUNT(DISTINCT ${inscriptions.leagueMemberId})::int`.as(
+				"player_count",
+			),
+		})
+		.from(teams)
+		.innerJoin(leagues, eq(leagues.id, teams.leagueId))
+		.leftJoin(inscriptions, eq(inscriptions.teamId, teams.id))
+		.where(where)
+		.groupBy(teams.id, leagues.name)
+		.as("org_teams");
+
+	const outerOrderBy = buildOrgTeamsOrderBy(inner, query.sort);
+
+	const [rowsResult, countResult] = await Promise.all([
+		db
+			.select()
+			.from(inner)
+			.orderBy(...outerOrderBy)
+			.limit(query.pageSize)
+			.offset(offset),
+		db.select({ total: sql<number>`COUNT(*)::int` }).from(inner),
+	]);
+
+	return {
+		rows: rowsResult.map((r) => ({
+			id: r.id,
+			name: r.name,
+			leagueId: r.leagueId,
+			leagueName: r.leagueName,
+			playerCount: r.playerCount,
+		})),
+		total: countResult[0]?.total ?? 0,
+	};
+}
+
+/**
+ * Orden de la query externa a listOrgTeams. No usa buildOrderBy genérico
+ * porque los campos ordenables (nombre, jugadores) viven en la subquery
+ * "org_teams" (alias), no en las columnas originales del FilterMap.
+ */
+function buildOrgTeamsOrderBy(
+	inner: {
+		name: AnyColumn | SQLWrapper;
+		playerCount: AnyColumn | SQLWrapper;
+	},
+	sort: SortRule[],
+) {
+	const clauses = sort.flatMap((rule) => {
+		const dir = rule.dir === "desc" ? desc : asc;
+		if (rule.field === "nombre") return [dir(inner.name)];
+		if (rule.field === "jugadores") return [dir(inner.playerCount)];
+		return [];
+	});
+	return clauses.length > 0 ? clauses : [asc(inner.name)];
+}
+
+/**
+ * Cuenta equipos de la organización — total sin filtros, usado para
+ * distinguir "vacío sin datos" de "vacío por filtros" y para el countLabel.
+ */
+export async function countOrgTeams(organizationId: string): Promise<number> {
+	const rows = await db
+		.select({ total: sql<number>`COUNT(*)::int` })
+		.from(teams)
+		.innerJoin(leagues, eq(leagues.id, teams.leagueId))
+		.where(eq(leagues.organizationId, organizationId));
+	return rows[0]?.total ?? 0;
+}
+
+// ---------------------------------------------------------------------------
+// Lista de todos los equipos — vista del owner en /admin/teams
+// ---------------------------------------------------------------------------
+
+export type GlobalTeamRow = {
+	id: string;
+	name: string;
+	leagueId: string;
+	leagueName: string;
+	playerCount: number;
+};
+
+/**
+ * Lista paginada de todos los equipos de la plataforma (vista owner, sin
+ * scope de organización). Búsqueda simple por nombre — igual criterio que
+ * listAllGlobalPlayers (entities/player/queries.ts): sin FilterBar, fuera
+ * del alcance del contrato ListQuery.
+ */
+export async function listAllTeams(opts: {
+	page: number;
+	pageSize: number;
+	search?: string;
+}): Promise<{ rows: GlobalTeamRow[]; total: number }> {
+	const { page, pageSize, search } = opts;
+	const whereFilter = search ? ilike(teams.name, `%${search}%`) : undefined;
+
+	const [rows, countResult] = await Promise.all([
+		db
+			.select({
+				id: teams.id,
+				// Mismo alias explícito que listOrgTeams — teams.name/leagues.name
+				// colisionan, ver comentario ahí.
+				name: sql<string>`${teams.name}`.as("team_name"),
+				leagueId: teams.leagueId,
+				leagueName: sql<string>`${leagues.name}`.as("league_name"),
+				playerCount: sql<number>`COUNT(DISTINCT ${inscriptions.leagueMemberId})::int`.as(
+					"player_count",
+				),
+			})
+			.from(teams)
+			.innerJoin(leagues, eq(leagues.id, teams.leagueId))
+			.leftJoin(inscriptions, eq(inscriptions.teamId, teams.id))
+			.where(whereFilter)
+			.groupBy(teams.id, leagues.name)
+			.orderBy(asc(teams.name))
+			.limit(pageSize)
+			.offset((page - 1) * pageSize),
+
+		db
+			.select({ total: sql<number>`COUNT(*)::int` })
+			.from(teams)
+			.where(whereFilter),
+	]);
+
+	return {
+		rows: rows.map((r) => ({
+			id: r.id,
+			name: r.name,
+			leagueId: r.leagueId,
+			leagueName: r.leagueName,
+			playerCount: r.playerCount,
+		})),
+		total: countResult[0]?.total ?? 0,
+	};
 }
