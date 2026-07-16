@@ -50,6 +50,9 @@ importers:
       '@vercel/analytics':
         specifier: ^2.0.1
         version: 2.0.1(next@16.2.6(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
+      '@vercel/speed-insights':
+        specifier: ^2.0.0
+        version: 2.0.0(next@16.2.6(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@types/pg@8.20.0)(pg@8.22.0)
@@ -177,7 +180,7 @@ importers:
     optionalDependencies:
       '@jocobi/db-tools':
         specifier: git+https://github.com/Jocobii/db-tools.git
-        version: git+https://github.com/Jocobii/db-tools.git#b5fb0539a6cef07680497e58fa306d76e9061cf8
+        version: git+ssh://git@github.com/Jocobii/db-tools.git#b5fb0539a6cef07680497e58fa306d76e9061cf8
 
 packages:
 
@@ -840,8 +843,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@jocobi/db-tools@git+https://github.com/Jocobii/db-tools.git#b5fb0539a6cef07680497e58fa306d76e9061cf8':
-    resolution: {commit: b5fb0539a6cef07680497e58fa306d76e9061cf8, repo: https://github.com/Jocobii/db-tools.git, type: git}
+  '@jocobi/db-tools@git+ssh://git@github.com/Jocobii/db-tools.git#b5fb0539a6cef07680497e58fa306d76e9061cf8':
+    resolution: {commit: b5fb0539a6cef07680497e58fa306d76e9061cf8, repo: git@github.com:Jocobii/db-tools.git, type: git}
     version: 1.1.0
     engines: {node: '>=16'}
     hasBin: true
@@ -1663,6 +1666,32 @@ packages:
     peerDependenciesMeta:
       '@remix-run/react':
         optional: true
+      '@sveltejs/kit':
+        optional: true
+      next:
+        optional: true
+      nuxt:
+        optional: true
+      react:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
+      vue-router:
+        optional: true
+
+  '@vercel/speed-insights@2.0.0':
+    resolution: {integrity: sha512-jwkNcrTeafWxjmWq4AHBaptSqZiJkYU5adLC9QBSqeim0GcqDMgN5Ievh8OG1rJ6W3A4l1oiP7qr9CWxGuzu3w==}
+    peerDependencies:
+      '@sveltejs/kit': ^1 || ^2
+      next: '>= 13'
+      nuxt: '>= 3'
+      react: ^18 || ^19 || ^19.0.0-rc
+      svelte: '>= 4'
+      vue: ^3
+      vue-router: ^4
+    peerDependenciesMeta:
       '@sveltejs/kit':
         optional: true
       next:
@@ -4952,7 +4981,7 @@ snapshots:
   '@img/sharp-win32-x64@0.34.5':
     optional: true
 
-  '@jocobi/db-tools@git+https://github.com/Jocobii/db-tools.git#b5fb0539a6cef07680497e58fa306d76e9061cf8':
+  '@jocobi/db-tools@git+ssh://git@github.com/Jocobii/db-tools.git#b5fb0539a6cef07680497e58fa306d76e9061cf8':
     optional: true
 
   '@jridgewell/gen-mapping@0.3.13':
@@ -5594,6 +5623,11 @@ snapshots:
     optional: true
 
   '@vercel/analytics@2.0.1(next@16.2.6(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)':
+    optionalDependencies:
+      next: 16.2.6(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react: 19.2.4
+
+  '@vercel/speed-insights@2.0.0(next@16.2.6(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)':
     optionalDependencies:
       next: 16.2.6(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react: 19.2.4
