@@ -1,169 +1,106 @@
-"use client";
-
 /**
  * app/(shell)/admin/leagues/LeaguesView.tsx
  *
- * Vista de Ligas rediseñada: tabla (AdminTable, antes tarjetas) con columnas
- * Liga · Día · Temporada · Equipos · Estado — espejo de OwnerTeamsView /
- * OwnerPlayersView. El buscador es solo UI por ahora (no filtra) — se conecta
- * cuando se defina el contrato de filtros de esta vista.
- *
- * Las "Temporadas anteriores" viven en un acordeón colapsado por default:
- * menos ruido visual cuando hay muchas temporadas cerradas en el histórico.
+ * Presentación pura de /admin/leagues (FilterBar + chips + tabla + estados
+ * vacío-sin-datos / vacío-por-filtros). Recibe el view-model ya armado por
+ * features/league-admin — no toca DB ni arma queries.
+ * Espejo de app/admin/teams/OrgTeamsView.tsx.
  */
 
 import Link from "next/link";
-import { useState } from "react";
-import { ChevronDown, ChevronRight, Plus, Search, SlidersHorizontal } from "lucide-react";
-import { Button } from "@/shared/ui/Button";
+import { Inbox, Plus, Search as SearchIcon } from "lucide-react";
 import { PageHeader } from "@/shared/ui/PageHeader";
-import { AdminTable } from "@/shared/ui/AdminTable";
-import { LEAGUE_COLUMNS } from "./leaguesColumns";
+import { EmptyState } from "@/shared/ui/EmptyState";
+import { ActiveChip } from "@/shared/ui/filters";
+import { Button } from "@/shared/ui/Button";
+import type { LeaguesViewModel } from "@/features/league-admin";
+import { LeaguesFilterBar } from "./LeaguesFilterBar";
+import { LeaguesTable } from "./LeaguesTable";
 
-export type LeagueRow = {
-	id: string;
-	name: string;
-	dayOfWeek: string;
-	season: string;
-	status: string;
-	teams: unknown[];
-	organization?: { name: string } | null;
-};
-
-function ViewAction({ leagueId }: { leagueId: string }) {
+function NewLeagueButton() {
 	return (
-		<Link
-			href={`/admin/leagues/${leagueId}`}
-			className="text-xs px-2.5 py-1 rounded-lg border border-brand/30 text-brand-ink hover:bg-brand/10 font-medium transition"
-		>
-			Ver
+		<Link href="/admin/leagues/new">
+			<Button icon={Plus}>Nueva liga</Button>
 		</Link>
 	);
 }
 
 export function LeaguesView({
-	city,
-	active,
-	finished,
-}: {
-	city: string;
-	active: LeagueRow[];
-	finished: LeagueRow[];
-}) {
-	const [showFinished, setShowFinished] = useState(false);
-	const [search, setSearch] = useState("");
-
-	const activeSeasons = new Set(active.map((l) => l.season));
-	const currentSeason = activeSeasons.size === 1 ? active[0]?.season : null;
-	const allSeasons = new Set([...active, ...finished].map((l) => l.season));
-
-	if (active.length === 0 && finished.length === 0) {
-		return (
-			<div>
-				<PageHeader title="Ligas" subtitle={city} />
-				<div className="bg-surface rounded-xl shadow p-12 text-center border border-line mt-6">
-					<p className="text-4xl mb-4">⚽</p>
-					<p className="text-ink-2 font-medium mb-1">No hay ligas en {city}</p>
-					<p className="text-ink-3 text-sm mb-6">Crea la primera liga para esta ciudad</p>
-					<Link href="/admin/leagues/new">
-						<Button icon={Plus}>Crear liga</Button>
-					</Link>
-				</div>
-			</div>
-		);
-	}
+	rows,
+	total,
+	unfilteredTotal,
+	filtersActive,
+	chips,
+	countLabel,
+	pagination,
+	sort,
+}: LeaguesViewModel) {
+	const showEmptyNoData = rows.length === 0 && !filtersActive && unfilteredTotal === 0;
+	const showEmptyFiltered = rows.length === 0 && filtersActive;
 
 	return (
 		<div className="space-y-6">
 			<PageHeader
 				title="Ligas"
-				subtitle={`${active.length} ligas activas · ${allSeasons.size} temporadas en el histórico`}
 				meta={
-					currentSeason ? (
-						<span className="inline-flex items-center gap-1.5 text-xs text-ink-2">
-							<span className="w-1.5 h-1.5 rounded-full bg-brand shadow-[0_0_6px_rgba(0,230,118,0.5)]" />
-							Temporada {currentSeason}
-						</span>
+					total > 0 ? (
+						<span className="font-mono text-[13px] text-ink-2">{countLabel}</span>
 					) : undefined
 				}
-				actions={
-					<>
-						<Button variant="secondary" icon={SlidersHorizontal}>
-							Filtrar
-						</Button>
-						<Link href="/admin/leagues/new">
-							<Button icon={Plus}>Nueva liga</Button>
-						</Link>
-					</>
-				}
+				actions={<NewLeagueButton />}
 			/>
 
-			<section>
-				<div className="flex items-center justify-between mb-2">
-					<p className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
-						Ligas activas{currentSeason ? ` — ${currentSeason}` : ""}
-					</p>
-					<div className="relative w-[226px]">
-						<Search
-							size={15}
-							strokeWidth={1.75}
-							className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none"
-						/>
-						<input
-							value={search}
-							onChange={(e) => setSearch(e.target.value)}
-							placeholder="Buscar liga…"
-							aria-label="Buscar liga"
-							className="w-full h-9 rounded-md bg-surface-2 border border-line pl-9 pr-3 text-sm text-ink placeholder:text-ink-3 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30 transition"
-						/>
-					</div>
-				</div>
+			<div className="flex flex-col gap-3">
+				<LeaguesFilterBar />
+				{chips.length > 0 && <ChipsRow chips={chips} />}
+			</div>
 
-				{active.length === 0 ? (
-					<div className="bg-surface rounded-xl shadow p-8 text-center border border-line">
-						<p className="text-ink-2 font-medium mb-1">No hay ligas activas</p>
-						<p className="text-ink-3 text-sm mb-4">Todas las ligas han terminado su temporada</p>
-						<Link href="/admin/leagues/new">
-							<Button icon={Plus}>Crear nueva liga</Button>
+			{showEmptyNoData ? (
+				<EmptyState
+					icon={Inbox}
+					title="Aún no hay ligas"
+					description="Crea la primera liga para empezar a capturar jornadas."
+					action={<NewLeagueButton />}
+				/>
+			) : showEmptyFiltered ? (
+				<EmptyState
+					icon={SearchIcon}
+					title="No se encontraron resultados con estos filtros"
+					description="Prueba a quitar alguno de los filtros activos."
+					action={
+						<Link
+							href="/admin/leagues"
+							className="h-9 px-4 inline-flex items-center rounded-md bg-surface-2 border border-line text-ink text-sm hover:border-ink-3 transition"
+						>
+							Limpiar filtros
 						</Link>
-					</div>
-				) : (
-					<AdminTable
-						columns={LEAGUE_COLUMNS}
-						rows={active}
-						getKey={(l) => l.id}
-						actions={(l) => <ViewAction leagueId={l.id} />}
-						emptyMessage="No hay ligas activas."
-					/>
-				)}
-			</section>
-
-			{finished.length > 0 && (
-				<section>
-					<button
-						type="button"
-						onClick={() => setShowFinished((v) => !v)}
-						className="w-full flex items-center justify-between px-1 py-2 text-sm text-ink-2 hover:text-ink transition"
-					>
-						<span className="inline-flex items-center gap-2">
-							<span className="w-1.5 h-1.5 rounded-full bg-ink-3" />
-							{finished.length} {finished.length === 1 ? "liga" : "ligas"} sin temporada activa
-						</span>
-						{showFinished ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-					</button>
-					{showFinished && (
-						<div className="mt-2">
-							<AdminTable
-								columns={LEAGUE_COLUMNS}
-								rows={finished}
-								getKey={(l) => l.id}
-								actions={(l) => <ViewAction leagueId={l.id} />}
-								emptyMessage="No hay temporadas anteriores."
-							/>
-						</div>
-					)}
-				</section>
+					}
+				/>
+			) : (
+				<LeaguesTable
+					rows={rows}
+					pagination={pagination}
+					emptyMessage="No se encontraron resultados con estos filtros."
+					countLabel={countLabel}
+					sort={sort}
+				/>
 			)}
+		</div>
+	);
+}
+
+function ChipsRow({ chips }: { chips: LeaguesViewModel["chips"] }) {
+	return (
+		<div className="flex flex-wrap items-center gap-2">
+			{chips.map((c) => (
+				<ActiveChip key={c.key} label={c.label} href={c.href} />
+			))}
+			<Link
+				href="/admin/leagues"
+				className="text-[12px] text-ink-3 hover:text-ink underline decoration-dotted underline-offset-2"
+			>
+				Limpiar todo
+			</Link>
 		</div>
 	);
 }

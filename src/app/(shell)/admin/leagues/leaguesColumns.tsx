@@ -8,7 +8,7 @@
 
 import { Badge } from "@/shared/ui/Badge";
 import type { AdminTableColumn } from "@/shared/ui/AdminTable";
-import type { LeagueRow } from "./LeaguesView";
+import type { LeagueAdminRow } from "@/entities/league";
 
 const DAY_LABELS: Record<string, string> = {
 	lunes: "Lunes",
@@ -20,11 +20,11 @@ const DAY_LABELS: Record<string, string> = {
 	domingo: "Domingo",
 };
 
-function LeagueCell({ league }: { league: LeagueRow }) {
+function LeagueCell({ league }: { league: LeagueAdminRow }) {
 	return (
 		<div className="min-w-0">
-			{league.organization && (
-				<p className="text-xs text-ink-3 mb-0.5 truncate">{league.organization.name}</p>
+			{league.organizationName && (
+				<p className="text-xs text-ink-3 mb-0.5 truncate">{league.organizationName}</p>
 			)}
 			<p className="font-display text-[17px] font-bold text-ink truncate leading-tight">
 				{league.name}
@@ -33,10 +33,11 @@ function LeagueCell({ league }: { league: LeagueRow }) {
 	);
 }
 
-export const LEAGUE_COLUMNS: AdminTableColumn<LeagueRow>[] = [
+export const LEAGUE_COLUMNS: AdminTableColumn<LeagueAdminRow>[] = [
 	{
 		key: "name",
 		label: "Liga",
+		sortField: "nombre",
 		render: (l) => <LeagueCell league={l} />,
 	},
 	{
@@ -52,14 +53,15 @@ export const LEAGUE_COLUMNS: AdminTableColumn<LeagueRow>[] = [
 		render: (l) => <span className="text-ink-2">{l.season}</span>,
 	},
 	{
-		key: "teams",
+		key: "teamCount",
 		label: "Equipos",
 		align: "center",
-		render: (l) => <Badge tone="neutral">{(l.teams as unknown[])?.length ?? 0}</Badge>,
+		render: (l) => <Badge tone="neutral">{l.teamCount}</Badge>,
 	},
 	{
 		key: "status",
 		label: "Estado",
+		sortField: "estado",
 		render: (l) =>
 			l.status === "finished" ? (
 				<Badge tone="neutral">Terminada</Badge>

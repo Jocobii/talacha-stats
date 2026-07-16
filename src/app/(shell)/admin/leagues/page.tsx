@@ -1,20 +1,26 @@
-import { getActiveCity } from "@/shared/lib/active-city";
-import { serverFetch } from "@/shared/lib/server-fetch";
-import { LeaguesView, type LeagueRow } from "./LeaguesView";
+/**
+ * /admin/leagues — Lista de ligas
+ *
+ * Server Component "controlador delgado" (AGENTS.md §3.2/§3.7): resuelve la
+ * sesión y delega TODA la carga de datos a features/league-admin (que a su
+ * vez solo llama a entities/). Cero acceso a @/db aquí.
+ * Espejo de app/admin/teams/page.tsx (sin split owner/organizador en la UI:
+ * el scope de datos ya lo resuelve getLeaguesView según el rol).
+ */
 
-async function fetchLeagues(city: string, status: "active" | "finished"): Promise<LeagueRow[]> {
-	const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-	const url = `${base}/api/leagues?city=${encodeURIComponent(city)}&status=${status}`;
-	const res = await serverFetch(url, { cache: "no-store" });
-	return res.ok ? ((await res.json()).data ?? []) : [];
-}
+import { redirect } from "next/navigation";
+import { getSessionUser } from "@/shared/lib/auth";
+import { getLeaguesView } from "@/features/league-admin";
+import { LeaguesView } from "./LeaguesView";
 
-export default async function LeaguesPage() {
-	const city = await getActiveCity();
-	const [active, finished] = await Promise.all([
-		fetchLeagues(city, "active"),
-		fetchLeagues(city, "finished"),
-	]);
+export default async function LeaguesPage({
+	searchParams,
+}: {
+	searchParams: Promise<Record<string, string>>;
+}) {
+	const [user, params] = await Promise.all([getSessionUser(), searchParams]);
+	if (!user) redirect("/login");
 
-	return <LeaguesView city={city} active={active} finished={finished} />;
+	const view = await getLeaguesView(user, params);
+	return <LeaguesView {...view} />;
 }

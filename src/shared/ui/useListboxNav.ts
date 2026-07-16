@@ -19,11 +19,19 @@ export function useListboxNav(
 	const [open, setOpen] = useState(false);
 	const [activeIndex, setActiveIndex] = useState(0);
 	const ref = useRef<HTMLDivElement>(null);
+	// El panel de opciones se renderiza en un portal (ver Listbox.tsx) para
+	// escapar de contenedores con overflow:hidden, así que ya no cuelga del
+	// mismo subárbol que `ref`. Se necesita esta segunda ref para que el
+	// click-afuera no lo confunda con "afuera" y cierre el menú al elegir.
+	const panelRef = useRef<HTMLUListElement>(null);
 
 	useEffect(() => {
 		if (!open) return;
 		function onClick(e: MouseEvent) {
-			if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+			const target = e.target as Node;
+			if (ref.current?.contains(target)) return;
+			if (panelRef.current?.contains(target)) return;
+			setOpen(false);
 		}
 		document.addEventListener("mousedown", onClick);
 		return () => document.removeEventListener("mousedown", onClick);
@@ -78,5 +86,5 @@ export function useListboxNav(
 		}
 	}
 
-	return { open, toggle, activeIndex, setActiveIndex, ref, select, onKeyDown };
+	return { open, toggle, activeIndex, setActiveIndex, ref, panelRef, select, onKeyDown };
 }
