@@ -9,7 +9,7 @@
  */
 
 import { getActiveCity } from "@/shared/lib/active-city";
-import { parseListQuery } from "@/shared/lib/list-query";
+import { parseListQuery, type FilterCondition } from "@/shared/lib/list-query";
 import { leagueFilters } from "@/entities/league/filters";
 import { listLeaguesAdmin, countLeaguesAdmin, type LeagueAdminRow } from "@/entities/league";
 import { buildPagination, type AdminTablePagination } from "@/shared/ui/admin-table.helpers";
@@ -57,12 +57,19 @@ export async function getLeaguesView(
 		maxPageSize: 100,
 	});
 
+	// Día a día solo importan las ligas activas — las terminadas quedan como
+	// histórico y se acceden explícitamente con el filtro "estado" (chip
+	// "Terminada"). Si el usuario no pidió un estado en la URL, se inyecta el
+	// default "active" aquí (backend), no en el front — §17 AGENTS.md.
+	const filtersActive = query.filters.length > 0;
+	const queryForDb = hasEstadoFilter(query.filters)
+		? query
+		: { ...query, filters: [...query.filters, DEFAULT_ESTADO_FILTER] };
+
 	const [{ rows, total }, unfilteredTotal] = await Promise.all([
-		listLeaguesAdmin(scope, query),
+		listLeaguesAdmin(scope, queryForDb),
 		countLeaguesAdmin(scope),
 	]);
-
-	const filtersActive = query.filters.length > 0;
 	const chips = buildLeagueFilterChips({
 		basePath: LEAGUES_BASE_PATH,
 		filters: query.filters,
@@ -87,6 +94,12 @@ export async function getLeaguesView(
 			active: query.sort[0] ?? null,
 		},
 	};
+}
+
+const DEFAULT_ESTADO_FILTER: FilterCondition = { field: "estado", op: "eq", value: "active" };
+
+function hasEstadoFilter(filters: FilterCondition[]): boolean {
+	return filters.some((f) => f.field === "estado");
 }
 
 function toSearchParams(params: Record<string, string>): URLSearchParams {

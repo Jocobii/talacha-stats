@@ -166,7 +166,12 @@ export async function listSuspensionsForScopeDetailed(
 	return rows;
 }
 
-/** Ligas visibles para el usuario — para el selector de liga en el alta manual global (B7b). */
+/**
+ * Ligas visibles para el usuario — para el selector de liga en el alta manual
+ * global (B7b) y el filtro "Todas las ligas" de la vista global. Solo activas:
+ * no tiene sentido registrar/filtrar sanciones sobre una liga ya terminada
+ * desde el flujo de día a día — el histórico se consulta liga por liga.
+ */
 export async function listLeagueOptionsForScope(
 	scope: SuspensionScope,
 	client: DbOrTx = db,
@@ -174,7 +179,12 @@ export async function listLeagueOptionsForScope(
 	return client
 		.select({ id: leagues.id, name: leagues.name })
 		.from(leagues)
-		.where(scope.kind === "org" ? eq(leagues.organizationId, scope.organizationId) : undefined)
+		.where(
+			and(
+				eq(leagues.status, "active"),
+				scope.kind === "org" ? eq(leagues.organizationId, scope.organizationId) : undefined,
+			),
+		)
 		.orderBy(leagues.name);
 }
 
@@ -292,7 +302,10 @@ export async function searchPlayersForDiscipline(
 			.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
 			.innerJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
 			.innerJoin(teams, eq(teams.id, inscriptions.teamId))
-			.where(and(inArray(globalPlayers.id, ids), scopeWhere))
+			// Solo membresías en ligas activas: no tiene sentido ofrecer una liga
+			// terminada como destino al registrar una sanción nueva (§ Registrar
+			// sanción, flujo global).
+			.where(and(inArray(globalPlayers.id, ids), eq(leagues.status, "active"), scopeWhere))
 			.orderBy(leagues.name),
 
 		// Para marcar en el picker qué membresías ya tienen una sanción activa —

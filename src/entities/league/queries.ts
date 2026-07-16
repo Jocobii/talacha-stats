@@ -15,12 +15,14 @@ export type LeagueOption = { id: string; name: string };
 
 /**
  * Ligas de una organización, para poblar selects (ej. filtro "Liga" en
- * /admin/players). Solo id + name — el resto de campos no aplica a un
- * control de FilterBar.
+ * /admin/players y /admin/teams). Solo id + name — el resto de campos no
+ * aplica a un control de FilterBar. Solo activas: son módulos ajenos a ligas
+ * (jugadores/equipos) y las ligas terminadas quedan como histórico, fuera del
+ * flujo de día a día.
  */
 export async function listOrgLeagueOptions(organizationId: string): Promise<LeagueOption[]> {
 	const rows = await db.query.leagues.findMany({
-		where: eq(leagues.organizationId, organizationId),
+		where: and(eq(leagues.organizationId, organizationId), eq(leagues.status, "active")),
 		orderBy: [asc(leagues.name)],
 		columns: { id: true, name: true },
 	});
