@@ -82,15 +82,19 @@ export async function getMatchForResolution(matchId: string): Promise<MatchResol
 			.where(and(eq(inscriptions.teamId, teamId), eq(leagueMembers.leagueId, row.leagueId)))
 			.orderBy(asc(leagueMembers.credentialCode));
 
-	const [homeRoster, awayRoster, existingStats] = await Promise.all([
+	const [homeRoster, awayRoster, existingStats, leagueSuspensions] = await Promise.all([
 		fetchRoster(row.homeTeamId),
 		fetchRoster(row.awayTeamId),
 		db.query.matchPlayerStats.findMany({
 			where: eq(matchPlayerStats.matchId, matchId),
 		}),
+		listActiveSuspensionsByLeague(row.leagueId),
 	]);
 
 	const statsByRegId = new Map(existingStats.map((s) => [s.playerRegistrationId, s]));
+	// Mismo cruce que la cédula impresa (getCedulaDataForMatch): sin esto, un
+	// jugador sancionado aparece disponible para capturar goles/asistencias.
+	const suspendedMap = buildSuspendedMapForMatchDate(leagueSuspensions, row.matchDate);
 
 	const buildPlayerRows = (
 		roster: {
@@ -122,6 +126,7 @@ export async function getMatchForResolution(matchId: string): Promise<MatchResol
 							redCards: stat.redCards,
 						}
 					: null,
+				suspended: suspendedMap.get(p.globalPlayerId) ?? null,
 			};
 		});
 

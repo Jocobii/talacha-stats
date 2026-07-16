@@ -22,6 +22,7 @@ function buildPlayer(overrides: Partial<PlayerResolutionRow> = {}): PlayerResolu
 		credentialCode: 1,
 		isAdHoc: false,
 		stat: null,
+		suspended: null,
 		...overrides,
 	};
 }

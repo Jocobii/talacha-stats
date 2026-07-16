@@ -48,6 +48,7 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 	const [loading, setLoading] = useState(false);
 	const [loadError, setLoadError] = useState<string | null>(null);
 	const [sortearLoading, setSortearLoading] = useState(false);
+	const [createLoading, setCreateLoading] = useState(false);
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 	const [publishLoading, setPublishLoading] = useState(false);
 	const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,6 +60,11 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const matchdayRef = useRef<CockpitMatchday | null>(null);
 	matchdayRef.current = matchday;
+	// Guarda contra doble-creación: loadCurrent puede auto-crear la siguiente
+	// jornada (línea ~73) al mismo tiempo que el usuario hace submit manual
+	// en CreateMatchdayForm. Un ref (no state) porque debe leerse sync dentro
+	// del mismo tick en que se dispara cada llamada.
+	const creatingRef = useRef(false);
 
 	const loadCurrent = useCallback(async () => {
 		setLoading(true);
@@ -69,8 +75,11 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 
 			// Auto-crear la siguiente jornada si no hay activa pero sí hay fecha sugerida.
 			// Esto ocurre al cerrar una jornada: evita mostrar el form de fecha al usuario.
-			if (!data.matchday && data.suggestedNextDate) {
-				const created = await postCreateMatchday(leagueId, data.suggestedNextDate);
+			if (!data.matchday && data.suggestedNextDate && !creatingRef.current) {
+				creatingRef.current = true;
+				const created = await postCreateMatchday(leagueId, data.suggestedNextDate).finally(
+					() => (creatingRef.current = false),
+				);
 				if (created) {
 					// Nueva carga — la jornada recién creada aparece como draft y entra al flujo normal
 					const fresh = await fetchCurrent(leagueId);
@@ -123,7 +132,15 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 
 	const createMatchday = useCallback(
 		async (scheduledDate: string) => {
-			if (await postCreateMatchday(leagueId, scheduledDate)) await loadCurrent();
+			if (creatingRef.current) return;
+			creatingRef.current = true;
+			setCreateLoading(true);
+			try {
+				if (await postCreateMatchday(leagueId, scheduledDate)) await loadCurrent();
+			} finally {
+				creatingRef.current = false;
+				setCreateLoading(false);
+			}
 		},
 		[leagueId, loadCurrent],
 	);
@@ -326,6 +343,7 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 		loading,
 		loadError,
 		sortearLoading,
+		createLoading,
 		saveStatus,
 		publishLoading,
 		drawerOpen,
