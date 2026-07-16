@@ -14,6 +14,7 @@ import { CedulaSearch } from "./CedulaSearch";
 import { CloseMatchdayButton } from "./CloseMatchdayButton";
 import { ReopenPlayoffButton } from "./ReopenPlayoffButton";
 import { ShareJornadaButton } from "./ShareJornadaButton";
+import { PrintCedulaButton } from "./PrintCedulaButton";
 import { STATUS_LABELS } from "@/features/match-resolution/constants";
 import type { ResolutionStatus } from "@/db/schema";
 
@@ -66,6 +67,9 @@ export default async function JornadaDashboardPage({ params }: Params) {
 	const isClosed = matchday.status === "completed" && !isPlayoff;
 	const allCaptured = matches.length > 0 && capturedCount === matches.length;
 	const firstScheduled = matches.find((m) => m.status === "scheduled");
+	// Imprimir cédulas solo con jornada ya publicada (plan §12.3): antes de
+	// eso los partidos/horarios pueden seguir cambiando.
+	const canPrintCedulas = matchday.status !== "draft";
 
 	return (
 		<div className="min-h-screen bg-pitch">
@@ -116,6 +120,17 @@ export default async function JornadaDashboardPage({ params }: Params) {
 
 						{/* Acciones */}
 						<div className="flex items-center gap-3 flex-wrap justify-end">
+							{canPrintCedulas && (
+								<PrintCedulaButton
+									matchdayId={matchdayId}
+									matches={matches.map((m) => ({
+										id: m.id,
+										cedula: m.cedula,
+										homeTeamName: m.homeTeam.name,
+										awayTeamName: m.awayTeam.name,
+									}))}
+								/>
+							)}
 							{!isClosed && (
 								<>
 									<CedulaSearch leagueId={leagueId} matchdayId={matchdayId} />
@@ -174,11 +189,9 @@ export default async function JornadaDashboardPage({ params }: Params) {
 								<th className="px-4 py-3 text-left text-xs text-ink-3 font-medium uppercase tracking-wider">
 									Marcador
 								</th>
-								{!isClosed && (
-									<th className="px-4 py-3 text-right text-xs text-ink-3 font-medium uppercase tracking-wider">
-										Acción
-									</th>
-								)}
+								<th className="px-4 py-3 text-right text-xs text-ink-3 font-medium uppercase tracking-wider">
+									Acción
+								</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-line">
@@ -203,16 +216,26 @@ export default async function JornadaDashboardPage({ params }: Params) {
 												? `${m.homeScore} – ${m.awayScore}`
 												: "—"}
 										</td>
-										{!isClosed && (
-											<td className="px-4 py-3 text-right">
+										<td className="px-4 py-3 text-right space-x-3 whitespace-nowrap">
+											{!isClosed && (
 												<Link
 													href={`/admin/ligas/${leagueId}/jornadas/${matchdayId}/partidos/${m.id}`}
 													className="text-xs font-semibold text-brand-ink hover:text-brand-dim transition-colors"
 												>
 													{m.status === "scheduled" ? "Capturar →" : "Editar →"}
 												</Link>
-											</td>
-										)}
+											)}
+											{canPrintCedulas && (
+												<a
+													href={`/cedula/partido/${m.id}`}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-xs font-semibold text-ink-3 hover:text-ink-2 transition-colors"
+												>
+													Imprimir
+												</a>
+											)}
+										</td>
 									</tr>
 								);
 							})}

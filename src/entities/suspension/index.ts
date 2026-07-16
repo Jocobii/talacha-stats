@@ -27,3 +27,8 @@ export {
 	type SuspensionStatus,
 } from "./model";
 export { isSuspensionActive } from "./lib/is-suspension-active";
+export {
+	formatSuspensionForCedula,
+	type CedulaSuspensionLabel,
+} from "./lib/format-suspension-for-cedula";
+export { buildSuspendedMapForMatchDate } from "./lib/build-suspended-map";

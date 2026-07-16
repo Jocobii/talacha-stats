@@ -100,7 +100,7 @@ Debajo, una **leyenda** chica que explica el marcado: `▨ NO JUEGA = jugador su
 
 - **Jugador normal:** fila limpia, código legible, celdas de anotación abiertas.
 - **Jugador suspendido:** fila con tramado + tag + motivo + celdas bloqueadas. **Nunca** se omite de la lista (tiene que verse que existe pero no juega).
-- **Sin código de credencial** (`null`, caso de migración): mostrar `—` en `#`.
+- **Sin código de credencial** (`null`, caso de migración): **se oculta** de la cédula (decisión de Jocobi, ver `PLAN-CEDULA-IMPRESA.md` §12.2). No se lista con `—`.
 - **Sin dorsal:** columna `DOR` vacía.
 
 ## 5. Comportamiento de impresión

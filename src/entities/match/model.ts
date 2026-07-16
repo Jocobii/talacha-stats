@@ -111,6 +111,41 @@ export type MatchResolutionData = {
 	awayPlayers: PlayerResolutionRow[];
 };
 
+/** Lo mínimo para resolver `canManageLeague` desde una page (§3.3 AGENTS.md: la page llama a entities, no arma queries). */
+export type MatchPermissionContext = {
+	leagueId: string;
+	organizationId: string | null;
+};
+
+// ---------------------------------------------------------------------------
+// Cédula imprimible (docs/PLAN-CEDULA-IMPRESA.md)
+// ---------------------------------------------------------------------------
+
+/** Fila de jugador para la hoja impresa. Sin `credential_code` no aparece (decisión de Jocobi, ver plan §12.2). */
+export type CedulaPlayerRow = {
+	globalPlayerId: string;
+	fullName: string;
+	credentialCode: number;
+	dorsal: number | null;
+	/** null si el jugador puede jugar; si está suspendido, el tag + motivo/plazo a imprimir. */
+	suspended: { tag: string; why: string } | null;
+};
+
+/** Datos completos de un partido para su hoja de cédula imprimible. */
+export type CedulaMatchData = {
+	matchId: string;
+	cedula: string | null;
+	matchdayNumber: number | null;
+	matchDate: string;
+	kickoffAt: Date | null;
+	venueName: string | null;
+	league: { name: string; code: string | null; season: string; category: string | null };
+	homeTeam: { id: string; name: string };
+	awayTeam: { id: string; name: string };
+	homePlayers: CedulaPlayerRow[];
+	awayPlayers: CedulaPlayerRow[];
+};
+
 export type PlayerResolutionRow = {
 	registrationId: string;
 	playerProfileId: string | null;

@@ -1,5 +1,11 @@
 // entities/match/index.ts
-export type { MatchWithRelations, MatchResolutionData, PlayerResolutionRow } from "./model";
+export type {
+	MatchWithRelations,
+	MatchResolutionData,
+	PlayerResolutionRow,
+	CedulaMatchData,
+	CedulaPlayerRow,
+} from "./model";
 export type {
 	MatchStatus,
 	MatchPlayerStatInput,
