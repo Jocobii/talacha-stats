@@ -64,7 +64,9 @@ export async function getMatchForResolution(matchId: string): Promise<MatchResol
 
 	if (!row) return null;
 
-	// Consulta del roster del equipo via inscriptions → leagueMembers → globalPlayers
+	// Consulta del roster del equipo via inscriptions → leagueMembers → globalPlayers.
+	// Se ordena por credentialCode (mismo criterio que fetchCedulaRoster) para que
+	// el orden en pantalla coincida con el de la cédula impresa que trae el árbitro.
 	const fetchRoster = (teamId: string) =>
 		db
 			.select({
@@ -72,11 +74,13 @@ export async function getMatchForResolution(matchId: string): Promise<MatchResol
 				globalPlayerId: globalPlayers.id,
 				fullName: globalPlayers.fullName,
 				dorsal: leagueMembers.dorsal,
+				credentialCode: leagueMembers.credentialCode,
 			})
 			.from(inscriptions)
 			.innerJoin(leagueMembers, eq(inscriptions.leagueMemberId, leagueMembers.id))
 			.innerJoin(globalPlayers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
-			.where(and(eq(inscriptions.teamId, teamId), eq(leagueMembers.leagueId, row.leagueId)));
+			.where(and(eq(inscriptions.teamId, teamId), eq(leagueMembers.leagueId, row.leagueId)))
+			.orderBy(asc(leagueMembers.credentialCode));
 
 	const [homeRoster, awayRoster, existingStats] = await Promise.all([
 		fetchRoster(row.homeTeamId),
@@ -94,6 +98,7 @@ export async function getMatchForResolution(matchId: string): Promise<MatchResol
 			globalPlayerId: string;
 			fullName: string;
 			dorsal: number | null;
+			credentialCode: number | null;
 		}[],
 	): PlayerResolutionRow[] =>
 		roster.map((p) => {
@@ -103,6 +108,7 @@ export async function getMatchForResolution(matchId: string): Promise<MatchResol
 				playerProfileId: p.globalPlayerId,
 				fullName: p.fullName,
 				jerseyNumber: p.dorsal,
+				credentialCode: p.credentialCode,
 				isAdHoc: false,
 				stat: stat
 					? {

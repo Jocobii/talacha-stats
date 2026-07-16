@@ -23,6 +23,9 @@ export async function resolveMatch(
 ): Promise<void> {
 	const isClearStatus = (CLEAR_STATS_STATUSES as readonly string[]).includes(input.status);
 	const isWalkover = input.status === "walkover_home" || input.status === "walkover_away";
+	// W.O. ya no bloquea la lista: se guardan goles/tarjetas/asistencias igual
+	// que un partido jugado, solo cambia el marcador (fijo 3-0).
+	const shouldSaveStats = input.status === "played" || isWalkover;
 
 	await db.transaction(async (tx) => {
 		// 1. Limpiar stats si el status no tiene jugadores
@@ -40,8 +43,8 @@ export async function resolveMatch(
 					awayBonusGoals: input.awayBonusGoals,
 				};
 
-		// 3. Upsert stats de jugadores si es partido jugado
-		if (input.status === "played") {
+		// 3. Upsert stats de jugadores si es partido jugado o W.O.
+		if (shouldSaveStats) {
 			const allPlayers = [
 				...input.homePlayers.map((p) => ({ ...p, side: "home" as const })),
 				...input.awayPlayers.map((p) => ({ ...p, side: "away" as const })),
@@ -95,7 +98,7 @@ export async function resolveMatch(
 			// 6. Motor de disciplina (B3/B4, §5.2 docs/MODULOS-GESTION-LIGA.md):
 			// roja directa y acumulación de amarillas materializan suspensiones
 			// dentro de la misma tx, sobre las stats recién escritas en el paso 3.
-			if (input.status === "played") {
+			if (shouldSaveStats) {
 				await applyCardDiscipline(tx, matchId, updated.leagueId);
 			}
 

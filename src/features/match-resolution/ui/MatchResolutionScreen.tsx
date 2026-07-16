@@ -12,10 +12,11 @@ import { ResolutionFooter } from "./ResolutionFooter";
 import { MatchdaySidebar } from "./MatchdaySidebar";
 import { useMatchResolution } from "../model/use-match-resolution";
 import { useKeyboardNav, focusFirstStatInput } from "../model/use-keyboard-nav";
-import { validateResolution } from "../lib/validate-resolution";
+import { CLEAR_STATS_STATUSES } from "../constants";
+import { isTeamListDisabled } from "../lib/team-list-lock";
+import { isWalkoverStatus } from "../lib/walkover-defaults";
 import type { MatchResolutionData } from "@/entities/match/model";
 import type { TeamSide, PlayerStatDraft } from "../types";
-import type { ResolutionStatus } from "@/db/schema";
 
 type SidebarMatch = {
 	id: string;
@@ -54,8 +55,18 @@ export function MatchResolutionScreen({
 }: Props) {
 	const capturedCount = sidebarMatches.filter((m) => CAPTURED_STATUSES.has(m.status)).length;
 	const router = useRouter();
-	const { state, saveStatus, lastSavedAt, updatePlayerStat, updateMatchField, addPlayer, saveAll } =
-		useMatchResolution(initialData);
+	const {
+		state,
+		saveStatus,
+		lastSavedAt,
+		updatePlayerStat,
+		updateMatchField,
+		addPlayer,
+		saveAll,
+		homeGoalGap,
+		awayGoalGap,
+		hasGoalMismatch,
+	} = useMatchResolution(initialData);
 	const [adHocSide, setAdHocSide] = useState<TeamSide | null>(null);
 
 	useEffect(() => {
@@ -63,40 +74,9 @@ export function MatchResolutionScreen({
 	}, []);
 
 	const handleSaveNext = useCallback(async () => {
-		const warnings = validateResolution({
-			status: state.status as ResolutionStatus,
-			homeScore: state.homeScore,
-			awayScore: state.awayScore,
-			homeBonusGoals: state.homeBonusGoals,
-			awayBonusGoals: state.awayBonusGoals,
-			refereeObservations: state.refereeObservations,
-			homePlayers: state.homePlayers.map((p) => ({
-				playerRegistrationId: p.registrationId,
-				isPresent: p.isPresent,
-				shirtNumber: p.shirtNumber,
-				goals: p.goals,
-				assists: p.assists,
-				yellowCards: p.yellowCards,
-				blueCards: p.blueCards,
-				redCards: p.redCards,
-			})),
-			awayPlayers: state.awayPlayers.map((p) => ({
-				playerRegistrationId: p.registrationId,
-				isPresent: p.isPresent,
-				shirtNumber: p.shirtNumber,
-				goals: p.goals,
-				assists: p.assists,
-				yellowCards: p.yellowCards,
-				blueCards: p.blueCards,
-				redCards: p.redCards,
-			})),
-		});
-		const hasGap = warnings.some((w) => w.code === "home_gap" || w.code === "away_gap");
-		if (
-			hasGap &&
-			!confirm("Hay diferencias entre el marcador y la suma de goles. ¿Guardar de todos modos?")
-		)
-			return;
+		// El botón ya se deshabilita con el mismatch (ver ScoreHeader); esta guarda
+		// es defensiva por si se dispara vía atajo de teclado (Mod+Enter).
+		if (hasGoalMismatch) return;
 
 		const result = await saveAll();
 		if (!result) return;
@@ -105,7 +85,7 @@ export function MatchResolutionScreen({
 		} else {
 			router.push(`/admin/ligas/${leagueId}/jornadas/${matchdayId}`);
 		}
-	}, [state, saveAll, router, leagueId, matchdayId]);
+	}, [hasGoalMismatch, saveAll, router, leagueId, matchdayId]);
 
 	useKeyboardNav({
 		onSave: () => saveAll(),
@@ -115,9 +95,15 @@ export function MatchResolutionScreen({
 		onAddPlayerAway: () => setAdHocSide("away"),
 	});
 
-	const isLocked = ["walkover_home", "walkover_away", "suspended", "postponed"].includes(
-		state.status,
-	);
+	// Suspendido/Pospuesto bloquean ambas listas (no hubo partido). Un W.O.
+	// bloquea solo la lista del equipo que no se presentó — la del equipo que
+	// sí llegó queda habilitada para tomar asistencia.
+	const isLocked = (CLEAR_STATS_STATUSES as readonly string[]).includes(state.status);
+	const homeListDisabled = isTeamListDisabled(state.status, "home");
+	const awayListDisabled = isTeamListDisabled(state.status, "away");
+	// En cualquier W.O. los goles del ganador van a "goles de equipo", nunca
+	// por jugador — se bloquea la columna de goles en ambos equipos.
+	const goalsLocked = isLocked || isWalkoverStatus(state.status);
 
 	const handleAdded = useCallback(
 		(side: TeamSide, player: PlayerStatDraft) => {
@@ -150,6 +136,7 @@ export function MatchResolutionScreen({
 					capturedCount={capturedCount}
 					totalMatches={sidebarMatches.length}
 					matchdayLabel={matchdayLabel}
+					hasGoalMismatch={hasGoalMismatch}
 					onScoreChange={(side, v) =>
 						updateMatchField(side === "home" ? "homeScore" : "awayScore", v)
 					}
@@ -161,8 +148,11 @@ export function MatchResolutionScreen({
 						side="home"
 						teamName={initialData.homeTeam.name}
 						players={state.homePlayers}
+						goalGap={homeGoalGap}
 						bonusGoals={state.homeBonusGoals}
-						disabled={isLocked}
+						disabled={homeListDisabled}
+						goalsLocked={goalsLocked}
+						absent={state.status === "walkover_away"}
 						onStatChange={(id, field, val) => updatePlayerStat("home", id, field, val)}
 						onBonusChange={(v) => updateMatchField("homeBonusGoals", v)}
 						onAddPlayer={() => setAdHocSide("home")}
@@ -171,8 +161,11 @@ export function MatchResolutionScreen({
 						side="away"
 						teamName={initialData.awayTeam.name}
 						players={state.awayPlayers}
+						goalGap={awayGoalGap}
 						bonusGoals={state.awayBonusGoals}
-						disabled={isLocked}
+						disabled={awayListDisabled}
+						goalsLocked={goalsLocked}
+						absent={state.status === "walkover_home"}
 						onStatChange={(id, field, val) => updatePlayerStat("away", id, field, val)}
 						onBonusChange={(v) => updateMatchField("awayBonusGoals", v)}
 						onAddPlayer={() => setAdHocSide("away")}

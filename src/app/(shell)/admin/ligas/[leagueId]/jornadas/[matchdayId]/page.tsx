@@ -73,7 +73,7 @@ export default async function JornadaDashboardPage({ params }: Params) {
 
 	return (
 		<div className="min-h-screen bg-pitch">
-			<div className="max-w-3xl mx-auto px-4 py-8">
+			<div className="w-full px-6 py-8">
 				{/* Cabecera */}
 				<div className="mb-6">
 					<p className="text-xs text-ink-3 mb-2">
@@ -83,9 +83,9 @@ export default async function JornadaDashboardPage({ params }: Params) {
 						>
 							{league.name}
 						</Link>
-						<span className="mx-1.5 text-ink-3">·</span>
+						<span className="mx-1.5 text-ink-3">&gt;</span>
 						{isPlayoff ? "Fase Final" : `Jornada ${matchday.number}`}
-						<span className="mx-1.5 text-ink-3">·</span>
+						<span className="mx-1.5 text-ink-3">&gt;</span>
 						{matchday.scheduledDate}
 					</p>
 					<div className="flex items-start justify-between gap-4 flex-wrap">

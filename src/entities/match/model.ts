@@ -145,6 +145,8 @@ export type PlayerResolutionRow = {
 	playerProfileId: string | null;
 	fullName: string;
 	jerseyNumber: number | null;
+	/** Código de credencial (league_members.credential_code). null = ad-hoc/sin credencial. */
+	credentialCode: number | null;
 	isAdHoc: boolean;
 	/** Stats existentes, null si el partido nunca fue capturado */
 	stat: {

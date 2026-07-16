@@ -3,7 +3,7 @@
  * features/match-resolution/ui/ScoreHeader.tsx
  * Cabecera con marcador editable, pills informativos, status y botón de guardado.
  */
-import { Save } from "lucide-react";
+import { Save, AlertTriangle } from "lucide-react";
 import { StatusDropdown } from "./StatusDropdown";
 import type { MatchResolutionData } from "@/entities/match/model";
 import type { ResolutionState, SaveStatus } from "../types";
@@ -17,6 +17,7 @@ type Props = {
 	capturedCount: number;
 	totalMatches: number;
 	matchdayLabel?: string; // overrides "JN" pill (used for playoff rounds)
+	hasGoalMismatch: boolean;
 	onScoreChange: (side: "home" | "away", value: number | null) => void;
 	onStatusChange: (status: ResolutionStatus) => void;
 	onSaveNext: () => void;
@@ -38,6 +39,7 @@ export function ScoreHeader({
 	capturedCount,
 	totalMatches,
 	matchdayLabel,
+	hasGoalMismatch,
 	onScoreChange,
 	onStatusChange,
 	onSaveNext,
@@ -106,12 +108,23 @@ export function ScoreHeader({
 						<StatusDropdown value={state.status} onChange={onStatusChange} />
 						<button
 							onClick={onSaveNext}
-							className="flex items-center gap-1.5 bg-brand hover:bg-brand-dim text-pitch text-sm font-bold px-3 py-1.5 rounded transition-colors"
+							disabled={hasGoalMismatch}
+							title={
+								hasGoalMismatch ? "Los goles capturados no coinciden con el marcador" : undefined
+							}
+							className="flex items-center gap-1.5 bg-brand hover:bg-brand-dim text-pitch text-sm font-bold px-3 py-1.5 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-brand"
 						>
 							<Save size={14} />
 							Guardar y siguiente
 						</button>
 					</div>
+
+					{hasGoalMismatch && (
+						<div className="flex items-center gap-1.5 text-xs font-semibold text-rose">
+							<AlertTriangle size={13} />
+							Los goles no coinciden con el marcador — corrígelos para poder guardar
+						</div>
+					)}
 
 					{/* Barra de progreso de jornada */}
 					{totalMatches > 0 && (

@@ -3,7 +3,7 @@
  * features/match-resolution/model/use-match-resolution.ts
  * Hook principal de estado para la pantalla de captura de partidos.
  */
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import type {
 	MatchResolutionData,
 	AutosaveStatInput,
@@ -11,8 +11,11 @@ import type {
 	ResolveMatchInput,
 } from "@/entities/match";
 import type { ResolutionState, PlayerStatDraft, TeamSide, SaveStatus } from "../types";
-import { AUTOSAVE_DEBOUNCE_MS } from "../constants";
+import { AUTOSAVE_DEBOUNCE_MS, CLEAR_STATS_STATUSES } from "../constants";
 import { patchPlayerStat, patchMatchFields, resolveMatch } from "../lib/match-resolution-api";
+import { applyWalkoverStatusChange, isWalkoverStatus } from "../lib/walkover-defaults";
+import { autoMarkPlayedOnScore } from "../lib/auto-status";
+import { computeTeamGoals, computeAttributionGap } from "../lib/compute-totals";
 
 function buildInitialState(data: MatchResolutionData): ResolutionState {
 	const toPlayerDraft = (p: MatchResolutionData["homePlayers"][number]): PlayerStatDraft => ({
@@ -20,6 +23,7 @@ function buildInitialState(data: MatchResolutionData): ResolutionState {
 		playerProfileId: p.playerProfileId,
 		fullName: p.fullName,
 		jerseyNumber: p.jerseyNumber,
+		credentialCode: p.credentialCode,
 		isAdHoc: p.isAdHoc,
 		isPresent: p.stat?.isPresent ?? false,
 		shirtNumber: p.stat?.shirtNumber ?? p.jerseyNumber ?? null,
@@ -68,6 +72,11 @@ export type UseMatchResolutionReturn = {
 	) => void;
 	addPlayer: (side: TeamSide, player: PlayerStatDraft) => void;
 	saveAll: () => Promise<{ nextMatchId: string | null } | null>;
+	/** Marcador global − (goles de jugadores + goles de equipo). 0 = cuadra. */
+	homeGoalGap: number;
+	awayGoalGap: number;
+	/** true si hay diferencia de goles en un status donde eso bloquea el guardado. */
+	hasGoalMismatch: boolean;
 };
 
 export function useMatchResolution(initialData: MatchResolutionData): UseMatchResolutionReturn {
@@ -131,7 +140,14 @@ export function useMatchResolution(initialData: MatchResolutionData): UseMatchRe
 
 	const updateMatchField = useCallback(
 		(field: string, value: number | string | null) => {
-			setState((prev) => ({ ...prev, [field]: value }));
+			setState((prev) => {
+				if (field === "status" && typeof value === "string" && isWalkoverStatus(value)) {
+					return applyWalkoverStatusChange(prev, value);
+				}
+				const next = { ...prev, [field]: value };
+				// Capturar ambos marcadores globales pasa el status a "played" solo.
+				return field === "homeScore" || field === "awayScore" ? autoMarkPlayedOnScore(next) : next;
+			});
 			if (field === "status") return; // status no se autosavea aquí
 
 			scheduleAutosave(`match-${field}`, async () => {
@@ -198,5 +214,39 @@ export function useMatchResolution(initialData: MatchResolutionData): UseMatchRe
 		}
 	}, [state]);
 
-	return { state, saveStatus, lastSavedAt, updatePlayerStat, updateMatchField, addPlayer, saveAll };
+	const homeGoalGap = useMemo(
+		() =>
+			computeAttributionGap(
+				state.homeScore,
+				computeTeamGoals(state.homePlayers),
+				state.homeBonusGoals,
+			),
+		[state.homeScore, state.homePlayers, state.homeBonusGoals],
+	);
+	const awayGoalGap = useMemo(
+		() =>
+			computeAttributionGap(
+				state.awayScore,
+				computeTeamGoals(state.awayPlayers),
+				state.awayBonusGoals,
+			),
+		[state.awayScore, state.awayPlayers, state.awayBonusGoals],
+	);
+	// Suspendido/Pospuesto no tienen lista editable — el gap no debe bloquear ahí.
+	const hasGoalMismatch =
+		!(CLEAR_STATS_STATUSES as readonly string[]).includes(state.status) &&
+		(homeGoalGap !== 0 || awayGoalGap !== 0);
+
+	return {
+		state,
+		saveStatus,
+		lastSavedAt,
+		updatePlayerStat,
+		updateMatchField,
+		addPlayer,
+		saveAll,
+		homeGoalGap,
+		awayGoalGap,
+		hasGoalMismatch,
+	};
 }

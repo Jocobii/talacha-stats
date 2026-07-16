@@ -3,6 +3,7 @@
  * Sub-componente de la página de calendario (Server Component).
  */
 import Link from "next/link";
+import { CalendarCheck, MapPin } from "lucide-react";
 
 type MatchRow = {
 	id: string;
@@ -13,6 +14,8 @@ type MatchRow = {
 	matchDate: string;
 	status: string;
 	isMakeup: boolean;
+	homeScore: number | null;
+	awayScore: number | null;
 };
 
 export type MatchdayWithMatches = {
@@ -39,6 +42,13 @@ const MATCHDAY_STATUS_BADGE: Record<string, string> = {
 	published: "bg-blue/10 text-blue",
 	in_progress: "bg-amber/10 text-amber",
 	completed: "bg-brand/10 text-brand-ink",
+};
+
+const MATCHDAY_STATUS_LABELS: Record<string, string> = {
+	draft: "Borrador",
+	published: "Publicada",
+	in_progress: "En progreso",
+	completed: "Cerrada",
 };
 
 const MATCH_STATUS_PILL: Record<string, string> = {
@@ -104,12 +114,13 @@ export function MatchdayCard({
 									: `Jornada ${md.number}`}
 						</span>
 						{isClosed ? (
-							<span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-green-600/10 text-green-700 border border-green-600/20">
-								✓ Cerrada
+							<span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-green-600/10 text-green-700 border border-green-600/20 flex items-center gap-1">
+								<CalendarCheck size={11} strokeWidth={2.5} />
+								Cerrada
 							</span>
 						) : (
 							<span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badgeClass}`}>
-								{md.status}
+								{MATCHDAY_STATUS_LABELS[md.status] ?? md.status}
 							</span>
 						)}
 					</div>
@@ -118,10 +129,10 @@ export function MatchdayCard({
 						{!isClosed && (
 							<Link
 								href={`/admin/ligas/${md.leagueId}/jornadas/${md.id}`}
-								className={`text-xs font-semibold px-2.5 py-1 rounded transition-colors border ${
+								className={`text-xs font-bold px-3 py-1.5 rounded transition-colors ${
 									allDone
-										? "bg-surface-2 text-ink-2 hover:bg-surface-3 border-line"
-										: "text-brand-ink bg-brand/10 hover:bg-brand/20 border-brand/20"
+										? "bg-surface-2 text-ink-2 hover:bg-surface-3 border border-line"
+										: "bg-brand hover:bg-brand-dim text-pitch"
 								}`}
 							>
 								{allDone ? "Ver →" : captured === 0 ? "Capturar →" : "Continuar →"}
@@ -182,8 +193,16 @@ export function MatchdayCard({
 
 								{/* Cancha */}
 								{m.venueName && (
-									<span className="text-xs text-ink-3 shrink-0 hidden sm:block">
-										📍 {m.venueName}
+									<span className="text-xs text-ink-3 shrink-0 hidden sm:flex items-center gap-1">
+										<MapPin size={11} strokeWidth={2} />
+										{m.venueName}
+									</span>
+								)}
+
+								{/* Marcador — solo en partidos ya capturados */}
+								{isCaptured && m.homeScore !== null && m.awayScore !== null && (
+									<span className="text-xs font-mono text-ink-2 shrink-0">
+										{m.homeScore}–{m.awayScore}
 									</span>
 								)}
 

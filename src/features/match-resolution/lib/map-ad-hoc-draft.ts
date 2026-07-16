@@ -22,6 +22,7 @@ export function mapAdHocResultToDraft(
 		playerProfileId: result.playerProfileId,
 		fullName: form.fullName.trim(),
 		jerseyNumber: form.shirtNumber,
+		credentialCode: result.credentialCode,
 		isAdHoc: true,
 		isPresent: true,
 		shirtNumber: form.shirtNumber,

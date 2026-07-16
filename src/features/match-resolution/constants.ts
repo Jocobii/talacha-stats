@@ -45,4 +45,11 @@ export const STATUS_LABELS: Record<ResolutionStatus, string> = {
 };
 
 export const WALKOVER_STATUSES = ["walkover_home", "walkover_away"] as const;
-export const CLEAR_STATS_STATUSES = ["suspended", "postponed", ...WALKOVER_STATUSES] as const;
+
+/**
+ * Statuses que bloquean la lista y borran stats capturadas (no hubo
+ * partido). Un W.O. ya NO entra aquí: el marcador se fija en 3-0 pero la
+ * lista de asistencia/goles/tarjetas sigue editable y se guarda igual que
+ * un partido jugado.
+ */
+export const CLEAR_STATS_STATUSES = ["suspended", "postponed"] as const;

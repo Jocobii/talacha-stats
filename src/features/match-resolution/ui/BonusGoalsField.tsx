@@ -7,15 +7,15 @@ type Props = {
 	value: number;
 	onChange: (v: number) => void;
 	disabled?: boolean;
+	title?: string;
 };
 
-export function BonusGoalsField({ value, onChange, disabled }: Props) {
+const DEFAULT_TITLE = "Goles no atribuibles a jugador. Ej: gol por llegada tardía del rival";
+
+export function BonusGoalsField({ value, onChange, disabled, title }: Props) {
 	return (
 		<div className="flex items-center gap-2 px-3 py-2 border-t border-line">
-			<label
-				className="text-xs text-ink-3 flex-1"
-				title="Goles no atribuibles a jugador. Ej: gol por llegada tardía del rival"
-			>
+			<label className="text-xs text-ink-3 flex-1" title={title ?? DEFAULT_TITLE}>
 				Goles de equipo
 			</label>
 			<input
