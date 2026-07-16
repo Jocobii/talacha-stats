@@ -13,9 +13,17 @@ type KeyboardNavCallbacks = {
 	onAddPlayerAway: () => void;
 };
 
-/** Enfoca el primer input de goles en el panel local */
+/**
+ * Enfoca el primer input de stats disponible. Excluye además las celdas de
+ * goles bloqueadas por W.O. (`data-goals-locked`) — no tienen el atributo
+ * `disabled` nativo (para poder mostrar el error al intentar escribir), así
+ * que el autofocus al montar la pantalla las saltaría y dispararía el error
+ * sin que el usuario haya hecho nada.
+ */
 export function focusFirstStatInput(): void {
-	const input = document.querySelector<HTMLInputElement>("[data-stat-input]:not([disabled])");
+	const input = document.querySelector<HTMLInputElement>(
+		"[data-stat-input]:not([disabled]):not([data-goals-locked])",
+	);
 	input?.focus();
 }
 

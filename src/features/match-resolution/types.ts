@@ -26,6 +26,8 @@ export type PlayerStatDraft = {
 	playerProfileId: string | null;
 	fullName: string;
 	jerseyNumber: number | null;
+	/** Código de credencial (mismo que en la cédula impresa). null = ad-hoc/sin credencial. */
+	credentialCode: number | null;
 	isAdHoc: boolean;
 	isPresent: boolean;
 	shirtNumber: number | null;

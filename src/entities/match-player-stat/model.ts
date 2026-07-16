@@ -14,4 +14,6 @@ export type { MatchPlayerStat };
 export type AdHocPlayerResult = {
 	registrationId: string;
 	playerProfileId: string;
+	/** Código de credencial asignado al alta (también aparece en la cédula). */
+	credentialCode: number;
 };

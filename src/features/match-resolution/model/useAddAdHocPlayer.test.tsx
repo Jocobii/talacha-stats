@@ -15,7 +15,7 @@ describe("useAddAdHocPlayer", () => {
 	it("hace POST al endpoint del partido y devuelve el AdHocPlayerResult", async () => {
 		mockedApiFetch.mockResolvedValue({
 			ok: true,
-			data: { registrationId: "r1", playerProfileId: "p1" },
+			data: { registrationId: "r1", playerProfileId: "p1", credentialCode: 42 },
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any);
 
@@ -25,7 +25,11 @@ describe("useAddAdHocPlayer", () => {
 		result.current.mutate({ teamSide: "home", fullName: "  Juan  ", shirtNumber: 7 });
 
 		await waitFor(() => expect(result.current.isSuccess).toBe(true));
-		expect(result.current.data).toEqual({ registrationId: "r1", playerProfileId: "p1" });
+		expect(result.current.data).toEqual({
+			registrationId: "r1",
+			playerProfileId: "p1",
+			credentialCode: 42,
+		});
 		// El nombre se recorta antes de mandarse.
 		expect(mockedApiFetch).toHaveBeenCalledWith("/api/matches/M1/players", {
 			method: "POST",

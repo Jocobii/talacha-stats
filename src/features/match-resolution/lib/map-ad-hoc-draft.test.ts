@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { mapAdHocResultToDraft } from "./map-ad-hoc-draft";
 
-const result = { registrationId: "r1", playerProfileId: "p1" };
+const result = { registrationId: "r1", playerProfileId: "p1", credentialCode: 42 };
 
 describe("mapAdHocResultToDraft", () => {
 	it("combina la respuesta del API con el formulario y arma el draft", () => {
@@ -11,6 +11,7 @@ describe("mapAdHocResultToDraft", () => {
 			playerProfileId: "p1",
 			fullName: "Juan García",
 			jerseyNumber: 7,
+			credentialCode: 42,
 			isAdHoc: true,
 			isPresent: true,
 			shirtNumber: 7,

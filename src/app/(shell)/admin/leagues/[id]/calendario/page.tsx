@@ -60,6 +60,8 @@ async function fetchCalendar(leagueId: string): Promise<MatchdayWithMatches[]> {
 			matchDate: m.matchDate,
 			status: m.status,
 			isMakeup: m.isMakeup,
+			homeScore: m.homeScore,
+			awayScore: m.awayScore,
 		});
 	}
 

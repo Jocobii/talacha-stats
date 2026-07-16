@@ -112,6 +112,6 @@ export async function addAdHocPlayer(input: AddAdHocInput): Promise<AdHocPlayerR
 			redCards: 0,
 		});
 
-		return { registrationId: inscription.id, playerProfileId: player.id };
+		return { registrationId: inscription.id, playerProfileId: player.id, credentialCode };
 	});
 }

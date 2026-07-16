@@ -4,7 +4,7 @@
  * Selector de estado del partido con confirmaciones para acciones destructivas.
  */
 import { useState } from "react";
-import { STATUS_LABELS, WALKOVER_STATUSES, CLEAR_STATS_STATUSES } from "../constants";
+import { STATUS_LABELS, CLEAR_STATS_STATUSES } from "../constants";
 import type { ResolutionStatus } from "@/db/schema";
 
 const RESOLUTION_STATUS_OPTIONS: ResolutionStatus[] = [
@@ -22,8 +22,6 @@ type Props = {
 	disabled?: boolean;
 };
 
-const WALKOVER_CONFIRM =
-	"Esto establecerá el marcador a 3-0 y limpiará todas las estadísticas de jugadores. ¿Continuar?";
 const CLEAR_CONFIRM =
 	"Esto borrará las estadísticas capturadas. El partido quedará disponible para reprogramar. ¿Continuar?";
 
@@ -48,10 +46,6 @@ export function StatusDropdown({ value, onChange, disabled }: Props) {
 		}
 	};
 
-	const isWalkover = pendingStatus
-		? (WALKOVER_STATUSES as readonly string[]).includes(pendingStatus)
-		: false;
-
 	return (
 		<>
 			<select
@@ -70,9 +64,7 @@ export function StatusDropdown({ value, onChange, disabled }: Props) {
 			{pendingStatus && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
 					<div className="bg-surface border border-line rounded-lg p-6 max-w-sm w-full shadow-2xl mx-4">
-						<p className="text-sm text-ink-2 mb-4">
-							{isWalkover ? WALKOVER_CONFIRM : CLEAR_CONFIRM}
-						</p>
+						<p className="text-sm text-ink-2 mb-4">{CLEAR_CONFIRM}</p>
 						<div className="flex gap-2 justify-end">
 							<button
 								onClick={() => setPendingStatus(null)}
