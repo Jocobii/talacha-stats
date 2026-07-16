@@ -19,6 +19,7 @@ import {
 	resolveUniqueCode,
 } from "@/features/league-management/lib/generate-league-code";
 import { seedLeagueConfig } from "@/features/tournament-rules/seed-league-config";
+import { seedLeagueSchedulingConfig } from "@/features/scheduling/config/seed-league-scheduling-config";
 import { QuickCreateLeagueSchema, type QuickCreateLeagueInput } from "./model/league-form-schema";
 
 // El contrato (schema + tipo) vive en model/league-form-schema.ts — FUENTE
@@ -139,6 +140,16 @@ export async function quickCreateLeague(
 		} catch (seedError) {
 			console.error(
 				"[league-onboarding/quick-create] fallo al sembrar league_config desde organization_config",
+				seedError,
+			);
+		}
+
+		// Sorteo: mismo copy-on-create best-effort que el reglamento (Épica Q).
+		try {
+			await seedLeagueSchedulingConfig(db, createdLeague.id, organizationId ?? null);
+		} catch (seedError) {
+			console.error(
+				"[league-onboarding/quick-create] fallo al sembrar league_scheduling_config desde organization_scheduling_config",
 				seedError,
 			);
 		}

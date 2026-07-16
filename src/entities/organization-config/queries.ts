@@ -7,6 +7,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organizationConfig } from "@/db/schema";
+import { DEFAULT_TIEBREAKERS } from "@/entities/league-config";
 import type { OrganizationConfigDto } from "./model";
 
 type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -35,6 +36,28 @@ export async function findOrganizationConfig(
 		.where(eq(organizationConfig.organizationId, organizationId))
 		.limit(1);
 	return rows[0] ?? null;
+}
+
+/**
+ * Config resuelta con defaults en memoria cuando la organización nunca
+ * guardó un default propio — mismo patrón que findLeagueConfigOrDefaults.
+ */
+export async function findOrganizationConfigOrDefaults(
+	organizationId: string,
+): Promise<OrganizationConfigDto> {
+	const config = await findOrganizationConfig(organizationId);
+	if (config) return config;
+	return {
+		organizationId,
+		pointsWin: 3,
+		pointsDraw: 1,
+		tiebreakers: DEFAULT_TIEBREAKERS,
+		yellowThreshold: 5,
+		redCardMatches: 1,
+		blueCardMeaning: "temp",
+		reinforcementLimit: null,
+		financeLevel: 0,
+	};
 }
 
 export async function upsertOrganizationConfig(

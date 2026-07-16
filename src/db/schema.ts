@@ -647,6 +647,10 @@ export const organizationsRelations = relations(organizations, ({ one, many }) =
 		fields: [organizations.id],
 		references: [organizationConfig.organizationId],
 	}),
+	schedulingConfig: one(organizationSchedulingConfig, {
+		fields: [organizations.id],
+		references: [organizationSchedulingConfig.organizationId],
+	}),
 }));
 
 export const organizationThemesRelations = relations(organizationThemes, ({ one }) => ({
@@ -1283,6 +1287,41 @@ export const organizationConfigRelations = relations(organizationConfig, ({ one 
 		references: [organizations.id],
 	}),
 }));
+
+// ---------------------------------------------------------------------------
+// ORGANIZATION_SCHEDULING_CONFIG — Default de parámetros de sorteo por
+// organización (docs/ORG-PROFILE-HUB.md §3, Épica Q). Se COPIA a
+// league_scheduling_config al crear una liga nueva — mismo principio
+// copy-on-create que organization_config. Nunca se congela. Sin lastSeed
+// (es estado de ejecución de un sorteo concreto, no una plantilla).
+// ---------------------------------------------------------------------------
+export const organizationSchedulingConfig = pgTable("organization_scheduling_config", {
+	organizationId: uuid("organization_id")
+		.primaryKey()
+		.references(() => organizations.id, { onDelete: "cascade" }),
+	// null = automático (teamsCount - 1 al crear la liga). Un número explícito
+	// = "esta organización siempre juega N jornadas regulares" (docs §1 D-2).
+	regularMatchdays: integer("regular_matchdays"),
+	regularFormat: text("regular_format").notNull().default("single"),
+	matchDurationMinutes: integer("match_duration_minutes").notNull().default(50),
+	bufferMinutes: integer("buffer_minutes").notNull().default(0),
+	allowDuplicateMatchups: boolean("allow_duplicate_matchups").notNull().default(false),
+	noRepeatWithin: integer("no_repeat_within").notNull().default(3),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type OrganizationSchedulingConfig = typeof organizationSchedulingConfig.$inferSelect;
+export type NewOrganizationSchedulingConfig = typeof organizationSchedulingConfig.$inferInsert;
+
+export const organizationSchedulingConfigRelations = relations(
+	organizationSchedulingConfig,
+	({ one }) => ({
+		organization: one(organizations, {
+			fields: [organizationSchedulingConfig.organizationId],
+			references: [organizations.id],
+		}),
+	}),
+);
 
 // ---------------------------------------------------------------------------
 // SUSPENSIONS — Disciplina (Épica B, §5.2 docs/MODULOS-GESTION-LIGA.md).

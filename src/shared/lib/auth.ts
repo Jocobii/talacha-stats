@@ -87,3 +87,13 @@ export function canManageLeague(user: SessionUser, leagueOrganizationId: string 
 	if (!user.organizationId || !leagueOrganizationId) return false;
 	return user.organizationId === leagueOrganizationId;
 }
+
+/**
+ * Verifica que el usuario pueda gestionar una organización.
+ * - owner: puede gestionar cualquier organización.
+ * - organizer: solo la suya (docs/ORG-PROFILE-HUB.md §4).
+ */
+export function canManageOrganization(user: SessionUser, organizationId: string): boolean {
+	if (user.role === "owner") return true;
+	return user.organizationId === organizationId;
+}

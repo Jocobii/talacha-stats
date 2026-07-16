@@ -10,6 +10,11 @@
  * Es un Client Component porque sileo monta estado/portales en el navegador.
  */
 import { Toaster as SileoToaster } from "sileo";
+// Estilos requeridos por sileo (position:fixed del viewport + animaciones de
+// entrada/salida). Sin este import el toast se monta en el DOM pero cae en
+// flujo normal del documento — invisible en la práctica. No se estaba
+// importando en ningún lado del proyecto (bug real detrás de "no muestra nada").
+import "sileo/styles.css";
 
 /** Defaults del proyecto: esquina superior-derecha y tema oscuro. */
 export function Toaster() {
