@@ -171,7 +171,7 @@ export async function applyCardDiscipline(
 	const cardedPlayers = await findCardedPlayersInMatch(tx, matchId);
 	if (cardedPlayers.length === 0) return;
 
-	const config = await findLeagueConfigOrDefaults(leagueId);
+	const config = await findLeagueConfigOrDefaults(leagueId, tx);
 
 	for (const player of cardedPlayers) {
 		if (player.redCards > 0) {

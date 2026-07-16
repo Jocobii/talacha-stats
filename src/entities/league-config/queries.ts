@@ -26,9 +26,18 @@ export const LEAGUE_CONFIG_DTO_COLUMNS = {
 	lockedAt: leagueConfig.lockedAt,
 } as const;
 
-/** Fila cruda de league_config, o null si la liga nunca la ha guardado. */
-export async function findLeagueConfig(leagueId: string): Promise<LeagueConfigDto | null> {
-	const rows = await db
+/**
+ * Fila cruda de league_config, o null si la liga nunca la ha guardado.
+ * Acepta `client` para poder correr dentro de una tx abierta (p. ej. el motor
+ * de disciplina llamado desde `resolveMatch`) — con pool `max: 1` en
+ * producción, usar el `db` global aquí dentro de una tx abierta bloquea la
+ * única conexión esperándose a sí misma hasta `connectionTimeoutMillis`.
+ */
+export async function findLeagueConfig(
+	leagueId: string,
+	client: DbOrTx = db,
+): Promise<LeagueConfigDto | null> {
+	const rows = await client
 		.select(LEAGUE_CONFIG_DTO_COLUMNS)
 		.from(leagueConfig)
 		.where(eq(leagueConfig.leagueId, leagueId))
@@ -41,8 +50,11 @@ export async function findLeagueConfig(leagueId: string): Promise<LeagueConfigDt
  * (informal que nunca abrió "Reglamento del torneo"). Usar aquí, no en
  * `standings.ts`, para no repetir los defaults del schema por todo el código.
  */
-export async function findLeagueConfigOrDefaults(leagueId: string): Promise<LeagueConfigDto> {
-	const config = await findLeagueConfig(leagueId);
+export async function findLeagueConfigOrDefaults(
+	leagueId: string,
+	client: DbOrTx = db,
+): Promise<LeagueConfigDto> {
+	const config = await findLeagueConfig(leagueId, client);
 	if (config) return config;
 	return {
 		leagueId,
