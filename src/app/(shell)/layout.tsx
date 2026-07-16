@@ -3,6 +3,7 @@ import { Archivo, Oswald, Zilla_Slab } from "next/font/google";
 import "../globals.css";
 import TrackVisit from "@/shared/ui/TrackVisit";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "@/shared/theme/ThemeProvider";
 import { QueryProvider } from "@/shared/api/QueryProvider";
 import { Toaster } from "@/shared/ui/Toaster";
@@ -56,6 +57,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
 					<QueryProvider>
 						<TrackVisit />
 						<Analytics />
+						<SpeedInsights />
 						{children}
 						<Toaster />
 					</QueryProvider>
