@@ -31,7 +31,7 @@ export const TRANSFER_URL = (teamId: string, memberId: string): string =>
 
 export const TEAMS_BY_LEAGUE_URL = (leagueId: string): string => `/api/teams?league_id=${leagueId}`;
 
-/** Búsqueda por nombre de jugadores existentes de la organización (scope liga). */
+/** Búsqueda por nombre de jugadores existentes (identidad de plataforma, no limitada a la organización). */
 export const ORG_PLAYER_SEARCH_URL = (leagueId: string, q: string): string =>
 	`/api/players/org-search?leagueId=${leagueId}&q=${encodeURIComponent(q)}`;
 

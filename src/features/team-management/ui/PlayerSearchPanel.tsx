@@ -71,7 +71,7 @@ export function PlayerSearchPanel({
 
 			{showEmpty && (
 				<p className="text-sm text-ink-2 px-1">
-					No se encontró ningún jugador con ese nombre en tu organización.
+					No se encontró ningún jugador registrado con ese nombre.
 				</p>
 			)}
 
@@ -102,6 +102,9 @@ function ResultRow({
 					<span className="block text-[11px] text-ink-3">{player.birthDate}</span>
 				</span>
 				{disabled && <span className="text-[11px] text-ink-3 shrink-0">Ya en un equipo</span>}
+				{!disabled && player.hasAnyLeagueMembership && (
+					<span className="text-[11px] text-ink-3 shrink-0">Ya jugó en otra liga</span>
+				)}
 			</button>
 		</li>
 	);

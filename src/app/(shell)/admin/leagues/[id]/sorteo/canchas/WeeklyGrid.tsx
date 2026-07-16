@@ -4,7 +4,7 @@ import { DayColumn } from "./WeeklyGridColumns";
 import type { VenueTimeWindow } from "@/entities/venue";
 
 const DAYS_SHORT = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-export const DAYS_FULL = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+export const DAYS_FULL = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
 const HOUR_PX = 28;
 
 type WeeklyGridProps = {

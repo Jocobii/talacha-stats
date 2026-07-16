@@ -8,6 +8,7 @@
  */
 
 import { useRouter } from "next/navigation";
+import { Listbox } from "@/shared/ui/Listbox";
 
 export type LeagueOption = {
 	id: string;
@@ -25,8 +26,7 @@ export function LeagueFilter({
 }) {
 	const router = useRouter();
 
-	function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-		const id = e.target.value;
+	function handleChange(id: string) {
 		if (id) router.push(`/admin/teams?leagueId=${id}`);
 		else router.push("/admin/teams");
 	}
@@ -37,18 +37,16 @@ export function LeagueFilter({
 			{leagues.length === 0 ? (
 				<p className="text-sm text-yellow-600">No hay ligas registradas.</p>
 			) : (
-				<select
+				<Listbox
 					value={selectedId}
 					onChange={handleChange}
-					className="w-full border border-line rounded-lg px-3 py-2 text-sm bg-surface text-ink focus:ring-2 focus:ring-brand focus:outline-none"
-				>
-					<option value="">— Todas las ligas —</option>
-					{leagues.map((l) => (
-						<option key={l.id} value={l.id}>
-							{l.name} · {l.season} · {l.dayOfWeek}
-						</option>
-					))}
-				</select>
+					options={leagues.map((l) => ({
+						value: l.id,
+						label: `${l.name} · ${l.season} · ${l.dayOfWeek}`,
+					}))}
+					placeholder="— Todas las ligas —"
+					aria-label="Filtrar por liga"
+				/>
 			)}
 		</div>
 	);

@@ -24,10 +24,16 @@ type SubmitPayload = {
 	curp: string;
 	fullName: string;
 	birthDate: string;
-	leagueId: string;
+	gender: string | null;
+	leagueId: string | null;
 	teamId: string | null;
 	dorsal: number | null;
 	internalNotes: string | null;
+	phone: string | null;
+	residenceArea: string | null;
+	emergencyContactName: string | null;
+	emergencyContactPhone: string | null;
+	medicalNotes: string | null;
 };
 
 // ── Hook ───────────────────────────────────────────────────────────────────────
@@ -49,9 +55,25 @@ export type UseRegistrationFormReturn = {
 
 	// Campos del formulario de nuevo jugador
 	fullName: string;
+	lastName: string;
 	birthDate: string;
+	gender: string;
 	onFullNameChange: (v: string) => void;
+	onLastNameChange: (v: string) => void;
 	onBirthDateChange: (v: string) => void;
+	onGenderChange: (v: string) => void;
+
+	// Datos de contacto — opcionales, "por si hay una emergencia"
+	phone: string;
+	residenceArea: string;
+	emergencyContactName: string;
+	emergencyContactPhone: string;
+	medicalNotes: string;
+	onPhoneChange: (v: string) => void;
+	onResidenceAreaChange: (v: string) => void;
+	onEmergencyContactNameChange: (v: string) => void;
+	onEmergencyContactPhoneChange: (v: string) => void;
+	onMedicalNotesChange: (v: string) => void;
 
 	// Máquina de estado
 	step: RegistrationStep;
@@ -80,7 +102,14 @@ export function useRegistrationForm(
 	const [dorsal, setDorsal] = useState("");
 	const [internalNotes, setInternalNotes] = useState("");
 	const [fullName, setFullName] = useState("");
+	const [lastName, setLastName] = useState("");
 	const [birthDate, setBirthDate] = useState("");
+	const [gender, setGender] = useState("");
+	const [phone, setPhone] = useState("");
+	const [residenceArea, setResidenceArea] = useState("");
+	const [emergencyContactName, setEmergencyContactName] = useState("");
+	const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+	const [medicalNotes, setMedicalNotes] = useState("");
 	const [sessionCount, setSessionCount] = useState(0);
 	const [step, setStep] = useState<RegistrationStep>({ type: "idle" });
 
@@ -181,7 +210,14 @@ export function useRegistrationForm(
 		setDorsal("");
 		setInternalNotes("");
 		setFullName("");
+		setLastName("");
 		setBirthDate("");
+		setGender("");
+		setPhone("");
+		setResidenceArea("");
+		setEmergencyContactName("");
+		setEmergencyContactPhone("");
+		setMedicalNotes("");
 		setStep({ type: "idle" });
 		setTimeout(() => curpInputRef.current?.focus(), 50);
 	}
@@ -194,20 +230,26 @@ export function useRegistrationForm(
 			curp: normalized,
 			fullName: isFound
 				? (step as Extract<RegistrationStep, { type: "found" }>).player.fullName
-				: fullName.trim(),
+				: `${fullName.trim()} ${lastName.trim()}`.trim(),
 			birthDate: isFound
 				? (step as Extract<RegistrationStep, { type: "found" }>).player.birthDate
 				: birthDate,
-			leagueId,
+			gender: isFound ? null : gender || null,
+			// Liga y equipo son siempre opcionales — nunca bloquean el alta.
+			leagueId: leagueId || null,
 			teamId: teamId || null,
 			dorsal: dorsal ? parseInt(dorsal, 10) : null,
 			internalNotes: internalNotes.trim() || null,
+			phone: phone.trim() || null,
+			residenceArea: residenceArea.trim() || null,
+			emergencyContactName: emergencyContactName.trim() || null,
+			emergencyContactPhone: emergencyContactPhone.trim() || null,
+			medicalNotes: medicalNotes.trim() || null,
 		};
 	}
 
 	async function handleSubmit(e: React.FormEvent): Promise<void> {
 		e.preventDefault();
-		if (!leagueId) return;
 
 		setStep({ type: "submitting" });
 
@@ -243,9 +285,23 @@ export function useRegistrationForm(
 		onTeamChange: setTeamId,
 		onDorsalChange: setDorsal,
 		fullName,
+		lastName,
 		birthDate,
+		gender,
 		onFullNameChange: setFullName,
+		onLastNameChange: setLastName,
 		onBirthDateChange: setBirthDate,
+		onGenderChange: setGender,
+		phone,
+		residenceArea,
+		emergencyContactName,
+		emergencyContactPhone,
+		medicalNotes,
+		onPhoneChange: setPhone,
+		onResidenceAreaChange: setResidenceArea,
+		onEmergencyContactNameChange: setEmergencyContactName,
+		onEmergencyContactPhoneChange: setEmergencyContactPhone,
+		onMedicalNotesChange: setMedicalNotes,
 		step,
 		currentStage,
 		sessionCount,

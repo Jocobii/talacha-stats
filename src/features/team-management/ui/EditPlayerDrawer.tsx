@@ -11,7 +11,7 @@ import { Lock } from "lucide-react";
 import { Modal } from "@/shared/ui/Modal";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
-import { Select } from "@/shared/ui/Select";
+import { Listbox } from "@/shared/ui/Listbox";
 import { SectionLabel } from "@/shared/ui/SectionLabel";
 import { ROSTER_STATUSES, ROSTER_STATUS_LABEL } from "../constants";
 import type { RosterEntry, UpdateRosterMemberData } from "../types";
@@ -26,7 +26,7 @@ type Props = {
 
 export function EditPlayerDrawer({ member, onSave, onClose, mutating, error }: Props) {
 	const [dorsal, setDorsal] = useState(member.dorsal?.toString() ?? "");
-	const [status, setStatus] = useState<UpdateRosterMemberData["status"]>(member.status);
+	const [status, setStatus] = useState<RosterEntry["status"]>(member.status);
 
 	function handleDorsalChange(v: string) {
 		if (v === "" || /^\d{1,2}$/.test(v)) setDorsal(v);
@@ -70,16 +70,11 @@ export function EditPlayerDrawer({ member, onSave, onClose, mutating, error }: P
 				{/* Estatus */}
 				<div>
 					<SectionLabel className="mb-1.5">Estatus</SectionLabel>
-					<Select
+					<Listbox
 						value={status}
-						onChange={(e) => setStatus(e.target.value as UpdateRosterMemberData["status"])}
-					>
-						{ROSTER_STATUSES.map((s) => (
-							<option key={s} value={s}>
-								{ROSTER_STATUS_LABEL[s]}
-							</option>
-						))}
-					</Select>
+						onChange={(v) => setStatus(v as RosterEntry["status"])}
+						options={ROSTER_STATUSES.map((s) => ({ value: s, label: ROSTER_STATUS_LABEL[s] }))}
+					/>
 				</div>
 
 				{error && <p className="text-[12px] text-red-400">{error}</p>}

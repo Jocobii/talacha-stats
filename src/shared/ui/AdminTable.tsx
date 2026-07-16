@@ -39,6 +39,30 @@ export type AdminTableColumn<T> = {
 	render?: (row: T) => ReactNode;
 	/** Desactiva el sorting en esta columna. Default: true */
 	sortable?: boolean;
+	/**
+	 * Campo de `sort` en el contrato ListQuery (ver shared/lib/list-query) que
+	 * corresponde a esta columna. Solo se usa cuando la tabla recibe `sort`
+	 * (prop de tabla) — activa orden server-side vía Link en vez del sort
+	 * client-side de TanStack (necesario porque los datos ya vienen
+	 * paginados/ordenados por el backend, no se puede reordenar en memoria).
+	 */
+	sortField?: string;
+};
+
+export type AdminTableSort = { field: string; dir: "asc" | "desc" };
+
+/**
+ * Config de orden server-side. Todo el contenido es serializable (strings) a
+ * propósito: esta tabla es un Client Component recibiendo props desde un
+ * Server Component — pasar una función (ej. un `hrefFor(field)`) no es
+ * válido en ese límite. El href por columna se arma adentro con estos datos.
+ */
+export type AdminTableSortConfig = {
+	/** Path base sin query string, ej. "/admin/players". */
+	baseHref: string;
+	/** Query params actuales (ya as string-a-string), sin "sort" ni "page". */
+	params?: Record<string, string>;
+	active: AdminTableSort | null;
 };
 
 export type AdminTableProps<T> = {
@@ -49,10 +73,25 @@ export type AdminTableProps<T> = {
 	pagination?: AdminTablePagination;
 	emptyMessage?: string;
 	countLabel?: string;
+	/**
+	 * Cuando se pasa junto con columnas que declaran `sortField`, los headers
+	 * de esas columnas se renderizan como Link (orden resuelto por el
+	 * backend vía URL) en vez de sort client-side.
+	 */
+	sort?: AdminTableSortConfig;
 };
 
+/** Arma el href de un header ordenable: toggla asc/desc y resetea a página 1. */
+function buildSortHref(config: AdminTableSortConfig, field: string): string {
+	const params = new URLSearchParams(config.params ?? {});
+	const dir = config.active?.field === field && config.active.dir === "asc" ? "desc" : "asc";
+	params.set("sort", dir === "desc" ? `-${field}` : field);
+	params.set("page", "1");
+	return `${config.baseHref}?${params.toString()}`;
+}
+
 // Metadatos que pasamos por TanStack para usarlos en header/cell
-type ColMeta = Pick<AdminTableColumn<unknown>, "hiddenMobile" | "align">;
+type ColMeta = Pick<AdminTableColumn<unknown>, "hiddenMobile" | "align" | "sortField">;
 
 declare module "@tanstack/react-table" {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-object-type
@@ -69,25 +108,33 @@ export function AdminTable<T>({
 	pagination,
 	emptyMessage = "No hay registros.",
 	countLabel,
+	sort,
 }: AdminTableProps<T>) {
 	const [sorting, setSorting] = useState<SortingState>([]);
 
 	// Convertir AdminTableColumn → ColumnDef de TanStack
 	const tanstackCols = useMemo<ColumnDef<T>[]>(() => {
-		const defs: ColumnDef<T>[] = columns.map((col) => ({
-			id: col.key,
-			header: col.label,
-			// accessorFn permite sorting aunque el cell tenga render custom
-			accessorFn: (row) => (row as Record<string, unknown>)[col.key],
-			cell: col.render
-				? ({ row }) => col.render!(row.original)
-				: ({ getValue }) => {
-						const v = getValue();
-						return v != null ? String(v) : "—";
-					},
-			enableSorting: col.sortable !== false,
-			meta: { hiddenMobile: col.hiddenMobile, align: col.align },
-		}));
+		const defs: ColumnDef<T>[] = columns.map((col) => {
+			return {
+				id: col.key,
+				header: col.label,
+				// accessorFn permite sorting aunque el cell tenga render custom
+				accessorFn: (row) => (row as Record<string, unknown>)[col.key],
+				cell: col.render
+					? ({ row }) => col.render!(row.original)
+					: ({ getValue }) => {
+							const v = getValue();
+							return v != null ? String(v) : "—";
+						},
+				// En modo orden server-side (prop `sort` presente), el sort client de
+				// TanStack se desactiva por completo: los datos ya vienen paginados
+				// por el backend, reordenar solo la página actual sería engañoso.
+				// Las columnas con sortField se vuelven Link (ver thead más abajo);
+				// el resto queda simplemente no-interactiva.
+				enableSorting: sort ? false : col.sortable !== false,
+				meta: { hiddenMobile: col.hiddenMobile, align: col.align, sortField: col.sortField },
+			};
+		});
 
 		if (actions) {
 			defs.push({
@@ -102,7 +149,7 @@ export function AdminTable<T>({
 		}
 
 		return defs;
-	}, [columns, actions]);
+	}, [columns, actions, sort]);
 
 	const table = useReactTable({
 		data: rows,
@@ -135,34 +182,61 @@ export function AdminTable<T>({
 											const meta = header.column.columnDef.meta as ColMeta | undefined;
 											const sorted = header.column.getIsSorted();
 											const canSort = header.column.getCanSort();
+											const serverField = sort ? meta?.sortField : undefined;
+											const serverActive = serverField && sort?.active?.field === serverField;
+											const thClassName = [
+												"px-4 py-2.5 font-semibold select-none",
+												meta?.align === "center"
+													? "text-center"
+													: meta?.align === "right"
+														? "text-right"
+														: "text-left",
+												meta?.hiddenMobile ? "hidden sm:table-cell" : "",
+												canSort || serverField
+													? "cursor-pointer hover:text-ink transition-colors"
+													: "",
+												serverActive ? "text-brand-ink" : "",
+											]
+												.filter(Boolean)
+												.join(" ");
+											const headerContent = (
+												<span className="inline-flex items-center gap-1">
+													{header.isPlaceholder
+														? null
+														: flexRender(header.column.columnDef.header, header.getContext())}
+													{canSort && (
+														<span className="text-[10px] opacity-50 ml-0.5">
+															{sorted === "asc" ? "↑" : sorted === "desc" ? "↓" : "↕"}
+														</span>
+													)}
+													{serverField && (
+														<span className="text-[10px] opacity-50 ml-0.5">
+															{serverActive ? (sort?.active?.dir === "desc" ? "↓" : "↑") : "↕"}
+														</span>
+													)}
+												</span>
+											);
+											if (serverField && sort) {
+												return (
+													<th key={header.id} className={thClassName}>
+														<Link
+															href={buildSortHref(sort, serverField)}
+															className="inline-flex"
+															title="Ordenar"
+														>
+															{headerContent}
+														</Link>
+													</th>
+												);
+											}
 											return (
 												<th
 													key={header.id}
-													className={[
-														"px-4 py-2.5 font-semibold select-none",
-														meta?.align === "center"
-															? "text-center"
-															: meta?.align === "right"
-																? "text-right"
-																: "text-left",
-														meta?.hiddenMobile ? "hidden sm:table-cell" : "",
-														canSort ? "cursor-pointer hover:text-ink transition-colors" : "",
-													]
-														.filter(Boolean)
-														.join(" ")}
+													className={thClassName}
 													onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
 													title={canSort ? "Ordenar" : undefined}
 												>
-													<span className="inline-flex items-center gap-1">
-														{header.isPlaceholder
-															? null
-															: flexRender(header.column.columnDef.header, header.getContext())}
-														{canSort && (
-															<span className="text-[10px] opacity-50 ml-0.5">
-																{sorted === "asc" ? "↑" : sorted === "desc" ? "↓" : "↕"}
-															</span>
-														)}
-													</span>
+													{headerContent}
 												</th>
 											);
 										})}
@@ -216,13 +290,102 @@ function TablePagination({
 	baseHref,
 	pageParam = "page",
 	extraParams = {},
+	pageSizeOptions,
+	pageSizeParam = "pageSize",
 }: AdminTablePagination) {
 	const totalPages = Math.ceil(total / pageSize);
-	if (totalPages <= 1) return null;
+	const showPageNav = totalPages > 1;
+	if (!showPageNav && !pageSizeOptions) return null;
 
-	const from = (page - 1) * pageSize + 1;
+	const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
 	const to = Math.min(page * pageSize, total);
 
+	return (
+		<div className="px-4 py-3 border-t border-line flex items-center justify-between gap-4 flex-wrap">
+			<div className="flex items-center gap-4">
+				<p className="text-xs text-ink-3">
+					{from}–{to} de {total}
+				</p>
+				{pageSizeOptions && (
+					<PageSizeSelect
+						value={pageSize}
+						options={pageSizeOptions}
+						baseHref={baseHref}
+						paramName={pageSizeParam}
+						extraParams={extraParams}
+					/>
+				)}
+			</div>
+
+			{showPageNav && (
+				<PageNav
+					page={page}
+					totalPages={totalPages}
+					baseHref={baseHref}
+					pageParam={pageParam}
+					extraParams={extraParams}
+				/>
+			)}
+		</div>
+	);
+}
+
+// ── Selector de filas por página ────────────────────────────────────────────
+
+function PageSizeSelect({
+	value,
+	options,
+	baseHref,
+	paramName,
+	extraParams,
+}: {
+	value: number;
+	options: number[];
+	baseHref: string;
+	paramName: string;
+	extraParams: Record<string, string>;
+}) {
+	return (
+		<div className="flex items-center gap-1.5 text-xs text-ink-3">
+			<span>Filas por página:</span>
+			<div className="flex items-center gap-1">
+				{options.map((n) => {
+					const params = new URLSearchParams({ ...extraParams, [paramName]: String(n), page: "1" });
+					const href = `${baseHref}?${params.toString()}`;
+					return n === value ? (
+						<span key={n} className="px-2 py-1 rounded-md bg-brand/10 text-brand-ink font-semibold">
+							{n}
+						</span>
+					) : (
+						<Link
+							key={n}
+							href={href}
+							className="px-2 py-1 rounded-md hover:bg-surface-2 hover:text-ink transition"
+						>
+							{n}
+						</Link>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
+
+// ── Navegación de páginas ────────────────────────────────────────────────────
+
+function PageNav({
+	page,
+	totalPages,
+	baseHref,
+	pageParam,
+	extraParams,
+}: {
+	page: number;
+	totalPages: number;
+	baseHref: string;
+	pageParam: string;
+	extraParams: Record<string, string>;
+}) {
 	function href(p: number) {
 		const params = new URLSearchParams({ ...extraParams, [pageParam]: String(p) });
 		return `${baseHref}?${params.toString()}`;
@@ -240,54 +403,48 @@ function TablePagination({
 	const btnDisabled = `${btnBase} text-ink-3 opacity-40 border-line cursor-not-allowed pointer-events-none`;
 
 	return (
-		<div className="px-4 py-3 border-t border-line flex items-center justify-between gap-4 flex-wrap">
-			<p className="text-xs text-ink-3">
-				{from}–{to} de {total}
-			</p>
+		<div className="flex items-center gap-1">
+			{page > 1 ? (
+				<Link href={href(page - 1)} className={btnDefault}>
+					← Ant.
+				</Link>
+			) : (
+				<span className={btnDisabled}>← Ant.</span>
+			)}
 
-			<div className="flex items-center gap-1">
-				{page > 1 ? (
-					<Link href={href(page - 1)} className={btnDefault}>
-						← Ant.
+			{range[0] > 1 && (
+				<>
+					<Link href={href(1)} className={btnDefault}>
+						1
 					</Link>
-				) : (
-					<span className={btnDisabled}>← Ant.</span>
-				)}
+					{range[0] > 2 && <span className="px-1 text-xs text-ink-3">…</span>}
+				</>
+			)}
 
-				{range[0] > 1 && (
-					<>
-						<Link href={href(1)} className={btnDefault}>
-							1
-						</Link>
-						{range[0] > 2 && <span className="px-1 text-xs text-ink-3">…</span>}
-					</>
-				)}
+			{range.map((p) => (
+				<Link key={p} href={href(p)} className={p === page ? btnActive : btnDefault}>
+					{p}
+				</Link>
+			))}
 
-				{range.map((p) => (
-					<Link key={p} href={href(p)} className={p === page ? btnActive : btnDefault}>
-						{p}
+			{range[range.length - 1] < totalPages && (
+				<>
+					{range[range.length - 1] < totalPages - 1 && (
+						<span className="px-1 text-xs text-ink-3">…</span>
+					)}
+					<Link href={href(totalPages)} className={btnDefault}>
+						{totalPages}
 					</Link>
-				))}
+				</>
+			)}
 
-				{range[range.length - 1] < totalPages && (
-					<>
-						{range[range.length - 1] < totalPages - 1 && (
-							<span className="px-1 text-xs text-ink-3">…</span>
-						)}
-						<Link href={href(totalPages)} className={btnDefault}>
-							{totalPages}
-						</Link>
-					</>
-				)}
-
-				{page < totalPages ? (
-					<Link href={href(page + 1)} className={btnDefault}>
-						Sig. →
-					</Link>
-				) : (
-					<span className={btnDisabled}>Sig. →</span>
-				)}
-			</div>
+			{page < totalPages ? (
+				<Link href={href(page + 1)} className={btnDefault}>
+					Sig. →
+				</Link>
+			) : (
+				<span className={btnDisabled}>Sig. →</span>
+			)}
 		</div>
 	);
 }

@@ -6,7 +6,7 @@ import {
 	teamStandingsSnapshot,
 	playerSeasonStats,
 	teams,
-	players,
+	globalPlayers,
 	matchdays,
 	matches,
 	venues,
@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 import { eq, asc, desc, and, sql, inArray, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import type { Organization } from "@/db/schema";
 import type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
 import { deriveArranqueState, type ArranqueState } from "./lib/derive-arranque-state";
 
@@ -24,17 +25,19 @@ import { deriveArranqueState, type ArranqueState } from "./lib/derive-arranque-s
 // ---------------------------------------------------------------------------
 
 /** Obtiene una organización por su ID. */
-export async function getOrganizationById(id: string) {
-	return db.query.organizations.findFirst({
+export async function getOrganizationById(id: string): Promise<Organization | null> {
+	const row = await db.query.organizations.findFirst({
 		where: eq(organizations.id, id),
 	});
+	return row ?? null;
 }
 
 /** Obtiene una organización por su slug (para URLs públicas). */
-export async function getOrganizationBySlug(slug: string) {
-	return db.query.organizations.findFirst({
+export async function getOrganizationBySlug(slug: string): Promise<Organization | null> {
+	const row = await db.query.organizations.findFirst({
 		where: eq(organizations.slug, slug),
 	});
+	return row ?? null;
 }
 
 /** Lista todas las organizaciones del sistema (solo para owner). */
@@ -100,6 +103,39 @@ export async function getLeaguesByOrganization(organizationId: string) {
 		with: { teams: true },
 		orderBy: (l, { desc }) => [desc(l.createdAt)],
 	});
+}
+
+export type LeagueWithTeamCount = {
+	id: string;
+	name: string;
+	city: string;
+	season: string;
+	teamCount: number;
+	orgName: string | null;
+};
+
+/**
+ * Todas las ligas del sistema con conteo de equipos — para el selector de
+ * "avanzar liga existente" del Organization Simulator (Épica E). Solo
+ * consumido desde un contexto owner-only, así que no filtra por org/status.
+ */
+export async function listAllLeaguesWithTeamCount(): Promise<LeagueWithTeamCount[]> {
+	const rows = await db.query.leagues.findMany({
+		with: {
+			teams: { columns: { id: true } },
+			organization: { columns: { name: true } },
+		},
+		orderBy: (l, { desc }) => [desc(l.createdAt)],
+	});
+
+	return rows.map((l) => ({
+		id: l.id,
+		name: l.name,
+		city: l.city,
+		season: l.season ?? "",
+		teamCount: l.teams.length,
+		orgName: l.organization?.name ?? null,
+	}));
 }
 
 /**
@@ -333,16 +369,16 @@ export async function getLatestStandings(leagueId: string) {
 export async function getLatestTopScorers(leagueId: string, limit = 10) {
 	return db
 		.select({
-			playerId: playerSeasonStats.legacyPlayerId,
-			fullName: players.fullName,
-			alias: players.alias,
+			playerId: playerSeasonStats.globalPlayerId,
+			fullName: globalPlayers.fullName,
+			alias: sql<string | null>`null`,
 			goals: playerSeasonStats.goals,
 			assists: playerSeasonStats.assists,
 			matchesPlayed: playerSeasonStats.matchesPlayed,
 			teamName: teams.name,
 		})
 		.from(playerSeasonStats)
-		.innerJoin(players, eq(playerSeasonStats.legacyPlayerId, players.id))
+		.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
 		.innerJoin(teams, eq(playerSeasonStats.teamId, teams.id))
 		.where(eq(playerSeasonStats.leagueId, leagueId))
 		.orderBy(desc(playerSeasonStats.goals), desc(playerSeasonStats.assists))
@@ -598,12 +634,12 @@ export async function getLeaguesShowcase(city: string, limit = 6): Promise<Leagu
 		db
 			.select({
 				leagueId: playerSeasonStats.leagueId,
-				fullName: players.fullName,
-				alias: players.alias,
+				fullName: globalPlayers.fullName,
+				alias: sql<string | null>`null`,
 				goals: playerSeasonStats.goals,
 			})
 			.from(playerSeasonStats)
-			.innerJoin(players, eq(playerSeasonStats.legacyPlayerId, players.id))
+			.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
 			.where(inArray(playerSeasonStats.leagueId, leagueIds))
 			.orderBy(desc(playerSeasonStats.goals), desc(playerSeasonStats.assists)),
 	]);
@@ -677,12 +713,12 @@ export async function getLeagueSnapshot(leagueId: string): Promise<LeagueSnapsho
 			: Promise.resolve(null),
 		db
 			.select({
-				fullName: players.fullName,
-				alias: players.alias,
+				fullName: globalPlayers.fullName,
+				alias: sql<string | null>`null`,
 				goals: playerSeasonStats.goals,
 			})
 			.from(playerSeasonStats)
-			.innerJoin(players, eq(playerSeasonStats.legacyPlayerId, players.id))
+			.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
 			.where(eq(playerSeasonStats.leagueId, leagueId))
 			.orderBy(desc(playerSeasonStats.goals))
 			.limit(1),

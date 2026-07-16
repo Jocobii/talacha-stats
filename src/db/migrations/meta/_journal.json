@@ -43,6 +43,48 @@
 			"when": 1783071360000,
 			"tag": "0037_needy_hydra",
 			"breakpoints": true
+		},
+		{
+			"idx": 38,
+			"version": "7",
+			"when": 1784010246866,
+			"tag": "0038_polite_namora",
+			"breakpoints": true
+		},
+		{
+			"idx": 39,
+			"version": "7",
+			"when": 1784011031336,
+			"tag": "0039_organic_mongoose",
+			"breakpoints": true
+		},
+		{
+			"idx": 40,
+			"version": "7",
+			"when": 1784072792831,
+			"tag": "0040_volatile_bug",
+			"breakpoints": true
+		},
+		{
+			"idx": 41,
+			"version": "7",
+			"when": 1784126727225,
+			"tag": "0041_little_wallop",
+			"breakpoints": true
+		},
+		{
+			"idx": 42,
+			"version": "7",
+			"when": 1784128579888,
+			"tag": "0042_clear_morlun",
+			"breakpoints": true
+		},
+		{
+			"idx": 43,
+			"version": "7",
+			"when": 1784199023218,
+			"tag": "0043_optimal_exiles",
+			"breakpoints": true
 		}
 	]
 }

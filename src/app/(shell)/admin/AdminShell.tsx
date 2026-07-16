@@ -9,15 +9,16 @@
  * Características:
  *  • Sidebar oscuro fijo en desktop (244px / 64px colapsado)
  *  • Drawer con overlay en mobile (<768px)
- *  • Navegación agrupada (Principal / Gestión / Administración)
- *  • Footer con ciudad activa, usuario, y cerrar sesión
+ *  • Navegación agrupada (Principal / Gestión / Organización / Administración)
+ *  • Footer con popover único (ciudad activa, tema, usuario, cerrar sesión)
  *  • Iconos de lucide-react
  *  • Estado activo basado en usePathname()
  *  • Tooltips automáticos en modo colapsado
  *  • Persiste el estado colapsado en localStorage
  */
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
@@ -35,19 +36,23 @@ import {
 	MapPin,
 	CalendarDays,
 	Palette,
+	Settings,
+	Ban,
 	LogOut,
 	Menu,
 	X,
 	ChevronLeft,
 	ChevronRight,
-	ChevronDown,
+	ChevronUp,
 	Search,
 	Check,
+	Sun,
+	Moon,
 	type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { MEXICO_CITIES } from "@/shared/lib/cities";
-import { ThemeToggle } from "@/shared/ui/ThemeToggle";
+import { useTheme } from "@/shared/theme/ThemeProvider";
 
 // Badge "NUEVO" visible durante los primeros 14 días desde el release del módulo.
 const CANCHAS_RELEASE_DATE = new Date("2026-05-18");
@@ -138,7 +143,7 @@ export default function AdminShell({
 	const coreItems: NavItem[] = [
 		{ href: "/admin", label: "Dashboard", icon: Home, exact: true },
 		{
-			href: "/admin/canchas",
+			href: "/admin/organizacion/canchas",
 			label: "Canchas",
 			icon: MapPin,
 			badge: showCanchasNuevo ? "NUEVO" : undefined,
@@ -153,18 +158,28 @@ export default function AdminShell({
 				{ href: "/admin/leagues", label: "Ligas", icon: Trophy },
 				{ href: "/admin/teams", label: "Equipos", icon: Users },
 				{ href: "/admin/players", label: "Jugadores", icon: UserCircle },
-				{ href: "/admin/organizacion/tema", label: "Identidad visual", icon: Palette },
+				{ href: "/admin/suspensiones", label: "Suspensiones", icon: Ban },
 			]
 		: [
 				{ href: "/admin/players", label: "Jugadores", icon: UserCircle },
 				{ href: "/admin/leagues", label: "Ligas", icon: Trophy },
 				{ href: "/admin/teams", label: "Equipos", icon: Users },
-				{ href: "/admin/organizacion/tema", label: "Identidad visual", icon: Palette },
+				{ href: "/admin/suspensiones", label: "Suspensiones", icon: Ban },
 			];
+
+	// El hub /admin/organizacion (docs/ORG-PROFILE-HUB.md) ya está construido —
+	// tabs General/Tema/Reglamento/Sorteo/Canchas/Miembros. "Configuración" abre
+	// el hub en su tab General; "Identidad visual" es un atajo directo al tab
+	// Tema (mismo patrón que "Canchas" en Principal, que también es un tab del hub).
+	const organizacionItems: NavItem[] = [
+		{ href: "/admin/organizacion/tema", label: "Identidad visual", icon: Palette },
+		{ href: "/admin/organizacion", label: "Configuración", icon: Settings, exact: true },
+	];
 
 	const navGroups: NavGroup[] = [
 		{ label: "Principal", items: coreItems },
 		{ label: "Gestión", items: gestionItems },
+		{ label: "Organización", items: organizacionItems },
 		...(isOwner
 			? [
 					{
@@ -279,45 +294,13 @@ export default function AdminShell({
 
 				{/* Footer */}
 				<div
-					className={cn(
-						"border-t border-line shrink-0 flex flex-col gap-2",
-						collapsed && !isMobile ? "p-2" : "p-3",
-					)}
+					className={cn("border-t border-line shrink-0", collapsed && !isMobile ? "p-2" : "p-2.5")}
 				>
-					<SidebarCitySwitcher activeCity={activeCity} collapsed={collapsed && !isMobile} />
-
-					{/* Theme toggle */}
-					{collapsed && !isMobile ? (
-						<div className="flex justify-center">
-							<ThemeToggle iconOnly />
-						</div>
-					) : (
-						<div className="px-0.5">
-							<ThemeToggle />
-						</div>
-					)}
-
-					{/* User card */}
-					<div
-						className={cn(
-							"flex items-center gap-2.5",
-							collapsed && !isMobile ? "justify-center py-1" : "px-1.5 py-2",
-						)}
-					>
-						<span className="w-7 h-7 rounded-md bg-brand/15 text-brand-ink font-display font-bold text-[11px] grid place-items-center shrink-0 tracking-tight">
-							{initials}
-						</span>
-						{(!collapsed || isMobile) && (
-							<div className="flex-1 min-w-0">
-								<div className="text-[13px] font-semibold text-ink truncate leading-none">
-									{displayName}
-								</div>
-								<div className="text-[11px] text-ink-3 truncate mt-0.5">{user.email}</div>
-							</div>
-						)}
-					</div>
-
-					<LogoutButton collapsed={collapsed && !isMobile} />
+					<AccountMenu
+						user={{ name: displayName, email: user.email, initials }}
+						activeCity={activeCity}
+						collapsed={collapsed && !isMobile}
+					/>
 				</div>
 			</aside>
 
@@ -339,7 +322,6 @@ export default function AdminShell({
 								Talacha<span className="text-brand-ink">Stats</span>
 							</span>
 						</Link>
-						<ThemeToggle />
 					</header>
 				)}
 
@@ -420,12 +402,81 @@ function NavLink({
 	);
 }
 
-// ── Logout ────────────────────────────────────────────────────────────────────
+// ── Account menu (ciudad + tema + usuario + logout, un solo popover) ──────────
 
-function LogoutButton({ collapsed }: { collapsed: boolean }) {
+function AccountMenu({
+	user,
+	activeCity,
+	collapsed,
+}: {
+	user: { name: string; email: string; initials: string };
+	activeCity: string;
+	collapsed: boolean;
+}) {
 	const router = useRouter();
+	const { mode, setMode } = useTheme();
+
+	const [open, setOpen] = useState(false);
+	const [view, setView] = useState<"menu" | "city">("menu");
+	const [query, setQuery] = useState("");
 	const [busy, setBusy] = useState(false);
 	const [exiting, setExiting] = useState(false);
+	// El popover se pinta en un portal (document.body) porque el <aside> usa
+	// overflow-hidden para animar el ancho al colapsar/expandir — un popover
+	// absolute normal quedaría recortado ahí, y con el sidebar colapsado (64px)
+	// eso hacía inalcanzables las opciones (cerrar sesión incluido).
+	const triggerRef = useRef<HTMLButtonElement>(null);
+	const popRef = useRef<HTMLDivElement>(null);
+	const [coords, setCoords] = useState<{ left: number; bottom: number } | null>(null);
+
+	useEffect(() => {
+		if (!open) return;
+		const handler = (e: MouseEvent) => {
+			const target = e.target as Node;
+			if (triggerRef.current?.contains(target)) return;
+			if (popRef.current?.contains(target)) return;
+			setOpen(false);
+			setView("menu");
+			setQuery("");
+		};
+		document.addEventListener("mousedown", handler);
+		return () => document.removeEventListener("mousedown", handler);
+	}, [open]);
+
+	useEffect(() => {
+		if (!open || !triggerRef.current) return;
+		const updatePosition = () => {
+			const rect = triggerRef.current!.getBoundingClientRect();
+			setCoords({
+				left: collapsed ? rect.right + 8 : rect.left,
+				bottom: window.innerHeight - rect.top + 8,
+			});
+		};
+		updatePosition();
+		window.addEventListener("resize", updatePosition);
+		window.addEventListener("scroll", updatePosition, true);
+		return () => {
+			window.removeEventListener("resize", updatePosition);
+			window.removeEventListener("scroll", updatePosition, true);
+		};
+	}, [open, collapsed]);
+
+	const filtered = query.trim()
+		? MEXICO_CITIES.filter((c) => c.toLowerCase().includes(query.toLowerCase()))
+		: MEXICO_CITIES;
+
+	async function selectCity(city: string) {
+		setOpen(false);
+		setView("menu");
+		setQuery("");
+		if (city === activeCity) return;
+		try {
+			const result = await apiFetch("/api/auth/city", { method: "POST", body: { city } });
+			if (result.ok) window.location.reload();
+		} catch (networkError) {
+			console.error("[AdminShell] selectCity", networkError);
+		}
+	}
 
 	async function handleLogout() {
 		setBusy(true);
@@ -440,26 +491,168 @@ function LogoutButton({ collapsed }: { collapsed: boolean }) {
 		setTimeout(() => router.push("/login"), 550);
 	}
 
+	const popover =
+		open && coords
+			? createPortal(
+					<div
+						ref={popRef}
+						style={{ left: coords.left, bottom: coords.bottom }}
+						className="fixed w-[244px] bg-surface-2 border border-line rounded-xl shadow-2xl overflow-hidden z-70"
+					>
+						{view === "menu" ? (
+							<>
+								<div className="px-3.5 py-3 border-b border-line">
+									<div className="text-[13px] font-semibold text-ink truncate">{user.name}</div>
+									<div className="text-[11.5px] text-ink-3 truncate">{user.email}</div>
+								</div>
+
+								<button
+									onClick={() => setView("city")}
+									className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left hover:bg-surface transition"
+								>
+									<MapPin size={14} strokeWidth={1.75} className="text-brand-ink shrink-0" />
+									<span className="flex-1 min-w-0">
+										<div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-3 leading-none">
+											Ciudad activa
+										</div>
+										<div className="text-[13px] font-semibold text-ink mt-0.5 truncate">
+											{activeCity}
+										</div>
+									</span>
+									<ChevronRight size={13} strokeWidth={2} className="text-ink-3 shrink-0" />
+								</button>
+
+								<div className="px-3.5 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-3">
+									Tema
+								</div>
+								<div className="flex gap-1.5 px-2.5 pb-2.5">
+									{(
+										[
+											["light", Sun, "Claro"],
+											["dark", Moon, "Oscuro"],
+										] as const
+									).map(([val, IconC, label]) => {
+										const selected = mode === val;
+										return (
+											<button
+												key={val}
+												onClick={() => setMode(val)}
+												className={cn(
+													"flex-1 flex items-center justify-center gap-1.5 h-8 rounded-md text-[12.5px] font-semibold border transition",
+													selected
+														? "border-brand bg-brand/10 text-brand-ink"
+														: "border-line text-ink-2 hover:text-ink",
+												)}
+											>
+												<IconC size={13} />
+												{label}
+											</button>
+										);
+									})}
+								</div>
+
+								<div className="h-px bg-line" />
+
+								<button
+									onClick={handleLogout}
+									disabled={busy}
+									className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left text-red-400 hover:bg-red-500/10 transition disabled:opacity-50"
+								>
+									<LogOut size={14} strokeWidth={1.75} />
+									<span className="text-[13px] font-semibold">
+										{busy ? "Saliendo…" : "Cerrar sesión"}
+									</span>
+								</button>
+							</>
+						) : (
+							<>
+								<div className="flex items-center gap-2 px-2.5 py-2.5 border-b border-line">
+									<button
+										onClick={() => {
+											setView("menu");
+											setQuery("");
+										}}
+										className="p-1 text-ink-2 hover:text-ink"
+										aria-label="Volver"
+									>
+										<ChevronLeft size={15} strokeWidth={2.25} />
+									</button>
+									<div className="relative flex-1">
+										<Search
+											size={12}
+											className="absolute left-2 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none"
+										/>
+										<input
+											autoFocus
+											type="search"
+											value={query}
+											onChange={(e) => setQuery(e.target.value)}
+											placeholder="Buscar ciudad…"
+											className="w-full bg-surface border border-line rounded-md text-ink text-[12.5px] placeholder:text-ink-3 pl-6 pr-2 py-1.5 outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30"
+										/>
+									</div>
+								</div>
+								<div className="max-h-56 overflow-y-auto py-1">
+									{filtered.length === 0 ? (
+										<div className="px-3.5 py-2 text-[13px] text-ink-3 text-center">
+											Sin resultados
+										</div>
+									) : (
+										filtered.map((city) => (
+											<button
+												key={city}
+												onClick={() => selectCity(city)}
+												className={cn(
+													"w-full flex items-center justify-between px-3.5 py-2 text-[13px] text-left transition",
+													city === activeCity
+														? "bg-brand/10 text-brand-ink"
+														: "text-ink-2 hover:bg-surface hover:text-ink",
+												)}
+											>
+												{city}
+												{city === activeCity && <Check size={12} strokeWidth={2.5} />}
+											</button>
+										))
+									)}
+								</div>
+							</>
+						)}
+					</div>,
+					document.body,
+				)
+			: null;
+
 	return (
-		<>
+		<div className="relative">
+			{popover}
+
 			<button
-				onClick={handleLogout}
-				disabled={busy}
+				ref={triggerRef}
+				onClick={() => setOpen((v) => !v)}
 				className={cn(
-					"group relative flex items-center gap-2.5 h-8 rounded-md transition-colors w-full",
-					collapsed ? "justify-center px-0" : "px-2.5",
-					"text-ink-3 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-50",
+					"w-full flex items-center gap-2.5 rounded-md border transition",
+					collapsed ? "justify-center py-1.5" : "px-2 py-2",
+					open ? "border-line-2 bg-surface-2" : "border-transparent hover:bg-surface-2",
 				)}
-				title="Cerrar sesión"
+				aria-expanded={open}
 			>
-				<LogOut size={14} strokeWidth={1.75} className="shrink-0" />
+				<span className="w-7 h-7 rounded-md bg-brand/15 text-brand-ink font-display font-bold text-[11px] grid place-items-center shrink-0 tracking-tight">
+					{user.initials}
+				</span>
 				{!collapsed && (
-					<span className="text-[13px] font-medium">{busy ? "Saliendo…" : "Cerrar sesión"}</span>
-				)}
-				{collapsed && (
-					<span className="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-surface-2 border border-line text-ink text-[12px] font-semibold px-2.5 py-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-50">
-						Cerrar sesión
-					</span>
+					<>
+						<span className="flex-1 min-w-0 text-left">
+							<div className="text-[12.5px] font-semibold text-ink truncate leading-tight">
+								{user.name}
+							</div>
+							<div className="text-[11px] text-ink-3 truncate mt-0.5">{activeCity}</div>
+						</span>
+						<ChevronUp
+							size={13}
+							strokeWidth={2}
+							className={cn("text-ink-3 shrink-0 transition-transform", open && "rotate-180")}
+						/>
+					</>
 				)}
 			</button>
 
@@ -480,132 +673,6 @@ function LogoutButton({ collapsed }: { collapsed: boolean }) {
 						<p className="text-sm text-ink-2">Cerrando sesión…</p>
 					</motion.div>
 				</motion.div>
-			)}
-		</>
-	);
-}
-
-// ── City switcher ─────────────────────────────────────────────────────────────
-
-function SidebarCitySwitcher({
-	activeCity,
-	collapsed,
-}: {
-	activeCity: string;
-	collapsed: boolean;
-}) {
-	const [open, setOpen] = useState(false);
-	const [query, setQuery] = useState("");
-
-	useEffect(() => {
-		if (!open) return;
-		const handler = (e: MouseEvent) => {
-			const el = e.target as HTMLElement;
-			if (!el.closest("[data-city-switcher]")) {
-				setOpen(false);
-				setQuery("");
-			}
-		};
-		document.addEventListener("mousedown", handler);
-		return () => document.removeEventListener("mousedown", handler);
-	}, [open]);
-
-	const filtered = query.trim()
-		? MEXICO_CITIES.filter((c) => c.toLowerCase().includes(query.toLowerCase()))
-		: MEXICO_CITIES;
-
-	async function selectCity(city: string) {
-		if (city === activeCity) {
-			setOpen(false);
-			return;
-		}
-		try {
-			const result = await apiFetch("/api/auth/city", {
-				method: "POST",
-				body: { city },
-			});
-			if (result.ok) window.location.reload();
-		} catch (networkError) {
-			console.error("[AdminShell] selectCity", networkError);
-		}
-	}
-
-	if (collapsed) {
-		return (
-			<button
-				title={activeCity}
-				className="w-9 h-9 mx-auto grid place-items-center rounded-md text-brand-ink hover:bg-surface transition"
-			>
-				<MapPin size={16} strokeWidth={1.75} />
-			</button>
-		);
-	}
-
-	return (
-		<div data-city-switcher className="relative">
-			<button
-				onClick={() => {
-					setOpen((v) => !v);
-					setQuery("");
-				}}
-				className="w-full flex items-center gap-2.5 h-11 px-2.5 rounded-md bg-surface border border-line text-left hover:border-ink-3 transition"
-				aria-expanded={open}
-			>
-				<MapPin size={14} strokeWidth={1.75} className="text-brand-ink shrink-0" />
-				<div className="flex-1 min-w-0">
-					<div className="text-[10.5px] font-semibold tracking-[0.14em] uppercase text-ink-3 leading-none">
-						Ciudad activa
-					</div>
-					<div className="text-[13px] font-semibold text-ink mt-0.5 truncate">{activeCity}</div>
-				</div>
-				<ChevronDown
-					size={14}
-					strokeWidth={1.75}
-					className={cn("text-ink-3 shrink-0 transition-transform", open && "rotate-180")}
-				/>
-			</button>
-
-			{open && (
-				<div className="absolute left-0 right-0 bottom-full mb-2 bg-surface-2 border border-line rounded-xl shadow-2xl z-60 overflow-hidden">
-					<div className="p-2 border-b border-line">
-						<div className="relative">
-							<Search
-								size={12}
-								className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none"
-							/>
-							<input
-								autoFocus
-								type="search"
-								value={query}
-								onChange={(e) => setQuery(e.target.value)}
-								placeholder="Buscar ciudad…"
-								className="w-full bg-surface border border-line text-ink text-sm placeholder:text-ink-3 rounded-md pl-7 pr-3 py-1.5 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30"
-							/>
-						</div>
-					</div>
-					<ul className="max-h-56 overflow-y-auto py-1">
-						{filtered.length === 0 ? (
-							<li className="px-3 py-2 text-sm text-ink-3 text-center">Sin resultados</li>
-						) : (
-							filtered.map((city) => (
-								<li key={city}>
-									<button
-										onClick={() => selectCity(city)}
-										className={cn(
-											"w-full flex items-center justify-between px-3 py-2 text-[13px] text-left transition",
-											city === activeCity
-												? "bg-brand/10 text-brand-ink"
-												: "text-ink-2 hover:bg-surface hover:text-ink",
-										)}
-									>
-										{city}
-										{city === activeCity && <Check size={12} strokeWidth={2.5} />}
-									</button>
-								</li>
-							))
-						)}
-					</ul>
-				</div>
 			)}
 		</div>
 	);

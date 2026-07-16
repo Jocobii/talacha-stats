@@ -34,7 +34,7 @@ export function RegistrationSuccessCard({
 		? (teams.find((t) => t.id === data.inscription?.teamId)?.name ?? "equipo")
 		: null;
 
-	const dorsalLabel = buildDorsalLabel(data.leagueMember.dorsal);
+	const dorsalLabel = data.leagueMember ? buildDorsalLabel(data.leagueMember.dorsal) : "";
 
 	return (
 		<Card className="p-8 sm:p-10 relative overflow-hidden">
@@ -66,9 +66,14 @@ export function RegistrationSuccessCard({
 							{dorsalLabel}
 						</p>
 					)}
-					{league && (
+					{league && data.leagueMember && (
 						<p className="mt-2 text-sm text-ink-2">
 							{league.name} &middot; {league.season}. Su perfil ya está activo.
+						</p>
+					)}
+					{!data.leagueMember && (
+						<p className="mt-2 text-sm text-ink-2">
+							Jugador creado sin liga asignada &mdash; puedes inscribirlo después.
 						</p>
 					)}
 				</div>
@@ -76,8 +81,10 @@ export function RegistrationSuccessCard({
 
 			<div className="mt-7 pt-6 border-t border-line grid grid-cols-2 sm:grid-cols-4 gap-3">
 				<KV label="Esta sesión" value={String(sessionCount)} />
-				<KV label="Inscripción" value={formatDateEs(data.leagueMember.inscriptionDate)} />
-				{data.leagueMember.dorsal && <KV label="Dorsal" value={`#${data.leagueMember.dorsal}`} />}
+				{data.leagueMember && (
+					<KV label="Inscripción" value={formatDateEs(data.leagueMember.inscriptionDate)} />
+				)}
+				{data.leagueMember?.dorsal && <KV label="Dorsal" value={`#${data.leagueMember.dorsal}`} />}
 			</div>
 
 			<div className="mt-7 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">

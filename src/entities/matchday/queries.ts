@@ -8,10 +8,28 @@ import { matchdays, matches } from "@/db/schema";
 import { eq, and, count, inArray } from "drizzle-orm";
 import type { Matchday } from "@/db/schema";
 import type { MatchdayPhase, MatchdaySummary } from "./model";
+import type { LeaguePermissionContext } from "@/entities/league";
 
 export async function getMatchday(id: string): Promise<Matchday | null> {
 	const row = await db.query.matchdays.findFirst({ where: eq(matchdays.id, id) });
 	return row ?? null;
+}
+
+/**
+ * Lo mínimo para resolver `canManageLeague(user, ...)` desde una page — evita
+ * que `app/(print)/cedula/jornada/[matchdayId]/page.tsx` arme su propio
+ * `db.query.matchdays.findFirst` (§3.3 AGENTS.md: la page llama a entities).
+ */
+export async function getMatchdayPermissionContext(
+	matchdayId: string,
+): Promise<LeaguePermissionContext | null> {
+	const row = await db.query.matchdays.findFirst({
+		where: eq(matchdays.id, matchdayId),
+		columns: { leagueId: true },
+		with: { league: { columns: { organizationId: true } } },
+	});
+	if (!row) return null;
+	return { leagueId: row.leagueId, organizationId: row.league?.organizationId ?? null };
 }
 
 export async function listMatchdaysByLeague(

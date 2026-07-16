@@ -31,12 +31,14 @@ export {
 	LookupResponseSchema,
 	LeagueMemberViewSchema,
 } from "./model";
+export { CREDENTIAL_PAD_WIDTH, formatCredentialCode } from "./lib/credential";
 export type {
 	TeamRosterEntry,
 	OrgPlayerRow,
 	OrgPlayerSearchResult,
 	GlobalPlayerLeagueMember,
 	GlobalPlayerBasic,
+	GlobalPlayerRow,
 } from "./queries";
 export {
 	getPlayerProfile,
@@ -52,6 +54,8 @@ export {
 	findLeagueMemberView,
 	getTeamRoster,
 	listOrgPlayers,
+	countOrgPlayers,
+	listAllGlobalPlayers,
 	getGlobalPlayerLeagueMembers,
 	getGlobalPlayerBasic,
 } from "./queries";

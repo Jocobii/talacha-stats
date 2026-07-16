@@ -9,7 +9,12 @@ export {
 	listTeamsByLeague,
 	getTeamsForTransfer,
 	getTeamRoster,
+	listOrgTeams,
+	countOrgTeams,
+	listAllTeams,
 } from "./queries";
+
+export type { OrgTeamRow, GlobalTeamRow } from "./queries";
 
 export type {
 	Team,

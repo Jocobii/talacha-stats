@@ -14,6 +14,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { SaveButton } from "@/shared/ui/SaveButton";
 import {
 	buildThemeTokens,
 	HEX_COLOR_REGEX,
@@ -166,14 +167,13 @@ function ThemeEditor({ organizationId, orgName, initial }: ThemeEditorProps) {
 				</section>
 
 				<div className="flex items-center gap-3">
-					<button
-						type="button"
+					<SaveButton
 						onClick={handleSave}
 						disabled={!canSave}
-						className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
-					>
-						{save.isPending ? "Guardando…" : "Guardar tema"}
-					</button>
+						status={save.status}
+						errorMessage={save.error?.message}
+						label="Guardar tema"
+					/>
 				</div>
 			</div>
 

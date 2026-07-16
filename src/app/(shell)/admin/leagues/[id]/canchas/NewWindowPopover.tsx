@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { apiFetch } from "@/shared/api/client";
+import { notify } from "@/shared/lib/notify";
 import { DAYS_FULL, parseTime } from "./WeeklyGrid";
 
 const inputCls =
@@ -73,13 +74,18 @@ export function NewWindowPopover({
 					);
 				}
 				if (!result.ok) {
-					setError(result.error ?? "Error al guardar");
+					const message = result.error ?? "Error al guardar";
+					setError(message);
+					notify.error(message);
 					return;
 				}
+				notify.success(isEdit ? "Ventana actualizada" : "Ventana creada");
 				onSuccess(result.data);
 			} catch (networkError) {
 				console.error("[NewWindowPopover] save", networkError);
-				setError("Error de red. Intenta de nuevo.");
+				const message = "Error de red. Intenta de nuevo.";
+				setError(message);
+				notify.error(message);
 			}
 		});
 	}
@@ -90,13 +96,18 @@ export function NewWindowPopover({
 			try {
 				const result = await apiFetch(`/api/venue-windows/${mode.window.id}`, { method: "DELETE" });
 				if (!result.ok) {
-					setError(result.error ?? "Error al eliminar");
+					const message = result.error ?? "Error al eliminar";
+					setError(message);
+					notify.error(message);
 					return;
 				}
+				notify.success("Ventana eliminada");
 				onDeleted?.(mode.window.id);
 			} catch (networkError) {
 				console.error("[NewWindowPopover] delete", networkError);
-				setError("Error de red. Intenta de nuevo.");
+				const message = "Error de red. Intenta de nuevo.";
+				setError(message);
+				notify.error(message);
 			}
 		});
 	}

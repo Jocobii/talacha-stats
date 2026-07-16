@@ -1,0 +1,452 @@
+# Módulos de gestión de liga — mapa, configurabilidad y modelo de datos
+
+> **Estado:** propuesta de trabajo (jul 2026). Fuente de verdad de posicionamiento sigue siendo `AGENTS.md` §1.5. Este doc traduce ese norte a un plan concreto de módulos administrativos por construir.
+
+## 0. Filosofía que filtra todo lo de abajo
+
+Dos fuerzas mandan sobre cada decisión de este doc:
+
+1. **"Que llevar una liga sea fácil".** El fútbol amateur vive en la informalidad. La mayoría de las ligas no quieren burocracia. Todo lo que agreguemos debe funcionar **con defaults** para que la liga informal nunca configure nada, y solo la liga fuerte abra las opciones avanzadas.
+2. **El norte (AGENTS.md §1.5):** la gestión es el **medio**, no el fin. Cada módulo debe terminar alimentando dato limpio, identidad de jugador o contenido presumible. Si un módulo de gestión no desemboca en eso, es de baja prioridad.
+
+Consecuencia práctica: **la capa financiera es opt-in y escalonada**; los esenciales deportivos aplican a todos pero con defaults tan buenos que el informal no los toca.
+
+---
+
+## 1. Lo que YA existe (verificado contra el código)
+
+Inventario de `src/features/` (AGENTS.md §1.6) y hallazgos de revisión de código:
+
+| Área         | Módulo / archivo                                                      | Estado                                                                         |
+| ------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Identidad    | `admin-registration` (CURP)                                           | Completo                                                                       |
+| Alta de liga | `league-onboarding`, `league-management`                              | Completo                                                                       |
+| Equipos      | `team-management`                                                     | Completo                                                                       |
+| Captura      | `match-resolution` (cédula)                                           | Completo — captura goles, asistencias, tarjetas amarilla/azul/roja por jugador |
+| Calendario   | `scheduling`, `sorteo-cockpit`                                        | Completo                                                                       |
+| Canchas      | `venue-management`, `venue-calendar`                                  | Completo                                                                       |
+| Liguilla     | `playoffs`                                                            | Completo                                                                       |
+| Tabla        | `src/lib/standings.ts`                                                | Funcional, con matices (ver abajo)                                             |
+| Contenido    | `narrator-analysis`, `post-import-content`, `org-hub`, `share-assets` | Completo                                                                       |
+
+### 1.1 Hallazgos de la revisión (importante)
+
+**Disciplina — parcial, sin motor.** La cédula ya persiste tarjetas por jugador (`matchPlayerStats.yellowCards / blueCards / redCards`) y se agregan en `playerSeasonStats`. Existe el estado `leagueMembers.status = "suspended"`, pero es **manual**: ninguna lógica acumula tarjetas ni dispara suspensiones automáticas. Hoy el organizador lleva la cuenta de cabeza. → **El dato se captura, pero no se convierte en decisión.** Falta el motor.
+
+**Desempate — existe pero hardcodeado.** En `src/lib/standings.ts`, `sortStandings` ordena por **Puntos → Diferencia de goles → Goles a favor → nombre**. Funciona, pero (a) no es configurable por torneo y (b) no incluye **enfrentamiento directo (head-to-head)**, criterio que muchas ligas mexicanas usan primero. → No es módulo nuevo: es mejora configurable de `standings.ts`.
+
+**Walkover.** `standings.ts` ya fija W.O. = 3-0 al ganador (`resolveGoals`). Correcto como default.
+
+---
+
+## 2. Módulos ESENCIALES que faltan (aplican a toda liga)
+
+Universales, baratos de operar, con default para no romper lo "fácil".
+
+### 2.1 Disciplina y suspensiones
+
+Motor que acumula tarjetas (desde datos que **ya existen**) y marca suspensión automática para la siguiente jornada. Alimenta el norte (contenido: "expulsados/suspendidos de la jornada"). Alto valor, arranca sobre dato ya capturado.
+
+> **Actualización (jul 2026, revisión de `SANCIONES.xlsx` real de Jocobi):** la roja directa no siempre es "1 fecha y ya". El registro real de sanciones de la liga muestra casos graves (amenazas al árbitro, agresión a un adversario, conducta violenta) castigados con **semanas, meses o veto indefinido de la liga**, decididos por el organizador caso por caso — no por un umbral automático. El motor por lo tanto tiene dos capas:
+>
+> 1. **Automática** — amarillas acumuladas y roja directa siguen generando 1 fecha de suspensión de inmediato, sin intervención (comportamiento ya planeado).
+> 2. **Escalable manual** — el organizador puede editar esa sanción automática y convertirla en una sanción por duración calendario (días/semanas/meses) o veto indefinido, con motivo en texto libre (igual que hoy en el Excel — sin catálogo de cláusulas por ahora, se agrega si hace falta más adelante). Ver §5.2 para el modelo de datos revisado.
+
+### 2.2 Reglamento / configuración del torneo
+
+Un solo lugar para: sistema de puntos, **criterios de desempate y su orden** (incl. head-to-head), reglas de disciplina, límite de refuerzos y elegibilidad. Absorbe la mejora de `standings.ts`. Es el hogar de casi toda la configurabilidad (§4).
+
+### 2.3 Avisos de jornada
+
+No mensajería completa (sobre-ingeniería para amateur), sino generar el "rol de la jornada" y recordatorios listos para pegar en WhatsApp. Se apoya en `share-assets` / `org-hub` existentes.
+
+### 2.4 Panel del capitán (ligero)
+
+Autoservicio: el capitán ve su rol, su roster y —cuando exista lo financiero— su saldo. Activa el viral loop y descarga trabajo del organizador.
+
+---
+
+## 3. Capa FINANCIERA (opt-in, escalonada)
+
+Regla anti-informalidad: **nunca forzar pasarela de pago.** Default en efectivo. Cada liga prende solo el nivel que necesita. Los tres niveles comparten el mismo **motor de cobros** (catálogo de conceptos + cuentas + ledger); "fianza", "arbitraje" y "cierre" son capas encima. Un solo producto, progresivo.
+
+> **Actualización (jul 2026, revisión con Jocobi):** en una liga real **todo se cobra** — no solo la inscripción del equipo. Se cobra registrar un equipo, registrar jugadores (credencial), rentar el horario fijo de la liga, rentar una cancha suelta (alguien que solo quiere ir a jugar con amigos, sin liga de por medio), el arbitraje, e incluso una fianza de fondo por si un equipo deja de presentarse. Nivel 0 deja de ser "catálogo + estado de cuenta por equipo" y pasa a ser un **motor de cobros genérico**: cualquier cobro nuevo se agrega como dato (una fila en el catálogo), no como código nuevo, y cada cobro se puede vincular a la acción del formulario que lo origina (alta de equipo, alta de jugador, reservar horario, resolver cédula). Ver §5.3 para el modelo revisado y §3.1 para el diseño del motor.
+
+- **Nivel 0 — "¿Quién debe?"** (hasta el más informal lo usa). Motor de cobros: catálogo de conceptos + cuenta de cobro (equipo, jugador individual, o cliente externo sin liga) + ledger (cargo, abono en efectivo, saldo). Sustituye el cuaderno del organizador. Incluye ya el _tracking_ de rentas sueltas de cancha (§3.1.3) porque Jocobi la cobra hoy y no hay dónde anotarla.
+- **Nivel 1 — Liga formal.** Fianza como saldo retenido que se castiga con sanciones; arbitraje (tarifa por partido + cuenta por pagar al árbitro); egresos (cancha, balones, premios).
+- **Nivel 2 — Liga fuerte.** Cierre financiero por torneo (ingresos − egresos = utilidad), corte de caja por jornada, recibos. Es el nivel que justifica que la liga cara pague por la plataforma.
+
+> Referencia de mercado (jul 2026): FLM System / nadugol / iBeeScore son fuertes en lo deportivo pero flojos en contabilidad; LeagueApps/TeamSnap asumen pago digital con tarjeta (no calza con efectivo/fianza mexicanos); Clupik sí modela costo de arbitraje. El hueco defendible = **stats + finanzas del organizador + realidad mexicana (efectivo, fianza, horario fijo)**.
+
+### 3.1 Diseño del motor de cobros (Nivel 0)
+
+> **Ver `docs/FINANCE-ENGINE.md`** para la especificación completa de arquitectura del motor (contratos, modelo de datos final, gate por `finance_level`, guía de adopción, testing). Lo que sigue aquí es el resumen orientado a producto/decisión; ese doc es la fuente de verdad técnica que implementa Épica C.
+
+Tres decisiones de diseño para que agregar un cobro nuevo sea barato y no se pierda precisión:
+
+#### 3.1.1 Montos en centavos, enteros
+
+Todo monto (`fee_concepts.default_amount_cents`, `ledger_entries.amount_cents`) se guarda como **entero en centavos** (ej. $150.00 → `15000`), no `numeric`/`decimal` ni float. Evita el redondeo silencioso de JS (`0.1 + 0.2 !== 0.3`) al sumar saldos en el cliente/servidor y es el estándar de sistemas de cobro (Stripe, etc.). La UI formatea a pesos solo para mostrar; toda la aritmética del motor (sumas de saldo, comparaciones) ocurre en centavos.
+
+#### 3.1.2 Catálogo dirigido por `trigger`, no por código nuevo
+
+Cada `fee_concept` declara un `trigger`: la acción que dispara el cobro automáticamente. El motor (`features/finance/engine`) expone **un solo punto de entrada**, `chargeForTrigger(trigger, context)`, que:
+
+1. Busca conceptos activos de esa liga (u organización, si es renta suelta sin liga) con ese `trigger`.
+2. Resuelve o crea la `billing_account` del sujeto (equipo, jugador o cliente externo — §3.1.3).
+3. Inserta el `ledger_entry` de cargo con el monto del concepto.
+
+Agregar un cobro nuevo que reutiliza un trigger ya conectado (ej. otra cuota que se cobre "al registrar jugador") es **solo una fila nueva en `fee_concepts`**, cero código. Conectar un trigger a una acción que hoy no cobra nada (ej. un nuevo tipo de alta) sí requiere un hook de una línea que llame `chargeForTrigger(...)` desde esa acción — se hace una vez por acción, no una vez por concepto.
+
+Triggers previstos en Nivel 0: `team_registration` (alta de equipo), `player_registration` (alta de jugador → credencial, cobro **al jugador**, no al equipo — decisión de Jocobi), `schedule_booking` (renta del horario fijo de la liga), `venue_ad_hoc_rental` (renta suelta de cancha, con o sin liga), `manual` (cualquier cargo/abono que el organizador registra a mano, como hoy en Nivel 0 de `ledger_entries` original).
+
+#### 3.1.3 Cuenta de cobro genérica (`billing_accounts`) — incluye clientes sin liga
+
+Antes el ledger solo conocía `team_id`. Ahora un cobro puede ser de un equipo, de un jugador individual (credencial) o de alguien que **ni siquiera pertenece a una liga** (fulano que solo renta la cancha para jugar con amigos). En vez de tres FKs nullable sueltos en `ledger_entries`, se centraliza en una entidad `billing_accounts` (§5.3) que el ledger referencia una sola vez. Esto adelanta, a propósito, un _tracking_ mínimo de rentas sueltas de cancha (sin construir todavía un calendario de reservas completo — eso sigue siendo de `venue-management` a futuro): por ahora el organizador registra la renta suelta como un cargo manual contra una cuenta externa (nombre + teléfono), suficiente para saber quién debe.
+
+---
+
+## 4. Marco de configurabilidad — qué controla el dueño de la liga
+
+Cada opción configurable cuesta código, UI, pruebas y una decisión más para el organizador informal. **La configurabilidad se gana**, con este filtro de 3 preguntas (deben cumplirse las tres):
+
+1. ¿De verdad **varía** entre ligas reales? (no hipotético)
+2. ¿Un default equivocado produce un resultado **visiblemente mal** que erosiona la confianza en el dato? (tabla/campeón/suspensión incorrectos)
+3. ¿Puede tener un **default sano** que el informal nunca toque?
+
+### 4.1 Configurable (con default, y **bloqueado al arrancar el torneo**)
+
+| Config                                                 | Default                                     | Por qué configurable                                         |
+| ------------------------------------------------------ | ------------------------------------------- | ------------------------------------------------------------ |
+| Criterios de desempate y su orden (incl. head-to-head) | Pts → DG → GF → nombre (el actual)          | Varía de verdad; un default malo corona al equipo equivocado |
+| Umbral de amarillas para suspensión                    | 5 acumuladas → 1 fecha (ajustar con Jocobi) | Varía por liga; error = suspensión injusta                   |
+| Fechas de suspensión por roja directa                  | 1 fecha                                     | Ídem                                                         |
+| Significado de la tarjeta azul                         | (definir)                                   | No estándar entre ligas                                      |
+| Conceptos y montos financieros                         | vacío / apagado                             | Por naturaleza cambian por liga                              |
+| Límite de refuerzos / elegibilidad                     | sin límite                                  | Varía y afecta quién puede jugar                             |
+
+### 4.2 Fijo con default sensato (no exponer en UI hasta que alguien lo pida)
+
+- Puntos por victoria/empate: **3 / 1 / 0** (casi universal → default, no opción).
+- Marcador de walkover: **3-0** (ya está así en `standings.ts`).
+- Viven en `constants.ts`; movibles después, pero no se les gasta UI todavía.
+
+### 4.3 Nunca configurable (convención del producto)
+
+Cómo cuenta un gol, la identidad por CURP, el modelo de datos, los flujos de captura. Volverlo configurable solo trae bugs.
+
+### 4.4 Gobernanza
+
+- **Quién decide:** la config vive a nivel liga y la edita el **organizador** dueño de esa liga; el rol `owner` puede sobreescribir. Calza con los roles actuales (AGENTS.md §6).
+- **Cuándo se congela (regla de oro):** la config se **bloquea al arrancar el torneo** (primera cédula resuelta). Antes: editable. Después: solo lectura, o cambio con acción explícita del `owner` registrada en auditoría. Cambiar el desempate en la jornada 10 destruye la confianza en la tabla — esto protege el norte más que cualquier feature.
+
+### 4.5 Config por organización — default que se copia, no se hereda en vivo
+
+> Decisión jul 2026 (planteada por Jocobi): una organización real corre varias ligas/divisiones a la vez (ej. `SANCIONES.xlsx` trae pestañas "Varonil" y "Champions" del mismo organizador). Sin un default por organización, cada liga nueva repite el mismo llenado de reglamento — y un torneo relámpago (reglas especiales, de una sola vez) necesita poder salirse de esa norma sin fricción.
+
+**Modelo elegido: copiar al crear, no heredar en vivo.** `organization_config` (mismos campos que `league_config`, sin `locked_at`) guarda el default de la organización. Al crear una liga nueva, sus valores se **copian** a la fila de `league_config` de esa liga (o quedan los defaults del sistema si la organización tampoco configuró nada — `findLeagueConfigOrDefaults` ya cubre ese caso). De ahí en adelante cada liga es totalmente independiente:
+
+- Un **torneo relámpago** simplemente no hereda cambios futuros de la organización — es una liga como cualquier otra, con su propio `league_config` editable hasta que arranque.
+- Cambiar `organization_config` **no** mueve retroactivamente ligas ya creadas — mismo principio que protege `locked_at`: nadie quiere que la tabla de una liga en curso cambie de reglas porque alguien tocó la config de la organización.
+- **Se descartó** la alternativa de herencia en vivo (columnas nullable en `league_config` + resolución org→liga en cada lectura) por el costo: requiere rediseñar el schema, mostrar en la UI qué campo está "heredado" vs "local", y complica la semántica de `locked_at` (¿se congela el override o también el valor heredado?). El filtro de configurabilidad de §4 ya lo dice: la complejidad se gana, no se regala.
+
+---
+
+## 5. Modelo de datos propuesto (alineado a FSD)
+
+Boceto para arrancar; los tipos se infieren del schema Drizzle (AGENTS.md §4.1). Nombres tentativos.
+
+### 5.1 `league_config` (base de §4)
+
+Una fila por liga. Home de todo lo configurable, con defaults.
+
+```
+league_config
+  league_id            uuid  FK unique
+  points_win           int   default 3
+  points_draw          int   default 1
+  tiebreakers          jsonb default '["points","head_to_head","goal_diff","goals_for","name"]'
+  yellow_threshold     int   default 5     -- amarillas acumuladas → 1 fecha
+  red_card_matches     int   default 1     -- fechas por roja directa
+  reinforcement_limit  int   null          -- null = sin límite
+  finance_level        int   default 0     -- 0 | 1 | 2
+  locked_at            timestamptz null     -- se setea al resolver la 1a cédula
+```
+
+- Entidad: `entities/league-config/` (model + queries).
+- Feature: `features/tournament-rules/` (leer/editar, validar bloqueo por `locked_at`).
+- El sort de `standings.ts` pasa a leer `tiebreakers` en vez de hardcodear.
+
+### 5.1b `organization_config` (default de la organización — §4.5)
+
+Una fila por organización. Mismos campos que `league_config`, sin `locked_at` (a nivel organización nunca se congela). Se copia a `league_config` al crear una liga — ver §4.5 y §6.
+
+```
+organization_config
+  organization_id      uuid  FK unique
+  points_win           int   default 3
+  points_draw          int   default 1
+  tiebreakers          jsonb default '["points","head_to_head","goal_diff","goals_for","name"]'
+  yellow_threshold     int   default 5
+  red_card_matches     int   default 1
+  blue_card_meaning    text  default 'temp'
+  reinforcement_limit  int   null
+  finance_level        int   default 0
+  updated_at           timestamptz
+```
+
+- Entidad: `entities/organization-config/` (model + queries) — reusa los enums de `entities/league-config` (`TiebreakerCriterion`, `BlueCardMeaning`) para no duplicar el catálogo.
+- Seed: `seedLeagueConfig(dbOrTx, leagueId, organizationId)` — copia `organization_config` a la liga nueva si existe; no-op si la organización no configuró nada (el fallback a defaults del sistema ya lo cubre `findLeagueConfigOrDefaults`). Se llama desde los flujos de alta de liga (`POST /api/leagues`, `quickCreateLeague`).
+- `new-season` copia el `league_config` **resuelto de la liga origen** (no de la organización) a la liga nueva — preserva las reglas propias de esa liga temporada tras temporada, incluidas las de un torneo relámpago que se repite.
+- UI de "Reglamento por defecto de la organización" queda como paso propio, UI-GATE, cuando se necesite (no bloquea A9-A11 — el seed funciona sin pantalla, se puede sembrar por SQL/consola mientras tanto). **Ver `docs/ORG-SETTINGS.md`** — ahí vive el plan completo del futuro hub de configuración de la organización (nombre, logo, slug, tema, y este reglamento por defecto todos juntos).
+
+### 5.2 Disciplina — `suspensions`
+
+El motor lee tarjetas ya persistidas y materializa suspensiones. Soporta dos
+modos de duración porque la realidad de la liga los mezcla (ver `SANCIONES.xlsx`
+de Jocobi, jul 2026): amarillas/roja directa se cuentan **por partido**
+(jornadas), pero el organizador puede escalar un caso grave a una sanción
+**por tiempo calendario** (semanas, meses) o a **veto indefinido**. Sin
+catálogo de cláusulas por ahora — `reason_detail` es texto libre, igual que
+el Excel actual; se agrega catálogo estructurado solo si el volumen lo pide.
+
+```
+suspensions
+  id                 uuid
+  global_player_id   uuid FK
+  league_id          uuid FK
+  reason             text  -- 'yellow_accumulation' | 'red_card' | 'manual'
+  reason_detail      text  null  -- motivo libre (ej. "Amenazas al árbitro")
+  duration_type      text  -- 'matches' | 'time' | 'permanent'
+  -- duration_type = 'matches' (default automático de amarillas/roja):
+  matches_total      int   null
+  matches_served     int   default 0
+  -- duration_type = 'time' (escalado manual: semanas/meses):
+  duration_value     int   null
+  duration_unit      text  null  -- 'days' | 'weeks' | 'months'
+  starts_on          date  null
+  ends_on            date  null  -- calculado: starts_on + duration_value/unit
+  -- duration_type = 'permanent': sin campos de duración, solo status.
+  status             text  -- 'active' | 'served' | 'lifted'  ('lifted' = el owner perdonó/levantó el veto)
+  source_match_id    uuid null FK  -- partido que la originó (solo automáticas)
+  recorded_by        uuid null FK  -- users.id — quién capturó la sanción manual (auditoría)
+  created_at         timestamptz
+  updated_at         timestamptz
+```
+
+- Entidad: `entities/suspension/`.
+- Feature: `features/discipline/`:
+  - Motor automático — al resolver una cédula (`match-resolution`), recalcula amarillas acumuladas vs `league_config.yellow_threshold` y crea suspensión `duration_type: 'matches'`; roja directa crea una igual con `matches_total = league_config.red_card_matches`. Decrementa `matches_served` al pasar la jornada.
+  - Escalado manual — el organizador edita una suspensión existente (o crea una nueva `reason: 'manual'`) y la convierte a `duration_type: 'time'` (con `duration_value`/`duration_unit`, calcula `ends_on`) o `'permanent'`. Requiere `canManageLeague` — mismo guard que el resto de features administrativas.
+  - Vigencia: para `'matches'` es `matches_served < matches_total`; para `'time'` es `today < ends_on`; para `'permanent'` siempre activa hasta `status = 'lifted'`.
+- Conecta al norte: alimenta píldoras de contenido y sincroniza `leagueMembers.status`.
+
+### 5.3 Finanzas — motor de cobros (Nivel 0)
+
+> Modelo revisado jul 2026 tras decidir con Jocobi: "todo se cobra" (equipo, jugador, horario, cancha suelta, arbitraje, fondo), montos en **centavos enteros**, y motor dirigido por `trigger` (§3.1) en vez de catálogo fijo por equipo. Ver §3.1 para el porqué de cada decisión.
+
+```
+fee_concepts
+  id                  uuid
+  league_id           uuid null FK   -- null = concepto de organización, reusable sin liga (ej. renta suelta de cancha)
+  organization_id     uuid FK
+  name                text           -- 'Inscripción', 'Credencial', 'Fianza', 'Horario fijo', 'Renta de cancha', 'Arbitraje'
+  kind                text           -- 'charge' | 'deposit' (fianza) | 'expense'
+  subject_type        text           -- 'team' | 'player' | 'external' | 'any'
+  trigger             text           -- 'manual' | 'team_registration' | 'player_registration' | 'schedule_booking' | 'venue_ad_hoc_rental' | 'match_referee'
+  default_amount_cents int null      -- entero en centavos, no numeric/float (§3.1.1)
+  is_active           boolean default true
+  created_at          timestamptz
+
+billing_accounts
+  id                 uuid
+  organization_id    uuid FK
+  league_id          uuid null FK        -- null si es cuenta externa sin liga (renta suelta)
+  account_type       text                -- 'team' | 'player' | 'external'
+  team_id            uuid null FK        -- set si account_type = 'team'
+  global_player_id   uuid null FK        -- set si account_type = 'player'
+  external_name      text null           -- set si account_type = 'external'
+  external_phone     text null
+  created_at         timestamptz
+  -- constraint: exactamente uno de team_id/global_player_id/(external_name) no-null según account_type
+
+ledger_entries
+  id                 uuid
+  league_id          uuid null FK        -- null si billing_account es externa sin liga
+  billing_account_id uuid FK
+  concept_id         uuid null FK        -- null en abonos/ajustes manuales sin concepto
+  direction          text                -- 'charge' | 'payment' | 'refund'
+  amount_cents       int                 -- entero en centavos (§3.1.1) ; > 0 (el signo lo da direction)
+  method             text default 'cash' -- 'cash' | 'transfer' | 'spei' (informativo, no integración)
+  note               text null
+  source_type        text null           -- 'team_registration' | 'player_registration' | 'booking' | 'match' | 'manual'
+  source_id          uuid null           -- id de la entidad que originó el cargo (team.id, player.id, match.id, etc.)
+  idempotency_key    text null           -- `${trigger}:${concept}:${sourceType}:${sourceId}`; null en manuales. UNIQUE parcial → no duplica cargos
+  status             text default 'active' -- 'active' | 'voided' (nunca se borra un cargo — se anula)
+  voided_reason      text null
+  voided_by          uuid null FK        -- users.id que anuló (auditoría)
+  voided_at          timestamptz null
+  recorded_by        uuid null FK        -- users.id — quién capturó el cargo/abono manual (auditoría)
+  created_at         timestamptz
+
+finance_events   -- bitácora append-only del motor ("tracking de logs detallado", decisión Jocobi)
+  id                 uuid
+  organization_id    uuid FK
+  league_id          uuid null FK
+  correlation_id     uuid                -- ata todos los eventos de una misma acción de negocio
+  event_type         text                -- charge_created | charge_skipped_duplicate | charge_skipped_no_concept | charge_failed | payment_recorded | entry_voided | concept_* | catalog_seeded
+  actor_type         text                -- 'system' | 'user'
+  actor_id           uuid null           -- users.id si actor_type='user'
+  billing_account_id uuid null
+  ledger_entry_id    uuid null           -- set si el evento produjo/afectó una fila del ledger
+  payload            jsonb               -- contexto: { trigger, conceptId, amountCents, result, error, ... }
+  created_at         timestamptz
+  -- APPEND-ONLY: sin UPDATE ni DELETE. Registra incluso lo que NO cambió el ledger (duplicado omitido, cobro fallido).
+```
+
+- Entidades: `entities/fee-concept/`, `entities/billing-account/`, `entities/ledger/` (model + queries + cálculo de saldo), `entities/finance-event/` (bitácora).
+- Feature: `features/finance/`:
+  - `engine/` — `chargeForTrigger(trigger, context)`: punto único que resuelve conceptos activos del trigger, resuelve/crea la `billing_account` del sujeto, inserta el `ledger_entry`. Agregar un cobro que reusa un trigger existente es una fila en `fee_concepts`, sin código (§3.1.2).
+  - Hooks de una línea en las acciones que ya existen: alta de equipo (`team-management`), alta de jugador (`admin-registration`), reserva de horario/cancha (`scheduling` / `venue-management` — el "tracking" mínimo de renta suelta vive aquí también, §3.1.3), resolución de cédula para arbitraje (Nivel 1, `match-resolution`).
+  - Catálogo + registro manual de cargo/abono (incl. cuenta externa sin liga) para lo que no tiene trigger todavía.
+- **Decisiones de resiliencia (jul 2026, ver `docs/FINANCE-ENGINE.md` P3–P7):**
+  - **No bloqueante** — el cobro corre _después_ de que la acción de negocio commitea, fuera de esa transacción; si el cobro falla, el alta **igual** tiene éxito (un error de finanzas nunca impide operar la liga). El motor no lanza: devuelve `ChargeResult`.
+  - **Idempotente** — cada cargo automático lleva `idempotency_key` con `UNIQUE` parcial; re-ejecutar un trigger no duplica el cargo.
+  - **Anulación, no borrado** — un cargo errado o de un sujeto eliminado se marca `status='voided'` con motivo y auditoría; el saldo lo ignora, el histórico y la bitácora quedan.
+  - **Bitácora detallada** — cada operación (cargo, duplicado omitido, cobro fallido, pago, anulación, seed) escribe en `finance_events` (append-only) con `correlation_id`.
+- Saldo por cuenta = SUM(charges) − SUM(payments) − SUM(refunds), todo en centavos, **ignorando `voided`**. Fianza = concepto `deposit` que se castiga con `charge` ligado a una suspensión (Nivel 1).
+- Seed de conceptos por organización sigue el mismo patrón de `organization_config` → `league_config` (§4.5): conceptos "de organización" (`league_id null`) se copian a la liga al crearla; los de renta suelta sin liga quedan a nivel organización.
+- Niveles 1-2 (arbitraje como cuenta por pagar al árbitro, egresos, cierre) se agregan como conceptos/triggers/vistas encima; **no** tablas nuevas por nivel.
+
+---
+
+## 6. Orden de ataque sugerido
+
+1. **`league_config` + desempate configurable** — desbloquea todo lo demás y arregla un hueco real (head-to-head). Bajo riesgo, alto retorno.
+2. **Disciplina/suspensiones** — construye sobre dato ya capturado; alimenta el norte.
+3. **Finanzas Nivel 0** (catálogo + ledger "¿quién debe?") — el diferenciador de mercado; ya vendible.
+4. **Avisos de jornada** + **Panel del capitán** — cierran el viral loop.
+5. **Finanzas Nivel 1-2** — para ligas fuertes, cuando haya demanda.
+
+> Al implementar cada uno, seguir §3.7 de AGENTS.md (modelo → queries → feature → endpoint → UI) y dejar explícito en el PR cómo alimenta dato/identidad/contenido.
+
+---
+
+## 7. Desglose por tareas (un commit por paso)
+
+Cada línea = un paso cerrable con su commit `conventional-commits`. Orden pensado para que cada commit compile y no rompa lo anterior. Jocobi corre tests/git/build (memoria del proyecto).
+
+### Épica A — `league_config` + desempate configurable
+
+- [x] **A1** Schema: tabla `league_config` con defaults + migración.
+      `feat(db): add league_config table with rules defaults`
+- [x] **A2** Entidad `entities/league-config/` (model + Zod + queries get/upsert).
+      `feat(league-config): add entity model and queries`
+- [x] **A3** Refactor `standings.ts`: `sortStandings` lee `tiebreakers` en vez de hardcodear; helper de head-to-head.
+      `refactor(standings): drive tiebreakers from league_config incl. head-to-head`
+- [x] **A4** Feature `features/tournament-rules/`: leer/editar config + validar bloqueo por `locked_at`.
+      `feat(tournament-rules): editable league rules with lock-on-start`
+- [x] **A5** Endpoint `GET/PATCH /api/leagues/[id]/config`.
+      `feat(api): league config read/update endpoint`
+- [x] **A6** 🎨 UI-GATE — "Reglamento del torneo" en `/admin/leagues/[id]` (colapsado por default).
+      `feat(admin): tournament rules settings screen`
+- [x] **A7** Setear `locked_at` al resolver la primera cédula.
+      `feat(match-resolution): freeze league config on first resolved cedula`
+
+> Extensión jul 2026 (§4.5) — config por organización, copia al crear liga.
+
+- [x] **A8** Doc: `organization_config` + decisión copy-on-create (hecho, este mismo cambio).
+      `docs: add organization-level rules default (copy-on-create)`
+- [x] **A9** Schema `organization_config` + entidad `entities/organization-config/`.
+      `feat(db): add organization_config table and entity`
+- [x] **A10** Seed `league_config` desde `organization_config` al crear liga (`POST /api/leagues`, `quickCreateLeague`).
+      `feat(league-onboarding): seed league_config from organization defaults`
+- [x] **A11** `new-season` copia el `league_config` resuelto de la liga origen.
+      `feat(api): carry league_config over on new season`
+
+### Épica B — Disciplina y suspensiones
+
+> Modelo revisado jul 2026 tras revisar `SANCIONES.xlsx` real — ver §2.1 y §5.2.
+> Dos capas: motor automático por partidos (amarillas/roja directa) + escalado
+> manual por tiempo calendario o veto indefinido para casos graves.
+
+- [x] **B1** Schema: tabla `suspensions` (con `duration_type` matches/time/permanent) + migración.
+      `feat(db): add suspensions table with matches, time and permanent duration modes`
+- [x] **B2** Entidad `entities/suspension/` (model + queries: vigencia según `duration_type`).
+      `feat(suspension): add entity model and queries`
+- [x] **B3** Feature `features/discipline/`: motor que acumula tarjetas vs `yellow_threshold`/`red_card_matches` y materializa suspensiones `duration_type: 'matches'`.
+      `feat(discipline): card accumulation and auto-suspension engine`
+- [x] **B4** Hook en `match-resolution`: al resolver cédula, recalcular disciplina.
+      `feat(discipline): recompute suspensions on cedula resolution`
+- [x] **B5** Decremento de fechas pendientes al avanzar jornada + sync `leagueMembers.status`.
+      `feat(discipline): decrement served matches and sync member status`
+- [x] **B6** Escalado manual: editar una suspensión a `duration_type: 'time'` (semanas/meses, calcula `ends_on`) o `'permanent'` (veto), con `reason_detail` libre y `recorded_by` para auditoría. Endpoint `PATCH /api/suspensions/[id]`. También incluye alta manual desde cero (`POST /api/leagues/[id]/suspensions`, `reason: 'manual'`) — necesaria para el panel "Registrar sanción" del mockup de B7.
+      `feat(discipline): manual escalation and from-scratch suspension creation`
+- [x] **B7** 🎨 UI — lista de suspendidos por liga (admin) + señalización + acciones "escalar"/"levantar"/"registrar sanción". Mockup: `Suspensiones.html` (admin-redesign/screen-suspensions.jsx). Modal centrado (`shared/ui/Modal`) en vez del drawer lateral del mockup — mismo patrón que el resto del admin.
+      `feat(admin): suspensions list view with manual escalation`
+- [x] **B7b** Vista global `/admin/suspensiones` en el sidebar principal (grupo Gestión): todas las ligas visibles para el usuario (owner=todas, organizer=su org) en una sola pantalla — filtro de liga/estado/tipo, alta manual con selector de liga (roster cargado bajo demanda) y escalar/levantar sin cambiar de pantalla. Pedido explícito: flujo "domingo en la noche" con sanciones de varias ligas a la vez.
+      `feat(admin): global cross-league suspensions view`
+- [~] **B8** Píldora de contenido "suspendidos de la jornada" (`post-import-content`). **Descartado por decisión del usuario** — no se construye.
+
+### Épica C — Finanzas Nivel 0: motor de cobros ("todo se cobra")
+
+> Modelo revisado jul 2026 tras decidir con Jocobi (ver §3.1 y §5.3): montos en
+> centavos enteros, cuenta de cobro genérica (equipo / jugador / cliente
+> externo sin liga) y motor dirigido por `trigger` para que un cobro nuevo sea
+> una fila de catálogo, no código nuevo. Arquitectura completa del motor en
+> **`docs/FINANCE-ENGINE.md`** — cada paso de esta épica debe cumplir los
+> principios P1–P8 de ese doc.
+
+- [ ] **C1** Schema: `fee_concepts` (con `subject_type`/`trigger`/`default_amount_cents`), `billing_accounts` (equipo/jugador/externo), `ledger_entries` (`amount_cents`, `billing_account_id`, `source_type`/`source_id`, **`idempotency_key` UNIQUE parcial**, **`status`/`voided_*`**) y **`finance_events`** (bitácora append-only) + migración.
+      `feat(db): add fee_concepts, billing_accounts, ledger_entries and finance_events tables`
+- [ ] **C2** Entidades `entities/fee-concept/`, `entities/billing-account/`, `entities/ledger/` (model + queries + `computeBalanceCents` que ignora `voided`) y `entities/finance-event/` (append/list de bitácora).
+      `feat(finance): add fee-concept, billing-account, ledger and finance-event entities`
+- [ ] **C3** Motor `features/finance/engine`: `chargeForTrigger(ctx): ChargeResult` — resuelve conceptos activos, resuelve/crea `billing_account`, inserta el cargo **idempotente** y **no lanza** (P3/P4), y registra la bitácora (P7). Sin UI todavía, solo la función y sus tests (incl. cuenta externa, duplicado, `no_concept`, `failed`).
+      `feat(finance): add trigger-driven charge engine (idempotent, non-blocking, audited)`
+- [ ] **C4** Hooks de una línea del motor **después del commit de negocio, fuera de la transacción** (P3): alta de equipo (`team-management` → `team_registration`) y alta de jugador (`admin-registration` → `player_registration`, cobro al jugador). El resultado alimenta `notify` (§7.2b AGENTS).
+      `feat(finance): wire charge engine into team and player registration`
+- [ ] **C5** Hook del motor en reserva de horario/cancha (`scheduling`/`venue-management` → triggers `schedule_booking` y `venue_ad_hoc_rental`). Para la renta suelta (sin liga), si todavía no existe flujo de reserva para terceros, este paso agrega el registro manual mínimo (cuenta externa + cargo) — no un calendario de reservas completo.
+      `feat(finance): wire charge engine into schedule and venue rental flows`
+- [ ] **C6** Feature `features/finance/`: catálogo de conceptos (alta/edición) + registro manual de cargo/abono (incl. cuenta externa) para lo que no tiene trigger.
+      `feat(finance): fee concepts catalog and manual charge/payment recording`
+- [ ] **C7** Endpoints `/api/leagues/[id]/fee-concepts` (+ `/[cid]`), `/api/leagues/[id]/billing-accounts`, `/api/leagues/[id]/ledger` y `/api/leagues/[id]/ledger/[eid]/void` (anular, P5).
+      `feat(api): finance concepts, billing accounts, ledger and void endpoints`
+- [ ] **C8** Seed de conceptos por organización → liga al crearla (mismo patrón copy-on-create de §4.5).
+      `feat(league-onboarding): seed fee_concepts from organization catalog`
+- [ ] **C9** 🎨 UI-GATE — estado de cuenta por equipo y por jugador ("quién debe" + registrar pago en efectivo) + pantalla de rentas sueltas (clientes externos).
+      `feat(admin): account statement screens for teams, players and external rentals`
+
+### Épica D — Avisos + panel del capitán
+
+- [ ] **D1** Generador de "rol de la jornada" texto para WhatsApp.
+      `feat(content): matchday schedule text for WhatsApp`
+- [ ] **D2** 🎨 UI-GATE — vista pública del capitán: rol, roster y saldo (si finanzas activas).
+      `feat(public): captain self-service panel`
+
+### Épica E — Finanzas Nivel 1-2 (diferido, según demanda)
+
+- [ ] **E1** Fianza como `deposit` castigable por suspensión.
+      `feat(finance): deposit (fianza) with sanction deductions`
+- [ ] **E2** Arbitraje: tarifa por partido + cuenta por pagar al árbitro.
+      `feat(finance): referee fees and payables`
+- [ ] **E3** Egresos + cierre por torneo (ingresos − egresos) + corte de caja.
+      `feat(finance): expenses, tournament close and cash cut`
+
+> Regla de commits: un paso = un commit. Cerrar un paso genera su mensaje listo para que Jocobi lo ejecute; no avanzar al siguiente hasta que el anterior esté verde.
+
+---
+
+## 8. 🎨 Gate de diseño — detenerse antes de cualquier UI
+
+**Regla para el agente:** todo paso marcado **🎨 UI-GATE** (y cualquier trabajo de UI en general) **NO se empieza directo**. Antes de escribir el primer componente, el agente **se detiene y le pregunta a Jocobi**:
+
+> "Voy a construir la UI de **[feature]**. ¿Tienes un diseño para dármelo (Figma, imagen, referencia, specs), o quieres que lo decida yo?"
+
+Y espera respuesta. Según la respuesta:
+
+- **Jocobi tiene diseño** → lo implementa fiel a ese diseño (respetando además AGENTS.md §7.2: Tailwind, modo claro forzado, `green-600` primario, componentes ≤150 líneas).
+- **Jocobi no tiene diseño / dice "decide tú"** → el agente propone y construye, pero deja el paso listo para que **otra IA de diseño** genere el look de esa feature. La idea es que el diseño lo lleve una IA especializada (p. ej. flujo de Figma/diseño) para que **todas las features compartan el mismo lenguaje visual y se vean profesionales**, en vez de una UI distinta por módulo.
+
+**Por qué el gate:** la lógica (schema, queries, feature, endpoint) puede avanzar sin bloqueo; la UI es donde se juega la consistencia visual del producto. Detenerse ahí da la oportunidad de centralizar el diseño y mantener coherencia de marca (ver `docs/ORG-THEMING.md`, `docs/TOURNAMENT-SKINS.md` y AGENTS.md §7.2).
+
+**Regla práctica:** el agente puede completar todos los pasos **no-UI** de una épica de corrido; al llegar a un paso 🎨 UI-GATE, pausa y pregunta antes de tocar `ui/` o `page.tsx`.

@@ -27,11 +27,12 @@ export type GlobalPlayerData = {
 export type SuccessData = {
 	isNew: boolean;
 	globalPlayer: GlobalPlayerData;
+	/** null si no se asignó liga — el paso "Liga y equipo" es opcional. */
 	leagueMember: {
 		id: string;
 		dorsal: number | null;
 		inscriptionDate: string;
-	};
+	} | null;
 	inscription: { teamId: string } | null;
 };
 

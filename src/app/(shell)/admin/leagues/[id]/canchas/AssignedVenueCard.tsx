@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MapPin, Pencil, Trash2, Plus, Copy } from "lucide-react";
+import { notify } from "@/shared/lib/notify";
 import { WeeklyGrid, slotCount } from "./WeeklyGrid";
 import { NewWindowPopover } from "./NewWindowPopover";
 import type { VenueForLeague, VenueTimeWindow } from "@/entities/venue";
@@ -35,28 +36,34 @@ export function AssignedVenueCard({
 	const totalSlots = windows.reduce((s, w) => s + slotCount(w, slotDuration), 0);
 
 	function upsertWindow(w: VenueTimeWindow) {
-		setWindows((prev) => {
-			const idx = prev.findIndex((p) => p.id === w.id);
-			const next = idx >= 0 ? prev.with(idx, w) : [...prev, w];
-			onWindowsChanged(venue.id, next);
-			return next;
-		});
+		const idx = windows.findIndex((p) => p.id === w.id);
+		const next = idx >= 0 ? windows.with(idx, w) : [...windows, w];
+		setWindows(next);
+		onWindowsChanged(venue.id, next);
 		setPopover({ type: "none" });
 	}
 
 	function removeWindow(id: string) {
-		setWindows((prev) => {
-			const next = prev.filter((w) => w.id !== id);
-			onWindowsChanged(venue.id, next);
-			return next;
-		});
+		const next = windows.filter((w) => w.id !== id);
+		setWindows(next);
+		onWindowsChanged(venue.id, next);
 		setPopover({ type: "none" });
 	}
 
 	async function handleUnassign() {
-		const res = await fetch(`/api/leagues/${leagueId}/venues/${venue.id}`, { method: "DELETE" });
-		const json = await res.json();
-		if (json.ok) onUnassign(venue.id);
+		try {
+			const res = await fetch(`/api/leagues/${leagueId}/venues/${venue.id}`, { method: "DELETE" });
+			const json = await res.json();
+			if (json.ok) {
+				notify.success("Cancha quitada de la liga");
+				onUnassign(venue.id);
+			} else {
+				notify.error(json.error ?? "No se pudo quitar la cancha");
+			}
+		} catch (networkError) {
+			console.error("[AssignedVenueCard] unassign", networkError);
+			notify.error("Error de red. Intenta de nuevo.");
+		}
 	}
 
 	return (

@@ -67,6 +67,8 @@ export default async function OrganizationsPage() {
 									<Image
 										src={org.logoUrl}
 										alt={org.name}
+										width={40}
+										height={40}
 										className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
 									/>
 								) : (

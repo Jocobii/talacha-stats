@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
+import { notify } from "@/shared/lib/notify";
 import type { Venue } from "@/entities/venue";
 
 type UnassignedVenueTileProps = {

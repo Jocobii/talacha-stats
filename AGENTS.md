@@ -384,6 +384,16 @@ POST   /api/[recurso]/[accion]      → acción especial (ej: /merge, /confirm, 
   - Reserva `useEffect` para sincronizar con sistemas externos (escribir a localStorage, suscripciones, DOM). Llamar `setState` solo dentro de un **callback** de evento o de suscripción, nunca en el cuerpo del efecto.
   - Referencia: https://react.dev/learn/you-might-not-need-an-effect
 
+### 7.2b Feedback obligatorio en toda mutación (regla no negociable)
+
+**Toda acción que guarda, actualiza, elimina o crea algo — sin excepción — debe mostrarle feedback al usuario.** Nunca una mutación silenciosa: ni éxito mudo ni error tragado.
+
+- **Transporte:** `notify` de `@/shared/lib/notify` (`notify.success(...)` / `notify.error(...)`). Nadie importa `sileo` directamente (§ nota en `shared/lib/notify/index.ts`).
+- **Éxito:** todo `onSuccess` de un `useMutation` (o equivalente) llama `notify.success("...")` con un mensaje concreto ("Reglamento guardado", "Equipo eliminado" — no "Listo" genérico si hay contexto mejor).
+- **Error:** todo `onError` / rama `!ok` llama `notify.error(...)` con el mensaje que vino del backend (`res.error`) cuando exista, no un genérico que oculte la causa.
+- Mensajes inline en la propia UI (ej. un `<p>` de error bajo un botón) **no sustituyen** el toast — pueden coexistir, pero el toast es obligatorio porque el usuario puede no tener el ojo puesto ahí cuando la mutación resuelve.
+- Aplica también a acciones fuera de TanStack Query (server actions, `fetch` directo en un handler) — mismo criterio: si cambia estado en el servidor, el usuario se entera.
+
 ### 7.3 Datos del frontend — 5 capas y caché (contrato)
 
 > Detalle, racional y plan de migración en `docs/FRONTEND-DATA-STRATEGY.md`. Esto es el contrato corto.
@@ -399,6 +409,21 @@ apiFetch/serverFetch (transporte) → entities (DTO) → lib/map-*.ts (mapper) �
 - **Los hooks RQ son dueños de la caché.** La key SIEMPRE sale de la fábrica central `@/shared/api/query-keys.ts` (`queryKeys.*`); prohibido armar el array a mano. `queryFn`/`mutationFn` usan `apiFetch` y devuelven ViewModels mapeados; en `!ok` hacen `throw new Error(res.error)`.
 - **Invalidación explícita** tras cada mutación con `queryClient.invalidateQueries`, según el mapa de invalidación (ver doc y comentario de `query-keys.ts`). No usar `router.refresh()` para refrescar datos de una query.
 - **Patrón SSR→props:** el Server Component baja el DTO mapeado como `initialData` del hook; el cliente invalida puntualmente en vez de recargar la ruta.
+
+### 7.3b Filtros + fetching (patrón obligatorio, no negociable)
+
+**Todo módulo que hace peticiones y necesita filtros usa TanStack Query, con el mismo patrón de dos hooks separados.** No hay excepción por "es un caso simple": el patrón es barato y evita fetch-on-every-keystroke, carreras de estado y filtros no sincronizados con la URL.
+
+```
+model/useXFilters.ts   (estado de filtro: URL sync + confirmación, sin useEffect+setState)
+        ↓ objeto de filtro tipado
+model/useXQuery.ts      (useQuery: key desde queryKeys.*, enabled gatea el fetch)
+```
+
+- **Hook de filtro** (`useXFilters`/`useXMatchup`/etc.): dueño del estado de filtro. Si sincroniza con la URL, usa `useSearchParams`/`router.replace`, con **lazy initializer**, nunca `setState` dentro de `useEffect` (§7.2). Devuelve un objeto de filtro tipado — si el filtro requiere confirmación explícita antes de disparar la petición (ej. selección de equipos), devuelve `null` hasta que el usuario confirme.
+- **Hook de query** (`useXQuery`): recibe el objeto de filtro del hook anterior, arma la key con la fábrica central `queryKeys.*` (§7.3, prohibido armar el array a mano) incluyendo los valores de filtro relevantes, y usa `enabled` para no disparar la petición hasta que el filtro sea válido/confirmado. Para búsquedas de texto libre, además debounce y un mínimo de caracteres (`enabled: q.length >= N`).
+- Referencia canónica: `src/features/narrator-analysis/model/useNarratorMatchup.ts` (filtro confirmado) + `src/features/narrator-analysis/model/useNarratorAnalysisQuery.ts` (query gateada). Variante ligera con debounce: `src/features/team-management/model/useOrgPlayerSearch.ts`.
+- Si el filtrado es sobre datos ya cacheados (barato, sin nueva petición), usar `select` de la query existente en vez de una key nueva — ver `src/features/team-management/model/useLeagueTeams.ts`.
 
 ### 7.4 El tipo de respuesta es un DTO nombrado en `entities/` — nunca inline ni exportado desde el route
 
@@ -532,6 +557,7 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 - [ ] ¿Si toqué algo en `src/lib/`, lo migré a FSD?
 - [ ] ¿Las nuevas dependencias no tienen CVEs HIGH/CRITICAL sin fix?
 - [ ] ¿Si agregué algo a `.trivyignore`, tiene comentario de justificación?
+- [ ] ¿Toda mutación (guardar/actualizar/eliminar/crear) muestra `notify.success`/`notify.error` al usuario? (§7.2b)
 - [ ] ¿Usé early returns y me mantuve en ≤ 3 niveles de indentación? (§18.1–18.2)
 - [ ] ¿Todo `try/catch` maneja o re-propaga el error explícitamente? (§18.4)
 - [ ] ¿El código nuevo expone `XView` a la UI vía mapper, no el DTO crudo? (§19)

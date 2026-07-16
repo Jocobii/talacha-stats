@@ -6,8 +6,14 @@ import { db } from "@/db";
 import { matches } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import type { ResolveMatchInput } from "@/entities/match/model";
-import { upsertMatchPlayerStat, deleteMatchPlayerStats } from "@/entities/match-player-stat";
+import {
+	upsertMatchPlayerStat,
+	deleteMatchPlayerStats,
+} from "@/entities/match-player-stat/queries";
 import { applyWalkoverDefaults } from "./lib/walkover-defaults";
+import { maybeFreezeLeagueConfig, COUNTED_RESOLUTION_STATUSES } from "./lib/freeze-league-config";
+import { applyCardDiscipline } from "@/features/discipline/apply-card-discipline";
+import { decrementSuspensionsForMatch } from "@/features/discipline/decrement-suspensions";
 import { CLEAR_STATS_STATUSES } from "./constants";
 
 export async function resolveMatch(
@@ -62,7 +68,7 @@ export async function resolveMatch(
 		}
 
 		// 4. Actualizar el partido
-		await tx
+		const [updated] = await tx
 			.update(matches)
 			.set({
 				status: input.status,
@@ -74,6 +80,36 @@ export async function resolveMatch(
 				resolvedAt: new Date(),
 				resolvedBy: userId,
 			})
-			.where(eq(matches.id, matchId));
+			.where(eq(matches.id, matchId))
+			.returning({
+				leagueId: matches.leagueId,
+				homeTeamId: matches.homeTeamId,
+				awayTeamId: matches.awayTeamId,
+			});
+
+		// 5. Si es la primera cédula "real" de la liga, congelar el reglamento
+		// (league_config.locked_at) — §4.4 de docs/MODULOS-GESTION-LIGA.md.
+		if (updated) {
+			await maybeFreezeLeagueConfig(tx, updated.leagueId, matchId, input.status);
+
+			// 6. Motor de disciplina (B3/B4, §5.2 docs/MODULOS-GESTION-LIGA.md):
+			// roja directa y acumulación de amarillas materializan suspensiones
+			// dentro de la misma tx, sobre las stats recién escritas en el paso 3.
+			if (input.status === "played") {
+				await applyCardDiscipline(tx, matchId, updated.leagueId);
+			}
+
+			// 7. Descontar fecha a suspensiones 'matches' activas de jugadores cuyo
+			// equipo jugó esta cédula contable (B5, §5.2 docs/MODULOS-GESTION-LIGA.md).
+			if ((COUNTED_RESOLUTION_STATUSES as readonly string[]).includes(input.status)) {
+				await decrementSuspensionsForMatch(
+					tx,
+					matchId,
+					updated.leagueId,
+					updated.homeTeamId,
+					updated.awayTeamId,
+				);
+			}
+		}
 	});
 }

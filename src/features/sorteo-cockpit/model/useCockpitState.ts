@@ -275,15 +275,19 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 
 	const publishMatchday = useCallback(async () => {
 		const md = matchdayRef.current;
-		if (!md) return;
+		if (!md) {
+			notify.error("No hay una jornada activa para publicar.");
+			return;
+		}
 		setPublishLoading(true);
 		try {
 			await postPublish(leagueId, md.number);
 			// Actualizar estado local sin recargar toda la página (evita el parpadeo del spinner)
 			setMatchday((prev) => (prev ? { ...prev, status: "published" as const } : prev));
 			notify.success("Jornada publicada correctamente.");
-		} catch {
-			notify.error("Error al publicar la jornada. Intenta de nuevo.");
+		} catch (err) {
+			const message = err instanceof Error ? err.message : "Error al publicar la jornada.";
+			notify.error(message);
 		} finally {
 			setPublishLoading(false);
 		}
