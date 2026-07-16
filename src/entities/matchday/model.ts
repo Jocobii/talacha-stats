@@ -26,9 +26,3 @@ export type MatchdayStatus = (typeof MATCHDAY_STATUSES)[number];
 export type MatchdaySummary = Matchday & {
 	matchCount: number;
 };
-
-/** Lo mínimo para resolver `canManageLeague` desde una page (§3.3 AGENTS.md). */
-export type MatchdayPermissionContext = {
-	leagueId: string;
-	organizationId: string | null;
-};

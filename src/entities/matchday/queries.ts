@@ -7,7 +7,8 @@ import { db } from "@/db";
 import { matchdays, matches } from "@/db/schema";
 import { eq, and, count, inArray } from "drizzle-orm";
 import type { Matchday } from "@/db/schema";
-import type { MatchdayPhase, MatchdaySummary, MatchdayPermissionContext } from "./model";
+import type { MatchdayPhase, MatchdaySummary } from "./model";
+import type { LeaguePermissionContext } from "@/entities/league";
 
 export async function getMatchday(id: string): Promise<Matchday | null> {
 	const row = await db.query.matchdays.findFirst({ where: eq(matchdays.id, id) });
@@ -21,7 +22,7 @@ export async function getMatchday(id: string): Promise<Matchday | null> {
  */
 export async function getMatchdayPermissionContext(
 	matchdayId: string,
-): Promise<MatchdayPermissionContext | null> {
+): Promise<LeaguePermissionContext | null> {
 	const row = await db.query.matchdays.findFirst({
 		where: eq(matchdays.id, matchdayId),
 		columns: { leagueId: true },

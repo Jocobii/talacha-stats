@@ -111,12 +111,6 @@ export type MatchResolutionData = {
 	awayPlayers: PlayerResolutionRow[];
 };
 
-/** Lo mínimo para resolver `canManageLeague` desde una page (§3.3 AGENTS.md: la page llama a entities, no arma queries). */
-export type MatchPermissionContext = {
-	leagueId: string;
-	organizationId: string | null;
-};
-
 // ---------------------------------------------------------------------------
 // Cédula imprimible (docs/PLAN-CEDULA-IMPRESA.md)
 // ---------------------------------------------------------------------------

@@ -12,10 +12,10 @@ import type {
 	PlayerResolutionRow,
 	CedulaMatchData,
 	CedulaPlayerRow,
-	MatchPermissionContext,
 } from "./model";
 import { listActiveSuspensionsByLeague } from "@/entities/suspension/queries";
 import { buildSuspendedMapForMatchDate, type CedulaSuspensionLabel } from "@/entities/suspension";
+import type { LeaguePermissionContext } from "@/entities/league";
 
 const WITH_RELATIONS = {
 	matchday: { columns: { id: true, number: true, phase: true, scheduledDate: true } },
@@ -170,7 +170,7 @@ export async function listMatchesByRound(matchdayId: string) {
  */
 export async function getMatchPermissionContext(
 	matchId: string,
-): Promise<MatchPermissionContext | null> {
+): Promise<LeaguePermissionContext | null> {
 	const row = await db.query.matches.findFirst({
 		where: eq(matches.id, matchId),
 		columns: { leagueId: true },

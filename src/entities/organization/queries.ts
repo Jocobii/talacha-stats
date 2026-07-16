@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 import { eq, asc, desc, and, sql, inArray, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import type { Organization } from "@/db/schema";
 import type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
 import { deriveArranqueState, type ArranqueState } from "./lib/derive-arranque-state";
 
@@ -24,17 +25,19 @@ import { deriveArranqueState, type ArranqueState } from "./lib/derive-arranque-s
 // ---------------------------------------------------------------------------
 
 /** Obtiene una organización por su ID. */
-export async function getOrganizationById(id: string) {
-	return db.query.organizations.findFirst({
+export async function getOrganizationById(id: string): Promise<Organization | null> {
+	const row = await db.query.organizations.findFirst({
 		where: eq(organizations.id, id),
 	});
+	return row ?? null;
 }
 
 /** Obtiene una organización por su slug (para URLs públicas). */
-export async function getOrganizationBySlug(slug: string) {
-	return db.query.organizations.findFirst({
+export async function getOrganizationBySlug(slug: string): Promise<Organization | null> {
+	const row = await db.query.organizations.findFirst({
 		where: eq(organizations.slug, slug),
 	});
+	return row ?? null;
 }
 
 /** Lista todas las organizaciones del sistema (solo para owner). */
