@@ -38,11 +38,7 @@ export default function RegistrationForm({ fixedLeague, leagues = [] }: Props) {
 					ref={curpInputRef}
 					curp={form.curp}
 					onCurpChange={form.setCurpInput}
-					leagueId={form.leagueId}
-					leagues={leagues}
-					fixedLeague={fixedLeague}
 					isSearching={step.type === "searching"}
-					onLeagueChange={form.onLeagueChange}
 				/>
 			)}
 

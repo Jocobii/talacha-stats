@@ -67,6 +67,11 @@ function makeRoster(
 				inscriptionDate: "2026-01-01",
 				institutionPhotoUrl: null,
 				internalNotes: null,
+				phone: null,
+				residenceArea: null,
+				emergencyContactName: null,
+				emergencyContactPhone: null,
+				medicalNotes: null,
 				createdAt: new Date(),
 			});
 			inscriptions.push({

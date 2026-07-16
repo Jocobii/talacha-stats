@@ -28,6 +28,9 @@ export const DISCIPLINE_PLAYER_SEARCH_URL = (q: string): string =>
 /** PATCH (escalar / levantar) una suspensión puntual. */
 export const SUSPENSION_URL = (suspensionId: string): string => `/api/suspensions/${suspensionId}`;
 
+/** GET listado global de suspensiones + ligas visibles (B7b, /admin/suspensiones). */
+export const ADMIN_SUSPENSIONS_URL = "/api/admin/suspensions";
+
 /**
  * /admin/suspensiones (B7b) — molde "módulo data-heavy", espejo de
  * PLAYERS_BASE_PATH/TEAMS_BASE_PATH. El tamaño/opciones de página son el

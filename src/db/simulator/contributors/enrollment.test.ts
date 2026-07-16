@@ -53,6 +53,7 @@ function makeGlobalPlayers(n: number): GlobalPlayer[] {
 		fullName: `Jugador ${i}`,
 		fullNameCanonical: `jugador ${i}`,
 		birthDate: "1995-01-01",
+		gender: null,
 		avatarUrl: null,
 		createdAt: new Date(),
 	}));
