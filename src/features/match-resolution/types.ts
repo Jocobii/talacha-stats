@@ -38,6 +38,8 @@ export type PlayerStatDraft = {
 	redCards: number;
 	/** true = hay cambios no guardados */
 	dirty: boolean;
+	/** null si puede jugar; si está suspendido, el tag + motivo — bloquea la fila en captura. */
+	suspended: { tag: string; why: string } | null;
 };
 
 export type TeamSide = "home" | "away";

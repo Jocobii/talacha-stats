@@ -55,6 +55,7 @@ export type CockpitHookReturn = {
 	loading: boolean;
 	loadError: string | null;
 	sortearLoading: boolean;
+	createLoading: boolean;
 	saveStatus: SaveStatus;
 	publishLoading: boolean;
 	drawerOpen: boolean;

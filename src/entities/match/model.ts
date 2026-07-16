@@ -159,4 +159,6 @@ export type PlayerResolutionRow = {
 		blueCards: number;
 		redCards: number;
 	} | null;
+	/** null si el jugador puede jugar; si está suspendido, el tag + motivo/plazo (mismo cruce que la cédula). */
+	suspended: { tag: string; why: string } | null;
 };

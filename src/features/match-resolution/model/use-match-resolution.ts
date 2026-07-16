@@ -33,6 +33,7 @@ function buildInitialState(data: MatchResolutionData): ResolutionState {
 		blueCards: p.stat?.blueCards ?? 0,
 		redCards: p.stat?.redCards ?? 0,
 		dirty: false,
+		suspended: p.suspended,
 	});
 
 	return {

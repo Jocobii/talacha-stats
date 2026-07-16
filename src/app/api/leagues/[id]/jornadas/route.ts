@@ -10,7 +10,7 @@ import { apiSuccess, apiError } from "@/types";
 import { getSessionUserFromRequest, canManageLeague } from "@/shared/lib/auth";
 import { db } from "@/db";
 import { leagues, matchdays } from "@/db/schema";
-import { eq, and, inArray, max } from "drizzle-orm";
+import { eq, and, inArray, max, sql } from "drizzle-orm";
 import { MATCHDAY_STATUSES } from "@/features/scheduling/constants";
 
 type Params = { params: Promise<{ id: string }> };
@@ -51,29 +51,52 @@ export async function POST(request: Request, { params }: Params) {
 		);
 	}
 
-	// Calcular número siguiente
-	const [maxRow] = await db
-		.select({ maxNumber: max(matchdays.number) })
-		.from(matchdays)
-		.where(eq(matchdays.leagueId, id));
+	// Calcular número siguiente e insertar dentro de una transacción con lock
+	// a nivel de fila: sin esto, dos requests casi simultáneos (doble clic en
+	// "Crear Jornada", o loadCurrent auto-creando mientras el usuario también
+	// hace submit) leen el mismo MAX(number) antes de que el primer insert
+	// confirme y ambos intentan crear la misma jornada → 23505 duplicate key.
+	try {
+		const inserted = await db.transaction(async (tx) => {
+			// pg_advisory_xact_lock serializa por liga: la segunda transacción
+			// concurrente espera a que la primera termine (commit o rollback)
+			// antes de leer el MAX, así siempre ve el número ya insertado.
+			await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${id} || ':matchday-create'))`);
 
-	const nextNumber = (maxRow?.maxNumber ?? 0) + 1;
+			const [maxRow] = await tx
+				.select({ maxNumber: max(matchdays.number) })
+				.from(matchdays)
+				.where(eq(matchdays.leagueId, id));
 
-	const [inserted] = await db
-		.insert(matchdays)
-		.values({
-			leagueId: id,
-			number: nextNumber,
-			phase: "regular",
-			scheduledDate: parsed.data.scheduledDate,
-			status: "draft",
-		})
-		.returning({
-			id: matchdays.id,
-			number: matchdays.number,
-			scheduledDate: matchdays.scheduledDate,
-			status: matchdays.status,
+			const nextNumber = (maxRow?.maxNumber ?? 0) + 1;
+
+			const [row] = await tx
+				.insert(matchdays)
+				.values({
+					leagueId: id,
+					number: nextNumber,
+					phase: "regular",
+					scheduledDate: parsed.data.scheduledDate,
+					status: "draft",
+				})
+				.returning({
+					id: matchdays.id,
+					number: matchdays.number,
+					scheduledDate: matchdays.scheduledDate,
+					status: matchdays.status,
+				});
+
+			return row;
 		});
 
-	return apiSuccess(inserted, 201);
+		return apiSuccess(inserted, 201);
+	} catch (err) {
+		// Red de seguridad por si algo más (fuera de este endpoint) insertó con
+		// el mismo número entre el lock y el insert. No debería pasar con el
+		// advisory lock, pero evita un 500 crudo si ocurre.
+		if (err && typeof err === "object" && "code" in err && err.code === "23505") {
+			return apiError("Ya se está creando una jornada para esta liga, intenta de nuevo.", 409);
+		}
+		throw err;
+	}
 }

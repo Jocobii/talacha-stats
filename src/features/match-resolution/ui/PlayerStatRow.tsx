@@ -32,6 +32,10 @@ type Props = {
 const GOALS_LOCKED_MESSAGE =
 	'En W.O. los goles van a "Goles de equipo" — no se capturan por jugador';
 
+function suspendedMessage(why: string): string {
+	return `Jugador suspendido — no puede alinear (${why})`;
+}
+
 const STAT_FIELDS: StatField[] = ["goals", "yellowCards", "blueCards", "redCards", "assists"];
 /** Columna del checkbox "presente" en la grilla (tras las 5 columnas de stats). */
 const PRESENT_COL = STAT_FIELDS.length;
@@ -55,6 +59,10 @@ export function PlayerStatRow({
 }: Props) {
 	const [confirmClear, setConfirmClear] = useState(false);
 
+	const isSuspended = !!player.suspended;
+	const rowDisabled = disabled || isSuspended;
+	const suspendedTitle = player.suspended ? suspendedMessage(player.suspended.why) : undefined;
+
 	const hasStats =
 		player.goals + player.assists + player.yellowCards + player.blueCards + player.redCards > 0;
 
@@ -77,9 +85,14 @@ export function PlayerStatRow({
 	return (
 		<>
 			<tr
-				className={`border-b border-line hover:bg-surface-2 transition-colors ${
-					player.isAdHoc ? "border-l-2 border-l-amber" : ""
+				className={`border-b border-line transition-colors ${
+					isSuspended
+						? "bg-[repeating-linear-gradient(135deg,var(--color-surface-2)_0,var(--color-surface-2)_4px,transparent_4px,transparent_9px)] opacity-70"
+						: "hover:bg-surface-2"
+				} ${player.isAdHoc && !isSuspended ? "border-l-2 border-l-amber" : ""} ${
+					isSuspended ? "border-l-2 border-l-rose" : ""
 				}`}
+				title={suspendedTitle}
 			>
 				{/* Código de credencial — mismo orden y formato que la cédula impresa */}
 				<td className="px-2 py-1 text-center w-14">
@@ -97,10 +110,18 @@ export function PlayerStatRow({
 
 				{/* Jugador */}
 				<td className="px-2 py-1 min-w-[120px]">
-					<span className="text-sm text-ink truncate block max-w-[160px]" title={player.fullName}>
+					<span
+						className={`text-sm truncate block max-w-[160px] ${isSuspended ? "text-rose font-semibold" : "text-ink"}`}
+						title={player.fullName}
+					>
 						{player.fullName}
 					</span>
-					{player.isAdHoc && (
+					{isSuspended && player.suspended && (
+						<span className="text-[10px] text-rose font-bold uppercase tracking-wide">
+							Suspendido — {player.suspended.tag}
+						</span>
+					)}
+					{!isSuspended && player.isAdHoc && (
 						<span className="text-[10px] text-amber font-medium">Sin verificar</span>
 					)}
 				</td>
@@ -110,7 +131,12 @@ export function PlayerStatRow({
 					// Bloqueo específico de "goles" en W.O.: la fila sigue habilitada
 					// (asistencia/tarjetas se capturan normal), pero el marcador ya se
 					// atribuye completo a "goles de equipo" — no se reparte por jugador.
-					const isGoalsBlocked = field === "goals" && goalsLocked && !disabled;
+					const isGoalsBlocked = field === "goals" && goalsLocked && !disabled && !isSuspended;
+					const blockTitle = isSuspended
+						? suspendedTitle
+						: isGoalsBlocked
+							? GOALS_LOCKED_MESSAGE
+							: undefined;
 
 					return (
 						<td key={field} className="px-1 py-1 text-center w-10">
@@ -119,15 +145,21 @@ export function PlayerStatRow({
 								min={0}
 								max={MAX[field]}
 								value={player[field]}
-								disabled={disabled}
+								disabled={rowDisabled}
 								inputMode="numeric"
 								data-stat-input
 								data-side={side}
 								data-row={rowIndex}
 								data-col={colIndex}
 								data-goals-locked={isGoalsBlocked ? "true" : undefined}
-								title={isGoalsBlocked ? GOALS_LOCKED_MESSAGE : undefined}
+								data-suspended={isSuspended ? "true" : undefined}
+								title={blockTitle}
 								onFocus={(e) => {
+									if (isSuspended) {
+										if (suspendedTitle) notify.error(suspendedTitle);
+										e.currentTarget.blur();
+										return;
+									}
 									if (isGoalsBlocked) {
 										notify.error(GOALS_LOCKED_MESSAGE);
 										e.currentTarget.blur();
@@ -136,13 +168,13 @@ export function PlayerStatRow({
 									e.currentTarget.select();
 								}}
 								onChange={(e) => {
-									if (isGoalsBlocked) return; // defensivo: el focus ya bloquea la edición
+									if (isGoalsBlocked || isSuspended) return; // defensivo: el focus ya bloquea la edición
 									const v = Math.min(MAX[field], Math.max(0, parseInt(e.target.value, 10) || 0));
 									onStatChange(field, v);
 								}}
 								onKeyDown={(e) => moveGridFocus(e, side, rowIndex, colIndex, rowCount)}
 								className={`w-9 text-center text-sm bg-surface-2 border border-line text-ink rounded focus:outline-none focus:ring-1 focus:ring-brand/40 disabled:opacity-30 ${
-									isGoalsBlocked ? "opacity-50 cursor-not-allowed" : ""
+									isGoalsBlocked || isSuspended ? "opacity-50 cursor-not-allowed" : ""
 								}`}
 							/>
 						</td>
@@ -155,12 +187,12 @@ export function PlayerStatRow({
 						type="checkbox"
 						checked={player.isPresent}
 						onChange={handlePresentToggle}
-						disabled={disabled}
+						disabled={rowDisabled}
 						data-side={side}
 						data-row={rowIndex}
 						data-col={PRESENT_COL}
 						onKeyDown={(e) => moveGridFocus(e, side, rowIndex, PRESENT_COL, rowCount)}
-						className="w-4 h-4 accent-brand"
+						className="w-4 h-4 accent-brand disabled:opacity-30"
 					/>
 				</td>
 			</tr>

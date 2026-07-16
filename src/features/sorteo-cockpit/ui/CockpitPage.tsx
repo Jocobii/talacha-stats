@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { useCockpitState } from "../model/useCockpitState";
 import { CockpitTopBar } from "./CockpitTopBar";
 import { RosterPanel } from "./RosterPanel";
@@ -17,9 +18,11 @@ type CockpitPageProps = {
 function CreateMatchdayForm({
 	leagueName,
 	onCreate,
+	loading,
 }: {
 	leagueName: string;
 	onCreate: (date: string) => void;
+	loading: boolean;
 }) {
 	const [date, setDate] = useState("");
 	return (
@@ -64,8 +67,13 @@ function CreateMatchdayForm({
 						fontFamily: "inherit",
 					}}
 				/>
-				<button className="btn-primary" onClick={() => date && onCreate(date)} disabled={!date}>
-					Crear Jornada
+				<button
+					className="btn-primary"
+					onClick={() => date && onCreate(date)}
+					disabled={!date || loading}
+				>
+					{loading && <Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} />}
+					{loading ? "Creando…" : "Crear Jornada"}
 				</button>
 			</div>
 		</div>
@@ -151,6 +159,7 @@ export function CockpitPage({ leagueId, leagueName }: CockpitPageProps) {
 				<CreateMatchdayForm
 					leagueName={state.leagueName || leagueName}
 					onCreate={state.createMatchday}
+					loading={state.createLoading}
 				/>
 			) : (
 				<>

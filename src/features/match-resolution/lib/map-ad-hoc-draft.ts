@@ -32,5 +32,7 @@ export function mapAdHocResultToDraft(
 		blueCards: 0,
 		redCards: 0,
 		dirty: false,
+		// Ad-hoc = jugador no registrado en la liga; no hay contra qué cruzar sanción.
+		suspended: null,
 	};
 }

@@ -72,6 +72,7 @@ describe("applyWalkoverStatusChange", () => {
 				blueCards: 0,
 				redCards: 0,
 				dirty: true,
+				suspended: null,
 			},
 		];
 		const prev = buildState({ homePlayers: players, status: "played" });

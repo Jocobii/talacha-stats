@@ -21,6 +21,7 @@ describe("mapAdHocResultToDraft", () => {
 			blueCards: 0,
 			redCards: 0,
 			dirty: false,
+			suspended: null,
 		});
 	});
 
