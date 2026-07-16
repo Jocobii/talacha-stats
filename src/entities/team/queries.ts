@@ -114,7 +114,13 @@ export async function listOrgTeams(
 ): Promise<{ rows: OrgTeamRow[]; total: number }> {
 	const filterWhere = buildWhere(orgTeamFilters, query.filters);
 	// El scope de negocio (organización) se combina aparte — nunca es un filtro de usuario.
-	const where = and(eq(leagues.organizationId, organizationId), filterWhere);
+	// Solo equipos de ligas activas: las de ligas terminadas son histórico y no
+	// aplican al día a día de este listado (se consultan liga por liga).
+	const where = and(
+		eq(leagues.organizationId, organizationId),
+		eq(leagues.status, "active"),
+		filterWhere,
+	);
 	const offset = (query.page - 1) * query.pageSize;
 
 	const inner = db
@@ -193,7 +199,7 @@ export async function countOrgTeams(organizationId: string): Promise<number> {
 		.select({ total: sql<number>`COUNT(*)::int` })
 		.from(teams)
 		.innerJoin(leagues, eq(leagues.id, teams.leagueId))
-		.where(eq(leagues.organizationId, organizationId));
+		.where(and(eq(leagues.organizationId, organizationId), eq(leagues.status, "active")));
 	return rows[0]?.total ?? 0;
 }
 
@@ -221,7 +227,12 @@ export async function listAllTeams(opts: {
 	search?: string;
 }): Promise<{ rows: GlobalTeamRow[]; total: number }> {
 	const { page, pageSize, search } = opts;
-	const whereFilter = search ? ilike(teams.name, `%${search}%`) : undefined;
+	// Solo equipos de ligas activas — mismo criterio que listOrgTeams: las
+	// terminadas quedan como histórico, fuera de este listado de día a día.
+	const whereFilter = and(
+		eq(leagues.status, "active"),
+		search ? ilike(teams.name, `%${search}%`) : undefined,
+	);
 
 	const [rows, countResult] = await Promise.all([
 		db
@@ -248,6 +259,7 @@ export async function listAllTeams(opts: {
 		db
 			.select({ total: sql<number>`COUNT(*)::int` })
 			.from(teams)
+			.innerJoin(leagues, eq(leagues.id, teams.leagueId))
 			.where(whereFilter),
 	]);
 
