@@ -188,6 +188,25 @@ export const enrollmentContributor: Contributor = {
 		const teamRows = getTeams(ctx);
 
 		const baseline = buildBaseline(ctx, leagueRows, teamRows);
+
+		// Invariante dura: todo equipo creado por `structure` en esta corrida
+		// debe salir de `buildBaseline` con al menos un jugador. Si el pool de
+		// global_players quedó mal dimensionado (ver nota en
+		// identity.ts::totalRosterSlots), el bug histórico fue que esto fallaba
+		// EN SILENCIO — la corrida terminaba "exitosa" pero dejaba equipos con
+		// cero inscripciones, invisibles hasta que alguien intentaba capturar
+		// un partido. Preferimos reventar aquí, con nombres, a dejar datos
+		// corruptos.
+		const baselineTeamIds = new Set(baseline.teamIdByIndex);
+		const orphanedTeams = teamRows.filter((t) => !baselineTeamIds.has(t.id));
+		if (orphanedTeams.length > 0) {
+			throw new Error(
+				`enrollment: ${orphanedTeams.length} equipo(s) no recibieron roster en buildBaseline ` +
+					"(pool de global_players mal dimensionado para esta corrida). Equipos afectados: " +
+					orphanedTeams.map((t) => `${t.name} (${t.id})`).join(", "),
+			);
+		}
+
 		const crossLeague = buildCrossLeagueReuse(ctx, leagueRows, teamRows, baseline);
 
 		const allMemberDefs = [...baseline.memberDefs, ...crossLeague.memberDefs];

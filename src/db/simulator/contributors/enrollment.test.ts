@@ -108,6 +108,39 @@ describe("enrollmentContributor", () => {
 		}
 	});
 
+	it("revienta con error claro si el pool de global_players se agota a mitad de un equipo", async () => {
+		const { ctx } = makeCtx(99, "S", { leagueCount: 1, teamsPerLeague: 4, playersPerTeam: 5 });
+		// Alcanza para 2 de los 4 equipos, no para los otros 2 — el pool mal
+		// dimensionado es justo el bug real que se encontró en producción
+		// (ver identity.ts::totalRosterSlots).
+		ctx.data[GLOBAL_PLAYERS_KEY] = makeGlobalPlayers(2 * 5);
+
+		await expect(enrollmentContributor.contribute(ctx)).rejects.toThrow(
+			/se agotó el pool de global_players/,
+		);
+		expect(() => getLeagueMembers(ctx)).toThrow();
+	});
+
+	it("revienta con error claro si un equipo pertenece a una liga ausente de leagueRows (equipo huérfano en silencio, sin agotar el pool)", async () => {
+		const { ctx, leagueRows, teamRows, pool } = makeCtx(100, "S", {
+			leagueCount: 2,
+			teamsPerLeague: 3,
+			playersPerTeam: 4,
+		});
+		// Simula el caso real: `teams` (TEAMS_KEY) trae equipos de una liga que
+		// `leagues` (LEAGUES_KEY) ya no incluye en esta corrida. buildBaseline
+		// solo itera `leagueRows`, así que esos equipos nunca entran al loop —
+		// ni se les asigna roster NI se agota el pool (no hay throw "viejo" que
+		// lo detecte). Antes de este guard, la corrida terminaba "exitosa" con
+		// esos equipos con cero inscripciones.
+		ctx.data[LEAGUES_KEY] = [leagueRows[0]];
+		ctx.data[GLOBAL_PLAYERS_KEY] = pool; // pool de sobra, no es tema de cupos
+
+		await expect(enrollmentContributor.contribute(ctx)).rejects.toThrow(/no recibieron roster/);
+		expect(() => getLeagueMembers(ctx)).toThrow();
+		void teamRows;
+	});
+
 	it("una inscription por cada league_member creado", async () => {
 		const { ctx } = makeCtx(2, "S", { leagueCount: 1 });
 		await enrollmentContributor.contribute(ctx);

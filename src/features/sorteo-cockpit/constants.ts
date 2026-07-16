@@ -6,11 +6,10 @@ export const SCHEDULING_CONFIG_URL = (leagueId: string): string =>
 
 /**
  * Valores fijos que el cockpit envía siempre al guardar la config (formato
- * simple, sin duplicados). Centralizados para no hardcodearlos en cada UI (§3.5).
+ * simple). Centralizados para no hardcodearlos en cada UI (§3.5).
  */
 export const SCHEDULING_CONFIG_FIXED = {
 	regularFormat: "single",
-	allowDuplicateMatchups: false,
 } as const;
 
 export const STATUS_LABELS: Record<string, string> = {

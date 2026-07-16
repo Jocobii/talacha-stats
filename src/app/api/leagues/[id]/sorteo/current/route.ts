@@ -157,6 +157,7 @@ export async function GET(request: Request, { params }: Params) {
 					bufferMinutes: config.bufferMinutes,
 					noRepeatWithin: config.noRepeatWithin,
 					regularMatchdays: config.regularMatchdays,
+					allowDuplicateMatchups: config.allowDuplicateMatchups,
 				}
 			: null,
 	});

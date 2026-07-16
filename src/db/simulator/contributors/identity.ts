@@ -178,18 +178,28 @@ async function createOrganizationOwners(ctx: SimContext, orgs: Organization[]): 
 	return orgs.map((org) => existingByOrgId.get(org.id)).filter((u): u is User => Boolean(u));
 }
 
-/** Cupos de roster totales para esta corrida (no cuenta reutilización cross-liga). */
-export function totalRosterSlots(ctx: SimContext): number {
+/**
+ * Cupos de roster totales para esta corrida (no cuenta reutilización cross-liga).
+ *
+ * `orgCount` debe ser el número REAL de organizaciones que va a procesar
+ * `structure` en esta corrida — no siempre es igual a `ctx.params.orgs`.
+ * En modo "avanzar org existente" (Épica E) el caller precarga
+ * `ctx.data[ORGANIZATIONS_KEY]` con 1 sola org objetivo, pero `ctx.params`
+ * sigue siendo el preset del tier (ej. XL trae `orgs: 3`). Si esta función
+ * usa `ctx.params.orgs` en vez del conteo real, el pool de global_players
+ * queda dimensionado para más (o menos) orgs de las que `structure`
+ * realmente va a crear equipos — bug real detectado en producción: liga
+ * reutilizada terminó con equipos sin ningún jugador inscrito porque el
+ * pool se agotó a mitad de una liga.
+ */
+export function totalRosterSlots(ctx: SimContext, orgCount: number = ctx.params.orgs): number {
 	return (
-		ctx.params.orgs *
-		ctx.params.leaguesPerOrg *
-		ctx.params.teamsPerLeague *
-		ctx.params.playersPerTeam
+		orgCount * ctx.params.leaguesPerOrg * ctx.params.teamsPerLeague * ctx.params.playersPerTeam
 	);
 }
 
-async function createGlobalPlayers(ctx: SimContext): Promise<GlobalPlayer[]> {
-	const slots = totalRosterSlots(ctx);
+async function createGlobalPlayers(ctx: SimContext, orgCount: number): Promise<GlobalPlayer[]> {
+	const slots = totalRosterSlots(ctx, orgCount);
 	if (slots === 0) return [];
 
 	const generator = new IdentityGenerator(ctx.rng);
@@ -228,7 +238,7 @@ export const identityContributor: Contributor = {
 		const [configs, owners, players] = await Promise.all([
 			createOrganizationConfigs(ctx, orgs),
 			createOrganizationOwners(ctx, orgs),
-			createGlobalPlayers(ctx),
+			createGlobalPlayers(ctx, orgs.length),
 		]);
 
 		setData(ctx, ORGANIZATIONS_KEY, orgs);

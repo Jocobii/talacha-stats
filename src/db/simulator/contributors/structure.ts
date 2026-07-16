@@ -35,6 +35,7 @@ import {
 } from "@/features/league-management/lib/generate-league-code";
 import { pick, pickN, shuffle, type Rng } from "../rng";
 import { setData, requireData, type Contributor, type SimContext } from "../context";
+import { insertInBatches } from "../chunk";
 import { getOrganizations } from "./identity";
 
 export const LEAGUES_KEY = "leagues";
@@ -246,7 +247,10 @@ export async function createTeams(ctx: SimContext, leagueRows: League[]): Promis
 			status: "active" as const,
 		}));
 	});
-	return ctx.db.insert(teams).values(rows).returning();
+	// Batched (ver chunk.ts) — un solo INSERT sin batch ya causó el error real
+	// de Postgres "bind message has N parameter formats but 0 parameters" en
+	// corridas tier L/XL para otras tablas; teams no tenía la misma protección.
+	return insertInBatches(rows, (batch) => ctx.db.insert(teams).values(batch).returning());
 }
 
 export const structureContributor: Contributor = {

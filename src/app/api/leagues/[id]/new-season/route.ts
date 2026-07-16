@@ -2,7 +2,12 @@
  * POST /api/leagues/[id]/new-season
  *
  * Crea una nueva temporada de la liga clonando su configuración:
- *  ✓ Equipos (nombre, color) — sin jugadores ni registros
+ *  ✓ Equipos (nombre, color)
+ *  ✓ Jugadores activos de cada equipo (league_members + inscriptions) —
+ *    suspendidos/inactivos NO se copian, la temporada nueva arranca
+ *    disciplinariamente limpia (ver conversación con Claude, corrige el bug
+ *    real donde "Nueva Temporada" dejaba los equipos sin roster y la
+ *    pantalla de captura de resultados aparecía vacía).
  *  ✓ Zonas de playoffs (Liguilla, Copa, etc.)
  *  ✓ Configuración de sorteo (jornadas, duración, buffer…)
  *  ✓ Canchas asignadas (leagueVenues + venueTimeWindows)
@@ -21,6 +26,8 @@ import {
 	leagueSchedulingConfig,
 	leagueVenues,
 	venueTimeWindows,
+	leagueMembers,
+	inscriptions,
 } from "@/db/schema";
 import { apiSuccess, apiError } from "@/types";
 import { getSessionUserFromRequest, canManageLeague } from "@/shared/lib/auth";
@@ -103,7 +110,7 @@ export async function POST(request: Request, { params }: Params) {
 		await Promise.all([
 			db.query.teams.findMany({
 				where: and(eq(teams.leagueId, sourceId), eq(teams.status, "active")),
-				columns: { name: true, nameCanonical: true, color: true },
+				columns: { id: true, name: true, nameCanonical: true, color: true },
 			}),
 			db.query.leaguePlayoffZones.findMany({
 				where: eq(leaguePlayoffZones.leagueId, sourceId),
@@ -133,6 +140,23 @@ export async function POST(request: Request, { params }: Params) {
 			findLeagueConfigOrDefaults(sourceId),
 		]);
 
+	// Roster activo origen — solo de equipos activos (mismo filtro que
+	// sourceTeams arriba); suspendidos/inactivos no se copian a la nueva
+	// temporada (decisión de producto, ver docstring del endpoint).
+	const sourceTeamIds = sourceTeams.map((t) => t.id);
+	const sourceRoster =
+		sourceTeamIds.length > 0
+			? await db
+					.select({
+						globalPlayerId: leagueMembers.globalPlayerId,
+						dorsal: leagueMembers.dorsal,
+						teamId: inscriptions.teamId,
+					})
+					.from(leagueMembers)
+					.innerJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
+					.where(and(eq(leagueMembers.leagueId, sourceId), eq(leagueMembers.status, "active")))
+			: [];
+
 	// ── Transacción: crear todo o nada ────────────────────────────────────────
 	const newLeague = await db.transaction(async (tx) => {
 		// 1. Nueva liga
@@ -155,15 +179,67 @@ export async function POST(request: Request, { params }: Params) {
 		const newId = created.id;
 
 		// 2. Equipos
+		let playersCopied = 0;
 		if (sourceTeams.length > 0) {
-			await tx.insert(teams).values(
-				sourceTeams.map((t) => ({
-					name: t.name,
-					nameCanonical: t.nameCanonical,
-					color: t.color,
-					leagueId: newId,
-				})),
-			);
+			const insertedTeams = await tx
+				.insert(teams)
+				.values(
+					sourceTeams.map((t) => ({
+						name: t.name,
+						nameCanonical: t.nameCanonical,
+						color: t.color,
+						leagueId: newId,
+					})),
+				)
+				.returning({ id: teams.id, nameCanonical: teams.nameCanonical });
+
+			// 2b. Roster activo — copia league_members + inscriptions de la liga
+			// origen a la nueva, mapeando equipo viejo → equipo nuevo por
+			// nameCanonical (único por liga, uq_teams_league_canonical). Sin esto
+			// los equipos nuevos nacían sin roster y la pantalla de captura de
+			// resultados aparecía vacía en la temporada nueva.
+			if (sourceRoster.length > 0) {
+				const oldTeamNameCanonicalById = new Map(sourceTeams.map((t) => [t.id, t.nameCanonical]));
+				const newTeamIdByNameCanonical = new Map(insertedTeams.map((t) => [t.nameCanonical, t.id]));
+
+				const rosterDefs = sourceRoster
+					.map((m) => {
+						const nameCanonical = oldTeamNameCanonicalById.get(m.teamId);
+						const newTeamId = nameCanonical
+							? newTeamIdByNameCanonical.get(nameCanonical)
+							: undefined;
+						return newTeamId
+							? { globalPlayerId: m.globalPlayerId, dorsal: m.dorsal, teamId: newTeamId }
+							: null;
+					})
+					.filter((d): d is { globalPlayerId: string; dorsal: number | null; teamId: string } =>
+						Boolean(d),
+					);
+
+				if (rosterDefs.length > 0) {
+					const inscriptionDate = new Date().toISOString().slice(0, 10);
+					const insertedMembers = await tx
+						.insert(leagueMembers)
+						.values(
+							rosterDefs.map((d) => ({
+								globalPlayerId: d.globalPlayerId,
+								leagueId: newId,
+								dorsal: d.dorsal,
+								inscriptionDate,
+							})),
+						)
+						.returning({ id: leagueMembers.id });
+
+					await tx.insert(inscriptions).values(
+						insertedMembers.map((member, i) => ({
+							leagueMemberId: member.id,
+							teamId: rosterDefs[i].teamId,
+						})),
+					);
+
+					playersCopied = insertedMembers.length;
+				}
+			}
 		}
 
 		// 3. Zonas de playoffs (si no hay, crear la zona por defecto)
@@ -248,16 +324,17 @@ export async function POST(request: Request, { params }: Params) {
 		// 8. Marcar liga origen como terminada
 		await tx.update(leagues).set({ status: "finished" }).where(eq(leagues.id, sourceId));
 
-		return created;
+		return { created, playersCopied };
 	});
 
 	return apiSuccess(
 		{
-			id: newLeague.id,
-			name: newLeague.name,
-			season: newLeague.season,
+			id: newLeague.created.id,
+			name: newLeague.created.name,
+			season: newLeague.created.season,
 			copied: {
 				teams: sourceTeams.length,
+				players: newLeague.playersCopied,
 				zones: sourceZones.length,
 				venues: sourceVenues.length,
 				hasSchedulingConfig: !!sourceConfig,

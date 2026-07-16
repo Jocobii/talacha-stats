@@ -1,5 +1,11 @@
 # Configuración de la organización — hub pendiente
 
+> **➡️ Superado por `docs/ORG-PROFILE-HUB.md` (jul 2026).** Ese es ahora el plan
+> maestro del hub `/admin/organizacion`: reúne el inventario completo de qué
+> pertenece a la organización (identidad, tema, reglamento default, sorteo
+> default, canchas, miembros), el schema nuevo `organization_scheduling_config`
+> y las épicas O–R por paso. Este doc queda como contexto histórico del hueco.
+
 > **Estado:** propuesta sin construir (jul 2026). No hay pantalla hoy. Este doc deja evidencia del hueco y de cómo debería armarse el módulo cuando se priorice — pedido explícito de Jocobi para no perder el contexto.
 
 ## 0. El hueco
