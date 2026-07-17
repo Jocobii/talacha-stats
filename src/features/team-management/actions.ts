@@ -11,6 +11,7 @@ import type { Team, LeagueMember, Inscription } from "@/db";
 import type { UpdateTeamData, UpdateRosterMemberData } from "./types";
 import { sanitizeToCanonical } from "@/shared/lib/normalize";
 import { assignNextCredential } from "@/entities/player/lib/assign-credential";
+import { canPlayInLeague } from "@/entities/player-credential/queries";
 
 /** Actualiza nombre y/o color de un equipo. */
 export async function updateTeamInfo(id: string, data: UpdateTeamData): Promise<Team> {
@@ -110,7 +111,8 @@ export async function transferPlayer(memberId: string, targetTeamId: string): Pr
  */
 export type AddExistingResult =
 	| { ok: true; memberId: string; inscriptionId: string }
-	| { ok: false; code: "ALREADY_IN_TEAM"; error: string };
+	| { ok: false; code: "ALREADY_IN_TEAM"; error: string }
+	| { ok: false; code: "NO_VALID_CREDENTIAL"; error: string };
 
 export async function addExistingPlayerToTeam(input: {
 	globalPlayerId: string;
@@ -120,6 +122,16 @@ export async function addExistingPlayerToTeam(input: {
 }): Promise<AddExistingResult> {
 	try {
 		return await db.transaction(async (tx) => {
+			// Candado: no se puede sumar a un equipo sin un pase vigente para esta
+			// liga (ni tenerlo, ni vencido) — docs/CREDENCIAL-PASE-JUGADOR.md §5.
+			const authorized = await canPlayInLeague(tx, input.globalPlayerId, input.leagueId);
+			if (!authorized) {
+				throw Object.assign(
+					new Error("El jugador no cuenta con una credencial vigente para esta liga"),
+					{ code: "NO_VALID_CREDENTIAL" as const },
+				);
+			}
+
 			const member = await resolveLeagueMember(tx, input);
 
 			const existing = await tx.query.inscriptions.findFirst({
@@ -142,6 +154,9 @@ export async function addExistingPlayerToTeam(input: {
 	} catch (err: unknown) {
 		if (err instanceof Error && "code" in err && err.code === "ALREADY_IN_TEAM") {
 			return { ok: false, code: "ALREADY_IN_TEAM", error: err.message };
+		}
+		if (err instanceof Error && "code" in err && err.code === "NO_VALID_CREDENTIAL") {
+			return { ok: false, code: "NO_VALID_CREDENTIAL", error: err.message };
 		}
 		console.error("[addExistingPlayerToTeam] error inesperado", err);
 		throw err;

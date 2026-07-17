@@ -16,6 +16,8 @@ import type {
 import { listActiveSuspensionsByLeague } from "@/entities/suspension/queries";
 import { buildSuspendedMapForMatchDate, type CedulaSuspensionLabel } from "@/entities/suspension";
 import type { LeaguePermissionContext } from "@/entities/league";
+import { findCoveringCredentialsForPlayers } from "@/entities/player-credential/queries";
+import type { LeagueForAuthCheck } from "@/entities/player-credential/lib/can-play-in-league";
 
 const WITH_RELATIONS = {
 	matchday: { columns: { id: true, number: true, phase: true, scheduledDate: true } },
@@ -200,7 +202,17 @@ const CEDULA_MATCH_RELATIONS = {
 	venue: { columns: { id: true, name: true } },
 	homeTeam: { columns: { id: true, name: true } },
 	awayTeam: { columns: { id: true, name: true } },
-	league: { columns: { id: true, name: true, code: true, season: true, category: true } },
+	league: {
+		columns: {
+			id: true,
+			name: true,
+			code: true,
+			season: true,
+			category: true,
+			organizationId: true,
+			status: true,
+		},
+	},
 } as const;
 
 type CedulaRosterRow = {
@@ -232,16 +244,45 @@ function fetchCedulaRoster(teamId: string, leagueId: string) {
 		.orderBy(asc(leagueMembers.credentialCode));
 }
 
+/**
+ * Resuelve, para un conjunto de jugadores, el motivo de bloqueo a imprimir en
+ * la cédula — en orden de importancia (decisión Jocobi, jul 2026):
+ *   1. Sin pase (`player_credentials`) vigente para la liga → "NO JUEGA".
+ *   2. Suspensión activa a la fecha del partido → tag/motivo de la suspensión.
+ * Nunca se oculta al jugador de la lista por ninguna de las dos razones —
+ * solo se marca (docs/CEDULA-IMPRESA-SPEC.md §4: el suspendido nunca se omite;
+ * aplicamos la misma regla a la falta de credencial vigente).
+ */
+function buildBlockedMap(
+	globalPlayerIds: string[],
+	credentialCoverage: Map<string, boolean>,
+	suspendedMap: Map<string, CedulaSuspensionLabel>,
+): Map<string, { reason: "credential" | "suspension"; tag: string; why: string }> {
+	const blocked = new Map<
+		string,
+		{ reason: "credential" | "suspension"; tag: string; why: string }
+	>();
+	for (const id of globalPlayerIds) {
+		if (credentialCoverage.get(id) !== true) {
+			blocked.set(id, { reason: "credential", tag: "NO JUEGA", why: "Sin credencial vigente" });
+			continue;
+		}
+		const suspension = suspendedMap.get(id);
+		if (suspension) blocked.set(id, { reason: "suspension", ...suspension });
+	}
+	return blocked;
+}
+
 function buildCedulaRows(
 	roster: CedulaRosterRow[],
-	suspendedMap: Map<string, CedulaSuspensionLabel>,
+	blockedMap: Map<string, { reason: "credential" | "suspension"; tag: string; why: string }>,
 ): CedulaPlayerRow[] {
 	return roster.map((p) => ({
 		globalPlayerId: p.globalPlayerId,
 		fullName: p.fullName,
 		credentialCode: p.credentialCode as number, // NOT NULL por el where de fetchCedulaRoster
 		dorsal: p.dorsal,
-		suspended: suspendedMap.get(p.globalPlayerId) ?? null,
+		blocked: blockedMap.get(p.globalPlayerId) ?? null,
 	}));
 }
 
@@ -261,6 +302,29 @@ export async function getCedulaDataForMatch(matchId: string): Promise<CedulaMatc
 
 	const suspendedMap = buildSuspendedMapForMatchDate(leagueSuspensions, row.matchDate);
 
+	const leagueForCheck: LeagueForAuthCheck = {
+		id: row.league.id,
+		organizationId: row.league.organizationId,
+		status: row.league.status,
+	};
+	const allPlayerIds = [...homeRoster, ...awayRoster].map((p) => p.globalPlayerId);
+	const credentialCoverage = await findCoveringCredentialsForPlayers(
+		db,
+		allPlayerIds,
+		leagueForCheck,
+	);
+
+	const homeBlocked = buildBlockedMap(
+		homeRoster.map((p) => p.globalPlayerId),
+		credentialCoverage,
+		suspendedMap,
+	);
+	const awayBlocked = buildBlockedMap(
+		awayRoster.map((p) => p.globalPlayerId),
+		credentialCoverage,
+		suspendedMap,
+	);
+
 	return {
 		matchId: row.id,
 		cedula: row.cedula ?? null,
@@ -276,8 +340,8 @@ export async function getCedulaDataForMatch(matchId: string): Promise<CedulaMatc
 		},
 		homeTeam: { id: row.homeTeam.id, name: row.homeTeam.name },
 		awayTeam: { id: row.awayTeam.id, name: row.awayTeam.name },
-		homePlayers: buildCedulaRows(homeRoster, suspendedMap),
-		awayPlayers: buildCedulaRows(awayRoster, suspendedMap),
+		homePlayers: buildCedulaRows(homeRoster, homeBlocked),
+		awayPlayers: buildCedulaRows(awayRoster, awayBlocked),
 	};
 }
 
@@ -328,8 +392,35 @@ export async function getCedulaDataForMatchday(matchdayId: string): Promise<Cedu
 		rosterByTeam.set(r.teamId, list);
 	}
 
+	// Una sola resolución de cobertura de credencial para toda la jornada — la
+	// liga es la misma para todos los partidos de un matchday.
+	const firstRow = matchRows[0]!;
+	const leagueForCheck: LeagueForAuthCheck = {
+		id: firstRow.league.id,
+		organizationId: firstRow.league.organizationId,
+		status: firstRow.league.status,
+	};
+	const allPlayerIds = Array.from(new Set(rosterRows.map((r) => r.globalPlayerId)));
+	const credentialCoverage = await findCoveringCredentialsForPlayers(
+		db,
+		allPlayerIds,
+		leagueForCheck,
+	);
+
 	return matchRows.map((row) => {
 		const suspendedMap = buildSuspendedMapForMatchDate(leagueSuspensions, row.matchDate);
+		const homeRoster = rosterByTeam.get(row.homeTeamId) ?? [];
+		const awayRoster = rosterByTeam.get(row.awayTeamId) ?? [];
+		const homeBlocked = buildBlockedMap(
+			homeRoster.map((p) => p.globalPlayerId),
+			credentialCoverage,
+			suspendedMap,
+		);
+		const awayBlocked = buildBlockedMap(
+			awayRoster.map((p) => p.globalPlayerId),
+			credentialCoverage,
+			suspendedMap,
+		);
 		return {
 			matchId: row.id,
 			cedula: row.cedula ?? null,
@@ -345,8 +436,8 @@ export async function getCedulaDataForMatchday(matchdayId: string): Promise<Cedu
 			},
 			homeTeam: { id: row.homeTeam.id, name: row.homeTeam.name },
 			awayTeam: { id: row.awayTeam.id, name: row.awayTeam.name },
-			homePlayers: buildCedulaRows(rosterByTeam.get(row.homeTeamId) ?? [], suspendedMap),
-			awayPlayers: buildCedulaRows(rosterByTeam.get(row.awayTeamId) ?? [], suspendedMap),
+			homePlayers: buildCedulaRows(homeRoster, homeBlocked),
+			awayPlayers: buildCedulaRows(awayRoster, awayBlocked),
 		};
 	});
 }

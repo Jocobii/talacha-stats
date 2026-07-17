@@ -60,7 +60,7 @@ export type CedulaPlayerRowVM = {
 	credentialCode: string;
 	fullName: string;
 	dorsal: string;
-	suspended: { tag: string; why: string } | null;
+	blocked: { reason: "credential" | "suspension"; tag: string; why: string } | null;
 };
 
 export type CedulaBlankRowVM = { kind: "blank" };
@@ -73,7 +73,7 @@ function toPlayerRowVM(p: CedulaPlayerRow): CedulaPlayerRowVM {
 		credentialCode: formatCredentialCode(p.credentialCode),
 		fullName: p.fullName,
 		dorsal: p.dorsal !== null ? String(p.dorsal) : "",
-		suspended: p.suspended,
+		blocked: p.blocked,
 	};
 }
 

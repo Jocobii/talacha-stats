@@ -38,6 +38,7 @@ export type QuickCreatedLeague = {
 	slug: string | null;
 	season: string;
 	dayOfWeek: string;
+	organizationId: string | null;
 };
 
 export type QuickCreateSuccess = {
@@ -128,6 +129,7 @@ export async function quickCreateLeague(
 				slug: leagues.slug,
 				season: leagues.season,
 				dayOfWeek: leagues.dayOfWeek,
+				organizationId: leagues.organizationId,
 			});
 
 		if (!createdLeague) throw new Error("No se pudo crear la liga");

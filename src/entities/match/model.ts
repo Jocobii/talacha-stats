@@ -115,14 +115,22 @@ export type MatchResolutionData = {
 // Cédula imprimible (docs/PLAN-CEDULA-IMPRESA.md)
 // ---------------------------------------------------------------------------
 
+/**
+ * Razón por la que un jugador no puede jugar, en orden de importancia
+ * (Jocobi, jul 2026): 1) sin credencial (pase) vigente, 2) suspensión activa.
+ * Si ambas aplican, gana "credential" — se resuelve así en
+ * `entities/match/queries.ts` antes de construir la fila.
+ */
+export type CedulaBlockedReason = "credential" | "suspension";
+
 /** Fila de jugador para la hoja impresa. Sin `credential_code` no aparece (decisión de Jocobi, ver plan §12.2). */
 export type CedulaPlayerRow = {
 	globalPlayerId: string;
 	fullName: string;
 	credentialCode: number;
 	dorsal: number | null;
-	/** null si el jugador puede jugar; si está suspendido, el tag + motivo/plazo a imprimir. */
-	suspended: { tag: string; why: string } | null;
+	/** null si el jugador puede jugar; si no, el motivo (credencial o suspensión) + tag/leyenda a imprimir. */
+	blocked: { reason: CedulaBlockedReason; tag: string; why: string } | null;
 };
 
 /** Datos completos de un partido para su hoja de cédula imprimible. */

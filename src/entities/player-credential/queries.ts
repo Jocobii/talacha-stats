@@ -205,6 +205,41 @@ export async function findActiveOrganizationCredential(
 }
 
 /**
+ * Versión en lote de canPlayInLeague: para cada `global_player_id` en
+ * `globalPlayerIds`, resuelve si tiene un pase que cubra `league` hoy. Evita
+ * N consultas por jugador — usada por la cédula imprimible (§12.2) para
+ * marcar "NO JUEGA" a quien no tenga credencial vigente, además de a los
+ * suspendidos (docs/PLAN-CEDULA-IMPRESA.md).
+ */
+export async function findCoveringCredentialsForPlayers(
+	executor: Executor,
+	globalPlayerIds: string[],
+	league: LeagueForAuthCheck,
+	today: string = todayIsoDate(),
+): Promise<Map<string, boolean>> {
+	const coverage = new Map<string, boolean>();
+	if (globalPlayerIds.length === 0) return coverage;
+
+	const credentials = await executor.query.playerCredentials.findMany({
+		where: inArray(playerCredentials.globalPlayerId, globalPlayerIds),
+	});
+
+	const byPlayer = new Map<string, PlayerCredentialRow[]>();
+	for (const credential of credentials) {
+		const list = byPlayer.get(credential.globalPlayerId) ?? [];
+		list.push(credential);
+		byPlayer.set(credential.globalPlayerId, list);
+	}
+
+	for (const id of globalPlayerIds) {
+		const list = byPlayer.get(id) ?? [];
+		coverage.set(id, findCoveringCredentialInList(list, league, today) !== null);
+	}
+
+	return coverage;
+}
+
+/**
  * Versión en lote de findActiveOrganizationCredential: para cada
  * global_player_id en `globalPlayerIds`, busca su pase `organization` activo
  * y vigente para `organizationId`. Evita N consultas (una por jugador

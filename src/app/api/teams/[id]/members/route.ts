@@ -65,7 +65,9 @@ export async function POST(request: Request, { params }: RouteParams) {
 		dorsal: parsed.data.dorsal ?? null,
 	});
 
-	if (!result.ok) return apiError(result.error, 409);
+	if (!result.ok) {
+		return apiError(result.error, result.code === "NO_VALID_CREDENTIAL" ? 403 : 409);
+	}
 
 	return apiSuccess(await getTeamRoster(teamId), 201);
 }

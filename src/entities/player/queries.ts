@@ -1398,6 +1398,10 @@ export type GlobalPlayerLeagueMember = {
 	memberId: string;
 	leagueId: string;
 	leagueName: string;
+	// "active" | "finished" — usado para no mostrar como "actual" un equipo de
+	// una liga que ya cerró (ej. tras "Nueva Temporada", el jugador queda con
+	// membresía en la liga vieja Y la nueva; solo la activa cuenta como actual).
+	leagueStatus: string;
 	organizationId: string;
 	teamId: string | null;
 	teamName: string | null;
@@ -1417,6 +1421,7 @@ export async function getGlobalPlayerLeagueMembers(
 			memberId: leagueMembers.id,
 			leagueId: leagueMembers.leagueId,
 			leagueName: leagues.name,
+			leagueStatus: leagues.status,
 			organizationId: leagues.organizationId,
 			teamId: inscriptions.teamId,
 			teamName: teams.name,
@@ -1442,6 +1447,7 @@ export async function getGlobalPlayerLeagueMembers(
 		memberId: r.memberId,
 		leagueId: r.leagueId,
 		leagueName: r.leagueName,
+		leagueStatus: r.leagueStatus,
 		organizationId: r.organizationId!,
 		teamId: r.teamId ?? null,
 		teamName: r.teamName ?? null,

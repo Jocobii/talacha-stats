@@ -22,3 +22,12 @@ export const REGISTRATION_URL = (leagueId: string, teamId?: string): string => {
 	const base = `/admin/registro?leagueId=${leagueId}`;
 	return teamId ? `${base}&teamId=${teamId}` : base;
 };
+
+/** Canchas de una organización — para autoseleccionar la primera al crear liga. */
+export const ORG_VENUES_URL = (organizationId: string): string =>
+	`/api/venues?organization_id=${organizationId}`;
+
+export const LEAGUE_VENUES_URL = (leagueId: string): string => `/api/leagues/${leagueId}/venues`;
+
+export const LEAGUE_VENUE_WINDOWS_URL = (leagueId: string, venueId: string): string =>
+	`/api/leagues/${leagueId}/venues/${venueId}/windows`;
