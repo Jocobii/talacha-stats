@@ -10,6 +10,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/shared/lib/auth";
 import { getOwnerPlayersView, getOrgPlayersView } from "@/features/player-admin";
+import { getOrganizationCredentialConfig } from "@/features/organization-credential-config/config";
 import { OwnerPlayersView } from "./OwnerPlayersView";
 import { OrgPlayersView } from "./OrgPlayersView";
 import { NoOrganizationView } from "./NoOrganizationView";
@@ -31,6 +32,9 @@ export default async function PlayersPage({
 		return <NoOrganizationView />;
 	}
 
-	const view = await getOrgPlayersView(user.organizationId, params);
-	return <OrgPlayersView {...view} />;
+	const [view, credentialConfig] = await Promise.all([
+		getOrgPlayersView(user.organizationId, params),
+		getOrganizationCredentialConfig(user.organizationId),
+	]);
+	return <OrgPlayersView {...view} credentialConfig={credentialConfig} />;
 }

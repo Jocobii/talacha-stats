@@ -86,4 +86,11 @@ export const queryKeys = {
 	// Tema por organización (org-theming)
 	// Invalidación: guardar tema → orgTheme(organizationId)
 	orgTheme: (organizationId: string) => ["org-theme", organizationId] as const,
+
+	// Pase del jugador (docs/CREDENCIAL-PASE-JUGADOR.md)
+	// Invalidación: emitir/renovar pase → credentialStatus(leagueId, globalPlayerId)
+	credentialStatus: (leagueId: string, globalPlayerId: string | null) =>
+		["credential-status", leagueId, globalPlayerId] as const,
+	organizationCredentialConfig: (organizationId: string) =>
+		["organization-credential-config", organizationId] as const,
 } as const;

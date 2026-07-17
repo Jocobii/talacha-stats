@@ -16,6 +16,7 @@ import {
 	TEAMS_API_URL,
 } from "../constants";
 import { normalizeCurp, birthDateFromCurp } from "../lib/registration-utils";
+import type { PlayerCredentialScope } from "@/entities/player-credential";
 import type { League, Team, GlobalPlayerData, RegistrationStep, RegistrationStage } from "../types";
 
 // ── Tipos internos ─────────────────────────────────────────────────────────────
@@ -34,6 +35,7 @@ type SubmitPayload = {
 	emergencyContactName: string | null;
 	emergencyContactPhone: string | null;
 	medicalNotes: string | null;
+	credentialScope: PlayerCredentialScope | undefined;
 };
 
 // ── Hook ───────────────────────────────────────────────────────────────────────
@@ -52,6 +54,11 @@ export type UseRegistrationFormReturn = {
 	onLeagueChange: (id: string) => void;
 	onTeamChange: (v: string) => void;
 	onDorsalChange: (v: string) => void;
+
+	// Modalidad de pase elegida cuando la org permite ambas (§4.1) — null si
+	// aún no elige o si la org solo permite una (se infiere en el server).
+	credentialScope: PlayerCredentialScope | null;
+	onCredentialScopeChange: (scope: PlayerCredentialScope) => void;
 
 	// Campos del formulario de nuevo jugador
 	fullName: string;
@@ -100,6 +107,7 @@ export function useRegistrationForm(
 	const [teams, setTeams] = useState<Team[]>([]);
 	const [teamId, setTeamId] = useState("");
 	const [dorsal, setDorsal] = useState("");
+	const [credentialScope, setCredentialScope] = useState<PlayerCredentialScope | null>(null);
 	const [internalNotes, setInternalNotes] = useState("");
 	const [fullName, setFullName] = useState("");
 	const [lastName, setLastName] = useState("");
@@ -202,12 +210,14 @@ export function useRegistrationForm(
 		setLeagueId(id);
 		setTeams([]);
 		setTeamId("");
+		setCredentialScope(null);
 	}
 
 	function reset(): void {
 		setCurp("");
 		setTeamId("");
 		setDorsal("");
+		setCredentialScope(null);
 		setInternalNotes("");
 		setFullName("");
 		setLastName("");
@@ -245,6 +255,9 @@ export function useRegistrationForm(
 			emergencyContactName: emergencyContactName.trim() || null,
 			emergencyContactPhone: emergencyContactPhone.trim() || null,
 			medicalNotes: medicalNotes.trim() || null,
+			// undefined (nunca null) — el schema del server usa .optional(), no
+			// .nullable(); JSON.stringify omite las claves undefined.
+			credentialScope: credentialScope ?? undefined,
 		};
 	}
 
@@ -284,6 +297,8 @@ export function useRegistrationForm(
 		onLeagueChange,
 		onTeamChange: setTeamId,
 		onDorsalChange: setDorsal,
+		credentialScope,
+		onCredentialScopeChange: setCredentialScope,
 		fullName,
 		lastName,
 		birthDate,

@@ -207,6 +207,11 @@ export const LeagueMemberSchema = z.object({
 	// con assignNextCredential(). Nunca viene del cliente (no está en
 	// CreateLeagueMemberSchema). Ver docs/CREDENCIAL-CODIGO-JUGADOR.md.
 	credentialCode: z.number().int().min(1).nullable(),
+	// Qué pase (player_credentials) autoriza esta inscripción. Asignado por el
+	// server al registrar (§5) o al re-vincular en Nueva Temporada (§6). Nunca
+	// lo propone el cliente (no está en CreateLeagueMemberSchema).
+	// Ver docs/CREDENCIAL-PASE-JUGADOR.md.
+	credentialId: z.string().uuid().nullable(),
 	inscriptionDate: isoDate,
 	// Data siloing: estos campos son privados de la liga.
 	// Solo se incluyen en queries scoped a una liga — nunca cross-liga.

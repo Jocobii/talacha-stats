@@ -20,8 +20,13 @@ import type {
 	PlayerGlobalProfile,
 	GlobalPlayerLeagueMember,
 } from "@/entities/player";
+import { db } from "@/db";
+import { listCredentialsForPlayer } from "@/entities/player-credential/queries";
+import { getOrganizationCredentialConfig } from "@/features/organization-credential-config/config";
+import type { OrganizationCredentialConfigDto } from "@/entities/organization-credential-config";
 import { getSessionUser } from "@/shared/lib/auth";
 import { LeagueMemberEditor } from "@/shared/ui/LeagueMemberEditor";
+import { CredentialProfileSection } from "./CredentialProfileSection";
 
 // ── Página principal ──────────────────────────────────────────────
 
@@ -35,16 +40,58 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 
 	// 1. Datos V1 (stats) — pueden no existir si el jugador es solo V2
 	// 2. Datos V2 — global_player básico + league_members editables
-	const [v1Profile, v2Basic, v2Members] = await Promise.all([
+	const [v1Profile, v2Basic, v2Members, rawCredentials] = await Promise.all([
 		getPlayerProfile(id).catch(() => null),
 		getGlobalPlayerBasic(id),
 		canEdit
 			? getGlobalPlayerLeagueMembers(id, isOwner ? undefined : (user.organizationId ?? undefined))
 			: Promise.resolve([] as GlobalPlayerLeagueMember[]),
+		listCredentialsForPlayer(db, id),
 	]);
 
 	// Si no existe en ningún sistema → 404
 	if (!v1Profile && !v2Basic) notFound();
+
+	// Credenciales (pantalla D) — data siloing: owner ve todas las orgs, un
+	// organizer solo las suyas (mismo criterio que GET /api/players/[id]/credentials).
+	const visibleCredentials = isOwner
+		? rawCredentials
+		: rawCredentials.filter((c) => c.organizationId === user.organizationId);
+
+	const credentialGroups = Array.from(
+		visibleCredentials
+			.reduce((map, c) => {
+				const group = map.get(c.organizationId) ?? {
+					organizationId: c.organizationId,
+					organizationName: c.organizationName,
+					credentials: [] as typeof visibleCredentials,
+				};
+				group.credentials.push(c);
+				map.set(c.organizationId, group);
+				return map;
+			}, new Map<string, { organizationId: string; organizationName: string; credentials: typeof visibleCredentials }>())
+			.values(),
+	);
+
+	// Liga usada para emitir/renovar por organización — el pase se emite desde
+	// el contexto de una liga; cualquiera de esa org sirve para derivar
+	// organization_id (ver IssueCredentialModal). Solo resoluble para
+	// organizaciones donde el usuario puede editar (v2Members ya viene scoped).
+	const leagueIdByOrg: Record<string, string | undefined> = {};
+	for (const m of v2Members) leagueIdByOrg[m.organizationId] ??= m.leagueId;
+
+	const orgConfigEntries = canEdit
+		? await Promise.all(
+				credentialGroups
+					.filter((g) => leagueIdByOrg[g.organizationId])
+					.map(
+						async (g) =>
+							[g.organizationId, await getOrganizationCredentialConfig(g.organizationId)] as const,
+					),
+			)
+		: [];
+	const orgConfigByOrg: Record<string, OrganizationCredentialConfigDto | undefined> =
+		Object.fromEntries(orgConfigEntries);
 
 	// Nombre y datos básicos: V1 tiene más datos (alias, phone), V2 tiene birthDate
 	const fullName = v1Profile?.fullName ?? v2Basic?.fullName ?? "Jugador";
@@ -182,6 +229,18 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 						))}
 					</div>
 				</section>
+			)}
+
+			{/* ── Credenciales (pantalla D) ──────────────────────────────────── */}
+			{credentialGroups.length > 0 && (
+				<CredentialProfileSection
+					globalPlayerId={id}
+					playerName={fullName}
+					groups={credentialGroups}
+					canEdit={canEdit}
+					leagueIdByOrg={leagueIdByOrg}
+					orgConfigByOrg={orgConfigByOrg}
+				/>
 			)}
 		</div>
 	);

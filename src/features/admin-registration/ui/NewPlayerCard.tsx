@@ -14,7 +14,10 @@ import { Input } from "@/shared/ui/Input";
 import { Select } from "@/shared/ui/Select";
 import { SectionLabel } from "@/shared/ui/SectionLabel";
 import { cn } from "@/shared/lib/cn";
+import type { PlayerCredentialScope } from "@/entities/player-credential";
 import { LeagueAssignmentFields } from "./LeagueAssignmentFields";
+import { CredentialStep, isCredentialChoicePending } from "./CredentialStep";
+import { useCredentialStatus } from "../model/useCredentialStatus";
 import type { AssignmentFieldsProps } from "../types";
 
 type Props = AssignmentFieldsProps & {
@@ -37,6 +40,8 @@ type Props = AssignmentFieldsProps & {
 	onEmergencyContactNameChange: (v: string) => void;
 	onEmergencyContactPhoneChange: (v: string) => void;
 	onMedicalNotesChange: (v: string) => void;
+	credentialScope: PlayerCredentialScope | null;
+	onCredentialScopeChange: (scope: PlayerCredentialScope) => void;
 	onSubmit: (e: React.FormEvent) => void;
 	onCancel: () => void;
 	submitting: boolean;
@@ -71,6 +76,8 @@ export function NewPlayerCard({
 	onMedicalNotesChange,
 	onTeamChange,
 	onDorsalChange,
+	credentialScope,
+	onCredentialScopeChange,
 	onSubmit,
 	onCancel,
 	submitting,
@@ -78,8 +85,21 @@ export function NewPlayerCard({
 	// Colapsable — sección "opcional, por si hay una emergencia" empieza cerrada.
 	const [contactOpen, setContactOpen] = useState(false);
 
+	// Un jugador "not_found" nunca tiene global_player_id todavía — el server
+	// igual resuelve scopeOptions de la org para saber si hay que preguntar.
+	const { data: credentialData, isLoading: credentialLoading } = useCredentialStatus(
+		leagueId,
+		null,
+	);
+	const choicePending = isCredentialChoicePending(leagueId, credentialData, credentialScope);
+
 	const canSubmit =
-		!submitting && !!fullName.trim() && !!lastName.trim() && !!birthDate && !!gender;
+		!submitting &&
+		!choicePending &&
+		!!fullName.trim() &&
+		!!lastName.trim() &&
+		!!birthDate &&
+		!!gender;
 
 	return (
 		<form onSubmit={onSubmit}>
@@ -228,6 +248,16 @@ export function NewPlayerCard({
 							onTeamChange={onTeamChange}
 							onDorsalChange={onDorsalChange}
 						/>
+						{leagueId && (
+							<div className="mt-3">
+								<CredentialStep
+									data={credentialData}
+									isLoading={credentialLoading}
+									credentialScope={credentialScope}
+									onCredentialScopeChange={onCredentialScopeChange}
+								/>
+							</div>
+						)}
 					</div>
 				</div>
 
@@ -241,6 +271,7 @@ export function NewPlayerCard({
 						iconRight={ArrowRight}
 						type="submit"
 						disabled={!canSubmit}
+						title={choicePending ? "Elige la modalidad de pase antes de continuar" : undefined}
 					>
 						Crear y registrar
 					</Button>

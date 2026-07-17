@@ -11,6 +11,17 @@ export const LOOKUP_API_URL = (curp: string) =>
 	`/api/players/lookup?curp=${encodeURIComponent(curp)}`;
 export const REGISTER_API_URL = "/api/players/register";
 
+/**
+ * Estado de credencial + scopeOptions de la org para la liga seleccionada
+ * (docs/CREDENCIAL-PASE-JUGADOR.md, pantalla A del paso 3). globalPlayerId es
+ * opcional — un jugador "not_found" (paso 2) todavía no tiene uno.
+ */
+export const CREDENTIAL_STATUS_URL = (leagueId: string, globalPlayerId: string | null): string => {
+	const qs = new URLSearchParams({ leagueId });
+	if (globalPlayerId) qs.set("globalPlayerId", globalPlayerId);
+	return `/api/player-credentials?${qs.toString()}`;
+};
+
 export const MONTHS_ES = [
 	"ene",
 	"feb",

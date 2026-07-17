@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Settings, Palette, ClipboardList, Layers, MapPin, Users } from "lucide-react";
+import { Settings, Palette, ClipboardList, Layers, MapPin, Users, IdCard } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 
 type Tab = {
@@ -20,6 +20,7 @@ const TABS: Tab[] = [
 	{ label: "General", href: "/admin/organizacion", icon: Settings },
 	{ label: "Tema", href: "/admin/organizacion/tema", icon: Palette },
 	{ label: "Reglamento", href: "/admin/organizacion/reglamento", icon: ClipboardList },
+	{ label: "Credenciales", href: "/admin/organizacion/credenciales", icon: IdCard },
 	{ label: "Sorteo", href: "/admin/organizacion/sorteo", icon: Layers },
 	{ label: "Canchas", href: "/admin/organizacion/canchas", icon: MapPin },
 	{ label: "Miembros", href: "/admin/organizacion/miembros", icon: Users },

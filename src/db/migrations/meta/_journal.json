@@ -85,6 +85,27 @@
 			"when": 1784199023218,
 			"tag": "0043_optimal_exiles",
 			"breakpoints": true
+		},
+		{
+			"idx": 44,
+			"version": "7",
+			"when": 1784241529770,
+			"tag": "0044_fair_master_chief",
+			"breakpoints": true
+		},
+		{
+			"idx": 45,
+			"version": "7",
+			"when": 1784242830619,
+			"tag": "0045_spicy_punisher",
+			"breakpoints": true
+		},
+		{
+			"idx": 46,
+			"version": "7",
+			"when": 1784244592772,
+			"tag": "0046_common_pyro",
+			"breakpoints": true
 		}
 	]
 }

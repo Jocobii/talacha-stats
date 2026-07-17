@@ -7,7 +7,7 @@
  *  2. match_events          → fallback si no hay import para esa liga
  */
 
-import { eq, and, inArray, desc, asc, sql, ilike } from "drizzle-orm";
+import { eq, and, or, isNull, inArray, desc, asc, sql, ilike } from "drizzle-orm";
 import {
 	db,
 	players,
@@ -958,6 +958,13 @@ import type { AnyColumn, SQLWrapper } from "drizzle-orm";
 import type { ListQuery, SortRule } from "@/shared/lib/list-query";
 import { buildWhere } from "@/shared/lib/list-query";
 import { orgPlayerFilters } from "./filters";
+import { playerCredentials } from "@/db/schema";
+import { computeCredentialDisplayStatus } from "@/entities/player-credential/lib/credential-status";
+import { todayIsoDate } from "@/entities/player-credential/lib/dates";
+import type {
+	CredentialDisplayStatus,
+	PlayerCredentialScope,
+} from "@/entities/player-credential/model";
 
 export type OrgPlayerRow = {
 	globalPlayerId: string;
@@ -971,19 +978,43 @@ export type OrgPlayerRow = {
 	latestTeamName: string | null;
 	latestStatus: "active" | "suspended" | "inactive" | null;
 	latestDorsal: number | null;
+	// Estado del pase (docs/CREDENCIAL-PASE-JUGADOR.md) de la membresía más
+	// reciente — badge de credencial en la tabla (pantalla C). Campos crudos
+	// (scope/validUntil/season) para que el mapper de UI arme el texto de
+	// detalle ("Anual · vence...", "Por liga · Apertura 2025"), no se formatea
+	// aquí (AGENTS.md §19 — el formateo vive en el mapper, no en la entidad).
+	credentialStatus: CredentialDisplayStatus;
+	credentialScope: PlayerCredentialScope | null;
+	credentialValidUntil: string | null;
+	latestLeagueSeason: string | null;
+	// Liga de la membresía más reciente — insumo para el botón "Emitir" (pantalla
+	// C): el pase se emite/renueva desde el contexto de una liga (ver
+	// features/player-credential/issue-credential.ts).
+	latestLeagueId: string | null;
 };
 
 /**
- * Lista paginada de jugadores que tienen al menos un league_member
- * en alguna liga de la organización dada. Contrato ListQuery (ver
- * docs/LIST-QUERY-FILTERS.md) — filtros/orden llegan ya normalizados desde
- * parseListQuery en la page.
+ * Lista paginada de jugadores "de la organización": los que tienen al menos
+ * un league_member en alguna liga de la organización, MÁS los que fueron
+ * dados de alta por la organización sin liga todavía (Camino E de
+ * admin-registration/register.ts — registeredByOrganizationId). Sin este
+ * segundo grupo, un jugador registrado sin liga quedaba invisible para
+ * siempre en /admin/players (global_players no tiene otra forma de saber a
+ * qué organización pertenece si no hay league_members de por medio).
+ *
+ * Contrato ListQuery (ver docs/LIST-QUERY-FILTERS.md) — filtros/orden llegan
+ * ya normalizados desde parseListQuery en la page. Los filtros (liga/equipo/
+ * estado/dorsal) referencian columnas de league_members/teams — un jugador
+ * sin liga nunca los matchea, así que naturalmente desaparece de vistas
+ * filtradas (correcto: no tiene liga/equipo/estado que filtrar) pero sigue
+ * apareciendo en la vista sin filtros.
  *
  * Devuelve jugadores únicos (una fila por global_player): cada fila muestra
- * los datos de la membresía más reciente que cumple los filtros activos. Si
- * se filtra por estado/liga/equipo/dorsal, "más reciente" se calcula sobre
- * el subconjunto de membresías que matchean — así la fila mostrada siempre
- * es consistente con lo que se filtró.
+ * los datos de la membresía más reciente que cumple los filtros activos (o
+ * todo null si el jugador no tiene ninguna membresía). Si se filtra por
+ * estado/liga/equipo/dorsal, "más reciente" se calcula sobre el subconjunto
+ * de membresías que matchean — así la fila mostrada siempre es consistente
+ * con lo que se filtró.
  *
  * Nota: "leagueCount" cuenta las membresías que matchean el filtro (no el
  * total histórico del jugador) — es el trade-off de resolver esto con una
@@ -994,8 +1025,20 @@ export async function listOrgPlayers(
 	query: ListQuery,
 ): Promise<{ rows: OrgPlayerRow[]; total: number }> {
 	const filterWhere = buildWhere(orgPlayerFilters, query.filters);
-	// El scope de negocio (organización) se combina aparte — nunca es un filtro de usuario.
-	const where = and(eq(leagues.organizationId, organizationId), filterWhere);
+	// Scope de negocio (nunca es un filtro de usuario): pertenece a la org si
+	// tiene una membresía en una liga de la org, O si no tiene ninguna
+	// membresía EN ESTA ORG pero la org fue quien lo registró (Camino E).
+	// "Sin ninguna membresía en esta org" NO es lo mismo que "sin ninguna
+	// membresía en ninguna parte" — un jugador con historial en otra
+	// organización sí puede (y debe) matchear este segundo caso. Por eso el
+	// JOIN de leagueMembers de abajo está scoped a la org (no es un JOIN
+	// abierto): si no estuviera scoped, las membresías de OTRAS orgs
+	// "tapaban" el isNull de acá abajo y el jugador quedaba invisible.
+	const orgScope = or(
+		eq(leagues.organizationId, organizationId),
+		and(isNull(leagueMembers.id), eq(globalPlayers.registeredByOrganizationId, organizationId)),
+	);
+	const where = and(orgScope, filterWhere);
 	const offset = (query.page - 1) * query.pageSize;
 
 	const inner = db
@@ -1012,21 +1055,46 @@ export async function listOrgPlayers(
 			// tabla) — sin alias explícito, Postgres las expone sin distinguir y
 			// falla con "column reference \"name\" is ambiguous" al envolver esto
 			// en una subquery reusada desde afuera. .as() fuerza un nombre único.
+			latestLeagueId: sql<string | null>`${leagues.id}`.as("latest_league_id"),
 			latestLeagueName: sql<string | null>`${leagues.name}`.as("latest_league_name"),
 			latestTeamName: sql<string | null>`${teams.name}`.as("latest_team_name"),
-			latestStatus: sql<string>`${leagueMembers.status}`.as("latest_status"),
+			// Ahora nullable: LEFT JOIN — un jugador sin ninguna membresía
+			// produce una fila con estos campos en null (ver OrgPlayerRow).
+			latestStatus: sql<string | null>`${leagueMembers.status}`.as("latest_status"),
 			latestDorsal: sql<number | null>`${leagueMembers.dorsal}`.as("latest_dorsal"),
+			// Crudos para el badge de credencial (pantalla C) — computados
+			// después del fetch, ver fetchCredentialsForRows/buildCredentialFields.
+			latestLeagueStatus: sql<string | null>`${leagues.status}`.as("latest_league_status"),
+			latestLeagueSeason: sql<string | null>`${leagues.season}`.as("latest_league_season"),
+			latestCredentialId: sql<string | null>`${leagueMembers.credentialId}`.as(
+				"latest_credential_id",
+			),
 		})
 		.from(globalPlayers)
-		.innerJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
-		.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+		// LEFT JOIN (antes INNER) — necesario para no perder a los jugadores sin
+		// ninguna membresía en esta org (Camino E). El JOIN va scoped a leagues
+		// de ESTA organización (vía el subquery en el ON) — si uniéramos TODAS
+		// las membresías del jugador (sin scope), las de otras organizaciones
+		// "tapaban" el LEFT JOIN (deja de producir la fila null) y un jugador
+		// con historial en otra org quedaba invisible aquí aunque esta org lo
+		// hubiera registrado sin liga. El scope de organización para el caso
+		// sin membresía se resuelve en orgScope, vía registeredByOrganizationId.
+		.leftJoin(
+			leagueMembers,
+			and(
+				eq(leagueMembers.globalPlayerId, globalPlayers.id),
+				sql`${leagueMembers.leagueId} IN (SELECT ${leagues.id} FROM ${leagues} WHERE ${leagues.organizationId} = ${organizationId})`,
+			),
+		)
+		.leftJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
 		.leftJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
 		.leftJoin(teams, eq(teams.id, inscriptions.teamId))
 		.where(where)
 		// Fija qué fila representa a cada jugador dentro del DISTINCT ON: la
-		// membresía más reciente. El orden visible (nombre/dorsal/ligas) se
-		// aplica DESPUÉS, en la query externa — no puede ir aquí porque el
-		// DISTINCT ON debe empezar por la columna de agrupación.
+		// membresía más reciente (o la única fila null si no tiene ninguna). El
+		// orden visible (nombre/dorsal/ligas) se aplica DESPUÉS, en la query
+		// externa — no puede ir aquí porque el DISTINCT ON debe empezar por la
+		// columna de agrupación.
 		.orderBy(asc(globalPlayers.id), desc(leagues.createdAt))
 		.as("org_players");
 
@@ -1042,6 +1110,8 @@ export async function listOrgPlayers(
 		db.select({ total: sql<number>`COUNT(*)::int` }).from(inner),
 	]);
 
+	const credentialByRow = await fetchCredentialsForRows(rowsResult);
+
 	return {
 		rows: rowsResult.map((r) => ({
 			globalPlayerId: r.globalPlayerId,
@@ -1049,12 +1119,63 @@ export async function listOrgPlayers(
 			birthDate: r.birthDate,
 			avatarUrl: r.avatarUrl ?? null,
 			leagueCount: r.leagueCount,
+			latestLeagueId: r.latestLeagueId ?? null,
 			latestLeagueName: r.latestLeagueName ?? null,
 			latestTeamName: r.latestTeamName ?? null,
 			latestStatus: (r.latestStatus as OrgPlayerRow["latestStatus"]) ?? null,
 			latestDorsal: r.latestDorsal ?? null,
+			latestLeagueSeason: r.latestLeagueSeason ?? null,
+			...buildCredentialFields(r, credentialByRow),
 		})),
 		total: countResult[0]?.total ?? 0,
+	};
+}
+
+type OrgPlayerInnerRow = {
+	latestCredentialId: string | null;
+	// null cuando el jugador no tiene ninguna membresía (Camino E, sin liga).
+	latestLeagueStatus: string | null;
+};
+
+type CredentialRow = Awaited<ReturnType<typeof db.query.playerCredentials.findMany>>[number];
+
+/** Trae en una sola query los player_credentials referidos por la página actual. */
+async function fetchCredentialsForRows(
+	rows: OrgPlayerInnerRow[],
+): Promise<Map<string, CredentialRow>> {
+	const ids = [
+		...new Set(rows.map((r) => r.latestCredentialId).filter((id): id is string => !!id)),
+	];
+	if (ids.length === 0) return new Map();
+
+	const credentials = await db.query.playerCredentials.findMany({
+		where: inArray(playerCredentials.id, ids),
+	});
+	return new Map(credentials.map((c) => [c.id, c]));
+}
+
+/**
+ * Estado del pase de una fila + campos crudos para que el mapper de UI arme
+ * el texto de detalle. Sin credencial enlazada -> "pendiente" (§6, §8).
+ */
+function buildCredentialFields(
+	row: OrgPlayerInnerRow,
+	credentialByRow: Map<string, CredentialRow>,
+): Pick<OrgPlayerRow, "credentialStatus" | "credentialScope" | "credentialValidUntil"> {
+	const credential = row.latestCredentialId
+		? (credentialByRow.get(row.latestCredentialId) ?? null)
+		: null;
+	// credential es null cuando latestLeagueStatus es null (sin membresía) —
+	// computeCredentialDisplayStatus corta en el primer if y nunca lee este
+	// argumento en ese caso; el fallback es solo para satisfacer el tipo.
+	return {
+		credentialStatus: computeCredentialDisplayStatus(
+			credential,
+			row.latestLeagueStatus ?? "active",
+			todayIsoDate(),
+		),
+		credentialScope: (credential?.scope as PlayerCredentialScope | undefined) ?? null,
+		credentialValidUntil: credential?.validUntil ?? null,
 	};
 }
 
@@ -1083,16 +1204,34 @@ function buildOrgPlayersOrderBy(
 }
 
 /**
- * Cuenta jugadores únicos (global_player) con al menos un league_member en
- * alguna liga de la organización — total sin filtros, usado para distinguir
- * "vacío sin datos" de "vacío por filtros" y para el label "X de Y".
+ * Cuenta jugadores únicos (global_player) "de la organización" — mismo
+ * criterio que listOrgPlayers: al menos un league_member en alguna liga de
+ * la organización, MÁS los registrados por la organización sin liga
+ * (registeredByOrganizationId, Camino E). Total sin filtros, usado para
+ * distinguir "vacío sin datos" de "vacío por filtros" y para el label "X de Y".
  */
 export async function countOrgPlayers(organizationId: string): Promise<number> {
 	const rows = await db
-		.select({ total: sql<number>`COUNT(DISTINCT ${leagueMembers.globalPlayerId})::int` })
-		.from(leagueMembers)
-		.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
-		.where(eq(leagues.organizationId, organizationId));
+		.select({ total: sql<number>`COUNT(DISTINCT ${globalPlayers.id})::int` })
+		.from(globalPlayers)
+		// JOIN scoped a leagues de esta org — ver comentario largo en
+		// listOrgPlayers: sin el scope, un jugador con historial en OTRA
+		// organización nunca produce la fila null que necesita isNull(...) más
+		// abajo, y quedaba invisible aunque esta org lo hubiera registrado sin liga.
+		.leftJoin(
+			leagueMembers,
+			and(
+				eq(leagueMembers.globalPlayerId, globalPlayers.id),
+				sql`${leagueMembers.leagueId} IN (SELECT ${leagues.id} FROM ${leagues} WHERE ${leagues.organizationId} = ${organizationId})`,
+			),
+		)
+		.leftJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+		.where(
+			or(
+				eq(leagues.organizationId, organizationId),
+				and(isNull(leagueMembers.id), eq(globalPlayers.registeredByOrganizationId, organizationId)),
+			),
+		);
 	return rows[0]?.total ?? 0;
 }
 

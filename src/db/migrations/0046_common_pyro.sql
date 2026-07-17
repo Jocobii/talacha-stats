@@ -1,0 +1,2 @@
+ALTER TABLE "global_players" ADD COLUMN "registered_by_organization_id" uuid;--> statement-breakpoint
+ALTER TABLE "global_players" ADD CONSTRAINT "global_players_registered_by_organization_id_organizations_id_fk" FOREIGN KEY ("registered_by_organization_id") REFERENCES "public"."organizations"("id") ON DELETE set null ON UPDATE no action;
