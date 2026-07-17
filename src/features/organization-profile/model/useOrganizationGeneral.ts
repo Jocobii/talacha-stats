@@ -17,7 +17,7 @@ export function useOrganizationGeneral(
 	initialData: OrganizationGeneralDto,
 ) {
 	return useQuery<OrganizationGeneralDto>({
-		queryKey: queryKeys.organizationGeneral(organizationId),
+		queryKey: queryKeys.organizations.general(organizationId),
 		initialData,
 		queryFn: async () => {
 			const res = await apiFetch<OrganizationGeneralDto>(organizationUrl(organizationId));

@@ -18,7 +18,7 @@ import { CREDENTIAL_STATUS_URL } from "../constants";
 
 export function useCredentialStatus(leagueId: string, globalPlayerId: string | null) {
 	return useQuery<CredentialStatusResponse>({
-		queryKey: queryKeys.credentialStatus(leagueId, globalPlayerId),
+		queryKey: queryKeys.credentials.status(leagueId, globalPlayerId),
 		queryFn: async () => {
 			const res = await apiFetch<CredentialStatusResponse>(
 				CREDENTIAL_STATUS_URL(leagueId, globalPlayerId),

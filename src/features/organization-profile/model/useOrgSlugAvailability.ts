@@ -31,7 +31,7 @@ export function useOrgSlugAvailability(currentSlug: string) {
 	const unchanged = debounced === currentSlug;
 
 	const query = useQuery({
-		queryKey: queryKeys.organizationSlugAvailability(debounced),
+		queryKey: queryKeys.organizations.slugAvailabilityForEdit(debounced),
 		enabled: debounced.length > 0 && format.ok && !unchanged,
 		staleTime: 15_000,
 		queryFn: async (): Promise<SlugAvailability> => {

@@ -4,14 +4,16 @@
  * features/team-management/model/useUpdateTeam.ts
  *
  * Mutación de edición del equipo (nombre, color). Transporte `apiFetch`,
- * invalida la caché afectada (`leagueTeams` para el selector de transferencia;
- * `team` para cuando el detalle pase a ser query). Usa `mutate` → el error va al
- * estado, sin `catch` que silencie (§18.4).
+ * invalida vía el registro central (`shared/api/cache-invalidation.ts`, §4)
+ * `teams.list(leagueId)` (selector de transferencia) y `teams.detail(teamId)`
+ * — esta última es prefijo de `teams.roster`, así que de paso refresca el
+ * roster si algún día el detalle incluye datos derivados del equipo. Usa
+ * `mutate` → el error va al estado, sin `catch` que silencie (§18.4).
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/shared/api/client";
-import { queryKeys } from "@/shared/api/query-keys";
+import { invalidate } from "@/shared/api/cache-invalidation";
 import { TEAM_API_URL } from "../constants";
 import type { TeamFormData } from "../types";
 
@@ -39,8 +41,7 @@ export function useUpdateTeam(
 			if (!result.ok) throw new Error(result.error);
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.leagueTeams(leagueId) });
-			queryClient.invalidateQueries({ queryKey: queryKeys.team(teamId) });
+			invalidate.teamUpdated(queryClient, { leagueId, teamId });
 			onSuccess();
 		},
 	});

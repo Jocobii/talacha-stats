@@ -12,7 +12,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CreateManualSuspensionInput, SuspensionDto } from "@/entities/suspension";
 import { apiFetch } from "@/shared/api/client";
-import { queryKeys } from "@/shared/api/query-keys";
+import { invalidate } from "@/shared/api/cache-invalidation";
 import { notify } from "@/shared/lib/notify";
 import { LEAGUE_SUSPENSIONS_URL } from "../constants";
 
@@ -31,8 +31,7 @@ export function useCreateManualSuspensionGlobal() {
 			return res.data;
 		},
 		onSuccess: (_data, variables) => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.adminSuspensions() });
-			queryClient.invalidateQueries({ queryKey: queryKeys.suspensions(variables.leagueId) });
+			invalidate.suspensionChangedGlobal(queryClient, { leagueId: variables.leagueId });
 			notify.success("Sanción registrada");
 		},
 		onError: (error) => {

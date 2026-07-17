@@ -5,6 +5,12 @@
  * simultáneamente (mismo día, distinta hora/cancha).
  */
 
+import type { players } from "@/db/schema";
+
+// Fila mínima del directorio público de jugadores (V1, GET /api/players, §7.4).
+// Inferida de la tabla — nunca duplicada a mano (§4.1).
+export type PlayerListItem = Pick<typeof players.$inferSelect, "id" | "fullName" | "alias">;
+
 // Stats de un jugador en UNA liga específica
 export type PlayerLeagueStats = {
 	leagueId: string;

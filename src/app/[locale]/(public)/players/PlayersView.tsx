@@ -1,51 +1,20 @@
 "use client";
 
-/* eslint-disable react-hooks/set-state-in-effect */
-
-import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/shared/i18n/navigation";
 import { Search, Users, ArrowLeft, ChevronRight } from "lucide-react";
 import CityFilter from "@/shared/ui/CityFilter";
-
-type Player = {
-	id: string;
-	fullName: string;
-	alias: string | null;
-};
+import { usePlayersFilters, usePlayersQuery } from "@/features/player-directory";
 
 export default function PlayersView() {
 	const t = useTranslations("players");
 	const tCommon = useTranslations("common");
-	const searchParams = useSearchParams();
-	const city = searchParams.get("city") ?? "Tijuana";
 
-	/* Lazy initializer: llega ?q= desde el buscador del hero del home */
-	const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
-	const [players, setPlayers] = useState<Player[]>([]);
-	const [loading, setLoading] = useState(false);
-	const [fetched, setFetched] = useState(false);
-
-	const search = useCallback(async (q: string, c: string) => {
-		setLoading(true);
-		const params = new URLSearchParams({ city: c });
-		if (q.trim()) params.set("q", q.trim());
-		const res = await fetch(`/api/players?${params.toString()}`);
-		const data = await res.json();
-		setPlayers(data.data ?? []);
-		setFetched(true);
-		setLoading(false);
-	}, []);
-
-	useEffect(() => {
-		search("", city);
-	}, [search, city]);
-
-	useEffect(() => {
-		const t = setTimeout(() => search(query, city), 300);
-		return () => clearTimeout(t);
-	}, [query, city, search]);
+	const { city, query, debouncedQuery, setQuery } = usePlayersFilters();
+	const playersQuery = usePlayersQuery(city, debouncedQuery);
+	const players = playersQuery.data ?? [];
+	const loading = playersQuery.isFetching;
+	const fetched = playersQuery.isSuccess;
 
 	return (
 		<div className="text-ink flex flex-col flex-1">
@@ -106,11 +75,11 @@ export default function PlayersView() {
 								className="flex items-center gap-4 bg-surface-2 border border-line rounded-2xl px-4 py-3.5 hover:border-brand transition"
 							>
 								<div className="w-11 h-11 rounded-full bg-brand flex items-center justify-center text-pitch font-display font-black text-lg shrink-0">
-									{(p.alias ?? p.fullName).charAt(0).toUpperCase()}
+									{(p.alias ?? p.displayName).charAt(0).toUpperCase()}
 								</div>
 
 								<div className="min-w-0 flex-1">
-									<p className="font-semibold text-ink truncate">{p.fullName}</p>
+									<p className="font-semibold text-ink truncate">{p.displayName}</p>
 									{p.alias && (
 										<p className="text-sm text-brand-ink truncate">&quot;{p.alias}&quot;</p>
 									)}

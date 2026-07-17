@@ -13,7 +13,7 @@ describe("useCreateTeam", () => {
 	beforeEach(() => vi.resetAllMocks());
 	afterEach(() => cleanup());
 
-	it("crea el equipo, devuelve el ViewModel mapeado e invalida leagueTeams de la liga", async () => {
+	it("crea el equipo, devuelve el ViewModel mapeado e invalida teams.list de la liga", async () => {
 		// La API responde la fila cruda (name como se guardó); el hook la mapea.
 		mockedApiFetch.mockResolvedValue({
 			ok: true,
@@ -40,7 +40,7 @@ describe("useCreateTeam", () => {
 			method: "POST",
 			body: { name: "Deportivo Guadalupe", leagueId: "L1", color: "#38a169" },
 		});
-		expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.leagueTeams("L1") });
+		expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.teams.list("L1") });
 	});
 
 	it("omite el color cuando viene vacío (no manda string vacío)", async () => {

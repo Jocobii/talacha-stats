@@ -26,7 +26,7 @@ export function useCreateVenueStep(organizationId: string) {
 			return mapVenueToChip(res.data);
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.venues({ orgId: organizationId }) });
+			queryClient.invalidateQueries({ queryKey: queryKeys.venues.list({ orgId: organizationId }) });
 		},
 	});
 }

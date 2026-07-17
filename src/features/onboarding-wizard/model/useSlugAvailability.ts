@@ -12,6 +12,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/shared/api/client";
+import { queryKeys } from "@/shared/api/query-keys";
 import { validateOrgSlug } from "@/shared/org-theme";
 import type { SlugAvailability } from "@/entities/organization";
 import { checkSlugUrl, SLUG_CHECK_DEBOUNCE_MS } from "../constants";
@@ -28,7 +29,7 @@ export function useSlugAvailability() {
 
 	const format = validateOrgSlug(debounced);
 	const query = useQuery({
-		queryKey: ["org-slug-availability", debounced] as const,
+		queryKey: queryKeys.organizations.slugAvailabilityForNewOrg(debounced),
 		enabled: debounced.length > 0 && format.ok,
 		staleTime: 15_000,
 		queryFn: async (): Promise<SlugAvailability> => {

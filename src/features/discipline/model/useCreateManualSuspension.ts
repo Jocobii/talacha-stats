@@ -9,7 +9,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CreateManualSuspensionInput, SuspensionDto } from "@/entities/suspension";
 import { apiFetch } from "@/shared/api/client";
-import { queryKeys } from "@/shared/api/query-keys";
+import { invalidate } from "@/shared/api/cache-invalidation";
 import { notify } from "@/shared/lib/notify";
 import { LEAGUE_SUSPENSIONS_URL } from "../constants";
 
@@ -26,7 +26,7 @@ export function useCreateManualSuspension(leagueId: string) {
 			return res.data;
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.suspensions(leagueId) });
+			invalidate.suspensionChanged(queryClient, { leagueId });
 			notify.success("Sanción registrada");
 		},
 		onError: (error) => {

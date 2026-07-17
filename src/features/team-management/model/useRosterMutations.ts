@@ -4,8 +4,9 @@
  * features/team-management/model/useRosterMutations.ts
  *
  * Mutaciones del roster (baja, transferencia, edición) con TanStack Query.
- * Cada una invalida la caché afectada en `onSuccess` (ver mapa de invalidación
- * en `shared/api/query-keys.ts`) — nada de `router.refresh()`.
+ * Cada una invalida la caché afectada en `onSuccess` a través del registro
+ * central (`shared/api/cache-invalidation.ts`, §4 del estándar de caché) —
+ * nada de `invalidateQueries` suelto ni `router.refresh()`.
  *
  * Se usa `mutate` (no `mutateAsync`): el error se expone vía `error` y se evita
  * el `catch` que silencia (§18.4). Los handlers devuelven `Promise<void>` para
@@ -14,7 +15,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/shared/api/client";
-import { queryKeys } from "@/shared/api/query-keys";
+import { invalidate } from "@/shared/api/cache-invalidation";
 import { ROSTER_MEMBER_URL, TRANSFER_URL } from "../constants";
 import type { UpdateRosterMemberData } from "../types";
 
@@ -45,14 +46,12 @@ export function useRosterMutations(
 	{ onSuccess }: RosterMutationsOptions,
 ): UseRosterMutationsReturn {
 	const queryClient = useQueryClient();
-	const invalidateRoster = (id: string) =>
-		queryClient.invalidateQueries({ queryKey: queryKeys.teamRoster(id) });
 
 	const removeMutation = useMutation({
 		mutationFn: (memberId: string) =>
 			requestOrThrow(ROSTER_MEMBER_URL(teamId, memberId), { method: "DELETE" }),
 		onSuccess: () => {
-			invalidateRoster(teamId);
+			invalidate.rosterMemberChanged(queryClient, { teamId });
 			onSuccess();
 		},
 	});
@@ -61,9 +60,11 @@ export function useRosterMutations(
 		mutationFn: ({ memberId, targetTeamId }: TransferVars) =>
 			requestOrThrow(TRANSFER_URL(teamId, memberId), { method: "POST", body: { targetTeamId } }),
 		onSuccess: (_data, { targetTeamId }) => {
-			invalidateRoster(teamId);
-			invalidateRoster(targetTeamId);
-			queryClient.invalidateQueries({ queryKey: queryKeys.leagueTeams(leagueId) });
+			invalidate.rosterTransferred(queryClient, {
+				fromTeamId: teamId,
+				toTeamId: targetTeamId,
+				leagueId,
+			});
 			onSuccess();
 		},
 	});
@@ -72,7 +73,7 @@ export function useRosterMutations(
 		mutationFn: ({ memberId, data }: UpdateVars) =>
 			requestOrThrow(ROSTER_MEMBER_URL(teamId, memberId), { method: "PATCH", body: { ...data } }),
 		onSuccess: () => {
-			invalidateRoster(teamId);
+			invalidate.rosterMemberChanged(queryClient, { teamId });
 			onSuccess();
 		},
 	});

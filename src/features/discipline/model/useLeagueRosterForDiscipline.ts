@@ -12,11 +12,12 @@
 import { useQuery } from "@tanstack/react-query";
 import type { SuspensionRosterPlayer } from "@/entities/suspension";
 import { apiFetch } from "@/shared/api/client";
+import { queryKeys } from "@/shared/api/query-keys";
 import { LEAGUE_ROSTER_SEARCH_URL } from "../constants";
 
 export function useLeagueRosterForDiscipline(leagueId: string | null, q: string) {
 	return useQuery<SuspensionRosterPlayer[]>({
-		queryKey: ["league-roster-for-discipline", leagueId, q] as const,
+		queryKey: queryKeys.suspensions.rosterSearch(leagueId, q),
 		queryFn: async () => {
 			const res = await apiFetch<{ roster: SuspensionRosterPlayer[] }>(
 				LEAGUE_ROSTER_SEARCH_URL(leagueId!, q),

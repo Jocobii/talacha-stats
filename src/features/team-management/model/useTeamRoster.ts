@@ -12,7 +12,7 @@
 
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@/shared/api/query-keys";
+import { invalidate } from "@/shared/api/cache-invalidation";
 import { useTeamRosterQuery } from "./useTeamRosterQuery";
 import { useRosterMutations } from "./useRosterMutations";
 import { useRosterModals } from "./useRosterModals";
@@ -47,7 +47,7 @@ export function useTeamRoster(
 	);
 
 	const handlePlayerAdded = useCallback(() => {
-		queryClient.invalidateQueries({ queryKey: queryKeys.teamRoster(teamId) });
+		invalidate.rosterMemberChanged(queryClient, { teamId });
 		closeModal();
 	}, [queryClient, teamId, closeModal]);
 

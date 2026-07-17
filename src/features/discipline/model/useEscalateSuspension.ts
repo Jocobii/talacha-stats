@@ -10,7 +10,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { EscalateSuspensionInput, SuspensionDto } from "@/entities/suspension";
 import { apiFetch } from "@/shared/api/client";
-import { queryKeys } from "@/shared/api/query-keys";
+import { invalidate } from "@/shared/api/cache-invalidation";
 import { notify } from "@/shared/lib/notify";
 import { SUSPENSION_URL } from "../constants";
 
@@ -29,7 +29,7 @@ export function useEscalateSuspension(leagueId: string) {
 			return res.data;
 		},
 		onSuccess: (_data, variables) => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.suspensions(leagueId) });
+			invalidate.suspensionChanged(queryClient, { leagueId });
 			notify.success(variables.input.action === "lift" ? "Sanción levantada" : "Sanción escalada");
 		},
 		onError: (error) => {

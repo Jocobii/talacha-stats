@@ -17,7 +17,7 @@ export function useOrgCredentialConfig(
 	initialData: OrganizationCredentialConfigDto,
 ) {
 	return useQuery<OrganizationCredentialConfigDto>({
-		queryKey: queryKeys.organizationCredentialConfig(organizationId),
+		queryKey: queryKeys.credentials.orgConfig(organizationId),
 		initialData,
 		queryFn: async () => {
 			const res = await apiFetch<OrganizationCredentialConfigDto>(

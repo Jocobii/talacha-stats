@@ -32,7 +32,7 @@ export function useUpdateOrganizationSchedulingConfig(organizationId: string) {
 			return res.data;
 		},
 		onSuccess: (data) => {
-			queryClient.setQueryData(queryKeys.organizationSchedulingConfig(organizationId), data);
+			queryClient.setQueryData(queryKeys.organizations.schedulingConfig(organizationId), data);
 			notify.success("Parámetros de sorteo guardados");
 		},
 		onError: (error) => {

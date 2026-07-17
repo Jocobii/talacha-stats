@@ -30,7 +30,7 @@ export function useUpdateOrganizationRules(organizationId: string) {
 			return mapOrganizationConfigToRulesView(res.data);
 		},
 		onSuccess: (view) => {
-			queryClient.setQueryData(queryKeys.organizationConfig(organizationId), view);
+			queryClient.setQueryData(queryKeys.organizations.config(organizationId), view);
 			notify.success("Reglamento por defecto guardado");
 		},
 		onError: (error) => {

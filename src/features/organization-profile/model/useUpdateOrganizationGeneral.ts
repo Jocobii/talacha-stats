@@ -27,7 +27,7 @@ export function useUpdateOrganizationGeneral(organizationId: string) {
 			return res.data;
 		},
 		onSuccess: (data) => {
-			queryClient.setQueryData(queryKeys.organizationGeneral(organizationId), data);
+			queryClient.setQueryData(queryKeys.organizations.general(organizationId), data);
 			notify.success("Cambios guardados");
 		},
 		onError: (error) => {

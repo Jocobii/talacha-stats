@@ -18,7 +18,7 @@ import { ORG_VENUES_URL } from "../constants";
 
 export function useFirstOrgVenue(organizationId: string) {
 	const query = useQuery<VenueWithStats[]>({
-		queryKey: queryKeys.venues({ orgId: organizationId }),
+		queryKey: queryKeys.venues.list({ orgId: organizationId }),
 		queryFn: async () => {
 			const res = await apiFetch<VenueWithStats[]>(ORG_VENUES_URL(organizationId));
 			if (!res.ok) throw new Error(res.error);

@@ -18,7 +18,7 @@ import type { SkinActivationView } from "../types";
 
 export function useSkinActivations() {
 	return useQuery<SkinActivationView[]>({
-		queryKey: queryKeys.skinActivations(),
+		queryKey: queryKeys.skins.activations(),
 		queryFn: async () => {
 			const res = await apiFetch<SkinActivationDto[]>(SKIN_ACTIVATIONS_URL);
 			if (!res.ok) throw new Error(res.error);

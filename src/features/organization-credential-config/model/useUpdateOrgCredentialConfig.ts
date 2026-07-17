@@ -32,7 +32,7 @@ export function useUpdateOrgCredentialConfig(organizationId: string) {
 			return res.data;
 		},
 		onSuccess: (config) => {
-			queryClient.setQueryData(queryKeys.organizationCredentialConfig(organizationId), config);
+			queryClient.setQueryData(queryKeys.credentials.orgConfig(organizationId), config);
 			notify.success("Configuración de credenciales guardada");
 		},
 		onError: (error) => {

@@ -29,7 +29,7 @@ export function useUpdateLeagueRules(leagueId: string) {
 			return mapLeagueConfigToRulesView(res.data);
 		},
 		onSuccess: (view) => {
-			queryClient.setQueryData(queryKeys.leagueConfig(leagueId), view);
+			queryClient.setQueryData(queryKeys.leagues.config(leagueId), view);
 			notify.success("Reglamento guardado");
 		},
 		onError: (error) => {
