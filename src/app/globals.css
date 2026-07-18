@@ -436,6 +436,106 @@ body {
 	animation-play-state: paused;
 }
 
+/* ── Sorteo cockpit: anillo de shuffle, reveal, confetti burst, flash ────── */
+@keyframes sorteoRowIn {
+	0% {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+
+	60% {
+		opacity: 1;
+	}
+
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.shuffle-ring {
+	width: 74px;
+	height: 74px;
+	position: relative;
+}
+
+.shuffle-ring::before,
+.shuffle-ring::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	border: 3px solid transparent;
+}
+
+.shuffle-ring::before {
+	border-top-color: var(--color-brand);
+	border-right-color: rgba(0, 230, 118, 0.3);
+	animation: spin 1s linear infinite;
+}
+
+.shuffle-ring::after {
+	inset: 12px;
+	border-bottom-color: var(--color-brand-dim);
+	animation: spin 1.4s linear infinite reverse;
+}
+
+@keyframes sorteoConfettiFall {
+	0% {
+		opacity: 1;
+		transform: translateY(-10px) rotate(0deg);
+	}
+
+	100% {
+		opacity: 0;
+		transform: translateY(220px) rotate(360deg);
+	}
+}
+
+.animate-sorteo-confetti {
+	animation: sorteoConfettiFall 1.1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes sorteoFlash {
+	0% {
+		opacity: 1;
+	}
+
+	100% {
+		opacity: 0;
+	}
+}
+
+.animate-sorteo-flash {
+	animation: sorteoFlash 0.7s ease-out forwards;
+}
+
+.pulse-cta {
+	position: relative;
+}
+
+.pulse-cta::after {
+	content: "";
+	position: absolute;
+	inset: -4px;
+	border-radius: 12px;
+	border: 1px solid rgba(0, 230, 118, 0.4);
+	animation: ctaPulse 2s ease-out infinite;
+	pointer-events: none;
+}
+
+@keyframes ctaPulse {
+	0% {
+		opacity: 0.8;
+		transform: scale(1);
+	}
+
+	100% {
+		opacity: 0;
+		transform: scale(1.18);
+	}
+}
+
 /* ── Venue calendar — custom grid ────────────────────────────────────────── */
 :root {
 	--vcal-slot-h: 26px;

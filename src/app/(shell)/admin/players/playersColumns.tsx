@@ -11,6 +11,38 @@ import { Avatar } from "@/shared/ui/Avatar";
 import type { AdminTableColumn } from "@/shared/ui/AdminTable";
 import type { OrgPlayerRow, GlobalPlayerRow } from "@/entities/player";
 
+const CREDENTIAL_TONE: Record<
+	OrgPlayerRow["credentialStatus"],
+	"brand" | "warn" | "danger" | "neutral"
+> = {
+	vigente: "brand",
+	porvencer: "warn",
+	pendiente: "neutral",
+	vencida: "danger",
+	suspendida: "danger",
+	cancelada: "neutral",
+};
+const CREDENTIAL_LABEL: Record<OrgPlayerRow["credentialStatus"], string> = {
+	vigente: "Vigente",
+	porvencer: "Por vencer",
+	pendiente: "Pendiente",
+	vencida: "Vencida",
+	suspendida: "Suspendida",
+	cancelada: "Cancelada",
+};
+
+function formatCredentialDetail(row: OrgPlayerRow): string | null {
+	if (!row.credentialScope) return null;
+	const scopeLabel = row.credentialScope === "organization" ? "Anual" : "Por liga";
+	if (!row.credentialValidUntil) return scopeLabel;
+	const validUntil = new Date(`${row.credentialValidUntil}T00:00:00`).toLocaleDateString("es-MX", {
+		day: "numeric",
+		month: "short",
+		year: "numeric",
+	});
+	return `${scopeLabel} · vence ${validUntil}`;
+}
+
 const STATUS_TONE: Record<string, "brand" | "warn" | "neutral"> = {
 	active: "brand",
 	suspended: "warn",
@@ -89,6 +121,22 @@ export const ORG_PLAYER_COLUMNS: AdminTableColumn<OrgPlayerRow>[] = [
 			) : (
 				<span className="text-ink-3 text-xs">—</span>
 			),
+	},
+	{
+		key: "credentialStatus",
+		label: "Credencial",
+		hiddenMobile: true,
+		render: (p) => {
+			const detail = formatCredentialDetail(p);
+			return (
+				<div className="flex flex-col gap-0.5" title={detail ?? undefined}>
+					<Badge tone={CREDENTIAL_TONE[p.credentialStatus]}>
+						{CREDENTIAL_LABEL[p.credentialStatus]}
+					</Badge>
+					{detail && <span className="text-[10px] text-ink-3">{detail}</span>}
+				</div>
+			);
+		},
 	},
 ];
 

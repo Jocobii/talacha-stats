@@ -11,6 +11,7 @@ import type { Team, LeagueMember, Inscription } from "@/db";
 import type { UpdateTeamData, UpdateRosterMemberData } from "./types";
 import { sanitizeToCanonical } from "@/shared/lib/normalize";
 import { assignNextCredential } from "@/entities/player/lib/assign-credential";
+import { canPlayInLeague } from "@/entities/player-credential/queries";
 
 /** Actualiza nombre y/o color de un equipo. */
 export async function updateTeamInfo(id: string, data: UpdateTeamData): Promise<Team> {
@@ -31,28 +32,38 @@ export async function updateTeamInfo(id: string, data: UpdateTeamData): Promise<
 }
 
 /**
- * Disuelve un equipo: elimina todas las inscriptions (jugadores quedan libres).
- * NO elimina el registro del equipo para preservar historial de partidos y estadisticas.
- * TODO: agregar columna deleted_at a teams cuando se requiera filtrado.
+ * Disuelve un equipo: marca el equipo como 'disbanded' y elimina todas las
+ * inscriptions (jugadores quedan libres). NO elimina el registro del equipo
+ * para preservar historial de partidos y estadisticas.
+ *
+ * Endpoint único de disolución — ver app/api/teams/[id]/route.ts (DELETE).
+ * Devuelve el número de jugadores liberados, para feedback en la UI.
  */
-export async function dissolveTeam(teamId: string): Promise<void> {
-	await db.transaction(async (tx) => {
+export async function dissolveTeam(teamId: string): Promise<{ freedPlayers: number }> {
+	return db.transaction(async (tx) => {
 		// 1. Obtener inscriptions del equipo
 		const teamInscriptions = await tx
 			.select({ leagueMemberId: inscriptions.leagueMemberId })
 			.from(inscriptions)
 			.where(eq(inscriptions.teamId, teamId));
 
-		// 2. Eliminar inscriptions — los jugadores quedan como agente libre en la liga
+		// 2. Marcar el equipo como disuelto — sin esto queda "active" para
+		// siempre y sigue apareciendo en tabla de posiciones, módulo de
+		// equipos y sorteo pese a estar "eliminado".
+		await tx.update(teams).set({ status: "disbanded" }).where(eq(teams.id, teamId));
+
+		// 3. Eliminar inscriptions — los jugadores quedan como agente libre en la liga
 		await tx.delete(inscriptions).where(eq(inscriptions.teamId, teamId));
 
-		// 3. Marcar leagueMembers como inactivos
+		// 4. Marcar leagueMembers como inactivos
 		for (const { leagueMemberId } of teamInscriptions) {
 			await tx
 				.update(leagueMembers)
 				.set({ status: "inactive" })
 				.where(eq(leagueMembers.id, leagueMemberId));
 		}
+
+		return { freedPlayers: teamInscriptions.length };
 	});
 }
 
@@ -110,7 +121,8 @@ export async function transferPlayer(memberId: string, targetTeamId: string): Pr
  */
 export type AddExistingResult =
 	| { ok: true; memberId: string; inscriptionId: string }
-	| { ok: false; code: "ALREADY_IN_TEAM"; error: string };
+	| { ok: false; code: "ALREADY_IN_TEAM"; error: string }
+	| { ok: false; code: "NO_VALID_CREDENTIAL"; error: string };
 
 export async function addExistingPlayerToTeam(input: {
 	globalPlayerId: string;
@@ -120,6 +132,16 @@ export async function addExistingPlayerToTeam(input: {
 }): Promise<AddExistingResult> {
 	try {
 		return await db.transaction(async (tx) => {
+			// Candado: no se puede sumar a un equipo sin un pase vigente para esta
+			// liga (ni tenerlo, ni vencido) — docs/CREDENCIAL-PASE-JUGADOR.md §5.
+			const authorized = await canPlayInLeague(tx, input.globalPlayerId, input.leagueId);
+			if (!authorized) {
+				throw Object.assign(
+					new Error("El jugador no cuenta con una credencial vigente para esta liga"),
+					{ code: "NO_VALID_CREDENTIAL" as const },
+				);
+			}
+
 			const member = await resolveLeagueMember(tx, input);
 
 			const existing = await tx.query.inscriptions.findFirst({
@@ -142,6 +164,9 @@ export async function addExistingPlayerToTeam(input: {
 	} catch (err: unknown) {
 		if (err instanceof Error && "code" in err && err.code === "ALREADY_IN_TEAM") {
 			return { ok: false, code: "ALREADY_IN_TEAM", error: err.message };
+		}
+		if (err instanceof Error && "code" in err && err.code === "NO_VALID_CREDENTIAL") {
+			return { ok: false, code: "NO_VALID_CREDENTIAL", error: err.message };
 		}
 		console.error("[addExistingPlayerToTeam] error inesperado", err);
 		throw err;

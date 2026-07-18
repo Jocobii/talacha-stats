@@ -12,6 +12,7 @@ import { PageHeader } from "@/shared/ui/PageHeader";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { ActiveChip } from "@/shared/ui/filters";
 import type { OrgPlayersView as OrgPlayersViewModel } from "@/features/player-admin";
+import type { OrganizationCredentialConfigDto } from "@/entities/organization-credential-config";
 import { PlayersFilterBar } from "./PlayersFilterBar";
 import { PlayersTable } from "./PlayersTable";
 
@@ -34,7 +35,8 @@ export function OrgPlayersView({
 	countLabel,
 	pagination,
 	sort,
-}: OrgPlayersViewModel) {
+	credentialConfig,
+}: OrgPlayersViewModel & { credentialConfig: OrganizationCredentialConfigDto }) {
 	const showEmptyNoData = rows.length === 0 && !filtersActive && unfilteredTotal === 0;
 	const showEmptyFiltered = rows.length === 0 && filtersActive;
 
@@ -84,6 +86,7 @@ export function OrgPlayersView({
 					emptyMessage="No se encontraron resultados con estos filtros."
 					countLabel={countLabel}
 					sort={sort}
+					orgConfig={credentialConfig}
 				/>
 			)}
 		</div>

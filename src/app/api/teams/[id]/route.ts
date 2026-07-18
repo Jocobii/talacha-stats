@@ -5,6 +5,7 @@
  */
 
 import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { db, teams } from "@/db";
 import { apiSuccess, apiError } from "@/types";
 import { UpdateTeamSchema } from "@/entities/team";
@@ -41,6 +42,13 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 		return apiError("Escribe el nombre del equipo para confirmar la eliminacion", 400);
 	}
 
-	await dissolveTeam(id);
-	return apiSuccess({ dissolved: true, teamId: id });
+	const { freedPlayers } = await dissolveTeam(id);
+
+	// Invalida el Full Route Cache / Router Cache: sin esto, tabla de
+	// posiciones, módulo de equipos y sorteo pueden seguir mostrando el
+	// equipo disuelto hasta que expire el cache por su cuenta.
+	revalidatePath(`/admin/leagues/${team.leagueId}`, "layout");
+	revalidatePath("/admin/teams");
+
+	return apiSuccess({ dissolved: true, teamId: id, teamName: team.name, freedPlayers });
 }

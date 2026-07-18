@@ -32,6 +32,8 @@ type PairingRowProps = {
 	onVenueChange: (idx: number, venueId: string) => void;
 	onTimeChange: (idx: number, time: string) => void;
 	disabled?: boolean;
+	revealing?: boolean;
+	revealDelayMs?: number;
 };
 
 function toPairingDraft(p: CockpitPairing) {
@@ -51,6 +53,8 @@ export function PairingRow({
 	onVenueChange,
 	onTimeChange,
 	disabled = false,
+	revealing = false,
+	revealDelayMs = 0,
 }: PairingRowProps) {
 	// Usar los slots del venue asignado; si no hay venue, unión de todos los venues
 	const assignedVenue = venues.find((v) => v.id === pairing.venueId);
@@ -64,6 +68,13 @@ export function PairingRow({
 			style={{
 				borderTop: "1px solid var(--color-line)",
 				background: pairing.isConflict ? "rgba(248,113,113,0.04)" : "transparent",
+				...(revealing
+					? {
+							opacity: 0,
+							animation: "sorteoRowIn 0.5s cubic-bezier(0.2,0.8,0.2,1) forwards",
+							animationDelay: `${revealDelayMs}ms`,
+						}
+					: undefined),
 			}}
 		>
 			<td

@@ -2,8 +2,10 @@
 
 /**
  * features/team-management/ui/EditPlayerDrawer.tsx
- * Edicion de datos locales del jugador: dorsal y estatus.
- * CURP y nombre estan bloqueados para edicion ordinaria.
+ * Edicion de datos locales del jugador: dorsal.
+ * CURP y nombre estan bloqueados para edicion ordinaria. El estatus ya no se
+ * edita aqui (decision Jocobi, jul 2026): ese campo pertenece al modulo de
+ * suspensiones, no a la edicion de roster.
  */
 
 import { useState } from "react";
@@ -11,9 +13,7 @@ import { Lock } from "lucide-react";
 import { Modal } from "@/shared/ui/Modal";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
-import { Listbox } from "@/shared/ui/Listbox";
 import { SectionLabel } from "@/shared/ui/SectionLabel";
-import { ROSTER_STATUSES, ROSTER_STATUS_LABEL } from "../constants";
 import type { RosterEntry, UpdateRosterMemberData } from "../types";
 
 type Props = {
@@ -26,7 +26,6 @@ type Props = {
 
 export function EditPlayerDrawer({ member, onSave, onClose, mutating, error }: Props) {
 	const [dorsal, setDorsal] = useState(member.dorsal?.toString() ?? "");
-	const [status, setStatus] = useState<RosterEntry["status"]>(member.status);
 
 	function handleDorsalChange(v: string) {
 		if (v === "" || /^\d{1,2}$/.test(v)) setDorsal(v);
@@ -35,7 +34,7 @@ export function EditPlayerDrawer({ member, onSave, onClose, mutating, error }: P
 	async function handleSave() {
 		const dorsalNum = dorsal === "" ? null : parseInt(dorsal, 10);
 		if (dorsalNum !== null && (dorsalNum < 1 || dorsalNum > 99)) return;
-		await onSave(member.memberId, { dorsal: dorsalNum, status });
+		await onSave(member.memberId, { dorsal: dorsalNum });
 	}
 
 	return (
@@ -65,16 +64,6 @@ export function EditPlayerDrawer({ member, onSave, onClose, mutating, error }: P
 						}}
 					/>
 					<p className="text-[11px] text-ink-3 mt-1">Dejar vacio si el equipo no usa dorsales</p>
-				</div>
-
-				{/* Estatus */}
-				<div>
-					<SectionLabel className="mb-1.5">Estatus</SectionLabel>
-					<Listbox
-						value={status}
-						onChange={(v) => setStatus(v as RosterEntry["status"])}
-						options={ROSTER_STATUSES.map((s) => ({ value: s, label: ROSTER_STATUS_LABEL[s] }))}
-					/>
 				</div>
 
 				{error && <p className="text-[12px] text-red-400">{error}</p>}

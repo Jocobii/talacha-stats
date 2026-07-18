@@ -16,7 +16,7 @@ import type { OrgRulesFormView } from "../types";
 
 export function useOrganizationRules(organizationId: string, initialView: OrgRulesFormView) {
 	return useQuery<OrgRulesFormView>({
-		queryKey: queryKeys.organizationConfig(organizationId),
+		queryKey: queryKeys.organizations.config(organizationId),
 		initialData: initialView,
 		queryFn: async () => {
 			const res = await apiFetch<OrganizationConfigDto>(ORGANIZATION_CONFIG_URL(organizationId));

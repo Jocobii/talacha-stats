@@ -38,6 +38,7 @@ import {
 	resolveUniqueCode,
 } from "@/features/league-management/lib/generate-league-code";
 import { findLeagueConfigOrDefaults, insertLeagueConfig } from "@/entities/league-config/queries";
+import { findActiveOrganizationCredentialsForPlayers } from "@/entities/player-credential/queries";
 
 const NewSeasonSchema = z.object({
 	season: z.string().min(1, "La temporada no puede estar vacía").max(50),
@@ -236,6 +237,30 @@ export async function POST(request: Request, { params }: Params) {
 							teamId: rosterDefs[i].teamId,
 						})),
 					);
+
+					// credential_id NUNCA se copia del league_member origen — la
+					// temporada nueva arranca sin pase (docs/CREDENCIAL-PASE-JUGADOR.md
+					// §6). Solo se re-vincula el pase `organization` vigente, si el
+					// jugador tiene uno para esta org: el anual cubre la temporada
+					// nueva sin recomprar. Sin pase organization, el league_member
+					// queda con credential_id = null → "pendiente de credencial"
+					// hasta que compre el desechable de la temporada nueva.
+					if (source.organizationId) {
+						const credentialByPlayer = await findActiveOrganizationCredentialsForPlayers(
+							tx,
+							rosterDefs.map((d) => d.globalPlayerId),
+							source.organizationId,
+						);
+
+						for (const [i, member] of insertedMembers.entries()) {
+							const credential = credentialByPlayer.get(rosterDefs[i].globalPlayerId);
+							if (!credential) continue;
+							await tx
+								.update(leagueMembers)
+								.set({ credentialId: credential.id })
+								.where(eq(leagueMembers.id, member.id));
+						}
+					}
 
 					playersCopied = insertedMembers.length;
 				}

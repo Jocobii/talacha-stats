@@ -10,13 +10,14 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/shared/api/client";
+import { queryKeys } from "@/shared/api/query-keys";
 import { ORG_PLAYER_SEARCH_URL } from "../constants";
 import type { OrgPlayerSearchResult } from "../types";
 
 export function useOrgPlayerSearch(leagueId: string, query: string) {
 	const q = query.trim();
 	return useQuery({
-		queryKey: ["org-player-search", leagueId, q] as const,
+		queryKey: queryKeys.players.searchOrg(leagueId, q),
 		enabled: q.length >= 2,
 		staleTime: 30_000,
 		queryFn: async (): Promise<OrgPlayerSearchResult[]> => {

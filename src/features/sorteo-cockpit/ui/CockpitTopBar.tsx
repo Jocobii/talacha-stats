@@ -3,6 +3,7 @@
 import { Settings, Eye } from "lucide-react";
 import Link from "next/link";
 import { StatusPill } from "@/shared/ui";
+import { Inline } from "@/shared/ui/layout";
 import type { CockpitMatchday } from "../types";
 
 type CockpitTopBarProps = {
@@ -36,87 +37,62 @@ export function CockpitTopBar({
 	leagueId,
 }: CockpitTopBarProps) {
 	return (
-		<header
-			style={{
-				padding: "16px 20px 14px",
-				borderBottom: "1px solid var(--color-line)",
-				display: "flex",
-				alignItems: "center",
-				gap: 24,
-			}}
+		<Inline
+			as="header"
+			align="center"
+			gap="lg"
+			className="px-5 pt-4 pb-3.5"
+			style={{ borderBottom: "1px solid var(--color-line)" }}
 		>
-			<div style={{ flex: 1, minWidth: 0 }}>
-				<div
-					style={{
-						display: "flex",
-						alignItems: "baseline",
-						gap: 14,
-						flexWrap: "nowrap",
-						minWidth: 0,
-					}}
-				>
+			<div className="min-w-0 flex-1">
+				<Inline gap="md" className="min-w-0 flex-nowrap items-baseline">
 					<h1
+						className="m-0 whitespace-nowrap"
 						style={{
-							margin: 0,
 							fontFamily: "var(--font-display)",
 							fontSize: 38,
 							fontWeight: 900,
 							letterSpacing: "-0.02em",
 							color: "var(--color-ink)",
-							whiteSpace: "nowrap",
 						}}
 					>
 						{matchday ? `Jornada ${matchday.number}` : "Sin jornada"}
 						{totalMatchdays > 0 && (
 							<span
-								style={{
-									color: "var(--color-ink-3)",
-									fontWeight: 500,
-									fontSize: 22,
-									marginLeft: 8,
-									whiteSpace: "nowrap",
-								}}
+								className="ml-2 whitespace-nowrap"
+								style={{ color: "var(--color-ink-3)", fontWeight: 500, fontSize: 22 }}
 							>
 								/ {totalMatchdays}
 							</span>
 						)}
 					</h1>
 					{matchday && (
-						<div style={{ fontSize: 14, color: "var(--color-ink-2)", textTransform: "capitalize" }}>
+						<div className="capitalize" style={{ fontSize: 14, color: "var(--color-ink-2)" }}>
 							{formatDate(matchday.scheduledDate)}
 						</div>
 					)}
 					{matchday && <StatusPill status={matchday.status} />}
-				</div>
+				</Inline>
 			</div>
 
 			{matchday && (
 				<div
-					style={{
-						textAlign: "right",
-						padding: "8px 14px",
-						background: "var(--color-surface)",
-						borderRadius: 10,
-						border: "1px solid var(--color-line)",
-					}}
+					className="rounded-[10px] px-3.5 py-2 text-right"
+					style={{ background: "var(--color-surface)", border: "1px solid var(--color-line)" }}
 				>
 					<div
-						style={{
-							fontSize: 10,
-							color: "var(--color-ink-3)",
-							letterSpacing: "0.14em",
-							textTransform: "uppercase",
-						}}
+						className="uppercase"
+						style={{ fontSize: 10, color: "var(--color-ink-3)", letterSpacing: "0.14em" }}
 					>
 						Faltan
 					</div>
 					<div
+						className="leading-none"
 						style={{
 							fontFamily: "var(--font-display)",
 							fontSize: 24,
 							fontWeight: 800,
 							color: "var(--color-brand)",
-							lineHeight: 1,
 						}}
 					>
 						{daysLabel(matchday.scheduledDate)}
@@ -124,11 +100,10 @@ export function CockpitTopBar({
 				</div>
 			)}
 
-			<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+			<Inline align="center" gap="sm">
 				<Link
 					href={`/admin/leagues/${leagueId}/calendario`}
-					className="btn-ghost"
-					style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+					className="btn-ghost inline-flex items-center gap-1.5"
 					title="Ver vista pública del calendario"
 				>
 					<Eye size={13} /> Calendario
@@ -136,7 +111,7 @@ export function CockpitTopBar({
 				<button className="btn-ghost" onClick={onOpenSettings} title="Ajustes del sorteo">
 					<Settings size={13} /> Ajustes
 				</button>
-			</div>
-		</header>
+			</Inline>
+		</Inline>
 	);
 }

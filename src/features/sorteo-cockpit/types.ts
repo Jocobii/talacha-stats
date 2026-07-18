@@ -47,6 +47,7 @@ export type CockpitHookReturn = {
 	matchday: CockpitMatchday | null;
 	totalMatchdays: number;
 	leagueName: string;
+	teamsCount: number;
 	config: CockpitConfig | null;
 	venues: VenueOption[];
 	teams: TeamWithAttendance[];

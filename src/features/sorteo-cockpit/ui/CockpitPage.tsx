@@ -1,14 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trophy } from "lucide-react";
+import { Stack, Inline, Center } from "@/shared/ui/layout";
+import { cn } from "@/shared/lib/cn";
 import { useCockpitState } from "../model/useCockpitState";
+import { useMatchdayCreateTransition } from "../model/useMatchdayCreateTransition";
+import { MIN_TEAMS_FOR_MATCHDAY } from "../constants";
 import { CockpitTopBar } from "./CockpitTopBar";
 import { RosterPanel } from "./RosterPanel";
 import { SorteoPanel } from "./SorteoPanel";
 import { ContextPanel } from "./ContextPanel";
 import { CockpitFooter } from "./CockpitFooter";
 import { SettingsDrawer } from "./SettingsDrawer";
+import { SorteoRequirements } from "./SorteoRequirements";
+import { CockpitDatePicker } from "./CockpitDatePicker";
 
 type CockpitPageProps = {
 	leagueId: string;
@@ -26,18 +32,19 @@ function CreateMatchdayForm({
 }) {
 	const [date, setDate] = useState("");
 	return (
-		<div
-			style={{
-				display: "flex",
-				flexDirection: "column",
-				alignItems: "center",
-				justifyContent: "center",
-				height: "100%",
-				gap: 20,
-				color: "var(--color-ink)",
-			}}
+		<Stack
+			align="center"
+			gap="lg"
+			className="h-full justify-center"
+			style={{ color: "var(--color-ink)" }}
 		>
-			<div style={{ textAlign: "center" }}>
+			<div className="text-center">
+				<Center
+					className="mx-auto mb-3.5 h-14 w-14 rounded-2xl"
+					style={{ background: "rgba(0,230,118,0.1)" }}
+				>
+					<Trophy size={24} strokeWidth={2} color="var(--color-brand)" />
+				</Center>
 				<div
 					style={{
 						fontFamily: "var(--font-display)",
@@ -52,21 +59,8 @@ function CreateMatchdayForm({
 					No hay jornada activa. Crea una nueva para comenzar.
 				</div>
 			</div>
-			<div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-				<input
-					type="date"
-					value={date}
-					onChange={(e) => setDate(e.target.value)}
-					style={{
-						background: "var(--color-surface-2)",
-						border: "1px solid var(--color-line)",
-						color: "var(--color-ink)",
-						borderRadius: 8,
-						padding: "8px 12px",
-						fontSize: 14,
-						fontFamily: "inherit",
-					}}
-				/>
+			<Inline gap="sm" align="center">
+				<CockpitDatePicker value={date} onChange={setDate} disabled={loading} />
 				<button
 					className="btn-primary"
 					onClick={() => date && onCreate(date)}
@@ -75,8 +69,8 @@ function CreateMatchdayForm({
 					{loading && <Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} />}
 					{loading ? "Creando…" : "Crear Jornada"}
 				</button>
-			</div>
-		</div>
+			</Inline>
+		</Stack>
 	);
 }
 
@@ -90,15 +84,17 @@ export function CockpitPage({ leagueId, leagueName }: CockpitPageProps) {
 
 	const presentTeams = state.teams.filter((t) => t.status === "presente");
 	const isCompleted = state.matchday?.status === "completed";
+	const hasVenue = state.venues.length > 0;
+	const meetsRequirements = hasVenue && state.teamsCount >= MIN_TEAMS_FOR_MATCHDAY;
+	const { showCreateForm, formExiting, layoutEntering } = useMatchdayCreateTransition(
+		!!state.matchday,
+	);
 
 	if (state.loading) {
 		return (
-			<div
+			<Center
+				className="h-full"
 				style={{
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "center",
-					height: "100%",
 					background: "var(--color-pitch)",
 					color: "var(--color-brand)",
 					fontFamily: "var(--font-display)",
@@ -106,23 +102,17 @@ export function CockpitPage({ leagueId, leagueName }: CockpitPageProps) {
 				}}
 			>
 				Cargando…
-			</div>
+			</Center>
 		);
 	}
 
 	if (state.loadError) {
 		return (
-			<div
-				style={{
-					display: "flex",
-					flexDirection: "column",
-					alignItems: "center",
-					justifyContent: "center",
-					height: "100%",
-					gap: 12,
-					background: "var(--color-pitch)",
-					fontFamily: "var(--font-body)",
-				}}
+			<Stack
+				align="center"
+				gap="sm"
+				className="h-full justify-center"
+				style={{ background: "var(--color-pitch)", fontFamily: "var(--font-body)" }}
 			>
 				<span style={{ fontSize: 16, color: "var(--color-ink)" }}>No se pudo cargar el sorteo</span>
 				<span
@@ -130,118 +120,130 @@ export function CockpitPage({ leagueId, leagueName }: CockpitPageProps) {
 				>
 					{state.loadError}
 				</span>
-				<button
-					className="btn-ghost"
-					style={{ marginTop: 8 }}
-					onClick={() => void state.loadCurrent()}
-				>
+				<button className="btn-ghost mt-2" onClick={() => void state.loadCurrent()}>
 					Reintentar
 				</button>
-			</div>
+			</Stack>
 		);
 	}
 
 	return (
-		<div
+		<Stack
+			gap="none"
+			className="relative h-full min-h-0 overflow-hidden"
 			style={{
-				position: "relative",
-				display: "flex",
-				flexDirection: "column",
-				height: "100%",
-				minHeight: 0,
 				background: "var(--color-pitch)",
 				color: "var(--color-ink)",
 				fontFamily: "var(--font-body)",
-				overflow: "hidden",
 			}}
 		>
-			{!state.matchday ? (
-				<CreateMatchdayForm
-					leagueName={state.leagueName || leagueName}
-					onCreate={state.createMatchday}
-					loading={state.createLoading}
-				/>
-			) : (
-				<>
-					<CockpitTopBar
-						leagueId={leagueId}
-						matchday={state.matchday}
-						totalMatchdays={state.totalMatchdays}
-						onOpenSettings={() => state.openDrawer("canchas")}
-					/>
-					{/* Grid: flex-1 + minHeight:0 garantiza que no desborde; overflow:hidden deja scroll a cada panel */}
-					<div
-						style={{
-							flex: 1,
-							minHeight: 0,
-							display: "grid",
-							gridTemplateColumns: "320px 1fr 280px",
-							alignItems: "stretch",
-							gap: 16,
-							padding: "16px 20px",
-							overflow: "hidden",
-						}}
-					>
-						<RosterPanel
-							teams={state.teams}
-							onToggleAttendance={state.toggleAttendance}
-							pairingCount={state.pairings.length}
-							disabled={isCompleted}
-						/>
-						<SorteoPanel
-							pairings={state.pairings}
-							venues={state.venues}
-							presentTeams={presentTeams}
-							recentPairKeys={state.recentPairKeys}
-							config={state.config}
-							loading={state.sortearLoading}
-							disabled={isCompleted}
-							onChangeTeam={state.changeTeam}
-							onSwap={state.swapHomeAway}
-							onDelete={state.deletePairing}
-							onVenueChange={state.changeVenue}
-							onTimeChange={state.changeTime}
-							saveStatus={state.saveStatus}
-							onSortear={state.sortear}
-							onAddManual={state.addManualPairing}
-							onOpenSettings={state.openDrawer}
-						/>
-						<ContextPanel
-							matchday={state.matchday}
-							leagueId={leagueId}
-							onOpenSettings={state.openDrawer}
-							config={state.config}
-							venues={state.venues}
-						/>
-					</div>
-					{/* Footer: flexShrink:0, siempre visible al fondo */}
-					<CockpitFooter
-						matchdayNumber={state.matchday.number}
-						status={state.matchday.status}
-						hasMatches={state.pairings.length > 0}
-						onPublish={state.publishMatchday}
-						loading={state.publishLoading}
-						leagueId={leagueId}
-					/>
-					{state.drawerOpen && (
-						<SettingsDrawer
-							leagueId={leagueId}
+			{showCreateForm ? (
+				<div
+					style={
+						formExiting
+							? {
+									opacity: 0,
+									transform: "scale(1.02)",
+									transition: "opacity 0.4s ease, transform 0.4s ease",
+								}
+							: undefined
+					}
+				>
+					{meetsRequirements ? (
+						<CreateMatchdayForm
 							leagueName={state.leagueName || leagueName}
-							open={state.drawerOpen}
-							activeTab={state.activeDrawerTab}
-							onClose={state.closeDrawer}
-							onTabChange={state.openDrawer}
-							venues={state.venues}
-							config={state.config}
-							teams={state.teams}
-							matchdayNumber={state.matchday.number}
-							onConfigChange={state.updateConfig}
-							onSave={state.loadCurrent}
-							onAttendanceChange={state.toggleAttendance}
+							onCreate={state.createMatchday}
+							loading={state.createLoading}
+						/>
+					) : (
+						<SorteoRequirements
+							leagueId={leagueId}
+							teamsCount={state.teamsCount}
+							hasVenue={hasVenue}
 						/>
 					)}
-				</>
+				</div>
+			) : (
+				state.matchday && (
+					<>
+						<div className={cn(layoutEntering && "animate-fade-slide-up [animation-delay:60ms]")}>
+							<CockpitTopBar
+								leagueId={leagueId}
+								matchday={state.matchday}
+								totalMatchdays={state.totalMatchdays}
+								onOpenSettings={() => state.openDrawer("canchas")}
+							/>
+						</div>
+						{/* Grid: flex-1 + minHeight:0 garantiza que no desborde; overflow:hidden deja scroll a cada panel */}
+						<div
+							className={cn(
+								"grid flex-1 min-h-0 grid-cols-[320px_1fr_280px] items-stretch gap-4 overflow-hidden px-5 py-4",
+								layoutEntering && "animate-fade-slide-up [animation-delay:130ms]",
+							)}
+						>
+							<RosterPanel
+								teams={state.teams}
+								onToggleAttendance={state.toggleAttendance}
+								pairingCount={state.pairings.length}
+								disabled={isCompleted}
+							/>
+							<SorteoPanel
+								pairings={state.pairings}
+								venues={state.venues}
+								presentTeams={presentTeams}
+								recentPairKeys={state.recentPairKeys}
+								config={state.config}
+								loading={state.sortearLoading}
+								disabled={isCompleted}
+								onChangeTeam={state.changeTeam}
+								onSwap={state.swapHomeAway}
+								onDelete={state.deletePairing}
+								onVenueChange={state.changeVenue}
+								onTimeChange={state.changeTime}
+								saveStatus={state.saveStatus}
+								onSortear={state.sortear}
+								onAddManual={state.addManualPairing}
+								onOpenSettings={state.openDrawer}
+							/>
+							<ContextPanel
+								matchday={state.matchday}
+								leagueId={leagueId}
+								onOpenSettings={state.openDrawer}
+								config={state.config}
+								venues={state.venues}
+							/>
+						</div>
+						{/* Footer: flexShrink:0, siempre visible al fondo */}
+						<div className={cn(layoutEntering && "animate-fade-slide-up [animation-delay:200ms]")}>
+							<CockpitFooter
+								matchdayNumber={state.matchday.number}
+								status={state.matchday.status}
+								hasMatches={state.pairings.length > 0}
+								onPublish={state.publishMatchday}
+								loading={state.publishLoading}
+								leagueId={leagueId}
+							/>
+						</div>
+						{state.drawerOpen && (
+							<SettingsDrawer
+								leagueId={leagueId}
+								leagueName={state.leagueName || leagueName}
+								open={state.drawerOpen}
+								activeTab={state.activeDrawerTab}
+								onClose={state.closeDrawer}
+								onTabChange={state.openDrawer}
+								venues={state.venues}
+								config={state.config}
+								teams={state.teams}
+								matchdayNumber={state.matchday.number}
+								onConfigChange={state.updateConfig}
+								onSave={state.loadCurrent}
+								onAttendanceChange={state.toggleAttendance}
+							/>
+						)}
+					</>
+				)
 			)}
-		</div>
+		</Stack>
 	);
 }

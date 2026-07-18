@@ -8,7 +8,7 @@ function makePlayer(overrides: Partial<CedulaPlayerRow> = {}): CedulaPlayerRow {
 		fullName: "Jugador Uno",
 		credentialCode: 12,
 		dorsal: 7,
-		suspended: null,
+		blocked: null,
 		...overrides,
 	};
 }
@@ -86,13 +86,33 @@ describe("buildCedulaViewModel", () => {
 		const vm = buildCedulaViewModel(
 			makeData({
 				homePlayers: [
-					makePlayer({ credentialCode: 31, suspended: { tag: "NO JUEGA", why: "1/2 jornadas" } }),
+					makePlayer({
+						credentialCode: 31,
+						blocked: { reason: "suspension", tag: "NO JUEGA", why: "1/2 jornadas" },
+					}),
 				],
 			}),
 		);
 		expect(vm.home.rows[0]).toMatchObject({
 			kind: "player",
-			suspended: { tag: "NO JUEGA", why: "1/2 jornadas" },
+			blocked: { reason: "suspension", tag: "NO JUEGA", why: "1/2 jornadas" },
+		});
+	});
+
+	it("propaga la marca de sin-credencial-vigente a la fila del jugador", () => {
+		const vm = buildCedulaViewModel(
+			makeData({
+				homePlayers: [
+					makePlayer({
+						credentialCode: 32,
+						blocked: { reason: "credential", tag: "NO JUEGA", why: "Sin credencial vigente" },
+					}),
+				],
+			}),
+		);
+		expect(vm.home.rows[0]).toMatchObject({
+			kind: "player",
+			blocked: { reason: "credential", tag: "NO JUEGA", why: "Sin credencial vigente" },
 		});
 	});
 

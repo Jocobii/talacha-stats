@@ -28,7 +28,7 @@ export function useAddMemberMutation(teamId: string, onSuccess: () => void) {
 			return res.data;
 		},
 		onSuccess: (roster) => {
-			queryClient.setQueryData(queryKeys.teamRoster(teamId), roster);
+			queryClient.setQueryData(queryKeys.teams.roster(teamId), roster);
 			onSuccess();
 		},
 	});

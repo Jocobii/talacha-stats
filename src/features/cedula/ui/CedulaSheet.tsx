@@ -83,7 +83,8 @@ function TeamRow({ row }: { row: CedulaRowVM }) {
 		);
 	}
 
-	if (row.suspended) {
+	if (row.blocked) {
+		const shortLabel = row.blocked.reason === "credential" ? "S/Cred." : "Susp.";
 		return (
 			<tr className="susp">
 				<td className="c-code">{row.credentialCode}</td>
@@ -93,7 +94,7 @@ function TeamRow({ row }: { row: CedulaRowVM }) {
 				<td className="c-dor">{row.dorsal}</td>
 				<td className="c-attend" />
 				<td className="c-goals">
-					<span className="blocked">Susp.</span>
+					<span className="blocked">{shortLabel}</span>
 				</td>
 				<td className="c-cards" />
 			</tr>
@@ -219,7 +220,8 @@ export function CedulaSheet({ vm }: { vm: CedulaSheetVM }) {
 					</span>
 					<span className="li">
 						<span className="lg-susp" />
-						<b>NO JUEGA</b> = jugador suspendido, no puede alinear
+						<b>NO JUEGA</b> = suspendido o sin credencial vigente, no puede alinear (<b>Susp.</b> /{" "}
+						<b>S/Cred.</b>)
 					</span>
 					<span className="li">
 						<span className="lg-box att" />

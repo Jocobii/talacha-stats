@@ -19,7 +19,7 @@ export type SuspensionsData = {
 
 export function useSuspensions(leagueId: string, initialData: SuspensionsData) {
 	return useQuery<SuspensionsData>({
-		queryKey: queryKeys.suspensions(leagueId),
+		queryKey: queryKeys.suspensions.byLeague(leagueId),
 		queryFn: async () => {
 			const res = await apiFetch<SuspensionsData>(LEAGUE_SUSPENSIONS_URL(leagueId));
 			if (!res.ok) throw new Error(res.error);

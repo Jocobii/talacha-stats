@@ -95,7 +95,7 @@ export function StepFinale({ org, venue, league, schedule, logoUrl, style }: Pro
 							Ir al panel
 						</Button>
 					</Link>
-					<Link href={`/admin/leagues/${league.id}/setup`}>
+					<Link href={`/admin/leagues/${league.id}`}>
 						<Button variant="primary" size="lg">
 							Configurar equipos y jugadores
 						</Button>

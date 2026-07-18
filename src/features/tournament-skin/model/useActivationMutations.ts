@@ -3,22 +3,17 @@
 /**
  * features/tournament-skin/model/useActivationMutations.ts
  *
- * Mutaciones del panel de temas. Toda mutación invalida skinActivations +
- * activeSkin (mapa de invalidación en query-keys.ts): encender o apagar una
- * activación puede cambiar el skin público al instante.
+ * Mutaciones del panel de temas. Toda mutación invalida vía el registro
+ * central (`shared/api/cache-invalidation.ts`, §4 del estándar de caché):
+ * encender o apagar una activación puede cambiar el skin público al instante.
  */
 
-import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { SkinActivationDto } from "@/entities/skin-activation";
 import { apiFetch } from "@/shared/api/client";
-import { queryKeys } from "@/shared/api/query-keys";
+import { invalidate } from "@/shared/api/cache-invalidation";
 import { SKIN_ACTIVATIONS_URL } from "../constants";
 import type { ActivationFormInput } from "./activation-form-schema";
-
-function invalidateSkinQueries(queryClient: QueryClient): void {
-	queryClient.invalidateQueries({ queryKey: queryKeys.skinActivations() });
-	queryClient.invalidateQueries({ queryKey: queryKeys.activeSkin() });
-}
 
 export function useCreateSkinActivation() {
 	const queryClient = useQueryClient();
@@ -31,7 +26,7 @@ export function useCreateSkinActivation() {
 			if (!res.ok) throw new Error(res.error);
 			return res.data;
 		},
-		onSuccess: () => invalidateSkinQueries(queryClient),
+		onSuccess: () => invalidate.skinChanged(queryClient),
 	});
 }
 
@@ -46,7 +41,7 @@ export function useToggleSkinActivation() {
 			if (!res.ok) throw new Error(res.error);
 			return res.data;
 		},
-		onSuccess: () => invalidateSkinQueries(queryClient),
+		onSuccess: () => invalidate.skinChanged(queryClient),
 	});
 }
 
@@ -57,6 +52,6 @@ export function useDeleteSkinActivation() {
 			const res = await apiFetch<null>(`${SKIN_ACTIVATIONS_URL}/${id}`, { method: "DELETE" });
 			if (!res.ok) throw new Error(res.error);
 		},
-		onSuccess: () => invalidateSkinQueries(queryClient),
+		onSuccess: () => invalidate.skinChanged(queryClient),
 	});
 }

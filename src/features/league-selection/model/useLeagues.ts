@@ -24,7 +24,7 @@ import type { LeagueOption } from "../types";
 
 export function useLeagues(city?: string) {
 	return useQuery({
-		queryKey: queryKeys.leagues(city ? { city } : undefined),
+		queryKey: queryKeys.leagues.list(city ? { city } : undefined),
 		queryFn: async (): Promise<LeagueOption[]> => {
 			const result = await apiFetch<League[]>(LEAGUES_URL(city));
 			if (!result.ok) throw new Error(result.error);

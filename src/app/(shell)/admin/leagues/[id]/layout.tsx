@@ -1,7 +1,8 @@
 /**
  * app/admin/leagues/[id]/layout.tsx
  *
- * Shell unificado de la vista de liga.
+ * Shell unificado de la vista de liga — pantalla de referencia canónica de
+ * `PageShell` (docs/FRONTEND-UI-REFACTOR-PLAN.md Fase 4).
  * Renderiza: breadcrumb, cabecera (nombre + metadatos + acciones) y tab bar.
  * El {children} corresponde al contenido del tab activo.
  */
@@ -9,11 +10,10 @@
 import { notFound, redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { db } from "@/db";
 import { leagues } from "@/db/schema";
 import { getSessionUser } from "@/shared/lib/auth";
-import { LeagueTabBar } from "@/shared/ui";
+import { LeagueTabBar, PageHeader, PageShell } from "@/shared/ui";
 
 type Props = {
 	children: ReactNode;
@@ -49,33 +49,28 @@ export default async function LeagueLayout({ children, params }: Props) {
 	if (!canManage) redirect("/admin/leagues");
 
 	return (
-		<div>
-			{/* ── Cabecera ──────────────────────────────────────────────────────── */}
-			<div className="mb-0">
-				<Link href="/admin" className="text-sm text-ink-2 hover:underline">
-					← Dashboard
-				</Link>
-
-				<div className="flex items-start justify-between gap-4 mt-1">
-					<div>
-						<h1 className="text-2xl font-bold text-ink">{league.name}</h1>
-						<p className="text-ink-2 capitalize text-sm">
+		<PageShell
+			header={
+				<PageHeader
+					breadcrumb={[{ label: "Dashboard", href: "/admin" }]}
+					title={league.name}
+					subtitle={
+						<span className="capitalize">
 							{league.dayOfWeek} — {league.season}
-							{league.organization && (
-								<span className="ml-2 text-xs bg-surface-2 text-ink-2 px-2 py-0.5 rounded-full">
-									{league.organization.name}
-								</span>
-							)}
-						</p>
-					</div>
-				</div>
-			</div>
-
-			{/* ── Tab bar ───────────────────────────────────────────────────────── */}
-			<LeagueTabBar leagueId={id} schedulingEnabled={league.schedulingEnabled} />
-
-			{/* ── Contenido del tab activo ──────────────────────────────────────── */}
-			<div className="mt-4">{children}</div>
-		</div>
+						</span>
+					}
+					meta={
+						league.organization && (
+							<span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-ink-2">
+								{league.organization.name}
+							</span>
+						)
+					}
+				/>
+			}
+			toolbar={<LeagueTabBar leagueId={id} schedulingEnabled={league.schedulingEnabled} />}
+		>
+			{children}
+		</PageShell>
 	);
 }

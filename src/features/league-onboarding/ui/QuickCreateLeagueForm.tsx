@@ -26,7 +26,8 @@ import {
 	DAYS,
 	defaultSeason,
 } from "../model/league-form-schema";
-import { useCreateLeague } from "../model/useCreateLeague";
+import { useToast } from "@/shared/hooks/use-toast";
+import { useCreateLeague, type CreatedLeague } from "../model/useCreateLeague";
 
 type Organization = { id: string; name: string; city: string };
 
@@ -78,6 +79,7 @@ function readInitialDraft(): DraftValues {
 export function QuickCreateLeagueForm({ organizations, defaultOrganizationId }: Props) {
 	const router = useRouter();
 	const createLeague = useCreateLeague();
+	const toast = useToast();
 
 	// defaultValues calculados una sola vez (lazy) — incluye borrador + org.
 	const [defaults] = useState(() => {
@@ -104,6 +106,9 @@ export function QuickCreateLeagueForm({ organizations, defaultOrganizationId }: 
 
 	const [showCategory, setShowCategory] = useState(defaults.category.length > 0);
 	const [confirming, setConfirming] = useState(false);
+	// Liga ya creada, en espera del paso de cancha/horario (StepVenueSchedule).
+	// Null mientras se llena el formulario o se confirma.
+	const [createdLeague, setCreatedLeague] = useState<CreatedLeague | null>(null);
 
 	// Autosave del borrador: solo escribe a localStorage (sin setState).
 	useEffect(() => {
@@ -138,7 +143,8 @@ export function QuickCreateLeagueForm({ organizations, defaultOrganizationId }: 
 					/* no-op */
 				}
 				setConfirming(false);
-				router.push(`/admin/leagues/${data.league.id}/setup?created=1`);
+				toast.success(`Liga "${data.league.name}" creada.`);
+				router.push(`/admin/leagues/${data.league.id}`);
 			},
 		});
 	}
@@ -151,7 +157,7 @@ export function QuickCreateLeagueForm({ organizations, defaultOrganizationId }: 
 				</Link>
 				<h1 className="text-2xl font-bold text-ink mt-1">Crear tu liga</h1>
 				<p className="text-sm text-ink-2 mt-1">
-					Paso 1 de 3. Luego agregas tus equipos y registras jugadores.
+					Después crea tus equipos desde el módulo de Equipos, eligiendo esta liga.
 				</p>
 			</div>
 
@@ -291,7 +297,7 @@ export function QuickCreateLeagueForm({ organizations, defaultOrganizationId }: 
 							</div>
 						</dl>
 						<p className="text-xs text-ink-3 mb-5">
-							Después agregas tus equipos y registras jugadores.
+							Después crea tus equipos desde el módulo de Equipos, eligiendo esta liga.
 						</p>
 						{createLeague.isError && (
 							<p className="text-red-400 text-sm bg-red-950/40 px-3 py-2 rounded-lg mb-4">

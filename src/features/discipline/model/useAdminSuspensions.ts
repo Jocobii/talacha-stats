@@ -19,7 +19,7 @@ export type AdminSuspensionsData = {
 
 export function useAdminSuspensions(initialData: AdminSuspensionsData) {
 	return useQuery<AdminSuspensionsData>({
-		queryKey: queryKeys.adminSuspensions(),
+		queryKey: queryKeys.suspensions.admin(),
 		queryFn: async () => {
 			const res = await apiFetch<AdminSuspensionsData>(ADMIN_SUSPENSIONS_URL);
 			if (!res.ok) throw new Error(res.error);

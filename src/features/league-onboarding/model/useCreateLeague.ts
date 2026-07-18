@@ -11,7 +11,13 @@ import { useMutation } from "@tanstack/react-query";
 import { apiFetch } from "@/shared/api/client";
 import type { QuickCreateLeagueInput } from "./league-form-schema";
 
-export type CreatedLeague = { id: string; name: string; slug: string | null };
+export type CreatedLeague = {
+	id: string;
+	name: string;
+	slug: string | null;
+	dayOfWeek: string;
+	organizationId: string | null;
+};
 type CreateLeagueResponse = { league: CreatedLeague };
 
 export function useCreateLeague() {

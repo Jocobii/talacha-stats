@@ -5,6 +5,12 @@
  * simultáneamente (mismo día, distinta hora/cancha).
  */
 
+import type { players } from "@/db/schema";
+
+// Fila mínima del directorio público de jugadores (V1, GET /api/players, §7.4).
+// Inferida de la tabla — nunca duplicada a mano (§4.1).
+export type PlayerListItem = Pick<typeof players.$inferSelect, "id" | "fullName" | "alias">;
+
 // Stats de un jugador en UNA liga específica
 export type PlayerLeagueStats = {
 	leagueId: string;
@@ -207,6 +213,11 @@ export const LeagueMemberSchema = z.object({
 	// con assignNextCredential(). Nunca viene del cliente (no está en
 	// CreateLeagueMemberSchema). Ver docs/CREDENCIAL-CODIGO-JUGADOR.md.
 	credentialCode: z.number().int().min(1).nullable(),
+	// Qué pase (player_credentials) autoriza esta inscripción. Asignado por el
+	// server al registrar (§5) o al re-vincular en Nueva Temporada (§6). Nunca
+	// lo propone el cliente (no está en CreateLeagueMemberSchema).
+	// Ver docs/CREDENCIAL-PASE-JUGADOR.md.
+	credentialId: z.string().uuid().nullable(),
 	inscriptionDate: isoDate,
 	// Data siloing: estos campos son privados de la liga.
 	// Solo se incluyen en queries scoped a una liga — nunca cross-liga.

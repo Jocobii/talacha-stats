@@ -12,13 +12,18 @@ import { Card } from "@/shared/ui/Card";
 import { Avatar } from "@/shared/ui/Avatar";
 import { Badge } from "@/shared/ui/Badge";
 import { SectionLabel } from "@/shared/ui/SectionLabel";
+import type { PlayerCredentialScope } from "@/entities/player-credential";
 import { formatDateEs, getPlayerInitials } from "../lib/registration-utils";
 import { LeagueAssignmentFields } from "./LeagueAssignmentFields";
+import { CredentialStep, isCredentialChoicePending } from "./CredentialStep";
+import { useCredentialStatus } from "../model/useCredentialStatus";
 import type { GlobalPlayerData, AssignmentFieldsProps } from "../types";
 
 type Props = AssignmentFieldsProps & {
 	player: GlobalPlayerData;
 	curp: string;
+	credentialScope: PlayerCredentialScope | null;
+	onCredentialScopeChange: (scope: PlayerCredentialScope) => void;
 	onSubmit: (e: React.FormEvent) => void;
 	onReset: () => void;
 	submitting: boolean;
@@ -37,10 +42,18 @@ export function PlayerFoundCard({
 	onLeagueChange,
 	onTeamChange,
 	onDorsalChange,
+	credentialScope,
+	onCredentialScopeChange,
 	onSubmit,
 	onReset,
 	submitting,
 }: Props) {
+	const { data: credentialData, isLoading: credentialLoading } = useCredentialStatus(
+		leagueId,
+		player.id,
+	);
+	const choicePending = isCredentialChoicePending(leagueId, credentialData, credentialScope);
+
 	const leagueHistoryLabel =
 		player.previousLeaguesCount === 0
 			? "Primera vez"
@@ -104,6 +117,16 @@ export function PlayerFoundCard({
 							onTeamChange={onTeamChange}
 							onDorsalChange={onDorsalChange}
 						/>
+						{leagueId && (
+							<div className="mt-3">
+								<CredentialStep
+									data={credentialData}
+									isLoading={credentialLoading}
+									credentialScope={credentialScope}
+									onCredentialScopeChange={onCredentialScopeChange}
+								/>
+							</div>
+						)}
 					</div>
 				</div>
 
@@ -121,7 +144,8 @@ export function PlayerFoundCard({
 							size="md"
 							iconRight={ArrowRight}
 							type="submit"
-							disabled={submitting}
+							disabled={submitting || choicePending}
+							title={choicePending ? "Elige la modalidad de pase antes de continuar" : undefined}
 						>
 							{league ? `Registrar en ${league.name}` : "Registrar sin liga"}
 						</Button>

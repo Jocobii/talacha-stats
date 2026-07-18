@@ -1,5 +1,8 @@
 export const COCKPIT_DEBOUNCE_MS = 800;
 
+/** Mínimo de equipos registrados en la liga para poder generar una jornada. */
+export const MIN_TEAMS_FOR_MATCHDAY = 6;
+
 /** Config de sorteo de la liga (GET lee / PUT crea-actualiza). */
 export const SCHEDULING_CONFIG_URL = (leagueId: string): string =>
 	`/api/leagues/${leagueId}/scheduling-config`;

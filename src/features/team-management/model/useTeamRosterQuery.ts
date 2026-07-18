@@ -16,7 +16,7 @@ import type { RosterEntry } from "../types";
 
 export function useTeamRosterQuery(teamId: string, initialRoster: RosterEntry[]) {
 	return useQuery({
-		queryKey: queryKeys.teamRoster(teamId),
+		queryKey: queryKeys.teams.roster(teamId),
 		initialData: initialRoster,
 		queryFn: async (): Promise<RosterEntry[]> => {
 			const result = await apiFetch<RosterEntry[]>(TEAM_ROSTER_URL(teamId));

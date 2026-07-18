@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Trash2, Plus, Moon } from "lucide-react";
 import { TeamBadge } from "@/shared/ui";
+import { Stack, Inline, Center } from "@/shared/ui/layout";
 import type { TeamWithAttendance } from "../types";
 
 type DescansosTabProps = {
@@ -31,22 +32,13 @@ function AbsentCard({
 	onRemove: (id: string) => void;
 }) {
 	return (
-		<div
-			className="surface-card-2"
-			style={{ padding: 12, display: "flex", gap: 12, alignItems: "center" }}
-		>
-			<div
-				style={{
-					width: 30,
-					height: 30,
-					borderRadius: 6,
-					background: "rgba(251,191,36,0.12)",
-					display: "grid",
-					placeItems: "center",
-				}}
+		<Inline align="center" gap="md" className="surface-card-2 p-3">
+			<Center
+				className="h-[30px] w-[30px] rounded-md"
+				style={{ background: "rgba(251,191,36,0.12)" }}
 			>
 				<Moon size={14} color="var(--color-amber)" />
-			</div>
+			</Center>
 			<TeamBadge
 				teamId={team.id}
 				name={team.name}
@@ -54,22 +46,18 @@ function AbsentCard({
 				short={team.short}
 				size="sm"
 			/>
-			<div style={{ flex: 1 }}>
+			<div className="flex-1">
 				<div style={{ fontSize: 13, color: "var(--color-ink)" }}>{team.name}</div>
 				{team.restReason && (
-					<div style={{ fontSize: 11, color: "var(--color-ink-3)", marginTop: 2 }}>
+					<div className="mt-0.5" style={{ fontSize: 11, color: "var(--color-ink-3)" }}>
 						{team.restReason}
 					</div>
 				)}
 			</div>
-			<button
-				className="btn-ghost danger"
-				style={{ padding: "4px 7px" }}
-				onClick={() => onRemove(team.id)}
-			>
+			<button className="btn-ghost danger px-[7px] py-1" onClick={() => onRemove(team.id)}>
 				<Trash2 size={11} />
 			</button>
-		</div>
+		</Inline>
 	);
 }
 
@@ -111,20 +99,12 @@ export function DescansosTab({
 	}
 
 	return (
-		<div style={{ padding: "18px 20px" }}>
-			<div
-				style={{
-					display: "flex",
-					alignItems: "flex-start",
-					justifyContent: "space-between",
-					gap: 12,
-					marginBottom: 14,
-				}}
-			>
+		<div className="px-5 py-[18px]">
+			<Inline align="start" justify="between" gap="md" className="mb-3.5">
 				<div>
 					<h3
+						className="m-0"
 						style={{
-							margin: 0,
 							fontFamily: "var(--font-display)",
 							fontWeight: 800,
 							fontSize: 16,
@@ -133,30 +113,21 @@ export function DescansosTab({
 					>
 						Descansos solicitados
 					</h3>
-					<div style={{ fontSize: 12, color: "var(--color-ink-3)", marginTop: 4 }}>
+					<div className="mt-1" style={{ fontSize: 12, color: "var(--color-ink-3)" }}>
 						Equipos que no jugaran esta jornada.
 					</div>
 				</div>
 				<button
-					className="btn-ghost"
-					style={{ padding: "6px 10px", fontSize: 12 }}
+					className="btn-ghost px-2.5 py-1.5"
+					style={{ fontSize: 12 }}
 					onClick={() => setShowForm((v) => !v)}
 				>
 					<Plus size={11} /> Nuevo
 				</button>
-			</div>
+			</Inline>
 
 			{showForm && (
-				<div
-					className="surface-card-2"
-					style={{
-						padding: 12,
-						marginBottom: 12,
-						display: "flex",
-						flexDirection: "column",
-						gap: 10,
-					}}
-				>
+				<Stack gap="sm" className="surface-card-2 mb-3 p-3">
 					<select style={inputStyle} value={teamId} onChange={(e) => setTeamId(e.target.value)}>
 						<option value="">Seleccionar equipo...</option>
 						{present.map((t) => (
@@ -172,34 +143,27 @@ export function DescansosTab({
 						value={reason}
 						onChange={(e) => setReason(e.target.value)}
 					/>
-					<div style={{ display: "flex", gap: 8 }}>
+					<Inline gap="sm">
 						<button className="btn-primary" onClick={handleAdd} disabled={!teamId || submitting}>
 							Agregar
 						</button>
 						<button className="btn-ghost" onClick={() => setShowForm(false)}>
 							Cancelar
 						</button>
-					</div>
-				</div>
+					</Inline>
+				</Stack>
 			)}
 
 			{absent.length === 0 ? (
-				<div
-					style={{
-						color: "var(--color-ink-3)",
-						fontSize: 13,
-						textAlign: "center",
-						padding: "24px 0",
-					}}
-				>
+				<div className="py-6 text-center" style={{ color: "var(--color-ink-3)", fontSize: 13 }}>
 					No hay descansos para esta jornada.
 				</div>
 			) : (
-				<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+				<Stack gap="sm">
 					{absent.map((t) => (
 						<AbsentCard key={t.id} team={t} onRemove={(id) => patch(id, "presente")} />
 					))}
-				</div>
+				</Stack>
 			)}
 		</div>
 	);

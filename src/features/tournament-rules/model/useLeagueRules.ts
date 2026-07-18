@@ -18,7 +18,7 @@ import type { RulesFormView } from "../types";
 
 export function useLeagueRules(leagueId: string, initialView: RulesFormView) {
 	return useQuery<RulesFormView>({
-		queryKey: queryKeys.leagueConfig(leagueId),
+		queryKey: queryKeys.leagues.config(leagueId),
 		initialData: initialView,
 		queryFn: async () => {
 			const res = await apiFetch<LeagueConfigDto>(LEAGUE_CONFIG_URL(leagueId));

@@ -16,7 +16,7 @@ export function useOrganizationSchedulingConfig(
 	initialData: OrganizationSchedulingConfigDto,
 ) {
 	return useQuery<OrganizationSchedulingConfigDto>({
-		queryKey: queryKeys.organizationSchedulingConfig(organizationId),
+		queryKey: queryKeys.organizations.schedulingConfig(organizationId),
 		initialData,
 		queryFn: async () => {
 			const res = await apiFetch<OrganizationSchedulingConfigDto>(

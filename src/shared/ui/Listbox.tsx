@@ -118,7 +118,7 @@ export function Listbox({
 						role="listbox"
 						aria-activedescendant={`${listId}-${activeIndex}`}
 						style={{ top: rect.top, left: rect.left, minWidth: rect.minWidth }}
-						className="fixed z-30 w-max max-w-[280px] max-h-64 overflow-auto bg-surface border border-line rounded-md shadow-xl shadow-black/40 p-1.5"
+						className="fixed z-[100] w-max max-w-[280px] max-h-64 overflow-auto bg-surface border border-line rounded-md shadow-xl shadow-black/40 p-1.5"
 					>
 						{allOptions.map((o, i) => {
 							const isSelected = o.value === value;

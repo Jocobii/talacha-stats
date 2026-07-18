@@ -12,12 +12,13 @@
 import { useQuery } from "@tanstack/react-query";
 import type { DisciplinePlayerSearchResult } from "@/entities/suspension";
 import { apiFetch } from "@/shared/api/client";
+import { queryKeys } from "@/shared/api/query-keys";
 import { DISCIPLINE_PLAYER_SEARCH_URL } from "../constants";
 
 export function usePlayerSearchForDiscipline(q: string) {
 	const query = q.trim();
 	return useQuery<DisciplinePlayerSearchResult[]>({
-		queryKey: ["discipline-player-search", query] as const,
+		queryKey: queryKeys.players.searchDiscipline(query),
 		enabled: query.length >= 2,
 		staleTime: 30_000,
 		queryFn: async () => {

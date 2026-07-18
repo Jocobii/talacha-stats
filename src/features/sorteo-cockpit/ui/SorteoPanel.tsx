@@ -4,6 +4,9 @@ import { useState } from "react";
 import { Plus, Loader2, RotateCcw, Check, AlertCircle } from "lucide-react";
 import { PairingRow } from "./PairingRow";
 import { AddPairingModal } from "./AddPairingModal";
+import { ShuffleOverlay } from "./ShuffleOverlay";
+import { ConfettiBurst } from "./ConfettiBurst";
+import { useSorteoRevealEffects } from "../model/useSorteoRevealEffects";
 import type {
 	CockpitPairing,
 	VenueOption,
@@ -78,7 +81,7 @@ function EmptyState({ onSortear, disabled }: { onSortear: () => void; disabled: 
 			}}
 		>
 			<div style={{ fontSize: 14, color: "var(--color-ink-3)" }}>No hay partidos generados aun</div>
-			<button className="btn-primary" onClick={onSortear} disabled={disabled}>
+			<button className="btn-primary pulse-cta" onClick={onSortear} disabled={disabled}>
 				Sortear Jornada
 			</button>
 		</div>
@@ -105,12 +108,37 @@ export function SorteoPanel({
 }: SorteoPanelProps) {
 	const [addModalOpen, setAddModalOpen] = useState(false);
 	const fixedSlotCount = presentTeams.filter((t) => t.purchasedSlot !== null).length;
+	const { justRevealed, flashOn, confettiPieces, confettiBurstId } = useSorteoRevealEffects(
+		loading,
+		pairings.length,
+	);
+	const shuffleTotal = Math.max(1, Math.floor(presentTeams.length / 2));
 	return (
 		<>
 			<section
 				className="surface-card"
-				style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }}
+				style={{
+					position: "relative",
+					display: "flex",
+					flexDirection: "column",
+					minHeight: 0,
+					height: "100%",
+					overflow: "hidden",
+				}}
 			>
+				{flashOn && (
+					<div
+						className="animate-sorteo-flash"
+						style={{
+							position: "absolute",
+							inset: 0,
+							pointerEvents: "none",
+							background: "rgba(0,230,118,0.16)",
+							zIndex: 5,
+						}}
+					/>
+				)}
+				<ConfettiBurst pieces={confettiPieces} burstId={confettiBurstId} />
 				<div
 					style={{
 						padding: "14px 16px",
@@ -210,17 +238,7 @@ export function SorteoPanel({
 
 				<div style={{ flex: 1, overflow: "auto" }}>
 					{loading ? (
-						<div
-							style={{
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-								padding: 40,
-								color: "var(--color-brand)",
-							}}
-						>
-							<Loader2 size={24} />
-						</div>
+						<ShuffleOverlay total={shuffleTotal} />
 					) : !config ? (
 						<ConfigSetupCard onOpenSettings={onOpenSettings} />
 					) : pairings.length === 0 ? (
@@ -254,6 +272,8 @@ export function SorteoPanel({
 										onVenueChange={onVenueChange}
 										onTimeChange={onTimeChange}
 										disabled={disabled}
+										revealing={justRevealed}
+										revealDelayMs={idx * 70}
 									/>
 								))}
 							</tbody>

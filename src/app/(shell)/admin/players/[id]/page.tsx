@@ -20,8 +20,12 @@ import type {
 	PlayerGlobalProfile,
 	GlobalPlayerLeagueMember,
 } from "@/entities/player";
+import { db } from "@/db";
+import { listCredentialsForPlayer } from "@/entities/player-credential/queries";
+import { getOrganizationCredentialConfig } from "@/features/organization-credential-config/config";
+import type { OrganizationCredentialConfigDto } from "@/entities/organization-credential-config";
 import { getSessionUser } from "@/shared/lib/auth";
-import { LeagueMemberEditor } from "@/shared/ui/LeagueMemberEditor";
+import { CredentialProfileSection } from "./CredentialProfileSection";
 
 // ── Página principal ──────────────────────────────────────────────
 
@@ -35,16 +39,58 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 
 	// 1. Datos V1 (stats) — pueden no existir si el jugador es solo V2
 	// 2. Datos V2 — global_player básico + league_members editables
-	const [v1Profile, v2Basic, v2Members] = await Promise.all([
+	const [v1Profile, v2Basic, v2Members, rawCredentials] = await Promise.all([
 		getPlayerProfile(id).catch(() => null),
 		getGlobalPlayerBasic(id),
 		canEdit
 			? getGlobalPlayerLeagueMembers(id, isOwner ? undefined : (user.organizationId ?? undefined))
 			: Promise.resolve([] as GlobalPlayerLeagueMember[]),
+		listCredentialsForPlayer(db, id),
 	]);
 
 	// Si no existe en ningún sistema → 404
 	if (!v1Profile && !v2Basic) notFound();
+
+	// Credenciales (pantalla D) — data siloing: owner ve todas las orgs, un
+	// organizer solo las suyas (mismo criterio que GET /api/players/[id]/credentials).
+	const visibleCredentials = isOwner
+		? rawCredentials
+		: rawCredentials.filter((c) => c.organizationId === user.organizationId);
+
+	const credentialGroups = Array.from(
+		visibleCredentials
+			.reduce((map, c) => {
+				const group = map.get(c.organizationId) ?? {
+					organizationId: c.organizationId,
+					organizationName: c.organizationName,
+					credentials: [] as typeof visibleCredentials,
+				};
+				group.credentials.push(c);
+				map.set(c.organizationId, group);
+				return map;
+			}, new Map<string, { organizationId: string; organizationName: string; credentials: typeof visibleCredentials }>())
+			.values(),
+	);
+
+	// Liga usada para emitir/renovar por organización — el pase se emite desde
+	// el contexto de una liga; cualquiera de esa org sirve para derivar
+	// organization_id (ver IssueCredentialModal). Solo resoluble para
+	// organizaciones donde el usuario puede editar (v2Members ya viene scoped).
+	const leagueIdByOrg: Record<string, string | undefined> = {};
+	for (const m of v2Members) leagueIdByOrg[m.organizationId] ??= m.leagueId;
+
+	const orgConfigEntries = canEdit
+		? await Promise.all(
+				credentialGroups
+					.filter((g) => leagueIdByOrg[g.organizationId])
+					.map(
+						async (g) =>
+							[g.organizationId, await getOrganizationCredentialConfig(g.organizationId)] as const,
+					),
+			)
+		: [];
+	const orgConfigByOrg: Record<string, OrganizationCredentialConfigDto | undefined> =
+		Object.fromEntries(orgConfigEntries);
 
 	// Nombre y datos básicos: V1 tiene más datos (alias, phone), V2 tiene birthDate
 	const fullName = v1Profile?.fullName ?? v2Basic?.fullName ?? "Jugador";
@@ -143,25 +189,8 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 			)}
 
 			{/* ── Equipos actuales ───────────────────────────────────────────── */}
-			{v2Members.some((m) => m.teamId) && <PlayerTeamsBar members={v2Members} />}
-
-			{/* ── Membresías V2 editables (solo si el usuario puede editar) ────── */}
-			{canEdit && v2Members.length > 0 && (
-				<section>
-					<h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wider mb-3">
-						Inscripciones en tu organización ({v2Members.length})
-					</h2>
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-						{v2Members.map((member) => (
-							<MembershipCard
-								key={member.memberId}
-								member={member}
-								globalPlayerId={id}
-								canEdit={canEdit}
-							/>
-						))}
-					</div>
-				</section>
+			{v2Members.some((m) => m.teamId && m.leagueStatus === "active") && (
+				<PlayerTeamsBar members={v2Members} />
 			)}
 
 			{/* ── Ligas V1 (stats históricas) ────────────────────────────────── */}
@@ -182,6 +211,18 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 						))}
 					</div>
 				</section>
+			)}
+
+			{/* ── Credenciales (pantalla D) ──────────────────────────────────── */}
+			{credentialGroups.length > 0 && (
+				<CredentialProfileSection
+					globalPlayerId={id}
+					playerName={fullName}
+					groups={credentialGroups}
+					canEdit={canEdit}
+					leagueIdByOrg={leagueIdByOrg}
+					orgConfigByOrg={orgConfigByOrg}
+				/>
 			)}
 		</div>
 	);
@@ -215,7 +256,10 @@ function GlobalStatsBar({ global: g }: { global: PlayerGlobalProfile }) {
 // ── Equipos actuales ───────────────────────────────────────────────────
 
 function PlayerTeamsBar({ members }: { members: GlobalPlayerLeagueMember[] }) {
-	const withTeam = members.filter((m) => m.teamId);
+	// Solo ligas activas cuentan como "actuales" — tras Nueva Temporada, el
+	// jugador queda con membresía también en la liga vieja (finished) y ahí
+	// se duplicaría el mismo equipo si no se filtra.
+	const withTeam = members.filter((m) => m.teamId && m.leagueStatus === "active");
 
 	return (
 		<div className="bg-surface rounded-xl shadow p-5">
@@ -240,55 +284,6 @@ function PlayerTeamsBar({ members }: { members: GlobalPlayerLeagueMember[] }) {
 		</div>
 	);
 }
-
-// ── Tarjeta de membresía V2 editable ────────────────────────────────────────
-
-function MembershipCard({
-	member,
-	globalPlayerId,
-	canEdit,
-}: {
-	member: GlobalPlayerLeagueMember;
-	globalPlayerId: string;
-	canEdit: boolean;
-}) {
-	const statusColor: Record<string, string> = {
-		active: "border-brand",
-		suspended: "border-yellow-500",
-		inactive: "border-line",
-	};
-
-	return (
-		<div
-			className={`bg-surface rounded-xl shadow border-t-4 ${statusColor[member.status] ?? "border-line"} p-5 space-y-3`}
-		>
-			<div className="flex items-start justify-between gap-2">
-				<div>
-					<p className="font-bold text-ink text-base leading-tight">{member.leagueName}</p>
-					{member.teamName && (
-						<p className="text-sm text-ink-2 mt-1 font-medium">{member.teamName}</p>
-					)}
-					<p className="text-xs text-ink-3 mt-0.5">
-						Inscrito:{" "}
-						{new Date(member.inscriptionDate).toLocaleDateString("es-MX", {
-							year: "numeric",
-							month: "short",
-							day: "numeric",
-						})}
-					</p>
-				</div>
-				{member.dorsal != null && (
-					<span className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-brand/15 text-brand-ink font-black text-sm">
-						{member.dorsal}
-					</span>
-				)}
-			</div>
-
-			{canEdit && <LeagueMemberEditor globalPlayerId={globalPlayerId} member={member} />}
-		</div>
-	);
-}
-
 // ── Tarjeta de liga V1 (stats históricas + editor si hay membresía V2) ───────
 
 function LeagueStatsCard({
@@ -373,11 +368,6 @@ function LeagueStatsCard({
 						</span>
 					)}
 				</div>
-			)}
-
-			{/* Editor de inscripción V2 — solo si hay membresía cruzada */}
-			{canEdit && v2Member && (
-				<LeagueMemberEditor globalPlayerId={globalPlayerId} member={v2Member} />
 			)}
 		</div>
 	);

@@ -17,7 +17,7 @@ import type { ConfirmedMatchup } from "../types";
 
 export function useNarratorAnalysisQuery(matchup: ConfirmedMatchup | null) {
 	return useQuery({
-		queryKey: queryKeys.narratorAnalysis(
+		queryKey: queryKeys.narrator.analysis(
 			matchup?.leagueId ?? "",
 			matchup?.teamA ?? "",
 			matchup?.teamB ?? "",

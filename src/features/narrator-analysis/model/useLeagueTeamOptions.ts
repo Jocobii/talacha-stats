@@ -22,7 +22,7 @@ import type { TeamOption } from "../types";
 
 export function useLeagueTeamOptions(leagueId: string) {
 	return useQuery({
-		queryKey: queryKeys.narratorTeams(leagueId),
+		queryKey: queryKeys.narrator.teams(leagueId),
 		enabled: leagueId.length > 0,
 		queryFn: async (): Promise<TeamOption[]> => {
 			const result = await apiFetch<Team[]>(NARRATOR_TEAMS_URL(leagueId));

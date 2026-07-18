@@ -101,7 +101,11 @@ function ResultRow({
 					<span className="block text-[14px] font-medium text-ink truncate">{player.fullName}</span>
 					<span className="block text-[11px] text-ink-3">{player.birthDate}</span>
 				</span>
-				{disabled && <span className="text-[11px] text-ink-3 shrink-0">Ya en un equipo</span>}
+				{disabled && (
+					<span className="text-[11px] text-ink-3 shrink-0">
+						Ya se encuentra en un equipo de esta liga
+					</span>
+				)}
 				{!disabled && player.hasAnyLeagueMembership && (
 					<span className="text-[11px] text-ink-3 shrink-0">Ya jugó en otra liga</span>
 				)}

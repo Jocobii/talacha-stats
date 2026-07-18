@@ -2,6 +2,7 @@ import { db, players, leagues, playerRegistrations, organizations } from "@/db";
 import { ilike, or, desc, count, and, inArray, isNull } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import { CreatePlayerSchema, apiSuccess, apiSuccessPaginated, apiError } from "@/types";
+import type { PlayerListItem } from "@/entities/player";
 import { parsePaginationParams, buildMeta, toOffset } from "@/shared/lib/pagination";
 import { getRequestCity } from "@/shared/lib/active-city";
 import { getSessionUserFromRequest } from "@/shared/lib/auth";
@@ -64,6 +65,7 @@ export async function GET(request: Request) {
 		db.select({ count: count() }).from(players).where(where),
 		db.query.players.findMany({
 			where,
+			columns: { id: true, fullName: true, alias: true },
 			orderBy: [desc(players.createdAt)],
 			limit: params.limit,
 			offset: toOffset(params),
@@ -71,7 +73,7 @@ export async function GET(request: Request) {
 	]);
 
 	const meta = buildMeta(totalRow[0].count, params);
-	return apiSuccessPaginated(rows, meta);
+	return apiSuccessPaginated<PlayerListItem>(rows, meta);
 }
 
 // POST /api/players

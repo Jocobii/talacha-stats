@@ -180,6 +180,18 @@ export const globalPlayers = pgTable(
 		birthDate: date("birth_date").notNull(),
 		gender: text("gender").$type<Gender | null>(),
 		avatarUrl: text("avatar_url"),
+		// Organización que dio de alta al jugador (Camino E — registro sin liga,
+		// ver features/admin-registration/register.ts). Sin esto, un jugador
+		// registrado sin liga no tiene ningún vínculo con ninguna organización
+		// (global_players no se relaciona con leagues salvo vía league_members) y
+		// quedaba invisible en /admin/players para siempre. Solo se usa como
+		// fallback quando el jugador no tiene league_members — ver listOrgPlayers.
+		// set null al borrar la organización: el jugador global sigue existiendo
+		// (es identidad de plataforma, §14 AGENTS.md).
+		registeredByOrganizationId: uuid("registered_by_organization_id").references(
+			() => organizations.id,
+			{ onDelete: "set null" },
+		),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
@@ -410,6 +422,12 @@ export const leagueMembers = pgTable(
 		// backfill (ver docs/CREDENCIAL-CODIGO-JUGADOR.md). Se genera en el server
 		// con assignNextCredential(); nunca lo propone el cliente. Inmutable.
 		credentialCode: integer("credential_code"),
+		// Qué pase (player_credentials) autoriza esta inscripción a la liga.
+		// Nullable durante migración y para inscripciones sin pago aún
+		// (pendiente de credencial). Ver docs/CREDENCIAL-PASE-JUGADOR.md.
+		credentialId: uuid("credential_id").references((): AnyPgColumn => playerCredentials.id, {
+			onDelete: "set null",
+		}),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
@@ -417,6 +435,7 @@ export const leagueMembers = pgTable(
 		unique("uq_league_member_credential").on(t.leagueId, t.credentialCode),
 		index("league_members_global_player_idx").on(t.globalPlayerId),
 		index("league_members_league_idx").on(t.leagueId),
+		index("league_members_credential_idx").on(t.credentialId),
 		check("chk_league_member_status", drizzleSql`${t.status} IN ('active','suspended','inactive')`),
 		check(
 			"chk_dorsal_range",
@@ -431,6 +450,73 @@ export const leagueMembers = pgTable(
 
 export type LeagueMember = typeof leagueMembers.$inferSelect;
 export type NewLeagueMember = typeof leagueMembers.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// PLAYER_CREDENTIALS — El pase: derecho a jugar (vigencia + alcance)
+//
+// No confundir con league_members.credential_code (etiqueta de asistencia).
+// El pase vive colgado de global_players (identidad), no de la liga: un mismo
+// jugador acumula pases a través del tiempo y entre organizaciones.
+//
+// scope = 'single_league' → cubre una sola liga mientras esté `active`
+//   (leagues.status). No requiere valid_from/valid_until.
+// scope = 'organization'  → cubre todas las ligas de la org durante un año
+//   (valid_from → valid_until). leagueId es null.
+//
+// Ver docs/CREDENCIAL-PASE-JUGADOR.md para el diseño completo.
+// ---------------------------------------------------------------------------
+export const PLAYER_CREDENTIAL_SCOPES = ["single_league", "organization"] as const;
+export type PlayerCredentialScope = (typeof PLAYER_CREDENTIAL_SCOPES)[number];
+
+export const PLAYER_CREDENTIAL_STATUSES = ["active", "expired", "suspended", "cancelled"] as const;
+export type PlayerCredentialStatus = (typeof PLAYER_CREDENTIAL_STATUSES)[number];
+
+export const playerCredentials = pgTable(
+	"player_credentials",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		globalPlayerId: uuid("global_player_id")
+			.notNull()
+			.references(() => globalPlayers.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		scope: text("scope").notNull().$type<PlayerCredentialScope>(),
+		// Solo set cuando scope = 'single_league'. Null para el pase de organización.
+		leagueId: uuid("league_id").references(() => leagues.id, { onDelete: "cascade" }),
+		status: text("status").notNull().default("active").$type<PlayerCredentialStatus>(),
+		validFrom: date("valid_from"), // requerido para 'organization'
+		validUntil: date("valid_until"), // requerido para 'organization' (validFrom + 1 año)
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		index("player_credentials_global_player_idx").on(t.globalPlayerId),
+		index("player_credentials_org_idx").on(t.organizationId),
+		index("player_credentials_league_idx").on(t.leagueId),
+		// Coherencia scope ↔ campos: desechable exige league_id; anual exige
+		// org sin league_id y con vigencia completa.
+		check(
+			"chk_credential_scope_shape",
+			drizzleSql`(
+				(${t.scope} = 'single_league' AND ${t.leagueId} IS NOT NULL)
+				OR
+				(${t.scope} = 'organization'  AND ${t.leagueId} IS NULL
+				 AND ${t.validFrom} IS NOT NULL AND ${t.validUntil} IS NOT NULL)
+			)`,
+		),
+		check(
+			"chk_credential_status",
+			drizzleSql`${t.status} IN ('active','expired','suspended','cancelled')`,
+		),
+		check("chk_credential_scope_value", drizzleSql`${t.scope} IN ('single_league','organization')`),
+		// Un solo pase de organización vigente por (jugador, org) — ver índice
+		// parcial uq_org_credential_active en la migración SQL (Drizzle no
+		// expresa nativo un UNIQUE INDEX ... WHERE).
+	],
+);
+
+export type PlayerCredential = typeof playerCredentials.$inferSelect;
+export type NewPlayerCredential = typeof playerCredentials.$inferInsert;
 
 // ---------------------------------------------------------------------------
 // INSCRIPTIONS — Asignación de un league_member a un equipo (Breaking Change)
@@ -607,9 +693,14 @@ export type NewMatchPlayerStat = typeof matchPlayerStats.$inferInsert;
 // ---------------------------------------------------------------------------
 // RELATIONS (para queries con Drizzle relational API)
 // ---------------------------------------------------------------------------
-export const globalPlayersRelations = relations(globalPlayers, ({ many }) => ({
+export const globalPlayersRelations = relations(globalPlayers, ({ one, many }) => ({
 	leagueMembers: many(leagueMembers),
 	suspensions: many(suspensions),
+	credentials: many(playerCredentials),
+	registeredByOrganization: one(organizations, {
+		fields: [globalPlayers.registeredByOrganizationId],
+		references: [organizations.id],
+	}),
 }));
 
 export const leagueMembersRelations = relations(leagueMembers, ({ one, many }) => ({
@@ -621,7 +712,27 @@ export const leagueMembersRelations = relations(leagueMembers, ({ one, many }) =
 		fields: [leagueMembers.leagueId],
 		references: [leagues.id],
 	}),
+	credential: one(playerCredentials, {
+		fields: [leagueMembers.credentialId],
+		references: [playerCredentials.id],
+	}),
 	inscription: many(inscriptions),
+}));
+
+export const playerCredentialsRelations = relations(playerCredentials, ({ one, many }) => ({
+	globalPlayer: one(globalPlayers, {
+		fields: [playerCredentials.globalPlayerId],
+		references: [globalPlayers.id],
+	}),
+	organization: one(organizations, {
+		fields: [playerCredentials.organizationId],
+		references: [organizations.id],
+	}),
+	league: one(leagues, {
+		fields: [playerCredentials.leagueId],
+		references: [leagues.id],
+	}),
+	leagueMembers: many(leagueMembers),
 }));
 
 export const inscriptionsRelations = relations(inscriptions, ({ one }) => ({
@@ -1318,6 +1429,50 @@ export const organizationSchedulingConfigRelations = relations(
 	({ one }) => ({
 		organization: one(organizations, {
 			fields: [organizationSchedulingConfig.organizationId],
+			references: [organizations.id],
+		}),
+	}),
+);
+
+// ---------------------------------------------------------------------------
+// ORGANIZATION_CREDENTIAL_CONFIG — Qué modalidades de pase emite esta org
+// (docs/CREDENCIAL-PASE-JUGADOR.md). Config singleton por organización, mismo
+// patrón que organization_config / organization_scheduling_config.
+//
+// Si ambas están en true, el cliente debe elegir explícitamente el scope al
+// emitir un pase (la UI muestra un modal); si solo una está en true, el
+// server la infiere sin preguntar. Al menos una debe estar habilitada.
+//
+// Default de fábrica: solo el anual (organization) habilitado — el
+// organizador activa "por liga" explícitamente si lo necesita (decisión de
+// diseño, docs/CREDENCIAL-PASE-JUGADOR.md).
+// ---------------------------------------------------------------------------
+export const organizationCredentialConfig = pgTable(
+	"organization_credential_config",
+	{
+		organizationId: uuid("organization_id")
+			.primaryKey()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		allowSingleLeaguePass: boolean("allow_single_league_pass").notNull().default(false),
+		allowOrganizationPass: boolean("allow_organization_pass").notNull().default(true),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		check(
+			"chk_credential_config_at_least_one",
+			drizzleSql`${t.allowSingleLeaguePass} OR ${t.allowOrganizationPass}`,
+		),
+	],
+);
+
+export type OrganizationCredentialConfig = typeof organizationCredentialConfig.$inferSelect;
+export type NewOrganizationCredentialConfig = typeof organizationCredentialConfig.$inferInsert;
+
+export const organizationCredentialConfigRelations = relations(
+	organizationCredentialConfig,
+	({ one }) => ({
+		organization: one(organizations, {
+			fields: [organizationCredentialConfig.organizationId],
 			references: [organizations.id],
 		}),
 	}),
