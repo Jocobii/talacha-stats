@@ -33,6 +33,7 @@
 		"db:simulate": "npx tsx src/db/simulate.ts",
 		"db:simulate:xl": "npx tsx src/db/simulate.ts --tier XL",
 		"db:measure": "npx tsx src/db/simulator/measure-queries.ts",
+		"db:dedupe:player-season-stats": "npx tsx src/db/dedupe-player-season-stats.ts",
 		"db:smoke": "npx tsx src/db/simulator/smoke-ttfb.ts",
 		"prepare": "husky",
 		"audit:strict": "pnpm audit --audit-level=high",

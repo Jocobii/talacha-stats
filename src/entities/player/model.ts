@@ -5,11 +5,14 @@
  * simultáneamente (mismo día, distinta hora/cancha).
  */
 
-import type { players } from "@/db/schema";
+import type { globalPlayers } from "@/db/schema";
 
-// Fila mínima del directorio público de jugadores (V1, GET /api/players, §7.4).
+// Fila mínima del directorio público de jugadores (GET /api/players, §7.4).
+// Migrado a V2 (global_players + league_members) — ver searchDirectoryPlayers
+// en queries.ts. `global_players` no tiene columna `alias` (apodo, solo
+// existía en la tabla V1 `players`), por eso ya no aparece aquí.
 // Inferida de la tabla — nunca duplicada a mano (§4.1).
-export type PlayerListItem = Pick<typeof players.$inferSelect, "id" | "fullName" | "alias">;
+export type PlayerListItem = Pick<typeof globalPlayers.$inferSelect, "id" | "fullName">;
 
 // Stats de un jugador en UNA liga específica
 export type PlayerLeagueStats = {
@@ -28,7 +31,7 @@ export type PlayerLeagueStats = {
 	mvpCount: number;
 	matchesPlayed: number;
 	goalsPerMatch: number; // métrica principal de rendimiento
-	source: "season_stats" | "match_events"; // de dónde vienen los datos
+	source: "season_stats" | "live_match_stats"; // Excel histórico vs. cálculo en vivo desde la cédula (§live-stats.ts)
 	leagueStatus: "active" | "finished"; // activa o terminada (explícito o por sucesor)
 };
 
@@ -81,7 +84,11 @@ export type PlayerEgoStats = {
 	badges: PlayerBadge[];
 };
 
-// Perfil completo del jugador
+// Perfil completo del jugador (getPlayerProfile, keyed por global_players.id).
+// `alias`/`phone` quedan siempre en null: global_players no tiene columna de
+// apodo (solo existía en la tabla V1 `players`) y `phone` vive en
+// league_members como dato privado por liga (§14 AGENTS.md) — no corresponde
+// exponerlo en un perfil público aunque existiera.
 export type PlayerView = {
 	id: string;
 	fullName: string;

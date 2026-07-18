@@ -11,6 +11,5 @@ export function mapPlayerListItemToDirectoryView(item: PlayerListItem): PlayerDi
 	return {
 		id: item.id,
 		displayName: item.fullName,
-		alias: item.alias,
 	};
 }

@@ -26,13 +26,16 @@
 			"standings": "Tabla",
 			"scorers": "Goleadores",
 			"matchday": "Jornada",
-			"playoffs": "Fase Final"
-		}
+			"playoffs": "Fase Final",
+			"suspended": "Sancionados"
+		},
+		"emptySuspensions": "No hay jugadores sancionados actualmente."
 	},
 	"matchdayView": {
 		"empty": "Aún no hay jornadas publicadas para esta liga.",
 		"noMatches": "No hay partidos programados para esta jornada.",
 		"updated": "Sorteo actualizado ·",
+		"playoffPhase": "Fase Final",
 		"timeAgo": {
 			"lessThanHour": "hace menos de 1 hora",
 			"oneHour": "hace 1 hora",
@@ -52,7 +55,10 @@
 		}
 	},
 	"scorer": {
-		"goals": "goles"
+		"goals": "goles",
+		"searchPlaceholder": "Buscar jugador...",
+		"noResults": "No encontramos a ese jugador entre los goleadores.",
+		"searchHint": "Mostrando el top 10 de {total} goleadores — busca tu nombre para verte en la lista completa."
 	},
 	"trialWarning": "<strong>{name}</strong> esta en <badge>modo trial</badge> — los datos no aparecen en los rankings publicos todavia."
 }

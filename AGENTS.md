@@ -110,6 +110,30 @@ Inventario de las features que existen hoy en `src/features/`. Cada una vive com
 
 ---
 
+## 1.7 Stats de jugador — fuente combinada (Excel vs. en vivo)
+
+**Hallazgo (julio 2026):** `player_season_stats` (V1, Excel) solo lo escriben el importador (eliminado, §1.6) y el simulador de pruebas. `match_events` tampoco lo escribe nadie en producción (solo el simulador). La cédula real (`match-resolution`) guarda todo en `match_player_stats`. Antes de este fix, cualquier liga corrida 100% en-app (sorteo + cédula, sin Excel) se veía **vacía para siempre** en ranking, top scorers, héroe de jornada y perfil de jugador — el dato estaba en `match_player_stats` pero nada lo leía ahí.
+
+**Fuente combinada** — `entities/player/live-stats.ts` (`getMergedLeagueStatsRows`, `getLivePlayerMatchGoals`): por cada liga, usa `player_season_stats` si tiene import de Excel, o lo calcula en vivo desde `match_player_stats` (vía `inscriptions → league_members → global_players`) si no. Nunca mezcla ambas fuentes para la misma liga (evita duplicar goles). Mismo patrón "Prioridad 1 / Prioridad 2" que ya existía para standings de equipo (`src/lib/standings.ts`).
+
+**Migrado a esta fuente combinada:**
+
+- `entities/player/ranking.ts` — `getCityRanking`, `getLeagueRanking`, `getGlobalRanking`, `getPlayerPositions`.
+- `entities/player/queries.ts` — `getPlayerProfile` y `getPlayerEgoStats` (racha, hat-tricks, `teamGoalShares`, badges). **`getPlayerProfile` ahora recibe un `global_players.id`** (antes buscaba en la tabla V1 `players`, un espacio de ids distinto del que usan los links de `/player/[id]` en todo el sitio — cualquier jugador V2 daba 404).
+- `GET /api/players` (directorio público `/players`) — lee `global_players`/`league_members` en vez de `players`/`player_registrations`.
+
+**Limitaciones honestas que quedan:**
+
+- **MVP siempre es 0.** La cédula no captura MVP (`match_player_stats` no tiene esa columna). Solo `match_events` lo tenía, y nadie lo escribe en producción.
+- **Racha/hat-tricks en ligas sin scheduling:** se calculan por partido (`match_player_stats`), no por jornada, si la liga no tiene `matches.matchdayId` asignado (scheduling es opt-in, §16). La racha entonces se basa en orden de `resolvedAt`, no en jornada — aproximación razonable, no exacta.
+- **`getJornadaHonor`** (héroe de jornada, usado en `/matchday` y homepage) **sigue 100% en `player_season_stats`** — no se migró en este pase. Para una liga sin Excel, el héroe de jornada sale vacío aunque el ranking y el perfil ya funcionen.
+- **`listTopScorers` / `getPlayerGlobalStats`** leen la vista SQL `player_global_stats` (`src/db/views.sql`), que a su vez lee `match_events`/`players`/`player_registrations` — 100% V1, no tocado. Migrar esto requiere una migración de la vista SQL (no solo cambios de código TypeScript), con el mismo cuidado de §15.
+- **Deltas de posición en ranking** (`positionDelta`, "subió/bajó N lugares") solo funcionan para ligas con snapshot de Excel (`player_season_stats_snapshot`, por jornada). Ligas 100% en vivo siempre muestran a sus jugadores como `isNew`.
+
+Antes de tocar cualquiera de estos pendientes, lee `entities/player/live-stats.ts` completo — documenta el razonamiento con detalle.
+
+---
+
 ## 2. Stack — versiones exactas
 
 No asumas versiones de tus datos de entrenamiento. Las versiones reales son:
@@ -701,6 +725,8 @@ export async function registerPlayer(data: RegistrationInput) {
 ### Data siloing
 
 `internal_notes` e `institution_photo_url` de `league_members` son privados por liga. Nunca exponerlos en queries que devuelvan datos de múltiples ligas. Esto se enforza en el código de queries, no en el schema.
+
+**`global_players` es identidad de plataforma — no es lo mismo que "visible cross-org".** Que un jugador tenga una sola identidad global (CURP) en toda la plataforma NO significa que cualquier organización pueda buscarlo, verlo o agregarlo a un equipo. Cada organización solo puede operar sobre jugadores que **ella misma** dio de alta explícitamente (vía `/admin/registro`, con membresía en una de sus ligas o `registeredByOrganizationId`, Camino E). Bug real corregido en julio 2026: `searchOrgGlobalPlayers` ("agregar jugador existente a un equipo") buscaba en TODO `global_players` sin ningún filtro de organización — cualquier organizador podía encontrar y agregar a su equipo a un jugador jamás dado de alta en su liga, con solo saber su nombre. El fix vive en `entities/player/queries.ts` (`searchOrgGlobalPlayers`) y usa el mismo criterio de scope que `listOrgPlayers`. **Antes de escribir cualquier query que busque `global_players` por nombre para un flujo de organizador, escópala a la organización — nunca una búsqueda abierta a toda la plataforma.**
 
 ---
 

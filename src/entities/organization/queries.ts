@@ -14,11 +14,12 @@ import {
 	venueTimeWindows,
 	leaguePlayoffZones,
 } from "@/db/schema";
-import { eq, asc, desc, and, sql, inArray, isNotNull } from "drizzle-orm";
+import { eq, asc, desc, and, sql, inArray, isNotNull, gt, ilike } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Organization } from "@/db/schema";
 import type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
 import { deriveArranqueState, type ArranqueState } from "./lib/derive-arranque-state";
+import { sanitizeToCanonical } from "@/shared/lib/normalize";
 
 // ---------------------------------------------------------------------------
 // Lectura — Admin
@@ -366,26 +367,63 @@ export async function getLatestStandings(leagueId: string) {
 	return { standings: sorted, jornada: null };
 }
 
+export type TopScorerRow = {
+	playerId: string | null;
+	fullName: string;
+	alias: string | null;
+	goals: number;
+	assists: number;
+	matchesPlayed: number;
+	teamName: string;
+};
+
 /**
- * Obtiene el top de goleadores del último snapshot para una liga.
+ * Goleadores de una liga (cualquiera con al menos 1 gol, sin excluir a
+ * nadie), paginado y con búsqueda por nombre — el filtrado/paginado se hace
+ * en DB, nunca "traer todo y recortar/filtrar en memoria" (ver AGENTS.md
+ * §17.3). Mismo molde que `listAllGlobalPlayers` (entities/player/queries.ts):
+ * paginación simple con `page`/`pageSize`/`search`, sin el registro
+ * `defineFilterMap` completo porque solo hay un campo buscable (no hace
+ * falta un FilterBar con múltiples controles).
  */
-export async function getLatestTopScorers(leagueId: string, limit = 10) {
-	return db
-		.select({
-			playerId: playerSeasonStats.globalPlayerId,
-			fullName: globalPlayers.fullName,
-			alias: sql<string | null>`null`,
-			goals: playerSeasonStats.goals,
-			assists: playerSeasonStats.assists,
-			matchesPlayed: playerSeasonStats.matchesPlayed,
-			teamName: teams.name,
-		})
-		.from(playerSeasonStats)
-		.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
-		.innerJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-		.where(eq(playerSeasonStats.leagueId, leagueId))
-		.orderBy(desc(playerSeasonStats.goals), desc(playerSeasonStats.assists))
-		.limit(limit);
+export async function searchTopScorers(
+	leagueId: string,
+	opts: { q?: string; page: number; pageSize: number },
+): Promise<{ rows: TopScorerRow[]; total: number }> {
+	const canonical = opts.q?.trim() ? sanitizeToCanonical(opts.q) : "";
+	const where = and(
+		eq(playerSeasonStats.leagueId, leagueId),
+		gt(playerSeasonStats.goals, 0),
+		canonical ? ilike(globalPlayers.fullNameCanonical, `%${canonical}%`) : undefined,
+	);
+	const offset = (opts.page - 1) * opts.pageSize;
+
+	const [rows, countResult] = await Promise.all([
+		db
+			.select({
+				playerId: playerSeasonStats.globalPlayerId,
+				fullName: globalPlayers.fullName,
+				alias: sql<string | null>`null`,
+				goals: playerSeasonStats.goals,
+				assists: playerSeasonStats.assists,
+				matchesPlayed: playerSeasonStats.matchesPlayed,
+				teamName: teams.name,
+			})
+			.from(playerSeasonStats)
+			.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
+			.innerJoin(teams, eq(playerSeasonStats.teamId, teams.id))
+			.where(where)
+			.orderBy(desc(playerSeasonStats.goals), desc(playerSeasonStats.assists))
+			.limit(opts.pageSize)
+			.offset(offset),
+		db
+			.select({ total: sql<number>`COUNT(*)::int` })
+			.from(playerSeasonStats)
+			.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
+			.where(where),
+	]);
+
+	return { rows, total: countResult[0]?.total ?? 0 };
 }
 
 /**
@@ -452,7 +490,15 @@ export async function getPublicMatchdays(leagueId: string): Promise<PublicMatchd
 			),
 		)
 		.groupBy(matchdays.id)
-		.orderBy(asc(matchdays.number));
+		// La fase final comparte un solo matchday sentinel con number = 0 (ver
+		// src/db/simulator/contributors/playoffs.ts), así que ordenar solo por
+		// number la pondría primero aunque cronológicamente es la última fase.
+		// Forzamos "regular" antes que cualquier otra fase, y dentro de cada
+		// grupo ordenamos por number asc.
+		.orderBy(
+			sql`case when ${matchdays.phase} = 'regular' then 0 else 1 end`,
+			asc(matchdays.number),
+		);
 
 	if (jornadasRows.length === 0) return [];
 

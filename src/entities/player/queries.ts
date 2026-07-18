@@ -2,22 +2,31 @@
  * entities/player/queries.ts
  * Acceso a DB para el perfil de jugador cross-liga.
  *
- * Fuentes de stats (prioridad):
- *  1. player_season_stats  → importadas desde Excel (más completas)
- *  2. match_events          → fallback si no hay import para esa liga
+ * Migrado a V2 (julio 2026): `playerId` es ahora un `global_players.id`
+ * (mismo id que usan ranking/matchday/roster) — antes `getPlayerProfile`
+ * buscaba en la tabla `players` (V1), un espacio de ids distinto del que
+ * usaba el resto del sitio para armar los links a `/player/[id]`. Cualquier
+ * jugador dado de alta vía admin-registration (V2) daba 404.
+ *
+ * Fuentes de stats (prioridad, §1 AGENTS.md) — resueltas por liga en
+ * entities/player/live-stats.ts:
+ *  1. player_season_stats  → importadas desde Excel (histórico, V1)
+ *  2. match_player_stats    → cálculo en vivo desde la cédula (V2) cuando la
+ *     liga no tiene import de Excel. Antes el fallback leía `match_events`,
+ *     tabla que nadie escribe en producción (solo el simulador) — el
+ *     fallback nunca traía datos reales.
  */
 
 import { eq, and, or, isNull, inArray, desc, asc, sql, ilike } from "drizzle-orm";
 import {
 	db,
-	players,
-	playerRegistrations,
-	playerSeasonStats,
-	playerSeasonStatsSnapshot,
 	matchEvents,
-	matches,
+	playerSeasonStatsSnapshot,
 	leagues,
 	teams,
+	globalPlayers,
+	leagueMembers,
+	inscriptions,
 } from "@/db";
 import type {
 	PlayerView,
@@ -27,113 +36,84 @@ import type {
 	PlayerPositions,
 	PlayerTeamGoalShare,
 	PlayerBadge,
+	PlayerListItem,
 } from "./model";
 import { getPlayerPositions } from "./ranking";
+import {
+	getMergedLeagueStatsRows,
+	getLivePlayerMatchGoals,
+	getLeagueIdsWithSeasonStats,
+} from "./live-stats";
 import { sanitizeToCanonical } from "@/shared/lib/normalize";
 
 // ── Función principal ─────────────────────────────────────────────────────────
 
-export async function getPlayerProfile(playerId: string): Promise<PlayerView | null> {
-	// 1. Datos básicos del jugador
-	const player = await db.query.players.findFirst({
-		where: eq(players.id, playerId),
-	});
+export async function getPlayerProfile(globalPlayerId: string): Promise<PlayerView | null> {
+	// 1. Datos básicos del jugador (identidad, §14 AGENTS.md)
+	const player = await getGlobalPlayerBasic(globalPlayerId);
 	if (!player) return null;
 
-	// 2. Todas las ligas en las que está registrado (con liga y equipo)
-	const registrations = await db.query.playerRegistrations.findMany({
-		where: eq(playerRegistrations.legacyPlayerId, playerId),
-		with: { league: true, team: true },
-	});
+	// 2. Todas las ligas en las que es miembro (league_members + inscripción de equipo)
+	const memberships = await getPlayerLeagueMemberships(globalPlayerId);
 
-	if (registrations.length === 0) {
+	if (memberships.length === 0) {
 		return {
 			id: player.id,
 			fullName: player.fullName,
-			alias: player.alias,
-			phone: player.phone,
-			photoUrl: player.photoUrl,
+			// global_players no tiene alias/phone (solo existían en la tabla V1
+			// `players`). `phone` además vive en league_members (dato privado por
+			// liga, §14) — no corresponde exponerlo en el perfil público aunque
+			// existiera.
+			alias: null,
+			phone: null,
+			photoUrl: player.avatarUrl,
 			global: emptyGlobal(),
 			leagues: [],
 		};
 	}
 
-	// 3. Todas las season_stats de este jugador (una sola query)
-	const allSeasonStats = await db.query.playerSeasonStats.findMany({
-		where: eq(playerSeasonStats.legacyPlayerId, playerId),
-	});
-	const seasonStatsMap = new Map(allSeasonStats.map((s) => [s.leagueId, s]));
+	// 3. Stats por liga — fuente combinada (Excel o en vivo, por liga)
+	const leagueIds = memberships.map((m) => m.leagueId);
+	const statsByLeague = new Map(
+		(await getMergedLeagueStatsRows(leagueIds))
+			.filter((r) => r.playerId === globalPlayerId)
+			.map((r) => [r.leagueId, r] as const),
+	);
 
-	// 4. Para ligas sin season_stats, obtener conteos desde match_events
-	const leagueIdsWithoutStats = registrations
-		.map((r) => r.leagueId)
-		.filter((id) => !seasonStatsMap.has(id));
-
-	const fallbackData = await fetchMatchEventsFallback(playerId, leagueIdsWithoutStats);
+	// 4. Status efectivo de cada liga (explícito + auto-detección de sucesor)
+	const finishedIds = await resolveFinishedLeagues(leagueIds);
 
 	// 5. Construir stats por liga
-	const leagueStats: PlayerLeagueStats[] = registrations.map((reg) => {
-		const seasonStats = seasonStatsMap.get(reg.leagueId);
+	const leagueStats: PlayerLeagueStats[] = memberships.map((m) => {
+		const s = statsByLeague.get(m.leagueId);
+		const goals = s?.goals ?? 0;
+		const assists = s?.assists ?? 0;
+		const matchesPlayed = s?.matches ?? 0;
+		const gpm = matchesPlayed > 0 ? round2(goals / matchesPlayed) : 0;
 
-		if (seasonStats) {
-			const gpm =
-				seasonStats.matchesPlayed > 0 ? round2(seasonStats.goals / seasonStats.matchesPlayed) : 0;
-			return {
-				leagueId: reg.leagueId,
-				leagueName: reg.league.name,
-				dayOfWeek: reg.league.dayOfWeek,
-				season: reg.league.season,
-				city: reg.league.city,
-				teamId: reg.teamId,
-				teamName: reg.team.name,
-				goals: seasonStats.goals,
-				assists: seasonStats.assists,
-				contributions: seasonStats.goals + seasonStats.assists,
-				yellowCards: seasonStats.yellowCards,
-				redCards: seasonStats.redCards,
-				mvpCount: 0, // player_season_stats no almacena MVPs
-				matchesPlayed: seasonStats.matchesPlayed,
-				goalsPerMatch: gpm,
-				source: "season_stats",
-				leagueStatus: "active" as const, // se sobreescribe en el paso 6
-			};
-		}
-
-		// Fallback desde match_events
-		const fb = fallbackData.get(reg.leagueId) ?? emptyEventCounts();
-		const gpm = fb.matchesPlayed > 0 ? round2(fb.goals / fb.matchesPlayed) : 0;
 		return {
-			leagueId: reg.leagueId,
-			leagueName: reg.league.name,
-			dayOfWeek: reg.league.dayOfWeek,
-			season: reg.league.season,
-			city: reg.league.city,
-			teamId: reg.teamId,
-			teamName: reg.team.name,
-			goals: fb.goals,
-			assists: fb.assists,
-			contributions: fb.goals + fb.assists,
-			yellowCards: fb.yellowCards,
-			redCards: fb.redCards,
-			mvpCount: fb.mvpCount,
-			matchesPlayed: fb.matchesPlayed,
+			leagueId: m.leagueId,
+			leagueName: m.leagueName,
+			dayOfWeek: m.dayOfWeek,
+			season: m.season,
+			city: m.city,
+			teamId: m.teamId,
+			teamName: m.teamName ?? "—",
+			goals,
+			assists,
+			contributions: goals + assists,
+			yellowCards: s?.yellowCards ?? 0,
+			redCards: s?.redCards ?? 0,
+			mvpCount: 0, // no se captura en la cédula ni en player_season_stats
+			matchesPlayed,
 			goalsPerMatch: gpm,
-			source: "match_events",
-			leagueStatus: "active" as const, // se sobreescribe en el paso 6
+			source: s?.source ?? "live_match_stats",
+			leagueStatus: finishedIds.has(m.leagueId) ? "finished" : "active",
 		};
 	});
 
-	// 6. Determinar status efectivo de cada liga (explícito + auto-detección de sucesor)
-	const leagueIds = registrations.map((r) => r.leagueId);
-	const finishedIds = await resolveFinishedLeagues(leagueIds);
-
-	for (const stat of leagueStats) {
-		stat.leagueStatus = finishedIds.has(stat.leagueId) ? "finished" : "active";
-	}
-
-	// 7. Ordenar: activas primero, luego por goles → asistencias → nombre
+	// 6. Ordenar: activas primero, luego por goles → asistencias → nombre
 	leagueStats.sort((a, b) => {
-		// Activas antes que terminadas
 		if (a.leagueStatus !== b.leagueStatus) {
 			return a.leagueStatus === "active" ? -1 : 1;
 		}
@@ -148,12 +128,50 @@ export async function getPlayerProfile(playerId: string): Promise<PlayerView | n
 	return {
 		id: player.id,
 		fullName: player.fullName,
-		alias: player.alias,
-		phone: player.phone,
-		photoUrl: player.photoUrl,
+		alias: null,
+		phone: null,
+		photoUrl: player.avatarUrl,
 		global,
 		leagues: leagueStats,
 	};
+}
+
+// ── Membresías de liga para el perfil público ─────────────────────────────────
+// A diferencia de getGlobalPlayerLeagueMembers (admin, con siloing de
+// internalNotes/institutionPhotoUrl), esta versión es pública y trae los
+// campos de liga que necesita PlayerLeagueStats (dayOfWeek/season/city).
+
+type ProfileLeagueMembership = {
+	leagueId: string;
+	leagueName: string;
+	dayOfWeek: string;
+	season: string;
+	city: string;
+	teamId: string | null;
+	teamName: string | null;
+};
+
+async function getPlayerLeagueMemberships(
+	globalPlayerId: string,
+): Promise<ProfileLeagueMembership[]> {
+	const rows = await db
+		.select({
+			leagueId: leagueMembers.leagueId,
+			leagueName: leagues.name,
+			dayOfWeek: leagues.dayOfWeek,
+			season: leagues.season,
+			city: leagues.city,
+			teamId: inscriptions.teamId,
+			teamName: teams.name,
+		})
+		.from(leagueMembers)
+		.innerJoin(leagues, eq(leagues.id, leagueMembers.leagueId))
+		.leftJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.leftJoin(teams, eq(teams.id, inscriptions.teamId))
+		.where(eq(leagueMembers.globalPlayerId, globalPlayerId))
+		.orderBy(desc(leagues.createdAt));
+
+	return rows.map((r) => ({ ...r, teamId: r.teamId ?? null, teamName: r.teamName ?? null }));
 }
 
 // ── Resolución de status de ligas ─────────────────────────────────────────────
@@ -190,98 +208,6 @@ async function resolveFinishedLeagues(leagueIds: string[]): Promise<Set<string>>
 		);
 
 	return new Set(rows.map((r) => r.id));
-}
-
-// ── Fallback: conteos de match_events por liga ────────────────────────────────
-
-type EventCounts = {
-	goals: number;
-	assists: number;
-	yellowCards: number;
-	redCards: number;
-	mvpCount: number;
-	matchesPlayed: number;
-};
-
-async function fetchMatchEventsFallback(
-	playerId: string,
-	leagueIds: string[],
-): Promise<Map<string, EventCounts>> {
-	const result = new Map<string, EventCounts>();
-	if (leagueIds.length === 0) return result;
-
-	// Conteos por tipo de evento y liga — una sola query
-	const eventRows = await db
-		.select({
-			leagueId: matches.leagueId,
-			eventType: matchEvents.eventType,
-			count: sql<number>`count(*)::int`,
-		})
-		.from(matchEvents)
-		.innerJoin(matches, eq(matchEvents.matchId, matches.id))
-		.where(
-			and(
-				eq(matchEvents.legacyPlayerId, playerId),
-				eq(matches.status, "completed"),
-				inArray(matches.leagueId, leagueIds),
-			),
-		)
-		.groupBy(matches.leagueId, matchEvents.eventType);
-
-	// Partidos jugados (distintos) por liga — una sola query
-	const matchRows = await db
-		.selectDistinct({
-			leagueId: matches.leagueId,
-			matchId: matchEvents.matchId,
-		})
-		.from(matchEvents)
-		.innerJoin(matches, eq(matchEvents.matchId, matches.id))
-		.where(
-			and(
-				eq(matchEvents.legacyPlayerId, playerId),
-				eq(matches.status, "completed"),
-				inArray(matches.leagueId, leagueIds),
-			),
-		);
-
-	// Conteo de partidos por liga
-	const matchCountByLeague = new Map<string, number>();
-	for (const row of matchRows) {
-		matchCountByLeague.set(row.leagueId, (matchCountByLeague.get(row.leagueId) ?? 0) + 1);
-	}
-
-	// Agrupar eventos por liga
-	for (const row of eventRows) {
-		if (!result.has(row.leagueId)) {
-			result.set(row.leagueId, emptyEventCounts());
-		}
-		const entry = result.get(row.leagueId)!;
-		switch (row.eventType) {
-			case "goal":
-				entry.goals = row.count;
-				break;
-			case "assist":
-				entry.assists = row.count;
-				break;
-			case "yellow_card":
-				entry.yellowCards = row.count;
-				break;
-			case "red_card":
-				entry.redCards = row.count;
-				break;
-			case "mvp":
-				entry.mvpCount = row.count;
-				break;
-		}
-	}
-
-	// Inyectar partidos jugados
-	for (const [leagueId, count] of matchCountByLeague) {
-		if (!result.has(leagueId)) result.set(leagueId, emptyEventCounts());
-		result.get(leagueId)!.matchesPlayed = count;
-	}
-
-	return result;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -321,10 +247,6 @@ function emptyGlobal(): PlayerGlobalProfile {
 	};
 }
 
-function emptyEventCounts(): EventCounts {
-	return { goals: 0, assists: 0, yellowCards: 0, redCards: 0, mvpCount: 0, matchesPlayed: 0 };
-}
-
 function round2(n: number): number {
 	return Math.round(n * 100) / 100;
 }
@@ -333,37 +255,29 @@ function round2(n: number): number {
 // Todos los cálculos que alimentan el perfil público (ranking, racha, badges).
 // Sin dependencia del resultado de getPlayerProfile — queries propias.
 
-export async function getPlayerEgoStats(playerId: string): Promise<PlayerEgoStats> {
-	// Rows de season_stats con info de liga y equipo
-	const seasonRows = await db
-		.select({
-			leagueId: playerSeasonStats.leagueId,
-			leagueName: leagues.name,
-			teamId: playerSeasonStats.teamId,
-			teamName: teams.name,
-			goals: playerSeasonStats.goals,
-			matchesPlayed: playerSeasonStats.matchesPlayed,
-			city: leagues.city,
-		})
-		.from(playerSeasonStats)
-		.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
-		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-		.where(eq(playerSeasonStats.legacyPlayerId, playerId));
+export async function getPlayerEgoStats(globalPlayerId: string): Promise<PlayerEgoStats> {
+	const memberships = await getPlayerLeagueMemberships(globalPlayerId);
+	if (memberships.length === 0) return emptyEgoStats();
+
+	const leagueIds = memberships.map((m) => m.leagueId);
+	const statsRows = (await getMergedLeagueStatsRows(leagueIds)).filter(
+		(r) => r.playerId === globalPlayerId,
+	);
 
 	const [streak, hatTricks, mvpCount] = await Promise.all([
-		fetchGoalStreak(playerId),
-		fetchHatTricks(playerId),
-		fetchMvpCount(playerId),
+		fetchGoalStreak(globalPlayerId, leagueIds),
+		fetchHatTricks(globalPlayerId, leagueIds),
+		fetchMvpCount(globalPlayerId),
 	]);
 
-	if (seasonRows.length === 0) {
+	if (statsRows.length === 0) {
 		return emptyEgoStats();
 	}
 
 	// Liga con más goles para el scope de posiciones
-	const bestRow = seasonRows.reduce((a, b) => (b.goals > a.goals ? b : a));
+	const bestRow = statsRows.reduce((a, b) => (b.goals > a.goals ? b : a));
 
-	const positions = await getPlayerPositions(playerId, {
+	const positions = await getPlayerPositions(globalPlayerId, {
 		leagueId: bestRow.leagueId,
 		city: bestRow.city,
 	});
@@ -373,19 +287,19 @@ export async function getPlayerEgoStats(playerId: string): Promise<PlayerEgoStat
 			? Math.ceil((positions.city.rank / positions.city.total) * 100)
 			: null;
 
-	const normalizedRows = seasonRows.map((r) => ({
+	const normalizedRows = statsRows.map((r) => ({
 		leagueId: r.leagueId,
 		leagueName: r.leagueName,
 		teamId: r.teamId,
 		teamName: r.teamName ?? "—",
 		goals: r.goals,
-		matchesPlayed: r.matchesPlayed,
+		matchesPlayed: r.matches,
 	}));
 
 	const teamGoalShares = await fetchTeamGoalShares(normalizedRows);
-	const leaguesCount = new Set(seasonRows.map((r) => r.leagueId)).size;
-	const totalMatches = seasonRows.reduce((s, r) => s + r.matchesPlayed, 0);
-	const totalGoals = seasonRows.reduce((s, r) => s + r.goals, 0);
+	const leaguesCount = new Set(statsRows.map((r) => r.leagueId)).size;
+	const totalMatches = statsRows.reduce((s, r) => s + r.matches, 0);
+	const totalGoals = statsRows.reduce((s, r) => s + r.goals, 0);
 	const overallGPM = totalMatches > 0 ? totalGoals / totalMatches : 0;
 	const badges = computeBadges(
 		positions,
@@ -401,78 +315,136 @@ export async function getPlayerEgoStats(playerId: string): Promise<PlayerEgoStat
 }
 
 // ── Helpers de ego stats ──────────────────────────────────────────────────────
+// Fuente combinada: playerSeasonStatsSnapshot (Excel, por jornada) para ligas
+// con import; cálculo en vivo desde match_player_stats (por partido, vía
+// getLivePlayerMatchGoals) para ligas sin import. Nunca se mezclan ambas
+// fuentes para la MISMA liga (getLeagueIdsWithSeasonStats decide).
 
-// Racha activa: jornadas consecutivas con Δgoles > 0 desde la más reciente.
-// Usa snapshot en lugar de match_events — funciona con importación Excel.
-async function fetchGoalStreak(playerId: string): Promise<number> {
-	const rows = await db
-		.select({
-			leagueId: playerSeasonStatsSnapshot.leagueId,
-			jornada: playerSeasonStatsSnapshot.jornada,
-			goals: playerSeasonStatsSnapshot.goals,
-		})
-		.from(playerSeasonStatsSnapshot)
-		.where(eq(playerSeasonStatsSnapshot.playerId, playerId))
-		.orderBy(desc(playerSeasonStatsSnapshot.leagueId), desc(playerSeasonStatsSnapshot.jornada));
+async function splitLeaguesBySnapshotSource(
+	leagueIds: string[],
+): Promise<{ snapshotLeagueIds: string[]; liveLeagueIds: string[] }> {
+	const withSeasonStats = await getLeagueIdsWithSeasonStats(leagueIds);
+	return {
+		snapshotLeagueIds: leagueIds.filter((id) => withSeasonStats.has(id)),
+		liveLeagueIds: leagueIds.filter((id) => !withSeasonStats.has(id)),
+	};
+}
 
-	if (rows.length === 0) return 0;
-
-	// Agrupar por liga manteniendo orden jornada desc
-	const byLeague = new Map<string, { jornada: number; goals: number }[]>();
-	for (const r of rows) {
-		if (!byLeague.has(r.leagueId)) byLeague.set(r.leagueId, []);
-		byLeague.get(r.leagueId)!.push({ jornada: r.jornada, goals: r.goals });
-	}
-
-	// Por cada liga calcular racha activa y retornar la mayor
+// Racha activa: partidos/jornadas consecutivas con goles > 0 desde el más reciente.
+async function fetchGoalStreak(globalPlayerId: string, leagueIds: string[]): Promise<number> {
+	const { snapshotLeagueIds, liveLeagueIds } = await splitLeaguesBySnapshotSource(leagueIds);
 	let bestStreak = 0;
-	for (const snaps of byLeague.values()) {
-		// snaps ya viene ordenado desc por jornada
-		let streak = 0;
-		for (let i = 0; i < snaps.length; i++) {
-			const prev = snaps[i + 1];
-			const delta = snaps[i].goals - (prev?.goals ?? 0);
-			if (delta > 0) streak++;
-			else break;
+
+	if (snapshotLeagueIds.length > 0) {
+		const rows = await db
+			.select({
+				leagueId: playerSeasonStatsSnapshot.leagueId,
+				jornada: playerSeasonStatsSnapshot.jornada,
+				goals: playerSeasonStatsSnapshot.goals,
+			})
+			.from(playerSeasonStatsSnapshot)
+			.where(
+				and(
+					eq(playerSeasonStatsSnapshot.globalPlayerId, globalPlayerId),
+					inArray(playerSeasonStatsSnapshot.leagueId, snapshotLeagueIds),
+				),
+			)
+			.orderBy(desc(playerSeasonStatsSnapshot.leagueId), desc(playerSeasonStatsSnapshot.jornada));
+
+		// Agrupar por liga manteniendo orden jornada desc
+		const byLeague = new Map<string, { jornada: number; goals: number }[]>();
+		for (const r of rows) {
+			if (!byLeague.has(r.leagueId)) byLeague.set(r.leagueId, []);
+			byLeague.get(r.leagueId)!.push({ jornada: r.jornada, goals: r.goals });
 		}
-		if (streak > bestStreak) bestStreak = streak;
+
+		for (const snaps of byLeague.values()) {
+			// snaps ya viene ordenado desc por jornada — goals es cumulativo, se
+			// compara contra la jornada siguiente (delta > 0 = anotó esa jornada)
+			let streak = 0;
+			for (let i = 0; i < snaps.length; i++) {
+				const prev = snaps[i + 1];
+				const delta = snaps[i].goals - (prev?.goals ?? 0);
+				if (delta > 0) streak++;
+				else break;
+			}
+			if (streak > bestStreak) bestStreak = streak;
+		}
 	}
+
+	if (liveLeagueIds.length > 0) {
+		// match_player_stats.goals ya es por partido (no cumulativo) — no hace
+		// falta calcular delta contra el partido anterior.
+		const liveRows = await getLivePlayerMatchGoals(globalPlayerId, liveLeagueIds);
+		const byLeague = new Map<string, number[]>(); // goles por partido, más reciente primero
+		for (const r of liveRows) {
+			if (!byLeague.has(r.leagueId)) byLeague.set(r.leagueId, []);
+			byLeague.get(r.leagueId)!.unshift(r.goals);
+		}
+		for (const goalsDesc of byLeague.values()) {
+			let streak = 0;
+			for (const g of goalsDesc) {
+				if (g > 0) streak++;
+				else break;
+			}
+			if (streak > bestStreak) bestStreak = streak;
+		}
+	}
+
 	return bestStreak;
 }
 
-// Hat-tricks: jornadas donde el jugador anotó ≥ 3 goles (Δgoles ≥ 3 vs jornada anterior).
-async function fetchHatTricks(playerId: string): Promise<number> {
-	const rows = await db
-		.select({
-			leagueId: playerSeasonStatsSnapshot.leagueId,
-			jornada: playerSeasonStatsSnapshot.jornada,
-			goals: playerSeasonStatsSnapshot.goals,
-		})
-		.from(playerSeasonStatsSnapshot)
-		.where(eq(playerSeasonStatsSnapshot.playerId, playerId))
-		.orderBy(playerSeasonStatsSnapshot.leagueId, playerSeasonStatsSnapshot.jornada);
-
-	const byLeague = new Map<string, { jornada: number; goals: number }[]>();
-	for (const r of rows) {
-		if (!byLeague.has(r.leagueId)) byLeague.set(r.leagueId, []);
-		byLeague.get(r.leagueId)!.push({ jornada: r.jornada, goals: r.goals });
-	}
-
+// Hat-tricks: partidos/jornadas donde el jugador anotó ≥ 3 goles.
+async function fetchHatTricks(globalPlayerId: string, leagueIds: string[]): Promise<number> {
+	const { snapshotLeagueIds, liveLeagueIds } = await splitLeaguesBySnapshotSource(leagueIds);
 	let total = 0;
-	for (const snaps of byLeague.values()) {
-		for (let i = 0; i < snaps.length; i++) {
-			const prevGoals = i > 0 ? snaps[i - 1].goals : 0;
-			if (snaps[i].goals - prevGoals >= 3) total++;
+
+	if (snapshotLeagueIds.length > 0) {
+		const rows = await db
+			.select({
+				leagueId: playerSeasonStatsSnapshot.leagueId,
+				jornada: playerSeasonStatsSnapshot.jornada,
+				goals: playerSeasonStatsSnapshot.goals,
+			})
+			.from(playerSeasonStatsSnapshot)
+			.where(
+				and(
+					eq(playerSeasonStatsSnapshot.globalPlayerId, globalPlayerId),
+					inArray(playerSeasonStatsSnapshot.leagueId, snapshotLeagueIds),
+				),
+			)
+			.orderBy(playerSeasonStatsSnapshot.leagueId, playerSeasonStatsSnapshot.jornada);
+
+		const byLeague = new Map<string, { jornada: number; goals: number }[]>();
+		for (const r of rows) {
+			if (!byLeague.has(r.leagueId)) byLeague.set(r.leagueId, []);
+			byLeague.get(r.leagueId)!.push({ jornada: r.jornada, goals: r.goals });
+		}
+
+		for (const snaps of byLeague.values()) {
+			for (let i = 0; i < snaps.length; i++) {
+				const prevGoals = i > 0 ? snaps[i - 1].goals : 0;
+				if (snaps[i].goals - prevGoals >= 3) total++;
+			}
 		}
 	}
+
+	if (liveLeagueIds.length > 0) {
+		const liveRows = await getLivePlayerMatchGoals(globalPlayerId, liveLeagueIds);
+		total += liveRows.filter((r) => r.goals >= 3).length;
+	}
+
 	return total;
 }
 
-async function fetchMvpCount(playerId: string): Promise<number> {
+// MVP: no se captura en la cédula (match_player_stats no tiene columna mvp,
+// §live-stats.ts) — esto solo puede traer datos donde match_events sí tiene
+// filas (simulador de pruebas). En producción real hoy siempre es 0.
+async function fetchMvpCount(globalPlayerId: string): Promise<number> {
 	const rows = await db
 		.select({ count: sql<number>`count(*)::int` })
 		.from(matchEvents)
-		.where(and(eq(matchEvents.legacyPlayerId, playerId), eq(matchEvents.eventType, "mvp")));
+		.where(and(eq(matchEvents.globalPlayerId, globalPlayerId), eq(matchEvents.eventType, "mvp")));
 	return rows[0]?.count ?? 0;
 }
 
@@ -489,28 +461,16 @@ async function fetchTeamGoalShares(seasonRows: SeasonRow[]): Promise<PlayerTeamG
 	const relevant = seasonRows.filter((r) => r.teamId !== null && r.goals > 0);
 	if (relevant.length === 0) return [];
 
+	// Totales del equipo (todos los jugadores) en las mismas ligas — fuente
+	// combinada, igual que el resto del módulo.
 	const leagueIds = [...new Set(relevant.map((r) => r.leagueId))];
-	const teamIds = [...new Set(relevant.map((r) => r.teamId as string))];
-
-	const totals = await db
-		.select({
-			leagueId: playerSeasonStats.leagueId,
-			teamId: playerSeasonStats.teamId,
-			teamGoals: sql<number>`sum(${playerSeasonStats.goals})::int`,
-		})
-		.from(playerSeasonStats)
-		.where(
-			and(
-				inArray(playerSeasonStats.leagueId, leagueIds),
-				inArray(playerSeasonStats.teamId, teamIds),
-			),
-		)
-		.groupBy(playerSeasonStats.leagueId, playerSeasonStats.teamId);
+	const allRows = await getMergedLeagueStatsRows(leagueIds);
 
 	const teamTotalMap = new Map<string, number>();
-	for (const row of totals) {
+	for (const row of allRows) {
 		if (!row.teamId) continue;
-		teamTotalMap.set(`${row.leagueId}:${row.teamId}`, row.teamGoals);
+		const key = `${row.leagueId}:${row.teamId}`;
+		teamTotalMap.set(key, (teamTotalMap.get(key) ?? 0) + row.goals);
 	}
 
 	return relevant
@@ -641,7 +601,6 @@ export async function listTopScorers(opts: {
 // Las que pueden no encontrar un registro retornan null, nunca lanzan.
 // ===========================================================================
 
-import { globalPlayers, leagueMembers, inscriptions } from "@/db/schema";
 import { assignNextCredential } from "./lib/assign-credential";
 import type {
 	GlobalPlayer,
@@ -656,6 +615,56 @@ import type {
 // ---------------------------------------------------------------------------
 // GlobalPlayer
 // ---------------------------------------------------------------------------
+
+/**
+ * Directorio público de jugadores (GET /api/players, §7.4) — migrado a V2.
+ *
+ * Antes leía `players` + `player_registrations` (V1), que dejaron de recibir
+ * escrituras cuando se eliminó `import-excel` (§1.6 AGENTS.md): cualquier
+ * jugador dado de alta vía admin-registration (global_players/league_members)
+ * nunca aparecía. Ahora la fuente es `league_members` (pertenencia real a una
+ * liga) + `global_players` (identidad). `global_players` no tiene columna
+ * `alias` (apodo) — ese dato solo existía en V1 — así que el directorio
+ * público ya no lo muestra (ver PlayerListItem).
+ */
+export async function searchDirectoryPlayers(opts: {
+	leagueIds: string[];
+	q?: string;
+	limit: number;
+	offset: number;
+}): Promise<{ rows: PlayerListItem[]; total: number }> {
+	const { leagueIds, q, limit, offset } = opts;
+	if (leagueIds.length === 0) return { rows: [], total: 0 };
+
+	const registered = await db
+		.selectDistinct({ globalPlayerId: leagueMembers.globalPlayerId })
+		.from(leagueMembers)
+		.where(inArray(leagueMembers.leagueId, leagueIds));
+
+	const playerIds = registered.map((r) => r.globalPlayerId);
+	if (playerIds.length === 0) return { rows: [], total: 0 };
+
+	const searchWhere = q ? ilike(globalPlayers.fullName, `%${q}%`) : undefined;
+	const where = searchWhere
+		? and(inArray(globalPlayers.id, playerIds), searchWhere)
+		: inArray(globalPlayers.id, playerIds);
+
+	const [totalRow, rows] = await Promise.all([
+		db
+			.select({ count: sql<number>`count(*)::int` })
+			.from(globalPlayers)
+			.where(where),
+		db
+			.select({ id: globalPlayers.id, fullName: globalPlayers.fullName })
+			.from(globalPlayers)
+			.where(where)
+			.orderBy(desc(globalPlayers.createdAt))
+			.limit(limit)
+			.offset(offset),
+	]);
+
+	return { rows, total: totalRow[0]?.count ?? 0 };
+}
 
 /**
  * Cuenta cuántas ligas (league_members) tiene un global_player.
@@ -1298,17 +1307,29 @@ export async function listAllGlobalPlayers(opts: {
 // ---------------------------------------------------------------------------
 // Búsqueda por nombre para "Agregar jugador existente" a un equipo
 //
-// global_players es identidad de plataforma (§14 AGENTS.md — "toda la
-// plataforma", igual que el lookup por CURP): la búsqueda NO se limita a
-// jugadores con membresía previa en la organización. Antes usaba un
-// INNER JOIN contra league_members que dejaba invisibles a los jugadores
-// registrados sin liga ("Camino E" de admin-registration/register.ts) y a
-// los que solo tienen historial en otra organización — para esos casos la
-// única forma de inscribirlos era volver a /admin/registro. El match es por
-// nombre canónico (sin acentos) para tolerar tildes. Marca alreadyInLeagueTeam
-// cuando el jugador ya está inscrito en un equipo de la liga destino (para
-// deshabilitarlo en la UI) y hasAnyLeagueMembership para distinguir "nunca
-// inscrito en ninguna liga" de "ya jugó en otra liga" — solo informativo.
+// CORREGIDO (julio 2026) — filtración de datos entre organizaciones: la
+// versión anterior buscaba en TODO `global_players` sin ningún filtro de
+// organización. Un organizador podía encontrar y agregar a su equipo a
+// cualquier jugador de la plataforma, aunque nunca hubiera sido dado de alta
+// en su organización — violando la regla de negocio de que solo el
+// encargado de la liga puede darlo de alta explícitamente (vía
+// /admin/registro, §14 AGENTS.md). global_players SÍ es identidad de
+// plataforma (un jugador, un CURP, para siempre) pero eso no significa que
+// cualquier organización pueda verlo o reclutarlo sin que su propio
+// encargado lo registre primero.
+//
+// Scope obligatorio, nunca cross-org — mismo criterio que listOrgPlayers:
+// el jugador "pertenece" a esta organización si (a) tiene un league_member
+// en alguna liga de la org, o (b) la org lo dio de alta sin liga todavía
+// ("Camino E" de admin-registration/register.ts). Si la liga no tiene
+// organización (legacy/sin org), no hay org con la que comparar — el scope
+// se reduce a "ya es miembro de ESTA liga".
+//
+// El match es por nombre canónico (sin acentos) para tolerar tildes. Marca
+// alreadyInLeagueTeam cuando el jugador ya está inscrito en un equipo de la
+// liga destino (para deshabilitarlo en la UI) y hasAnyLeagueMembership para
+// distinguir "nunca inscrito en ninguna liga" de "ya jugó en otra liga de
+// esta org" — solo informativo.
 // ---------------------------------------------------------------------------
 
 export type OrgPlayerSearchResult = {
@@ -1322,12 +1343,28 @@ export type OrgPlayerSearchResult = {
 
 export async function searchOrgGlobalPlayers(
 	q: string,
-	leagueId: string,
+	opts: { leagueId: string; organizationId: string | null },
 ): Promise<OrgPlayerSearchResult[]> {
 	const canonical = sanitizeToCanonical(q);
 	if (canonical.length < 2) return [];
 
+	const { leagueId, organizationId } = opts;
 	const like = `%${canonical}%`;
+
+	const belongsToOrg = organizationId
+		? sql`(
+				EXISTS (
+					SELECT 1 FROM league_members lm
+					INNER JOIN leagues l ON l.id = lm.league_id
+					WHERE lm.global_player_id = ${globalPlayers.id} AND l.organization_id = ${organizationId}
+				)
+				OR ${globalPlayers.registeredByOrganizationId} = ${organizationId}
+			)`
+		: sql`EXISTS (
+				SELECT 1 FROM league_members lm
+				WHERE lm.global_player_id = ${globalPlayers.id} AND lm.league_id = ${leagueId}
+			)`;
+
 	const rows = await db
 		.select({
 			globalPlayerId: globalPlayers.id,
@@ -1339,7 +1376,10 @@ export async function searchOrgGlobalPlayers(
 		.from(globalPlayers)
 		.leftJoin(leagueMembers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
 		.where(
-			sql`COALESCE(${globalPlayers.fullNameCanonical}, LOWER(${globalPlayers.fullName})) LIKE ${like}`,
+			and(
+				sql`COALESCE(${globalPlayers.fullNameCanonical}, LOWER(${globalPlayers.fullName})) LIKE ${like}`,
+				belongsToOrg,
+			),
 		)
 		.groupBy(globalPlayers.id)
 		.orderBy(asc(globalPlayers.id))
