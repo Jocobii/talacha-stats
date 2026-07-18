@@ -42,6 +42,7 @@ export type {
 	GlobalPlayerRow,
 } from "./queries";
 export {
+	searchDirectoryPlayers,
 	getPlayerProfile,
 	getPlayerEgoStats,
 	getPlayerGlobalStats,

@@ -14,12 +14,19 @@
  *   pnpm db:measure -- --league <leagueId>   mide con un leagueId específico
  *   pnpm db:measure                          usa la org/liga más reciente
  *
- * Alcance conocido:
+ * Alcance conocido (actualizado julio 2026):
  *   - `/player/[id]` (getPlayerProfile, getPlayerEgoStats en
- *     entities/player/queries.ts) sigue 100% en la cadena V1 legacy
- *     (players, player_registrations, match_events.legacy_player_id) y NO
- *     está cubierto aquí — migrarlo es una épica aparte, más grande que el
- *     caso de ranking (toca rachas, hat-tricks y badges).
+ *     entities/player/queries.ts) YA está migrado a V2: identidad por
+ *     global_players.id, stats vía entities/player/live-stats.ts
+ *     (player_season_stats si existe import de Excel, o cálculo en vivo
+ *     desde match_player_stats si no). Racha/hat-tricks también migrados
+ *     (por jornada si la liga usa scheduling, si no por partido). MVP sigue
+ *     en 0 siempre — no se captura en la cédula.
+ *   - Pendiente real: `getJornadaHonor` (héroe de jornada, matchday) y
+ *     `listTopScorers`/`getPlayerGlobalStats` (vista SQL `player_global_stats`
+ *     en src/db/views.sql) siguen 100% en la cadena V1 — no se tocaron en
+ *     esta migración. `listTopScorers` requiere una migración de la vista
+ *     SQL, no solo cambios de código.
  *   - Las queries medidas aquí SÍ ven datos del simulador: ranking (ciudad/
  *     liga/global), showcase de homepage, snapshot de liga, goleo por
  *     jornada (matchday → getJornadaHonor) y tabla de posiciones en vivo

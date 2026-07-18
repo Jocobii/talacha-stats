@@ -3,7 +3,10 @@
  *
  * El [id] es un globalPlayerId (V2). La página:
  * 1. Carga datos básicos del global_player (V2).
- * 2. Carga estadísticas desde V1 si existe el perfil legacy.
+ * 2. Carga stats vía getPlayerProfile — migrado a V2 (julio 2026): agrega
+ *    player_season_stats (Excel) o cálculo en vivo desde match_player_stats
+ *    (cédula) por liga, ver entities/player/queries.ts. `alias`/`phone`
+ *    siguen null (no existen en global_players / son privados por liga).
  * 3. Carga las membresías (league_members) de la org del usuario para edición.
  * 4. Muestra el editor de inscripción solo a organizadores en sus ligas.
  */
@@ -37,7 +40,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 	const isOwner = user.role === "owner";
 	const canEdit = isOrganizer || isOwner;
 
-	// 1. Datos V1 (stats) — pueden no existir si el jugador es solo V2
+	// 1. Stats agregadas (Excel o en vivo, por liga — ver getPlayerProfile)
 	// 2. Datos V2 — global_player básico + league_members editables
 	const [v1Profile, v2Basic, v2Members, rawCredentials] = await Promise.all([
 		getPlayerProfile(id).catch(() => null),
@@ -92,7 +95,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 	const orgConfigByOrg: Record<string, OrganizationCredentialConfigDto | undefined> =
 		Object.fromEntries(orgConfigEntries);
 
-	// Nombre y datos básicos: V1 tiene más datos (alias, phone), V2 tiene birthDate
+	// Nombre y datos básicos: v1Profile trae fullName + stats, v2Basic trae birthDate
 	const fullName = v1Profile?.fullName ?? v2Basic?.fullName ?? "Jugador";
 	const alias = v1Profile?.alias ?? null;
 	const phone = v1Profile?.phone ?? null;

@@ -75,14 +75,11 @@ export default function PlayersView() {
 								className="flex items-center gap-4 bg-surface-2 border border-line rounded-2xl px-4 py-3.5 hover:border-brand transition"
 							>
 								<div className="w-11 h-11 rounded-full bg-brand flex items-center justify-center text-pitch font-display font-black text-lg shrink-0">
-									{(p.alias ?? p.displayName).charAt(0).toUpperCase()}
+									{p.displayName.charAt(0).toUpperCase()}
 								</div>
 
 								<div className="min-w-0 flex-1">
 									<p className="font-semibold text-ink truncate">{p.displayName}</p>
-									{p.alias && (
-										<p className="text-sm text-brand-ink truncate">&quot;{p.alias}&quot;</p>
-									)}
 								</div>
 
 								<ChevronRight size={16} className="text-ink-3 shrink-0" strokeWidth={2} />

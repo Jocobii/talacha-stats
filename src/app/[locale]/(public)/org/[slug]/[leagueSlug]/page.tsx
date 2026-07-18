@@ -1,15 +1,16 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowLeft, Trophy, Target } from "lucide-react";
+import { ArrowLeft, Trophy, Target, ShieldAlert } from "lucide-react";
 import { Link } from "@/shared/i18n/navigation";
 import {
 	getPublicLeague,
 	getLatestStandings,
-	getLatestTopScorers,
+	searchTopScorers,
 	getPublicMatchdays,
 	getLeagueZones,
 } from "@/entities/organization";
+import { getPublicActiveSuspensions } from "@/entities/suspension/queries";
 import { getOrgTheme } from "@/features/org-theming";
 import { db } from "@/db";
 import { playoffBrackets } from "@/db/schema";
@@ -18,13 +19,20 @@ import type { PublicBracket } from "./PublicBracketView";
 import { titleCase } from "@/shared/lib/normalize";
 import { findZone, getZoneTokens } from "@/shared/lib/zone-colors";
 import ShareLeagueButton from "./ShareLeagueButton";
-import ScorerCard from "./ScorerCard";
+import ScorersSearchBar from "./ScorersSearchBar";
+import ScorersTable from "./ScorersTable";
+import SuspendedList from "./SuspendedList";
 import TrialWarning from "./TrialWarning";
 import LeaguePublicTabs from "./LeaguePublicTabs";
-import { isAppLocale } from "@/shared/i18n/config";
+import { isAppLocale, defaultLocale } from "@/shared/i18n/config";
 import { buildLocaleAlternates, ogLocale } from "@/shared/i18n/seo";
 
-type Props = { params: Promise<{ slug: string; leagueSlug: string; locale: string }> };
+const SCORERS_PAGE_SIZE = 10;
+
+type Props = {
+	params: Promise<{ slug: string; leagueSlug: string; locale: string }>;
+	searchParams: Promise<{ tab?: string; page?: string; q?: string }>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	const { slug, leagueSlug, locale } = await params;
@@ -81,8 +89,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	};
 }
 
-export default async function LeaguePublicPage({ params }: Props) {
+export default async function LeaguePublicPage({ params, searchParams }: Props) {
 	const { slug, leagueSlug, locale } = await params;
+	const sp = await searchParams;
 	setRequestLocale(locale);
 	const t = await getTranslations("org");
 	const result = await getPublicLeague(slug, leagueSlug);
@@ -90,26 +99,43 @@ export default async function LeaguePublicPage({ params }: Props) {
 
 	const { org, league } = result;
 
-	// Fetch paralelo — matchdays solo si schedulingEnabled
-	const [{ standings, jornada }, scorers, matchdays, zones, bracketRows] = await Promise.all([
-		getLatestStandings(league.id),
-		getLatestTopScorers(league.id, 10),
-		league.schedulingEnabled ? getPublicMatchdays(league.id) : Promise.resolve([]),
-		getLeagueZones(league.id),
-		db.query.playoffBrackets.findMany({
-			where: eq(playoffBrackets.leagueId, league.id),
-			orderBy: [asc(playoffBrackets.createdAt)],
-			with: {
-				slots: {
-					with: {
-						homeTeam: { columns: { id: true, name: true } },
-						awayTeam: { columns: { id: true, name: true } },
-						winner: { columns: { id: true, name: true } },
+	const scorersPage = Math.max(1, Number(sp.page) || 1);
+	const scorersQuery = sp.q?.trim() ?? "";
+	const validTabs = ["tabla", "goleadores", "jornada", "playoffs", "sancionados"] as const;
+	const initialTab = validTabs.includes(sp.tab as (typeof validTabs)[number])
+		? (sp.tab as (typeof validTabs)[number])
+		: "tabla";
+
+	// Fetch paralelo — matchdays solo si schedulingEnabled. Goleadores se trae
+	// YA paginado/filtrado desde DB (searchTopScorers) — nunca "traer todo y
+	// filtrar en memoria" (ver ScorersSearchBar.tsx / ScorersTable.tsx).
+	const [{ standings, jornada }, scorersResult, matchdays, zones, bracketRows, suspensions] =
+		await Promise.all([
+			getLatestStandings(league.id),
+			searchTopScorers(league.id, {
+				q: scorersQuery,
+				page: scorersPage,
+				pageSize: SCORERS_PAGE_SIZE,
+			}),
+			league.schedulingEnabled ? getPublicMatchdays(league.id) : Promise.resolve([]),
+			getLeagueZones(league.id),
+			db.query.playoffBrackets.findMany({
+				where: eq(playoffBrackets.leagueId, league.id),
+				orderBy: [asc(playoffBrackets.createdAt)],
+				with: {
+					slots: {
+						with: {
+							homeTeam: { columns: { id: true, name: true } },
+							awayTeam: { columns: { id: true, name: true } },
+							winner: { columns: { id: true, name: true } },
+						},
 					},
 				},
-			},
-		}),
-	]);
+			}),
+			getPublicActiveSuspensions(league.id),
+		]);
+
+	const { rows: scorers, total: scorersTotal } = scorersResult;
 
 	const brackets: PublicBracket[] = bracketRows.map((b) => ({
 		id: b.id,
@@ -130,7 +156,12 @@ export default async function LeaguePublicPage({ params }: Props) {
 	}));
 
 	const hasStandings = standings.length > 0;
-	const hasScorers = scorers.length > 0;
+	const hasSuspensions = suspensions.length > 0;
+	// La sección de goleadores muestra su propio empty state según el caso
+	// (liga sin goleadores vs. sin resultados para la búsqueda) — ver abajo.
+
+	const localePath = locale === defaultLocale ? "" : `/${locale}`;
+	const scorersBaseHref = `${localePath}/org/${slug}/${leagueSlug}`;
 
 	// ── Sección de posiciones (pasada como slot al tab) ──────────────────────
 	const standingsSection = (
@@ -224,21 +255,37 @@ export default async function LeaguePublicPage({ params }: Props) {
 		</section>
 	);
 
-	// ── Sección de goleadores ────────────────────────────────────────────────
+	// ── Sección de goleadores (paginada server-side, AdminTable) ─────────────
 	const scorersSection = (
-		<section>
+		<section className="space-y-3">
 			<SectionHeader
 				icon={<Target size={16} strokeWidth={2} className="text-brand-ink" />}
 				title={t("league.sections.scorers")}
 			/>
-			{!hasScorers ? (
-				<EmptyState text={t("league.emptyScorers")} />
+			<ScorersSearchBar />
+			<ScorersTable
+				scorers={scorers}
+				page={scorersPage}
+				pageSize={SCORERS_PAGE_SIZE}
+				total={scorersTotal}
+				baseHref={scorersBaseHref}
+				extraParams={{ tab: "goleadores", ...(scorersQuery ? { q: scorersQuery } : {}) }}
+				emptyMessage={scorersQuery ? t("scorer.noResults") : t("league.emptyScorers")}
+			/>
+		</section>
+	);
+
+	// ── Sección de sancionados (tab de fácil acceso) ─────────────────────────
+	const suspensionsSection = (
+		<section>
+			<SectionHeader
+				icon={<ShieldAlert size={16} strokeWidth={2} className="text-brand-ink" />}
+				title={t("league.tabs.suspended")}
+			/>
+			{!hasSuspensions ? (
+				<EmptyState text={t("league.emptySuspensions")} />
 			) : (
-				<div className="space-y-1.5">
-					{scorers.map((scorer, idx) => (
-						<ScorerCard key={scorer.playerId ?? idx} scorer={scorer} rank={idx + 1} />
-					))}
-				</div>
+				<SuspendedList suspensions={suspensions} />
 			)}
 		</section>
 	);
@@ -282,6 +329,9 @@ export default async function LeaguePublicPage({ params }: Props) {
 						standingsSection={standingsSection}
 						scorersSection={scorersSection}
 						brackets={brackets}
+						suspensionsSection={suspensionsSection}
+						hasSuspensions={hasSuspensions}
+						initialTab={initialTab}
 					/>
 				</div>
 			</div>

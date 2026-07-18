@@ -7,8 +7,8 @@
  * Solo lectura.
  */
 
-import { useState, useRef } from "react";
-import { CalendarDays, Clock, MapPin, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { CalendarDays, Clock, MapPin, AlertCircle, ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { PublicMatchday } from "@/entities/organization";
 
@@ -108,10 +108,18 @@ function RecentlyUpdatedBanner({ lastConfirmedAt }: { lastConfirmedAt: Date }) {
 	);
 }
 
+/** Etiqueta de una jornada para el <select>: "J{n}" en fase regular, "Fase Final" en playoff. */
+function matchdayLabel(md: PublicMatchday, t: ReturnType<typeof useTranslations>): string {
+	return md.phase === "regular" ? `J${md.number}` : t("matchdayView.playoffPhase");
+}
+
 export default function MatchdayPublicView({ matchdays }: Props) {
 	const t = useTranslations("org");
-	const [selectedIdx, setSelectedIdx] = useState(0);
-	const chipsRef = useRef<HTMLDivElement>(null);
+	// Por default se muestra la última jornada (la más reciente / la fase
+	// actual), no la primera — matchdays ya viene ordenado de la fase
+	// regular más antigua a la más nueva, con la fase final (si existe)
+	// siempre al final sin importar su `number` sentinel (ver queries.ts).
+	const [selectedIdx, setSelectedIdx] = useState(() => Math.max(matchdays.length - 1, 0));
 
 	if (matchdays.length === 0) {
 		return (
@@ -125,28 +133,25 @@ export default function MatchdayPublicView({ matchdays }: Props) {
 
 	return (
 		<div className="flex flex-col gap-4">
-			{/* Chips de selección */}
-			<div
-				ref={chipsRef}
-				className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide"
-				style={{ scrollbarWidth: "none" }}
-			>
-				{matchdays.map((md, i) => {
-					const isActive = i === selectedIdx;
-					return (
-						<button
-							key={md.id}
-							onClick={() => setSelectedIdx(i)}
-							className={`shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-colors border ${
-								isActive
-									? "bg-brand/15 border-brand/40 text-brand-ink"
-									: "bg-surface-2 border-line text-ink-3 hover:text-ink hover:border-line"
-							}`}
-						>
-							J{md.number}
-						</button>
-					);
-				})}
+			{/* Selector de jornada — un <select> nativo en vez de chips: en la
+			    versión anterior los chips no daban scroll lateral en algunos
+			    navegadores/dispositivos, dejando jornadas inalcanzables. */}
+			<div className="relative">
+				<select
+					value={selectedIdx}
+					onChange={(e) => setSelectedIdx(Number(e.target.value))}
+					className="w-full appearance-none bg-surface-2 border border-line rounded-xl pl-3.5 pr-9 py-2.5 text-sm font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-brand/30"
+				>
+					{matchdays.map((md, i) => (
+						<option key={md.id} value={i}>
+							{matchdayLabel(md, t)}
+						</option>
+					))}
+				</select>
+				<ChevronDown
+					size={16}
+					className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-ink-3"
+				/>
 			</div>
 
 			{/* Banner de actualización reciente */}

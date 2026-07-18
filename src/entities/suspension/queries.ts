@@ -20,6 +20,7 @@ import type { ListQuery } from "@/shared/lib/list-query";
 import { buildWhere, buildOrderBy } from "@/shared/lib/list-query";
 import { sanitizeToCanonical } from "@/shared/lib/normalize";
 import { orgSuspensionFilters } from "./filters";
+import { isSuspensionActive } from "./lib/is-suspension-active";
 import type {
 	DisciplinePlayerSearchResult,
 	GlobalSuspensionListItemDto,
@@ -129,6 +130,71 @@ export async function listSuspensionsByLeagueDetailed(
 		.orderBy(desc(suspensions.createdAt));
 
 	return rows;
+}
+
+/** Fila pública de sancionados — sin campos internos (recordedBy, sourceMatchId). */
+export type PublicSuspensionListItem = Pick<
+	SuspensionDto,
+	| "id"
+	| "reason"
+	| "reasonDetail"
+	| "durationType"
+	| "matchesTotal"
+	| "matchesServed"
+	| "durationValue"
+	| "durationUnit"
+	| "endsOn"
+	| "status"
+> & { playerName: string; teamName: string };
+
+/**
+ * Sancionados VIGENTES de una liga para la página pública — a diferencia de
+ * `listSuspensionsByLeagueDetailed` (admin, historial completo), esto:
+ *  1. Solo trae `status = 'active'` en DB (excluye 'served'/'lifted').
+ *  2. Filtra en JS con `isSuspensionActive` porque 'active' + duration_type
+ *     'time' puede ya estar vencida (nada la voltea sola — ver esa función).
+ *  3. Expone solo lo mínimo para acceso público (nombre, equipo, motivo,
+ *     duración restante) — nunca `recordedBy`/`sourceMatchId`.
+ */
+export async function getPublicActiveSuspensions(
+	leagueId: string,
+	client: DbOrTx = db,
+): Promise<PublicSuspensionListItem[]> {
+	const rows = await client
+		.select({
+			...SUSPENSION_DTO_COLUMNS,
+			playerName: globalPlayers.fullName,
+			teamName: teams.name,
+		})
+		.from(suspensions)
+		.innerJoin(globalPlayers, eq(suspensions.globalPlayerId, globalPlayers.id))
+		.innerJoin(
+			leagueMembers,
+			and(eq(leagueMembers.globalPlayerId, globalPlayers.id), eq(leagueMembers.leagueId, leagueId)),
+		)
+		.innerJoin(inscriptions, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.innerJoin(teams, eq(teams.id, inscriptions.teamId))
+		.where(and(eq(suspensions.leagueId, leagueId), eq(suspensions.status, "active")))
+		.orderBy(desc(suspensions.createdAt));
+
+	const todayIso = new Date().toISOString().slice(0, 10);
+
+	return rows
+		.filter((r) => isSuspensionActive(r, todayIso))
+		.map((r) => ({
+			id: r.id,
+			reason: r.reason,
+			reasonDetail: r.reasonDetail,
+			durationType: r.durationType,
+			matchesTotal: r.matchesTotal,
+			matchesServed: r.matchesServed,
+			durationValue: r.durationValue,
+			durationUnit: r.durationUnit,
+			endsOn: r.endsOn,
+			status: r.status,
+			playerName: r.playerName,
+			teamName: r.teamName,
+		}));
 }
 
 /**

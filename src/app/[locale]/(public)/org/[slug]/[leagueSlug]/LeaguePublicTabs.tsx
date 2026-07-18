@@ -3,18 +3,18 @@
 /**
  * app/(public)/org/[slug]/[leagueSlug]/LeaguePublicTabs.tsx
  *
- * Tabs: Tabla | Goleadores | Jornada | Fase Final.
+ * Tabs: Tabla | Goleadores | Jornada | Fase Final | Sancionados.
  */
 
 import { useState } from "react";
-import { Trophy, Target, CalendarDays, Swords } from "lucide-react";
+import { Trophy, Target, CalendarDays, Swords, ShieldAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { PublicMatchday } from "@/entities/organization";
 import MatchdayPublicView from "./MatchdayPublicView";
 import { PublicBracketView } from "./PublicBracketView";
 import type { PublicBracket } from "./PublicBracketView";
 
-type Tab = "tabla" | "goleadores" | "jornada" | "playoffs";
+type Tab = "tabla" | "goleadores" | "jornada" | "playoffs" | "sancionados";
 
 type Props = {
 	schedulingEnabled: boolean;
@@ -22,6 +22,15 @@ type Props = {
 	standingsSection: React.ReactNode;
 	scorersSection: React.ReactNode;
 	brackets: PublicBracket[];
+	suspensionsSection: React.ReactNode;
+	hasSuspensions: boolean;
+	/**
+	 * Tab con la que se debe abrir esta vista. La paginación/búsqueda de
+	 * goleadores navega con `?tab=goleadores&page=N&q=...` (Links/router,
+	 * SSR) — sin esto, cada click en "siguiente página" recargaría la
+	 * pantalla de vuelta al tab "Tabla".
+	 */
+	initialTab?: Tab;
 };
 
 export default function LeaguePublicTabs({
@@ -30,11 +39,14 @@ export default function LeaguePublicTabs({
 	standingsSection,
 	scorersSection,
 	brackets,
+	suspensionsSection,
+	hasSuspensions,
+	initialTab = "tabla",
 }: Props) {
 	const t = useTranslations("org");
 	const showJornada = schedulingEnabled && matchdays.length > 0;
 	const showPlayoffs = brackets.length > 0;
-	const [activeTab, setActiveTab] = useState<Tab>("tabla");
+	const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
 	const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
 		{ id: "tabla", label: t("league.tabs.standings"), icon: <Trophy size={14} strokeWidth={2} /> },
@@ -61,19 +73,31 @@ export default function LeaguePublicTabs({
 					},
 				]
 			: []),
+		...(hasSuspensions
+			? [
+					{
+						id: "sancionados" as Tab,
+						label: t("league.tabs.suspended"),
+						icon: <ShieldAlert size={14} strokeWidth={2} />,
+					},
+				]
+			: []),
 	];
 
 	return (
 		<div className="flex flex-col gap-5">
-			{/* Tab bar */}
-			<div className="flex gap-1 bg-surface-2 p-1 rounded-xl border border-line">
+			{/* Tab bar — ancho natural (shrink-0) + scroll horizontal en vez de
+			    flex-1 a partes iguales: con 5 tabs, forzar el mismo ancho hacía
+			    que "Fase Final"/"Sancionados" envolvieran texto y se viera
+			    apretado en mobile. */}
+			<div className="flex gap-1 bg-surface-2 p-1 rounded-xl border border-line overflow-x-auto scrollbar-hide">
 				{tabs.map((tab) => {
 					const isActive = activeTab === tab.id;
 					return (
 						<button
 							key={tab.id}
 							onClick={() => setActiveTab(tab.id)}
-							className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-semibold transition-colors ${
+							className={`shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-colors ${
 								isActive
 									? "bg-surface text-ink border border-line shadow-sm"
 									: "text-ink-3 hover:text-ink-2"
@@ -91,6 +115,7 @@ export default function LeaguePublicTabs({
 			{activeTab === "goleadores" && scorersSection}
 			{activeTab === "jornada" && showJornada && <MatchdayPublicView matchdays={matchdays} />}
 			{activeTab === "playoffs" && showPlayoffs && <PublicBracketView brackets={brackets} />}
+			{activeTab === "sancionados" && hasSuspensions && suspensionsSection}
 		</div>
 	);
 }

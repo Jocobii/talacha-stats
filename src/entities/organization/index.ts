@@ -23,7 +23,7 @@ export {
 	getPublicOrganization,
 	getPublicLeague,
 	getLatestStandings,
-	getLatestTopScorers,
+	searchTopScorers,
 	getStandingsHistory,
 	getPublicMatchdays,
 	getLeagueZones,
@@ -55,6 +55,7 @@ export type {
 	PublicMatchInfo,
 	PublicZone,
 	LeagueWithTeamCount,
+	TopScorerRow,
 } from "./queries";
 
 // Tema visual (docs/ORG-THEMING.md)
