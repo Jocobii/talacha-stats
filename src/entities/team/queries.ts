@@ -96,8 +96,12 @@ export async function getTeamRoster(teamId: string): Promise<RosterEntry[]> {
 //
 // Espejo de listOrgPlayers/countOrgPlayers (entities/player/queries.ts).
 // Contrato ListQuery: filtros/orden llegan ya normalizados desde
-// parseListQuery en la page. Sin columna "estado" (decisión de diseño, ver
-// mockup) — el filtro de equipo disuelto queda fuera de esta pantalla.
+// parseListQuery en la page.
+//
+// "estado" (active/disbanded) es filtrable, pero a diferencia de jugadores
+// tiene un default explícito: si la URL no trae ?estado=, solo se muestran
+// equipos activos (decisión de producto — un equipo disuelto es "ruido" en
+// el día a día). El usuario puede pedir disbanded/ambos explícitamente.
 // ---------------------------------------------------------------------------
 
 export type OrgTeamRow = {
@@ -106,6 +110,7 @@ export type OrgTeamRow = {
 	leagueId: string;
 	leagueName: string;
 	playerCount: number;
+	status: string;
 };
 
 export async function listOrgTeams(
@@ -113,12 +118,16 @@ export async function listOrgTeams(
 	query: ListQuery,
 ): Promise<{ rows: OrgTeamRow[]; total: number }> {
 	const filterWhere = buildWhere(orgTeamFilters, query.filters);
+	const hasEstadoFilter = query.filters.some((f) => f.field === "estado");
 	// El scope de negocio (organización) se combina aparte — nunca es un filtro de usuario.
 	// Solo equipos de ligas activas: las de ligas terminadas son histórico y no
 	// aplican al día a día de este listado (se consultan liga por liga).
+	// Default "solo activos" cuando el usuario no pidió un estado explícito —
+	// ver comentario arriba.
 	const where = and(
 		eq(leagues.organizationId, organizationId),
 		eq(leagues.status, "active"),
+		hasEstadoFilter ? undefined : eq(teams.status, "active"),
 		filterWhere,
 	);
 	const offset = (query.page - 1) * query.pageSize;
@@ -134,6 +143,7 @@ export async function listOrgTeams(
 			name: sql<string>`${teams.name}`.as("team_name"),
 			leagueId: teams.leagueId,
 			leagueName: sql<string>`${leagues.name}`.as("league_name"),
+			status: teams.status,
 			playerCount: sql<number>`COUNT(DISTINCT ${inscriptions.leagueMemberId})::int`.as(
 				"player_count",
 			),
@@ -164,6 +174,7 @@ export async function listOrgTeams(
 			leagueId: r.leagueId,
 			leagueName: r.leagueName,
 			playerCount: r.playerCount,
+			status: r.status,
 		})),
 		total: countResult[0]?.total ?? 0,
 	};
@@ -199,7 +210,13 @@ export async function countOrgTeams(organizationId: string): Promise<number> {
 		.select({ total: sql<number>`COUNT(*)::int` })
 		.from(teams)
 		.innerJoin(leagues, eq(leagues.id, teams.leagueId))
-		.where(and(eq(leagues.organizationId, organizationId), eq(leagues.status, "active")));
+		.where(
+			and(
+				eq(leagues.organizationId, organizationId),
+				eq(leagues.status, "active"),
+				eq(teams.status, "active"),
+			),
+		);
 	return rows[0]?.total ?? 0;
 }
 
@@ -229,8 +246,10 @@ export async function listAllTeams(opts: {
 	const { page, pageSize, search } = opts;
 	// Solo equipos de ligas activas — mismo criterio que listOrgTeams: las
 	// terminadas quedan como histórico, fuera de este listado de día a día.
+	// Solo equipos activos: los disueltos no deben aparecer aquí (ver listOrgTeams).
 	const whereFilter = and(
 		eq(leagues.status, "active"),
+		eq(teams.status, "active"),
 		search ? ilike(teams.name, `%${search}%`) : undefined,
 	);
 

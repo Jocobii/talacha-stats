@@ -38,6 +38,16 @@ export const ORG_TEAM_COLUMNS: AdminTableColumn<OrgTeamRow>[] = [
 		render: (t) => <TeamCell name={t.name} />,
 	},
 	{
+		key: "status",
+		label: "Estado",
+		render: (t) =>
+			t.status === "disbanded" ? (
+				<Badge tone="danger">Disuelto</Badge>
+			) : (
+				<Badge tone="brand">Activo</Badge>
+			),
+	},
+	{
 		key: "playerCount",
 		label: "Jugadores",
 		align: "right",

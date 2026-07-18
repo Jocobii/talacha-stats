@@ -150,11 +150,14 @@ export async function getLeagueStandings(leagueId: string): Promise<TeamStanding
 	]);
 
 	// ── Prioridad 1: snapshots Excel ──────────────────────────────────────────
-	const snapshots = await db.query.teamStandingsSnapshot.findMany({
+	const allSnapshots = await db.query.teamStandingsSnapshot.findMany({
 		where: eq(teamStandingsSnapshot.leagueId, leagueId),
 		orderBy: [desc(teamStandingsSnapshot.jornada), desc(teamStandingsSnapshot.points)],
 		with: { team: true, league: true },
 	});
+	// Excluye equipos disueltos: el snapshot histórico se conserva, pero un
+	// equipo disuelto no debe seguir apareciendo en la tabla de posiciones.
+	const snapshots = allSnapshots.filter((s) => s.team.status === "active");
 
 	if (snapshots.length > 0) {
 		const latestJornada = snapshots[0].jornada;

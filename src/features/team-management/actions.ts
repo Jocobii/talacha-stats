@@ -32,28 +32,38 @@ export async function updateTeamInfo(id: string, data: UpdateTeamData): Promise<
 }
 
 /**
- * Disuelve un equipo: elimina todas las inscriptions (jugadores quedan libres).
- * NO elimina el registro del equipo para preservar historial de partidos y estadisticas.
- * TODO: agregar columna deleted_at a teams cuando se requiera filtrado.
+ * Disuelve un equipo: marca el equipo como 'disbanded' y elimina todas las
+ * inscriptions (jugadores quedan libres). NO elimina el registro del equipo
+ * para preservar historial de partidos y estadisticas.
+ *
+ * Endpoint único de disolución — ver app/api/teams/[id]/route.ts (DELETE).
+ * Devuelve el número de jugadores liberados, para feedback en la UI.
  */
-export async function dissolveTeam(teamId: string): Promise<void> {
-	await db.transaction(async (tx) => {
+export async function dissolveTeam(teamId: string): Promise<{ freedPlayers: number }> {
+	return db.transaction(async (tx) => {
 		// 1. Obtener inscriptions del equipo
 		const teamInscriptions = await tx
 			.select({ leagueMemberId: inscriptions.leagueMemberId })
 			.from(inscriptions)
 			.where(eq(inscriptions.teamId, teamId));
 
-		// 2. Eliminar inscriptions — los jugadores quedan como agente libre en la liga
+		// 2. Marcar el equipo como disuelto — sin esto queda "active" para
+		// siempre y sigue apareciendo en tabla de posiciones, módulo de
+		// equipos y sorteo pese a estar "eliminado".
+		await tx.update(teams).set({ status: "disbanded" }).where(eq(teams.id, teamId));
+
+		// 3. Eliminar inscriptions — los jugadores quedan como agente libre en la liga
 		await tx.delete(inscriptions).where(eq(inscriptions.teamId, teamId));
 
-		// 3. Marcar leagueMembers como inactivos
+		// 4. Marcar leagueMembers como inactivos
 		for (const { leagueMemberId } of teamInscriptions) {
 			await tx
 				.update(leagueMembers)
 				.set({ status: "inactive" })
 				.where(eq(leagueMembers.id, leagueMemberId));
 		}
+
+		return { freedPlayers: teamInscriptions.length };
 	});
 }
 

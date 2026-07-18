@@ -59,9 +59,12 @@ export function TeamsSection({ leagueId, teams: initialTeams }: Props) {
 		setLoading(true);
 
 		try {
+			// Endpoint único de disolución de equipo (ver DeleteTeamSection para la
+			// variante con confirmación por nombre). Este flujo ya confirma con el
+			// ConfirmDialog de abajo, así que manda el nombre del equipo directo.
 			const result = await apiFetch<{ teamName: string; freedPlayers: number }>(
-				`/api/leagues/${leagueId}/teams/${confirmId}/disband`,
-				{ method: "POST" },
+				`/api/teams/${confirmId}`,
+				{ method: "DELETE", body: { confirm: confirmTeam?.name } },
 			);
 
 			if (!result.ok) {
