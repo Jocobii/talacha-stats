@@ -47,12 +47,13 @@ describe("BOOTSTRAP_CONTRIBUTORS", () => {
 });
 
 describe("CASCADE_CONTRIBUTORS", () => {
-	it("está en orden topológico válido (calendar, matchplay, aggregates, discipline)", () => {
+	it("está en orden topológico válido (calendar, matchplay, aggregates, discipline, playoffs)", () => {
 		expect(CASCADE_CONTRIBUTORS.map((c) => c.name)).toEqual([
 			"calendar",
 			"matchplay",
 			"aggregates",
 			"discipline",
+			"playoffs",
 		]);
 	});
 });
@@ -68,6 +69,7 @@ describe("FULL_RUN_CONTRIBUTORS", () => {
 			"matchplay",
 			"aggregates",
 			"discipline",
+			"playoffs",
 		]);
 	});
 });
