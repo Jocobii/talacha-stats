@@ -384,6 +384,43 @@ POST   /api/[recurso]/[accion]      → acción especial (ej: /merge, /confirm, 
   - Reserva `useEffect` para sincronizar con sistemas externos (escribir a localStorage, suscripciones, DOM). Llamar `setState` solo dentro de un **callback** de evento o de suscripción, nunca en el cuerpo del efecto.
   - Referencia: https://react.dev/learn/you-might-not-need-an-effect
 
+### 7.2a Sistema de composición de UI — obligatorio para código nuevo
+
+> Detalle, racional, escalas exactas y plan de migración del código legacy en
+> `docs/FRONTEND-UI-REFACTOR-PLAN.md`. Esto es el contrato corto: **toda UI nueva se
+> arma componiendo estos primitivos — nunca `style={{}}` de layout/tipografía ni
+> `<div>` cableado a mano.**
+
+- **Layout → `Stack`/`Inline`/`Grid`/`Center`/`Box`/`Spacer`** (`@/shared/ui/layout`).
+  Flex/grid/gap/padding/align se expresan con props (`gap="md"`, `align="center"`), no
+  con `style={{display:"flex", gap:16}}`. Escala de `gap`/`pad` en
+  `shared/ui/layout/scales.ts` — no inventar valores fuera de ahí.
+- **Texto → `Typography`** (`@/shared/ui`). Un componente, prop `variant`
+  (`display`/`h2`/`h3`/`h4`/`lead`/`body`/`bodySm`/`caption`) resuelve tag semántico +
+  tamaño + peso + fuente juntos. `weight`/`tone`/`as`/`truncate` para ajustes puntuales.
+  Nunca `text-[Npx]` ni `style={{fontFamily:"var(--font-display)"}}` a mano.
+- **Tarjetas → `Card` + slots `Card.Header`/`Card.Body`/`Card.Footer`** (`@/shared/ui`).
+  `Section`/`Panel` para agrupar bloques con título+acciones sin armar el header a mano.
+- **Pantallas → `PageShell`** (`@/shared/ui`) con slots `header` (normalmente
+  `PageHeader`), `toolbar` (normalmente `LeagueTabBar`/`OrgTabBar`), `children` y
+  `aside` opcional. Así se arma una pantalla admin nueva (ver `docs/FRONTEND-UI-REFACTOR-PLAN.md` §6).
+- **`className` externo siempre gana** — todos estos componentes usan `cn()`
+  (`@/shared/lib/cn`, envuelve `tailwind-merge`), así que pasar `className="h-12"` a un
+  `Button` sobreescribe su altura por default sin pelear con el orden de clases.
+- **Excepción — features con lenguaje visual propio (ej. `sorteo-cockpit`).** Algunas
+  UIs usan CSS vars directas en vez de tokens Tailwind a propósito (documentado en
+  cada archivo, ej. comentario en `SorteoRequirements.tsx`). Ahí los primitivos de
+  **layout** (`Stack`/`Inline`/`Center`/`Grid`) igual aplican — layout es layout — pero
+  colores/fuentes se quedan como `style` con `var(--color-*)`. No forzar esos archivos
+  a `Typography`/tokens Tailwind de color sin discutirlo primero.
+- **`style` inline solo para valores dinámicos calculados** que no existen como clase
+  Tailwind (`width: ${pct}%`, `transform: translateX(${x}px)`, posiciones absolutas
+  calculadas) — nunca para layout o tipografía expresable con los primitivos de arriba.
+- Antes de escribir un `<div>` de layout o un `<h1>`/`<p>` con tamaño a mano, revisa si
+  ya existe el primitivo. Si falta un caso legítimo (nuevo `gap`, nueva `variant` de
+  `Typography`), amplía la escala/el componente en `shared/ui/` — no lo resuelvas
+  local con `style` o clases sueltas.
+
 ### 7.2b Feedback obligatorio en toda mutación (regla no negociable)
 
 **Toda acción que guarda, actualiza, elimina o crea algo — sin excepción — debe mostrarle feedback al usuario.** Nunca una mutación silenciosa: ni éxito mudo ni error tragado.
@@ -558,6 +595,7 @@ Las variables `SESSION_SECRET`, `DATABASE_URL`, `SETUP_SECRET` solo existen en `
 - [ ] ¿Las nuevas dependencias no tienen CVEs HIGH/CRITICAL sin fix?
 - [ ] ¿Si agregué algo a `.trivyignore`, tiene comentario de justificación?
 - [ ] ¿Toda mutación (guardar/actualizar/eliminar/crear) muestra `notify.success`/`notify.error` al usuario? (§7.2b)
+- [ ] ¿La UI nueva usa `Stack/Inline/Grid/Center/Box`, `Typography` y `Card`/`Section`/`Panel`/`PageShell` en vez de `style={{}}` de layout/tipografía a mano? (§7.2a)
 - [ ] ¿Usé early returns y me mantuve en ≤ 3 niveles de indentación? (§18.1–18.2)
 - [ ] ¿Todo `try/catch` maneja o re-propaga el error explícitamente? (§18.4)
 - [ ] ¿El código nuevo expone `XView` a la UI vía mapper, no el DTO crudo? (§19)
