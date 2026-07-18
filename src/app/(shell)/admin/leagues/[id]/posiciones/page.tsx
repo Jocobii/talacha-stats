@@ -15,7 +15,7 @@ import { notFound } from "next/navigation";
 import { eq, asc } from "drizzle-orm";
 import { serverFetch } from "@/shared/lib/server-fetch";
 import { db } from "@/db";
-import { leaguePlayoffZones } from "@/db/schema";
+import { leaguePlayoffZones, leagueVenues, teams } from "@/db/schema";
 import { ShareStandingsButton } from "./ShareStandingsButton";
 import { findZone, isZoneStart, getZoneTokens } from "@/shared/lib/zone-colors";
 import type { ZoneInfo } from "@/shared/lib/zone-colors";
@@ -70,9 +70,27 @@ export default async function PosicionesPage({ params }: { params: Promise<{ id:
 	}));
 
 	if (isLeagueEmpty) {
+		// Checklist de arranque: cancha/horario y equipos son los dos requisitos
+		// para que la liga pueda operar (sorteo, jornadas). Se resuelven aquí en
+		// paralelo, no en LeagueEmptyState, que se queda puramente presentacional.
+		const [venueAssigned, leagueTeams] = await Promise.all([
+			db.query.leagueVenues.findFirst({
+				where: eq(leagueVenues.leagueId, id),
+				columns: { leagueId: true },
+			}),
+			db.query.teams.findMany({
+				where: eq(teams.leagueId, id),
+				columns: { id: true },
+			}),
+		]);
+
 		return (
 			<div className="bg-surface rounded-lg shadow overflow-hidden">
-				<LeagueEmptyState />
+				<LeagueEmptyState
+					leagueId={id}
+					hasVenue={!!venueAssigned}
+					teamsCount={leagueTeams.length}
+				/>
 			</div>
 		);
 	}

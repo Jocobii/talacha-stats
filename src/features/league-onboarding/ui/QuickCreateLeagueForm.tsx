@@ -26,8 +26,8 @@ import {
 	DAYS,
 	defaultSeason,
 } from "../model/league-form-schema";
+import { useToast } from "@/shared/hooks/use-toast";
 import { useCreateLeague, type CreatedLeague } from "../model/useCreateLeague";
-import { StepVenueSchedule } from "./StepVenueSchedule";
 
 type Organization = { id: string; name: string; city: string };
 
@@ -79,6 +79,7 @@ function readInitialDraft(): DraftValues {
 export function QuickCreateLeagueForm({ organizations, defaultOrganizationId }: Props) {
 	const router = useRouter();
 	const createLeague = useCreateLeague();
+	const toast = useToast();
 
 	// defaultValues calculados una sola vez (lazy) — incluye borrador + org.
 	const [defaults] = useState(() => {
@@ -142,30 +143,10 @@ export function QuickCreateLeagueForm({ organizations, defaultOrganizationId }: 
 					/* no-op */
 				}
 				setConfirming(false);
-				// El módulo de liga ya no ofrece el wizard de equipos/jugadores — esa
-				// responsabilidad vive en el módulo de Equipos, que pregunta la liga
-				// al crear (decisión Jocobi, jul 2026). En vez de aterrizar directo,
-				// se pregunta cancha + horario (StepVenueSchedule) para ahorrar tiempo.
-				setCreatedLeague(data.league);
+				toast.success(`Liga "${data.league.name}" creada.`);
+				router.push(`/admin/leagues/${data.league.id}`);
 			},
 		});
-	}
-
-	// Liga ya creada: paso 2 (cancha + horario) antes de aterrizar en la liga.
-	if (createdLeague) {
-		return (
-			<div className="max-w-lg">
-				<StepVenueSchedule
-					league={{
-						id: createdLeague.id,
-						organizationId: createdLeague.organizationId ?? "",
-						name: createdLeague.name,
-						dayOfWeek: createdLeague.dayOfWeek,
-					}}
-					onDone={() => router.push(`/admin/leagues/${createdLeague.id}`)}
-				/>
-			</div>
-		);
 	}
 
 	return (

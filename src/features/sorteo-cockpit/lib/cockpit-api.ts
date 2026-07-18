@@ -15,6 +15,7 @@ type CurrentResponse = {
 	suggestedNextDate: string | null;
 	totalMatchdays: number;
 	leagueName: string;
+	teamsCount: number;
 	venues: VenueOption[];
 	config: CockpitConfig | null;
 };

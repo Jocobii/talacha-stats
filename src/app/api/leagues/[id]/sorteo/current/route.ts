@@ -12,6 +12,7 @@ import {
 	leagues,
 	matchdays,
 	matches,
+	teams,
 	leagueSchedulingConfig,
 	leagueVenues,
 	venues,
@@ -44,7 +45,7 @@ export async function GET(request: Request, { params }: Params) {
 	if (!league.schedulingEnabled) return apiError("Módulo de sorteo no habilitado", 400);
 	if (!canManageLeague(session, league.organizationId ?? null)) return apiError("Sin permiso", 403);
 
-	const [config, activeDays] = await Promise.all([
+	const [config, activeDays, teamsCountRow] = await Promise.all([
 		db.query.leagueSchedulingConfig.findFirst({
 			where: eq(leagueSchedulingConfig.leagueId, id),
 		}),
@@ -58,7 +59,9 @@ export async function GET(request: Request, { params }: Params) {
 			columns: { id: true, number: true, scheduledDate: true, status: true },
 			limit: 1,
 		}),
+		db.select({ total: count() }).from(teams).where(eq(teams.leagueId, id)),
 	]);
+	const teamsCount = teamsCountRow[0]?.total ?? 0;
 
 	const currentMatchday = activeDays[0] ?? null;
 
@@ -150,6 +153,7 @@ export async function GET(request: Request, { params }: Params) {
 		suggestedNextDate,
 		totalMatchdays: config?.regularMatchdays ?? 0,
 		leagueName: league.name,
+		teamsCount,
 		venues: venuesOut,
 		config: config
 			? {

@@ -40,6 +40,7 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 	const [matchday, setMatchday] = useState<CockpitMatchday | null>(null);
 	const [totalMatchdays, setTotalMatchdays] = useState(0);
 	const [leagueName, setLeagueName] = useState("");
+	const [teamsCount, setTeamsCount] = useState(0);
 	const [config, setConfig] = useState<CockpitConfig | null>(null);
 	const [venues, setVenues] = useState<import("../types").VenueOption[]>([]);
 	const [teams, setTeams] = useState<import("../types").TeamWithAttendance[]>([]);
@@ -87,6 +88,7 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 						setMatchday(fresh.matchday);
 						setTotalMatchdays(fresh.totalMatchdays);
 						setLeagueName(fresh.leagueName);
+						setTeamsCount(fresh.teamsCount);
 						setVenues(fresh.venues);
 						setConfig(fresh.config);
 						// Cargar el roster de la jornada recién creada
@@ -103,6 +105,7 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 			setMatchday(data.matchday);
 			setTotalMatchdays(data.totalMatchdays);
 			setLeagueName(data.leagueName);
+			setTeamsCount(data.teamsCount);
 			setVenues(data.venues);
 			setConfig(data.config);
 
@@ -335,6 +338,7 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 		matchday,
 		totalMatchdays,
 		leagueName,
+		teamsCount,
 		config,
 		venues,
 		teams,

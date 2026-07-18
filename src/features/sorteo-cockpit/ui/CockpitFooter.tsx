@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, Send } from "lucide-react";
+import { Eye, Send, Check } from "lucide-react";
 import Link from "next/link";
 import { NEXT_STEP_TEXT } from "../constants";
 import type { MatchdayStatus } from "../types";
@@ -40,6 +40,7 @@ export function CockpitFooter({
 }: CockpitFooterProps) {
 	const key = stepKey(status, hasMatches);
 	const label = ctaLabel(status, hasMatches, matchdayNumber);
+	const stepDone = hasMatches;
 	return (
 		<footer
 			style={{
@@ -62,13 +63,13 @@ export function CockpitFooter({
 						borderRadius: 6,
 						display: "grid",
 						placeItems: "center",
-						background: "var(--tint-brand)",
-						color: "var(--color-brand-ink)",
+						background: stepDone ? "var(--color-brand)" : "var(--tint-brand)",
+						color: stepDone ? "var(--color-pitch)" : "var(--color-brand-ink)",
 						fontWeight: 700,
 						fontSize: 11,
 					}}
 				>
-					3
+					{stepDone ? <Check size={12} strokeWidth={3} /> : 3}
 				</span>
 				<span style={{ color: "var(--color-ink-2)" }}>Próximo paso —</span>
 				<span style={{ color: "var(--color-ink)", fontWeight: 600 }}>{NEXT_STEP_TEXT[key]}</span>
