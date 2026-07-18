@@ -1,5 +1,7 @@
 "use client";
 
+import { Inline, Center } from "@/shared/ui/layout";
+
 type ParamRowProps = {
 	icon: React.ReactNode;
 	label: string;
@@ -20,38 +22,34 @@ export function ParamRow({
 	onChange,
 }: ParamRowProps) {
 	return (
-		<div
+		<Inline
+			align="start"
+			gap="md"
+			className="rounded-lg p-3"
 			style={{
-				display: "flex",
-				alignItems: "flex-start",
-				gap: 12,
-				padding: 12,
-				borderRadius: 8,
 				background: highlight ? "rgba(0,230,118,0.04)" : "var(--color-surface-2)",
 				border: `1px solid ${highlight ? "rgba(0,230,118,0.22)" : "var(--color-line)"}`,
 			}}
 		>
-			<div
+			<Center
+				className="h-7 w-7 shrink-0 rounded-md"
 				style={{
-					width: 28,
-					height: 28,
-					borderRadius: 6,
-					flexShrink: 0,
 					background: highlight ? "rgba(0,230,118,0.14)" : "var(--color-pitch)",
 					color: highlight ? "var(--color-brand)" : "var(--color-ink-2)",
-					display: "grid",
-					placeItems: "center",
 				}}
 			>
 				{icon}
-			</div>
-			<div style={{ flex: 1, minWidth: 0 }}>
+			</Center>
+			<div className="min-w-0 flex-1">
 				<div style={{ fontSize: 13, color: "var(--color-ink)", fontWeight: 500 }}>{label}</div>
-				<div style={{ fontSize: 11, color: "var(--color-ink-3)", marginTop: 3, lineHeight: 1.4 }}>
+				<div
+					className="mt-[3px]"
+					style={{ fontSize: 11, color: "var(--color-ink-3)", lineHeight: 1.4 }}
+				>
 					{help}
 				</div>
 			</div>
-			<div style={{ display: "flex", alignItems: "baseline", gap: 5, flexShrink: 0 }}>
+			<Inline gap="xs" className="shrink-0 items-baseline">
 				<input
 					type="number"
 					min={1}
@@ -71,7 +69,7 @@ export function ParamRow({
 					}}
 				/>
 				<span style={{ fontSize: 11, color: "var(--color-ink-3)" }}>{unit}</span>
-			</div>
-		</div>
+			</Inline>
+		</Inline>
 	);
 }

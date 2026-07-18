@@ -336,11 +336,21 @@ Con los primitivos listos, migrar el resto **por feature**, en orden de concentr
       **Lote 1 (2/21) hecho:** `CockpitPage.tsx` (loading/error/wrapper/grid principal,
       delays de animación pasados a clases arbitrarias `[animation-delay:Nms]`) y
       `SorteoRequirements.tsx` (hero + `RequirementRow`) migrados a `Stack`/`Inline`/`Center`.
+      **Lote 2 (2/21) hecho:** `CockpitFooter.tsx` y `CockpitTopBar.tsx` migrados a
+      `Inline`/`Center` (`as="footer"`/`as="header"` para conservar el tag semántico).
+      **Lote 3 (3/21) hecho:** `ParamRow.tsx`, `ParamCheckboxRow.tsx` (mismo patrón:
+      fila `Inline` + icono `Center` de tamaño exacto en tokens — `h-7 w-7 rounded-md`
+      para 28px/6px) y `DatePickerDay.tsx` (solo `h-7 rounded-md cursor-pointer`; el
+      resto son colores condicionales por estado, se quedan en `style` a propósito).
+      **Lote 4 (3/21) hecho:** `ContextPanel.tsx` (`MatchdayTimeline` + boxes de info/
+      canchas/config, `SetupRow` con className compartido para `Link`/`button`),
+      `DescansosTab.tsx` (`AbsentCard` + formulario) y `CockpitDatePicker.tsx` (trigger +
+      popover, grids de días a `grid-cols-7`) migrados a `Stack`/`Inline`/`Center`.
       Colores/fuentes se quedaron en CSS vars a propósito (mismo criterio de Fase 1/2).
-      Restan 19: `ShuffleOverlay`, `CockpitDatePicker`, `DatePickerDay`, `CockpitFooter`,
-      `SorteoPanel`, `PairingRow`, `ConfettiBurst`, `ParametrosWizard`, `ParametrosTab`,
-      `ParamCheckboxRow`, `CanchasTab`, `CockpitTopBar`, `ContextPanel`, `DescansosTab`,
-      `ParamRow`, `RosterPanel`, `SettingsDrawer`, `SlotsFijosTab`, `AddPairingModal`.
+      Restan 11: `ShuffleOverlay`, `SorteoPanel`,
+      `PairingRow`, `ConfettiBurst`, `ParametrosWizard`, `ParametrosTab`,
+      `CanchasTab`,
+      `RosterPanel`, `SettingsDrawer`, `SlotsFijosTab`, `AddPairingModal`.
 - [ ] `app/*` y `shared/*` sueltos (59) — headers, layouts, páginas.
 - [ ] `venue-calendar` (6), `org-theming` (3), `league-onboarding` (3).
 - [ ] Cola larga (1–2 c/u): `tournament-rules`, `team-management`, `narrator-analysis`, resto.

@@ -19,6 +19,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Inline } from "@/shared/ui/layout";
 import {
 	buildMonthGrid,
 	isSameDay,
@@ -93,15 +94,11 @@ export function CockpitDatePicker({ value, onChange, disabled }: CockpitDatePick
 				type="button"
 				onClick={() => !disabled && setOpen((o) => !o)}
 				disabled={disabled}
+				className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2"
 				style={{
-					display: "inline-flex",
-					alignItems: "center",
-					gap: 8,
 					background: "var(--color-surface-2)",
 					border: `1px solid ${open ? "var(--color-brand)" : "var(--color-line)"}`,
 					color: value ? "var(--color-ink)" : "var(--color-ink-3)",
-					borderRadius: 8,
-					padding: "8px 14px",
 					fontSize: 14,
 					fontFamily: "inherit",
 					cursor: disabled ? "not-allowed" : "pointer",
@@ -116,70 +113,43 @@ export function CockpitDatePicker({ value, onChange, disabled }: CockpitDatePick
 				createPortal(
 					<div
 						ref={panelRef}
-						className="vcal-popover-enter"
+						className="vcal-popover-enter z-[100] w-[260px] rounded-[10px] p-3"
 						style={{
 							position: "fixed",
 							top: rect.top,
 							left: rect.left,
-							zIndex: 100,
-							width: 260,
 							background: "var(--color-surface)",
 							color: "var(--color-ink)",
 							border: "1px solid var(--color-line)",
-							borderRadius: 10,
 							boxShadow: "0 12px 30px rgba(0,0,0,0.45)",
-							padding: 12,
 							fontFamily: "var(--font-body)",
 						}}
 					>
-						<div
-							style={{
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "space-between",
-								marginBottom: 10,
-							}}
-						>
-							<button
-								type="button"
-								className="btn-ghost"
-								style={{ padding: "4px 8px" }}
-								onClick={() => goToMonth(-1)}
-							>
+						<Inline align="center" justify="between" className="mb-2.5">
+							<button type="button" className="btn-ghost px-2 py-1" onClick={() => goToMonth(-1)}>
 								<ChevronLeft size={13} />
 							</button>
 							<span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14 }}>
 								{MONTH_LABELS[viewMonth]} {viewYear}
 							</span>
-							<button
-								type="button"
-								className="btn-ghost"
-								style={{ padding: "4px 8px" }}
-								onClick={() => goToMonth(1)}
-							>
+							<button type="button" className="btn-ghost px-2 py-1" onClick={() => goToMonth(1)}>
 								<ChevronRight size={13} />
 							</button>
-						</div>
+						</Inline>
 
-						<div
-							style={{
-								display: "grid",
-								gridTemplateColumns: "repeat(7,1fr)",
-								gap: 2,
-								marginBottom: 4,
-							}}
-						>
+						<div className="mb-1 grid grid-cols-7 gap-0.5">
 							{WEEKDAY_LABELS.map((w) => (
 								<span
 									key={w}
-									style={{ fontSize: 10, textAlign: "center", color: "var(--color-ink-3)" }}
+									className="text-center"
+									style={{ fontSize: 10, color: "var(--color-ink-3)" }}
 								>
 									{w}
 								</span>
 							))}
 						</div>
 
-						<div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2 }}>
+						<div className="grid grid-cols-7 gap-0.5">
 							{buildMonthGrid(viewYear, viewMonth).map((day) => (
 								<DatePickerDay
 									key={day.iso}

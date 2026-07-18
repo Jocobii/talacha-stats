@@ -20,9 +20,8 @@ export function DatePickerDay({ day, isSelected, isToday, onPick }: DatePickerDa
 		<button
 			type="button"
 			onClick={() => onPick(day)}
+			className="h-7 cursor-pointer rounded-md"
 			style={{
-				height: 28,
-				borderRadius: 6,
 				fontSize: 12,
 				fontFamily: "inherit",
 				border: isToday && !isSelected ? "1px solid var(--tint-brand-bd)" : "1px solid transparent",
@@ -34,7 +33,6 @@ export function DatePickerDay({ day, isSelected, isToday, onPick }: DatePickerDa
 						: "var(--color-ink-3)",
 				fontWeight: isSelected ? 700 : 400,
 				opacity: day.inCurrentMonth ? 1 : 0.4,
-				cursor: "pointer",
 			}}
 		>
 			{day.date.getDate()}
