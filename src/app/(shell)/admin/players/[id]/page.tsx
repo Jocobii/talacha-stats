@@ -189,9 +189,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 			)}
 
 			{/* ── Equipos actuales ───────────────────────────────────────────── */}
-			{v2Members.some((m) => m.teamId && m.leagueStatus === "active") && (
-				<PlayerTeamsBar members={v2Members} />
-			)}
+			{v2Members.some((m) => m.teamId) && <PlayerTeamsBar members={v2Members} />}
 
 			{/* ── Ligas V1 (stats históricas) ────────────────────────────────── */}
 			{v1Profile && v1Profile.leagues.length > 0 && (

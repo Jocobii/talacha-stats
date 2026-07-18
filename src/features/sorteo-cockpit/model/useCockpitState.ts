@@ -39,6 +39,8 @@ function sortByTime(ps: CockpitPairing[]): CockpitPairing[] {
 export function useCockpitState(leagueId: string): CockpitHookReturn {
 	const [matchday, setMatchday] = useState<CockpitMatchday | null>(null);
 	const [totalMatchdays, setTotalMatchdays] = useState(0);
+	const [completedMatchdays, setCompletedMatchdays] = useState(0);
+	const [playoffStarted, setPlayoffStarted] = useState(false);
 	const [leagueName, setLeagueName] = useState("");
 	const [teamsCount, setTeamsCount] = useState(0);
 	const [config, setConfig] = useState<CockpitConfig | null>(null);
@@ -74,9 +76,15 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 			const data = await fetchCurrent(leagueId);
 			if (!data) return;
 
-			// Auto-crear la siguiente jornada si no hay activa pero sí hay fecha sugerida.
-			// Esto ocurre al cerrar una jornada: evita mostrar el form de fecha al usuario.
-			if (!data.matchday && data.suggestedNextDate && !creatingRef.current) {
+			const seasonComplete =
+				data.totalMatchdays > 0 && data.completedMatchdays >= data.totalMatchdays;
+
+			// Auto-crear la siguiente jornada si no hay activa pero sí hay fecha sugerida
+			// Y la temporada regular todavía no llegó a su tope configurado. Esto ocurre
+			// al cerrar una jornada: evita mostrar el form de fecha al usuario. Si la
+			// temporada ya está completa, NO se auto-crea — se muestra el panel de
+			// Fase Final en su lugar (ver CockpitPage/SeasonCompletePanel).
+			if (!data.matchday && data.suggestedNextDate && !creatingRef.current && !seasonComplete) {
 				creatingRef.current = true;
 				const created = await postCreateMatchday(leagueId, data.suggestedNextDate).finally(
 					() => (creatingRef.current = false),
@@ -87,6 +95,8 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 					if (fresh) {
 						setMatchday(fresh.matchday);
 						setTotalMatchdays(fresh.totalMatchdays);
+						setCompletedMatchdays(fresh.completedMatchdays);
+						setPlayoffStarted(fresh.playoffStarted);
 						setLeagueName(fresh.leagueName);
 						setTeamsCount(fresh.teamsCount);
 						setVenues(fresh.venues);
@@ -104,6 +114,8 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 
 			setMatchday(data.matchday);
 			setTotalMatchdays(data.totalMatchdays);
+			setCompletedMatchdays(data.completedMatchdays);
+			setPlayoffStarted(data.playoffStarted);
 			setLeagueName(data.leagueName);
 			setTeamsCount(data.teamsCount);
 			setVenues(data.venues);
@@ -334,9 +346,14 @@ export function useCockpitState(leagueId: string): CockpitHookReturn {
 	}, []);
 	const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
+	const seasonComplete = totalMatchdays > 0 && completedMatchdays >= totalMatchdays;
+
 	return {
 		matchday,
 		totalMatchdays,
+		completedMatchdays,
+		playoffStarted,
+		seasonComplete,
 		leagueName,
 		teamsCount,
 		config,

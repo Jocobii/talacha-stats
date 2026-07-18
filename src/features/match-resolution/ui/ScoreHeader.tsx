@@ -3,7 +3,7 @@
  * features/match-resolution/ui/ScoreHeader.tsx
  * Cabecera con marcador editable, pills informativos, status y botón de guardado.
  */
-import { Save, AlertTriangle } from "lucide-react";
+import { Save, AlertTriangle, Printer } from "lucide-react";
 import { StatusDropdown } from "./StatusDropdown";
 import type { MatchResolutionData } from "@/entities/match/model";
 import type { ResolutionState, SaveStatus } from "../types";
@@ -18,6 +18,11 @@ type Props = {
 	totalMatches: number;
 	matchdayLabel?: string; // overrides "JN" pill (used for playoff rounds)
 	hasGoalMismatch: boolean;
+	/** Antes solo se podía imprimir la cédula desde la tabla de la jornada — si
+	 *  el organizador se queda navegando partido a partido ("Guardar y
+	 *  siguiente") nunca vuelve ahí y pierde la opción. Mismo criterio que
+	 *  `canPrintCedulas` en jornadas/[matchdayId]/page.tsx (jornada no-draft). */
+	canPrintCedula?: boolean;
 	onScoreChange: (side: "home" | "away", value: number | null) => void;
 	onStatusChange: (status: ResolutionStatus) => void;
 	onSaveNext: () => void;
@@ -40,6 +45,7 @@ export function ScoreHeader({
 	totalMatches,
 	matchdayLabel,
 	hasGoalMismatch,
+	canPrintCedula = false,
 	onScoreChange,
 	onStatusChange,
 	onSaveNext,
@@ -76,6 +82,18 @@ export function ScoreHeader({
 						<span className="bg-blue/10 text-blue px-2 py-1 rounded font-mono font-semibold border border-blue/20">
 							{data.match.cedula}
 						</span>
+					)}
+					{canPrintCedula && (
+						<a
+							href={`/cedula/partido/${data.match.id}`}
+							target="_blank"
+							rel="noopener noreferrer"
+							title="Imprimir cédula de este partido"
+							className="flex items-center gap-1 bg-surface-2 text-ink-2 hover:text-brand-ink hover:border-brand/40 px-2 py-1 rounded border border-line transition-colors"
+						>
+							<Printer size={12} strokeWidth={2} />
+							Imprimir
+						</a>
 					)}
 				</div>
 

@@ -171,7 +171,7 @@ organizations
 - C2. `matchplay` (matches + reparto de eventos + matchPlayerStats).
 - C3. `aggregates` (season stats + standings + snapshots derivados).
 - C4. `discipline` (suspensiones desde tarjetas reales).
-- C5. `scheduling-extras` + `playoffs` (cuando la liga termina).
+- C5. ✅ `playoffs` — al llegar a jornada 20, arma bracket/slots/matches R1 por zona (`src/db/simulator/contributors/playoffs.ts`). NO simula los partidos de playoff a propósito: se resuelven a mano vía la UI de cédula. `scheduling-extras` (teamRestRequests, makeupMatches, overrides) sigue pendiente.
 
 ### Épica D — Volumen, snapshot y medición
 

@@ -53,7 +53,7 @@ export function Modal({ onClose, title, size = "md", children, className }: Prop
 		>
 			{/* Backdrop */}
 			<div
-				className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+				className="absolute inset-0 bg-black/60 backdrop-blur-[2px] animate-modal-backdrop-in"
 				onClick={onClose}
 				aria-hidden="true"
 			/>
@@ -63,7 +63,7 @@ export function Modal({ onClose, title, size = "md", children, className }: Prop
 				ref={dialogRef}
 				className={cn(
 					"relative w-full bg-surface border border-line rounded-xl shadow-2xl",
-					"flex flex-col max-h-[90vh] overflow-y-auto",
+					"flex flex-col max-h-[90vh] overflow-y-auto animate-pop-in",
 					SIZE[size],
 					className,
 				)}

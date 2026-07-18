@@ -265,6 +265,21 @@ body {
 	animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+/* Fade de entrada para el backdrop de Modal (shared/ui/Modal.tsx) */
+@keyframes modalBackdropIn {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+.animate-modal-backdrop-in {
+	animation: modalBackdropIn 0.2s ease both;
+}
+
 /* ── Confetti (paso final del onboarding unificado) ──────────────── */
 @keyframes confettiFall {
 	to {
@@ -709,6 +724,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
 	.animate-fade-slide-up,
 	.animate-pop-in,
+	.animate-modal-backdrop-in,
 	.animate-glow-pulse,
 	.animate-card-float,
 	.animate-glow-hero,
@@ -896,4 +912,48 @@ body {
 
 .btn-ghost svg {
 	flex-shrink: 0;
+}
+
+/* ── Toast (sileo) — restyle premium, ligado a los tokens del theme ──────
+   El fondo (fill) y el radio se pasan como prop en shared/ui/Toaster.tsx
+   (options.fill = var(--color-surface-2)) porque el canvas es un <rect> SVG
+   animado por framer-motion — un override por CSS del atributo `fill`
+   competiría con el estilo inline que la animación aplica en runtime.
+   Todo lo demás (borde, tipografía, color de texto/estado, sombra) sí es
+   CSS puro sobre el DOM interno de sileo, así que se resuelve aquí.
+   `!important` solo donde sileo/styles.css puede ganar el empate de
+   especificidad si su import se resuelve después de este archivo. */
+:root {
+	--sileo-state-success: var(--color-brand) !important;
+	--sileo-state-loading: var(--color-ink-2) !important;
+	--sileo-state-error: var(--color-rose) !important;
+	--sileo-state-warning: var(--color-amber) !important;
+	--sileo-state-info: var(--color-blue) !important;
+	--sileo-state-action: var(--color-blue) !important;
+}
+
+/* Borde sutil tipo .surface-card — no lo anima framer-motion (solo `fill`
+   está en su `animate`), así que gana sin necesitar !important. */
+[data-sileo-pill],
+[data-sileo-body] {
+	stroke: var(--color-line);
+	stroke-width: 1;
+}
+
+/* Sombra de elevación sobre el canvas (div normal, no SVG animado). */
+[data-sileo-canvas] {
+	filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.28));
+}
+
+[data-sileo-title] {
+	font-family: var(--font-body);
+	font-weight: 600;
+	/* sileo capitaliza cada palabra por default; nuestros mensajes ya vienen
+	   en oración normal ("No hay zonas configuradas."), no Title Case. */
+	text-transform: none !important;
+}
+
+[data-sileo-description] {
+	font-family: var(--font-body);
+	color: var(--color-ink-2) !important;
 }

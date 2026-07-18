@@ -17,11 +17,18 @@ export type CreatePurchasedSlotResult =
 export async function createPurchasedSlot(
 	input: CreatePurchasedTimeslotInput,
 ): Promise<CreatePurchasedSlotResult> {
+	// Solo un equipo 'active' puede comprar un horario fijo — 'pending' (banca)
+	// y 'disbanded' quedan fuera (NUEVA-TEMPORADA-V2.md §3.2).
 	const team = await db.query.teams.findFirst({
-		where: and(eq(teams.id, input.teamId), eq(teams.leagueId, input.leagueId)),
+		where: and(
+			eq(teams.id, input.teamId),
+			eq(teams.leagueId, input.leagueId),
+			eq(teams.status, "active"),
+		),
 		columns: { id: true },
 	});
-	if (!team) return { ok: false, error: "El equipo no pertenece a esta liga", status: 404 };
+	if (!team)
+		return { ok: false, error: "El equipo no pertenece a esta liga o no está activo", status: 404 };
 
 	if (input.venueId) {
 		const venueAssigned = await db.query.leagueVenues.findFirst({

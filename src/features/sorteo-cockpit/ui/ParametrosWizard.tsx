@@ -5,6 +5,11 @@ import { Clock, RefreshCw, Calendar, Repeat } from "lucide-react";
 import { ParamRow } from "./ParamRow";
 import { ParamCheckboxRow } from "./ParamCheckboxRow";
 import { useSaveSchedulingConfig } from "../model/useSaveSchedulingConfig";
+import {
+	DEFAULT_MATCH_DURATION_MINUTES,
+	DEFAULT_BUFFER_MINUTES,
+	DEFAULT_REGULAR_MATCHDAYS,
+} from "@/features/scheduling/constants";
 import type { CockpitConfig } from "../types";
 
 type ParametrosWizardProps = {
@@ -12,11 +17,15 @@ type ParametrosWizardProps = {
 	onSave: () => void;
 };
 
+// Defaults del sistema — solo aplican cuando la liga no tiene organización o
+// la organización nunca configuró su plantilla de sorteo (seedLeagueSchedulingConfig
+// no-opeó). Con org configurada, la liga ya nace con fila propia y este wizard
+// no se muestra (§ ParametrosTab).
 const DEFAULTS: CockpitConfig = {
-	matchDurationMinutes: 50,
-	bufferMinutes: 0,
+	matchDurationMinutes: DEFAULT_MATCH_DURATION_MINUTES,
+	bufferMinutes: DEFAULT_BUFFER_MINUTES,
 	noRepeatWithin: 3,
-	regularMatchdays: 14,
+	regularMatchdays: DEFAULT_REGULAR_MATCHDAYS,
 	allowDuplicateMatchups: false,
 };
 

@@ -34,9 +34,10 @@ export async function listOrgLeagueOptions(organizationId: string): Promise<Leag
 //
 // Espejo de listOrgTeams (entities/team/queries.ts). El scope de negocio
 // (ciudad para el owner, organización para el organizador) se combina aparte
-// — nunca es un filtro de usuario. Orden por defecto: estado (activas
-// primero, alfabético "active" < "finished") y luego nombre — lo resuelve
-// features/league-admin vía defaultSort en parseListQuery.
+// — nunca es un filtro de usuario. Orden por defecto: fecha de creación
+// descendente (las más nuevas primero) — lo resuelve features/league-admin
+// vía defaultSort en parseListQuery. El filtro de "solo activas" por default
+// vive aparte (DEFAULT_ESTADO_FILTER en get-leagues-view.ts).
 // ---------------------------------------------------------------------------
 
 export type LeagueAdminRow = {
@@ -71,6 +72,7 @@ export async function listLeaguesAdmin(
 			status: leagues.status,
 			organizationName: sql<string | null>`${organizations.name}`.as("organization_name"),
 			teamCount: sql<number>`COUNT(DISTINCT ${teams.id})::int`.as("team_count"),
+			createdAt: leagues.createdAt,
 		})
 		.from(leagues)
 		.leftJoin(organizations, eq(organizations.id, leagues.organizationId))
@@ -112,16 +114,21 @@ export async function listLeaguesAdmin(
  * buildOrgTeamsOrderBy en entities/team/queries.ts).
  */
 function buildLeaguesOrderBy(
-	inner: { name: AnyColumn | SQLWrapper; status: AnyColumn | SQLWrapper },
+	inner: {
+		name: AnyColumn | SQLWrapper;
+		status: AnyColumn | SQLWrapper;
+		createdAt: AnyColumn | SQLWrapper;
+	},
 	sort: SortRule[],
 ) {
 	const clauses = sort.flatMap((rule) => {
 		const dir = rule.dir === "desc" ? desc : asc;
 		if (rule.field === "nombre") return [dir(inner.name)];
 		if (rule.field === "estado") return [dir(inner.status)];
+		if (rule.field === "creada") return [dir(inner.createdAt)];
 		return [];
 	});
-	return clauses.length > 0 ? clauses : [asc(inner.status), asc(inner.name)];
+	return clauses.length > 0 ? clauses : [desc(inner.createdAt)];
 }
 
 function buildLeagueScopeWhere(

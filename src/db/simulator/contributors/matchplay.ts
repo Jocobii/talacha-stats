@@ -1,8 +1,8 @@
 /**
  * src/db/simulator/contributors/matchplay.ts
  *
- * Contribuidor "matchplay" — ver docs/ORGANIZATION-SIMULATOR.md §5 y §7
- * (Épica C2, la "regla de oro" de consistencia en cascada).
+ * Contribuidor "matchplay" - ver docs/ORGANIZATION-SIMULATOR.md S5 y S7
+ * (Epica C2, la "regla de oro" de consistencia en cascada).
  * Escribe: matches, match_events, match_player_stats.
  * Depende de: enrollment (roster real), calendar (jornadas nuevas).
  *
@@ -11,9 +11,19 @@
  * esos goles entre jugadores REALES del roster como match_events, y llena
  * match_player_stats desde esos mismos eventos. Invariante (no negociable):
  * suma de match_events tipo "goal" de un equipo === su marcador en `matches`.
+ *
+ * Cierre de jornada: como este contribuidor resuelve TODOS los partidos de
+ * cada jornada nueva en el mismo paso (status "played"), tambien marca esas
+ * jornadas como `matchdays.status = "completed"`: el mismo efecto que
+ * produce `POST /api/matchdays/[id]/close` en produccion (unica escritura
+ * de ese endpoint, ver su route.ts). Sin esto, las jornadas quedaban
+ * `"published"` para siempre y el Cockpit de Sorteo (`/admin/leagues/[id]/sorteo`,
+ * que solo muestra jornadas `draft|published`) se ataraba mostrando la
+ * jornada 1 sin avanzar nunca, aunque hubiera mas jornadas ya jugadas en DB.
  */
 
-import { matches, matchEvents, matchPlayerStats } from "@/db/schema";
+import { inArray } from "drizzle-orm";
+import { matches, matchdays, matchEvents, matchPlayerStats } from "@/db/schema";
 import type {
 	Match,
 	MatchEvent,
@@ -42,7 +52,7 @@ export interface RosterEntry {
 	globalPlayerId: string;
 }
 
-// ── Simulación de marcador — mismo modelo que /api/seed-liga, con rng sembrado ──
+// Simulacion de marcador - mismo modelo que /api/seed-liga, con rng sembrado.
 
 export function poissonSample(rng: Rng, lambda: number): number {
 	const L = Math.exp(-lambda);
@@ -55,7 +65,7 @@ export function poissonSample(rng: Rng, lambda: number): number {
 	return k - 1;
 }
 
-/** Marcador calibrado para fut7 amateur (5–12 goles por equipo). */
+/** Marcador calibrado para fut7 amateur (5-12 goles por equipo). */
 export function simulateMatchScore(
 	rng: Rng,
 	homeStrength: number,
@@ -67,7 +77,7 @@ export function simulateMatchScore(
 	return [poissonSample(rng, Math.max(2.0, homeExp)), poissonSample(rng, Math.max(2.0, awayExp))];
 }
 
-/** Reparto de goles con distribución realista (el "crack" se come 25-35%). */
+/** Reparto de goles con distribucion realista (el "crack" se come 25-35%). */
 export function distributeGoalsAmongPresent(
 	rng: Rng,
 	totalGoals: number,
@@ -251,7 +261,7 @@ function buildFixture(
 					});
 				}
 			}
-			// Tarjetas — independientes de si anotó o no.
+			// Tarjetas: independientes de si anoto o no.
 			if (rng() < 0.22) {
 				events.push({
 					globalPlayerId: player.globalPlayerId,
@@ -386,6 +396,18 @@ export const matchplayContributor: Contributor = {
 		const statRows: MatchPlayerStat[] = await insertInBatches(statDefs, (batch) =>
 			ctx.db.insert(matchPlayerStats).values(batch).returning(),
 		);
+
+		// Cierra las jornadas que este contribuidor acaba de jugar por completo
+		// (ver nota de cabecera): sin esto quedan "published" para siempre.
+		const touchedMatchdayIds = leagueRows.flatMap((league) =>
+			getMatchdaysByLeague(ctx, league.id).map((md) => md.id),
+		);
+		if (touchedMatchdayIds.length > 0) {
+			await ctx.db
+				.update(matchdays)
+				.set({ status: "completed" })
+				.where(inArray(matchdays.id, touchedMatchdayIds));
+		}
 
 		setData(ctx, MATCHES_KEY, matchRows);
 		setData(ctx, MATCH_EVENTS_KEY, eventRows);

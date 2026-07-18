@@ -21,7 +21,11 @@
  *     generada por una corrida anterior requiere precargar ctx.data con lo
  *     existente — eso es trabajo de la Épica E (UI/API), no de este CLI.
  *   - `temporadas: N` (generar varias temporadas de un tirón) no está
- *     implementado — el cierre de temporada/liguilla es una épica futura.
+ *     implementado.
+ *   - Al llegar a jornada 20, el contribuidor `playoffs` arma el bracket de
+ *     cada liga (playoff_brackets/playoff_slots/matches R1) pero NO simula
+ *     ni resuelve los partidos de playoff — eso queda para probar la UI de
+ *     cédula a mano, jugando la liguilla como lo haría un organizador real.
  *
  * Nota de resolución de módulos: este script importa contribuidores que a
  * su vez usan el alias "@/..." (p. ej. "@/db/schema"). tsx (^4) resuelve
@@ -56,6 +60,8 @@ import {
 	getTeamStandingsSnapshots,
 	getPlayerSeasonStats,
 	getSuspensions,
+	getPlayoffBrackets,
+	getPlayoffSlots,
 } from "./simulator/contributors";
 
 config({ path: ".env.local" });
@@ -164,6 +170,8 @@ async function run(): Promise<void> {
 			console.log(`✓ team_standings_snapshot:  ${getTeamStandingsSnapshots(ctx).length}`);
 			console.log(`✓ player_season_stats:      ${getPlayerSeasonStats(ctx).length}`);
 			console.log(`✓ suspensions:              ${getSuspensions(ctx).length}`);
+			console.log(`✓ playoff_brackets:         ${getPlayoffBrackets(ctx).length}`);
+			console.log(`✓ playoff_slots:            ${getPlayoffSlots(ctx).length}`);
 			console.log("──────────────────────────────────────────");
 			console.log(
 				`Organización(es): ${getOrganizations(ctx)

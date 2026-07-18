@@ -106,6 +106,13 @@
 			"when": 1784244592772,
 			"tag": "0046_common_pyro",
 			"breakpoints": true
+		},
+		{
+			"idx": 47,
+			"version": "7",
+			"when": 1784381306087,
+			"tag": "0047_nueva_temporada_v2_rollover",
+			"breakpoints": true
 		}
 	]
 }

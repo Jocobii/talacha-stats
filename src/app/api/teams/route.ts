@@ -21,9 +21,13 @@ export async function GET(request: Request) {
 	if (!parsed.success) return apiError("Parametros invalidos", 400);
 	const { league_id: leagueId } = parsed.data;
 
+	// Este endpoint alimenta selectores operativos (transferencia de jugador,
+	// registro por CURP, análisis del narrador) — 'pending' (banca) y
+	// 'disbanded' quedan fuera (NUEVA-TEMPORADA-V2.md §3.2). La banca de
+	// Configuración usa su propia query sin este filtro.
 	if (leagueId) {
 		const rows = await db.query.teams.findMany({
-			where: eq(teams.leagueId, leagueId),
+			where: and(eq(teams.leagueId, leagueId), eq(teams.status, "active")),
 			with: { league: true },
 			orderBy: (t, { asc }) => [asc(t.name)],
 		});
@@ -37,7 +41,7 @@ export async function GET(request: Request) {
 	if (leagueIds.length === 0) return apiSuccess([]);
 
 	const rows = await db.query.teams.findMany({
-		where: inArray(teams.leagueId, leagueIds),
+		where: and(inArray(teams.leagueId, leagueIds), eq(teams.status, "active")),
 		with: { league: true },
 		orderBy: (t, { asc }) => [asc(t.name)],
 	});

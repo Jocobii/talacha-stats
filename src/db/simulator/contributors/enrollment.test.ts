@@ -28,6 +28,7 @@ function makeLeagues(count: number, orgId = "org-0"): League[] {
 		status: "active" as const,
 		schedulingEnabled: true,
 		code: `L${i}`,
+		registrationCutoffMatchday: null,
 		createdAt: new Date(),
 	}));
 }
@@ -41,6 +42,8 @@ function makeTeams(leagueRows: League[], teamsPerLeague: number): Team[] {
 			leagueId: league.id,
 			color: "#000000",
 			status: "active" as const,
+			sourceTeamId: null,
+			joinedAtMatchday: null,
 			createdAt: new Date(),
 		})),
 	);

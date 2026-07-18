@@ -4,7 +4,14 @@
  */
 
 import { db } from "@/db";
-import { matches, matchPlayerStats, inscriptions, leagueMembers, globalPlayers } from "@/db/schema";
+import {
+	matches,
+	matchPlayerStats,
+	inscriptions,
+	leagueMembers,
+	globalPlayers,
+	playoffSlots,
+} from "@/db/schema";
 import { eq, and, or, sql, asc, inArray, isNotNull } from "drizzle-orm";
 import type { Match } from "@/db/schema";
 import type {
@@ -174,6 +181,62 @@ export async function listMatchesByRound(matchdayId: string) {
 		},
 		orderBy: [asc(matches.kickoffAt), asc(matches.matchDate)],
 	});
+}
+
+export type PlayoffMatchRoundInfo = {
+	round: number;
+	isThirdPlace: boolean;
+	zoneName: string;
+	zoneColor: string;
+	/** Ronda más alta de ESE bracket — para poder etiquetar "Cuartos"/"Semifinal"/"Final". */
+	maxRound: number;
+};
+
+/**
+ * Info de ronda/zona de playoff por partido, indexada por `matchId`. Todos
+ * los partidos de TODAS las rondas de una liga (cuartos, semis, final, de
+ * cualquier zona) cuelgan del mismo matchday sentinel (`phase: "playoff"`),
+ * así que la pantalla de captura necesita esto para poder agrupar/etiquetar
+ * en vez de mostrar una tabla plana mezclando rondas — ver
+ * jornadas/[matchdayId]/page.tsx y playoff-round-label.ts.
+ */
+export async function getPlayoffSlotInfoForMatches(
+	matchIds: string[],
+): Promise<Map<string, PlayoffMatchRoundInfo>> {
+	if (matchIds.length === 0) return new Map();
+
+	const slots = await db.query.playoffSlots.findMany({
+		where: inArray(playoffSlots.matchId, matchIds),
+		columns: { matchId: true, round: true, isThirdPlace: true, bracketId: true },
+		with: { bracket: { columns: { zoneName: true, zoneColor: true } } },
+	});
+	if (slots.length === 0) return new Map();
+
+	// El round máximo se calcula sobre TODOS los slots del bracket, no solo los
+	// que ya tienen match creado — si no, un bracket que aún no llegó a la
+	// final subestimaría maxRound y etiquetaría mal la ronda actual.
+	const bracketIds = [...new Set(slots.map((s) => s.bracketId))];
+	const allBracketSlots = await db.query.playoffSlots.findMany({
+		where: inArray(playoffSlots.bracketId, bracketIds),
+		columns: { bracketId: true, round: true },
+	});
+	const maxRoundByBracket = new Map<string, number>();
+	for (const s of allBracketSlots) {
+		maxRoundByBracket.set(s.bracketId, Math.max(maxRoundByBracket.get(s.bracketId) ?? 0, s.round));
+	}
+
+	const result = new Map<string, PlayoffMatchRoundInfo>();
+	for (const s of slots) {
+		if (!s.matchId) continue;
+		result.set(s.matchId, {
+			round: s.round,
+			isThirdPlace: s.isThirdPlace,
+			zoneName: s.bracket.zoneName,
+			zoneColor: s.bracket.zoneColor,
+			maxRound: maxRoundByBracket.get(s.bracketId) ?? s.round,
+		});
+	}
+	return result;
 }
 
 /**
@@ -477,4 +540,46 @@ export async function getNextScheduledMatch(
 
 	const currentIdx = all.findIndex((m) => m.id === afterMatchId);
 	return all[currentIdx + 1] ?? null;
+}
+
+/**
+ * Variante playoff-aware de `getNextScheduledMatch`. Todos los partidos de
+ * TODAS las rondas de una liga (cuartos, semis, final...) cuelgan del mismo
+ * matchday sentinel (`phase: "playoff"`, ver playoffs/start), así que filtrar
+ * solo por `matchdayId` no alcanza: en cuanto se resuelve el último partido
+ * de una ronda, `propagatePlayoffWinner` puede crear en el acto el partido de
+ * la ronda siguiente con `status: "scheduled"`, y ese candidato "cuela" como
+ * el "siguiente partido" del flujo "Guardar y siguiente" — llevando al
+ * organizador a capturar una ronda que todavía no se ha jugado.
+ *
+ * Acota los candidatos a los que su `playoff_slot.round` coincide con la
+ * ronda del partido recién resuelto (`round`), para que el auto-avance nunca
+ * cruce a una ronda posterior. No toca el flujo de jornadas regulares — esos
+ * partidos no tienen `playoff_slot` asociado y usan `getNextScheduledMatch`.
+ */
+export async function getNextScheduledPlayoffMatch(
+	matchdayId: string,
+	afterMatchId: string,
+	round: number,
+): Promise<{ id: string } | null> {
+	const all = await db.query.matches.findMany({
+		where: and(eq(matches.matchdayId, matchdayId), eq(matches.status, "scheduled")),
+		orderBy: [asc(matches.kickoffAt), asc(matches.createdAt)],
+		columns: { id: true },
+	});
+	if (all.length === 0) return null;
+
+	const matchIds = all.map((m) => m.id);
+	const slots = await db.query.playoffSlots.findMany({
+		where: and(isNotNull(playoffSlots.matchId), inArray(playoffSlots.matchId, matchIds)),
+		columns: { matchId: true, round: true },
+	});
+	const roundByMatchId = new Map(slots.map((s) => [s.matchId as string, s.round]));
+
+	const sameRound = all.filter((m) => roundByMatchId.get(m.id) === round);
+	if (sameRound.length === 0) return null;
+
+	const currentIdx = sameRound.findIndex((m) => m.id === afterMatchId);
+	if (currentIdx === -1) return sameRound[0] ?? null;
+	return sameRound[currentIdx + 1] ?? null;
 }

@@ -29,6 +29,7 @@ import { calendarContributor } from "./calendar";
 import { matchplayContributor } from "./matchplay";
 import { aggregatesContributor } from "./aggregates";
 import { disciplineContributor } from "./discipline";
+import { playoffsContributor } from "./playoffs";
 
 export const BOOTSTRAP_CONTRIBUTORS = [
 	identityContributor,
@@ -42,6 +43,7 @@ export const CASCADE_CONTRIBUTORS = [
 	matchplayContributor,
 	aggregatesContributor,
 	disciplineContributor,
+	playoffsContributor,
 ];
 
 export const FULL_RUN_CONTRIBUTORS = [...BOOTSTRAP_CONTRIBUTORS, ...CASCADE_CONTRIBUTORS];
@@ -82,3 +84,4 @@ export * from "./calendar";
 export * from "./matchplay";
 export * from "./aggregates";
 export * from "./discipline";
+export * from "./playoffs";

@@ -16,7 +16,23 @@ import { Toaster as SileoToaster } from "sileo";
 // importando en ningún lado del proyecto (bug real detrás de "no muestra nada").
 import "sileo/styles.css";
 
-/** Defaults del proyecto: esquina superior-derecha y tema oscuro. */
+/**
+ * Defaults del proyecto: esquina superior-derecha, fondo de card de marca
+ * (`--color-surface-2`) y radio consistente con `.surface-card` (§7.2a).
+ * No usamos el prop `theme` de sileo: su semántica light/dark controla el
+ * fill vía una paleta genérica propia (no la de la app) y queda invertida
+ * respecto a nuestros tokens. En su lugar, `fill` referencia directamente
+ * la CSS var del tema activo — así el toast sigue a `html[data-theme]`
+ * (claro/oscuro) igual que el resto de la UI, sin lógica extra. El resto
+ * del restyle (borde, tipografía, color de texto/estado, sombra) vive en
+ * globals.css, sección "Toast (sileo)", porque toca el DOM interno de la
+ * librería y no son props expuestas por `SileoOptions`.
+ */
 export function Toaster() {
-	return <SileoToaster position="top-right" theme="dark" />;
+	return (
+		<SileoToaster
+			position="top-right"
+			options={{ fill: "var(--color-surface-2)", roundness: 12 }}
+		/>
+	);
 }

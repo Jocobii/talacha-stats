@@ -27,6 +27,8 @@ export async function getTeamWithLeague(id: string): Promise<TeamWithLeague | nu
 			status: teams.status,
 			leagueId: teams.leagueId,
 			color: teams.color,
+			sourceTeamId: teams.sourceTeamId,
+			joinedAtMatchday: teams.joinedAtMatchday,
 			createdAt: teams.createdAt,
 			leagueName: leagues.name,
 			leagueSeason: leagues.season,

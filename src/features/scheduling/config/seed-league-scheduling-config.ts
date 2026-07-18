@@ -5,12 +5,16 @@
  * crear una liga nueva (docs/ORG-PROFILE-HUB.md §3, Épica Q) — mismo
  * principio copy-on-create que seedLeagueConfig (tournament-rules).
  *
- * No-op si:
- * - la organización no tiene default de sorteo propio, o
- * - el default deja `regularMatchdays` en automático (null): a esta altura
- *   la liga todavía no tiene equipos, así que "automático por nº de
- *   equipos" no se puede resolver aquí — la liga cae en el flujo actual
- *   (sin fila hasta que se guarde el sorteo por primera vez).
+ * Si la organización tiene un default de sorteo propio, la liga SIEMPRE
+ * hereda — sin excepción (decisión Jocobi). `regularMatchdays` es el único
+ * campo que puede quedar sin resolver en el default de la org (null =
+ * "automático por nº de equipos"); como a esta altura la liga todavía no
+ * tiene equipos y la columna es NOT NULL, usamos
+ * `DEFAULT_REGULAR_MATCHDAYS` como valor sembrable de partida — el
+ * organizador lo ajusta después en Parámetros sin que eso bloquee la
+ * herencia de duración/buffer/formato/no-repetir/permitir-repetidos.
+ *
+ * No-op solo si la organización no tiene default de sorteo propio.
  *
  * SOLO SERVER — importa @/db. No se re-exporta desde ningún barrel de cliente.
  */
@@ -18,6 +22,7 @@
 import type { db } from "@/db";
 import { leagueSchedulingConfig } from "@/db/schema";
 import { findOrganizationSchedulingConfig } from "@/entities/organization-scheduling-config/queries";
+import { DEFAULT_REGULAR_MATCHDAYS } from "../constants";
 
 type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbOrTx = typeof db | DbTx;
@@ -31,13 +36,12 @@ export async function seedLeagueSchedulingConfig(
 
 	const orgDefaults = await findOrganizationSchedulingConfig(organizationId, client);
 	if (!orgDefaults) return;
-	if (orgDefaults.regularMatchdays === null) return;
 
 	await client
 		.insert(leagueSchedulingConfig)
 		.values({
 			leagueId,
-			regularMatchdays: orgDefaults.regularMatchdays,
+			regularMatchdays: orgDefaults.regularMatchdays ?? DEFAULT_REGULAR_MATCHDAYS,
 			regularFormat: orgDefaults.regularFormat,
 			matchDurationMinutes: orgDefaults.matchDurationMinutes,
 			bufferMinutes: orgDefaults.bufferMinutes,

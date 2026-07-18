@@ -9,14 +9,14 @@ import { Lock } from "lucide-react";
 import { db } from "@/db";
 import { matchdays, leagues } from "@/db/schema";
 import { getSessionUser } from "@/shared/lib/auth";
-import { listMatchesByRound } from "@/entities/match/queries";
+import { listMatchesByRound, getPlayoffSlotInfoForMatches } from "@/entities/match/queries";
 import { CedulaSearch } from "./CedulaSearch";
 import { CloseMatchdayButton } from "./CloseMatchdayButton";
 import { ReopenPlayoffButton } from "./ReopenPlayoffButton";
 import { ShareJornadaButton } from "./ShareJornadaButton";
 import { PrintCedulaButton } from "./PrintCedulaButton";
-import { STATUS_LABELS } from "@/features/match-resolution/constants";
-import type { ResolutionStatus } from "@/db/schema";
+import { MatchesTable } from "./MatchesTable";
+import { groupPlayoffMatches } from "./group-playoff-matches";
 
 type Params = { params: Promise<{ leagueId: string; matchdayId: string }> };
 
@@ -28,16 +28,6 @@ const CAPTURED_STATUSES = new Set([
 	"postponed",
 	"completed",
 ]);
-
-const STATUS_PILL: Record<string, string> = {
-	scheduled: "bg-surface-2 text-ink-3",
-	played: "bg-brand/10 text-brand-ink",
-	walkover_home: "bg-amber/10 text-amber",
-	walkover_away: "bg-amber/10 text-amber",
-	suspended: "bg-rose/10 text-rose",
-	postponed: "bg-amber/10 text-amber",
-	completed: "bg-brand/10 text-brand-ink",
-};
 
 export default async function JornadaDashboardPage({ params }: Params) {
 	const [user, { leagueId, matchdayId }] = await Promise.all([getSessionUser(), params]);
@@ -70,6 +60,13 @@ export default async function JornadaDashboardPage({ params }: Params) {
 	// Imprimir cédulas solo con jornada ya publicada (plan §12.3): antes de
 	// eso los partidos/horarios pueden seguir cambiando.
 	const canPrintCedulas = matchday.status !== "draft";
+
+	// Fase final: todas las rondas (cuartos/semis/final, de cualquier zona)
+	// cuelgan del mismo matchday sentinel — sin esto la tabla mezclaba todo
+	// junto y era ilegible. Se agrupan por (zona, ronda) en vez de una tabla plana.
+	const playoffGroups = isPlayoff
+		? groupPlayoffMatches(matches, await getPlayoffSlotInfoForMatches(matches.map((m) => m.id)))
+		: [];
 
 	return (
 		<div className="min-h-screen bg-pitch">
@@ -172,79 +169,38 @@ export default async function JornadaDashboardPage({ params }: Params) {
 					</div>
 				)}
 
-				{/* Tabla de partidos */}
-				<div className="bg-surface rounded-lg border border-line overflow-hidden">
-					<table className="w-full text-sm">
-						<thead className="border-b border-line">
-							<tr>
-								<th className="px-4 py-3 text-left text-xs text-ink-3 font-medium uppercase tracking-wider">
-									Cédula
-								</th>
-								<th className="px-4 py-3 text-left text-xs text-ink-3 font-medium uppercase tracking-wider">
-									Partido
-								</th>
-								<th className="px-4 py-3 text-left text-xs text-ink-3 font-medium uppercase tracking-wider">
-									Estado
-								</th>
-								<th className="px-4 py-3 text-left text-xs text-ink-3 font-medium uppercase tracking-wider">
-									Marcador
-								</th>
-								<th className="px-4 py-3 text-right text-xs text-ink-3 font-medium uppercase tracking-wider">
-									Acción
-								</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-line">
-							{matches.map((m) => {
-								const label = STATUS_LABELS[m.status as ResolutionStatus] ?? m.status;
-								const pillClass = STATUS_PILL[m.status] ?? "bg-surface-2 text-ink-3";
-								return (
-									<tr key={m.id} className={isClosed ? "" : "hover:bg-surface-2 transition-colors"}>
-										<td className="px-4 py-3 font-mono text-blue text-xs">{m.cedula ?? "—"}</td>
-										<td className="px-4 py-3">
-											<span className="font-medium text-ink">{m.homeTeam.name}</span>
-											<span className="text-ink-3 mx-1.5">vs</span>
-											<span className="font-medium text-ink">{m.awayTeam.name}</span>
-										</td>
-										<td className="px-4 py-3">
-											<span className={`px-2 py-0.5 rounded text-xs font-medium ${pillClass}`}>
-												{label}
-											</span>
-										</td>
-										<td className="px-4 py-3 text-ink-2 font-mono">
-											{m.homeScore !== null && m.awayScore !== null
-												? `${m.homeScore} – ${m.awayScore}`
-												: "—"}
-										</td>
-										<td className="px-4 py-3 text-right space-x-3 whitespace-nowrap">
-											{!isClosed && (
-												<Link
-													href={`/admin/ligas/${leagueId}/jornadas/${matchdayId}/partidos/${m.id}`}
-													className="text-xs font-semibold text-brand-ink hover:text-brand-dim transition-colors"
-												>
-													{m.status === "scheduled" ? "Capturar →" : "Editar →"}
-												</Link>
-											)}
-											{canPrintCedulas && (
-												<a
-													href={`/cedula/partido/${m.id}`}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="text-xs font-semibold text-ink-3 hover:text-ink-2 transition-colors"
-												>
-													Imprimir
-												</a>
-											)}
-										</td>
-									</tr>
-								);
-							})}
-						</tbody>
-					</table>
-					{matches.length === 0 && (
-						<p className="text-center text-sm text-ink-3 py-10">No hay partidos en esta jornada.</p>
-					)}
-				</div>
+				{/* Partidos — agrupados por ronda/zona en fase final, tabla única en jornada regular */}
+				{isPlayoff ? (
+					<div className="space-y-6">
+						{playoffGroups.map((group) => (
+							<div key={group.label}>
+								<h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wide mb-2">
+									{group.label}
+								</h2>
+								<MatchesTable
+									matches={group.matches}
+									leagueId={leagueId}
+									matchdayId={matchdayId}
+									isClosed={isClosed}
+									canPrintCedulas={canPrintCedulas}
+								/>
+							</div>
+						))}
+						{matches.length === 0 && (
+							<p className="text-center text-sm text-ink-3 py-10">
+								No hay partidos en esta jornada.
+							</p>
+						)}
+					</div>
+				) : (
+					<MatchesTable
+						matches={matches}
+						leagueId={leagueId}
+						matchdayId={matchdayId}
+						isClosed={isClosed}
+						canPrintCedulas={canPrintCedulas}
+					/>
+				)}
 			</div>
 		</div>
 	);

@@ -188,6 +188,9 @@ export default async function MatchCapturePage({ params }: Params) {
 				: "Fase Final"
 			: undefined;
 
+	// Mismo criterio que canPrintCedulas en jornadas/[matchdayId]/page.tsx.
+	const canPrintCedula = matchday.status !== "draft";
+
 	return (
 		<MatchResolutionScreen
 			initialData={data}
@@ -196,6 +199,7 @@ export default async function MatchCapturePage({ params }: Params) {
 			matchdayNumber={matchday.number}
 			matchdayLabel={matchdayLabel}
 			sidebarMatches={sidebarMatches}
+			canPrintCedula={canPrintCedula}
 		/>
 	);
 }

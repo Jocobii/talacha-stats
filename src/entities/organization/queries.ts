@@ -266,14 +266,17 @@ export async function getLatestStandings(leagueId: string) {
 				eq(teamStandingsSnapshot.leagueId, leagueId),
 				eq(teamStandingsSnapshot.jornada, jornada),
 			),
-			with: { team: { columns: { id: true, name: true } } },
+			with: { team: { columns: { id: true, name: true, status: true } } },
 			orderBy: [
 				desc(teamStandingsSnapshot.points),
 				desc(sql`${teamStandingsSnapshot.goalsFor} - ${teamStandingsSnapshot.goalsAgainst}`),
 				desc(teamStandingsSnapshot.goalsFor),
 			],
 		});
-		return { standings: rows, jornada };
+		// `pending` (banca) y `disbanded` no cuentan en la tabla pública — mismo
+		// tratamiento deportivo (AGENTS.md / NUEVA-TEMPORADA-V2.md §3.2).
+		const activeRows = rows.filter((r) => r.team.status === "active");
+		return { standings: activeRows, jornada };
 	}
 
 	// ── Prioridad 2: cálculo en vivo desde partidos capturados (V2) ───────────
@@ -281,7 +284,7 @@ export async function getLatestStandings(leagueId: string) {
 
 	const [leagueTeams, countedMatches] = await Promise.all([
 		db.query.teams.findMany({
-			where: eq(teams.leagueId, leagueId),
+			where: and(eq(teams.leagueId, leagueId), eq(teams.status, "active")),
 			columns: { id: true, name: true },
 		}),
 		db.query.matches.findMany({

@@ -26,6 +26,7 @@ function makeLeague(): League {
 		status: "active",
 		schedulingEnabled: true,
 		code: "LT",
+		registrationCutoffMatchday: null,
 		createdAt: new Date("2026-01-05T00:00:00Z"),
 	};
 }
@@ -38,6 +39,8 @@ function makeTeam(id: string, leagueId: string): Team {
 		leagueId,
 		color: "#000000",
 		status: "active",
+		sourceTeamId: null,
+		joinedAtMatchday: null,
 		createdAt: new Date(),
 	};
 }

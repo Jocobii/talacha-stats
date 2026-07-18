@@ -34,6 +34,8 @@ type Props = {
 	matchdayNumber: number;
 	matchdayLabel?: string;
 	sidebarMatches: SidebarMatch[];
+	/** Ver nota en ScoreHeader.tsx — permite imprimir la cédula sin salir de esta pantalla. */
+	canPrintCedula?: boolean;
 };
 
 const CAPTURED_STATUSES = new Set([
@@ -52,6 +54,7 @@ export function MatchResolutionScreen({
 	matchdayNumber,
 	matchdayLabel,
 	sidebarMatches,
+	canPrintCedula = false,
 }: Props) {
 	const capturedCount = sidebarMatches.filter((m) => CAPTURED_STATUSES.has(m.status)).length;
 	const router = useRouter();
@@ -137,6 +140,7 @@ export function MatchResolutionScreen({
 					totalMatches={sidebarMatches.length}
 					matchdayLabel={matchdayLabel}
 					hasGoalMismatch={hasGoalMismatch}
+					canPrintCedula={canPrintCedula}
 					onScoreChange={(side, v) =>
 						updateMatchField(side === "home" ? "homeScore" : "awayScore", v)
 					}
