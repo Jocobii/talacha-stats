@@ -261,7 +261,7 @@ export function NewPlayerCard({
 					</div>
 				</div>
 
-				<div className="px-6 py-4 border-t border-line bg-surface-2/40 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
+				<Card.Footer className="flex flex-col-reverse items-stretch justify-between gap-3 px-6 py-4 sm:flex-row sm:items-center">
 					<Button variant="ghost" size="md" type="button" onClick={onCancel}>
 						Cancelar
 					</Button>
@@ -275,7 +275,7 @@ export function NewPlayerCard({
 					>
 						Crear y registrar
 					</Button>
-				</div>
+				</Card.Footer>
 			</Card>
 		</form>
 	);

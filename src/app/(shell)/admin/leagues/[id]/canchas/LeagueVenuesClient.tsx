@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ExternalLink, CalendarDays } from "lucide-react";
+import { Typography } from "@/shared/ui";
 import { AssignedVenueCard } from "./AssignedVenueCard";
 import { UnassignedVenueTile } from "./UnassignedVenueTile";
 import { MiniStat, parseMinutes } from "./VenueStatsStrip";
@@ -77,16 +78,11 @@ export function LeagueVenuesClient({
 		<div>
 			<div className="flex items-start justify-between gap-4 mb-5">
 				<div>
-					<h1
-						className="text-[32px] leading-none font-black tracking-tight text-ink"
-						style={{ fontFamily: "var(--font-display)" }}
-					>
-						Canchas de esta liga
-					</h1>
-					<p className="text-[13px] text-ink-2 mt-2">
+					<Typography variant="display">Canchas de esta liga</Typography>
+					<Typography variant="bodySm" tone="ink-2" className="mt-2">
 						{leagueName} — {leagueSeason} · Asigna canchas del pool y configura sus ventanas
 						horarias.
-					</p>
+					</Typography>
 				</div>
 				<div className="flex items-center gap-2.5 shrink-0">
 					<Link
@@ -128,12 +124,9 @@ export function LeagueVenuesClient({
 			</div>
 
 			<div className="flex items-baseline justify-between mb-3">
-				<h2
-					className="text-[22px] font-bold text-ink"
-					style={{ fontFamily: "var(--font-display)" }}
-				>
+				<Typography variant="h3">
 					Asignadas <span className="text-ink-3 font-semibold">· {assigned.length}</span>
-				</h2>
+				</Typography>
 				<span className="text-[12px] text-ink-3 italic">
 					Click en un slot vacío para agregar una ventana
 				</span>
@@ -159,13 +152,10 @@ export function LeagueVenuesClient({
 			</div>
 
 			<div className="flex items-baseline mb-3">
-				<h2
-					className="text-[22px] font-bold text-ink"
-					style={{ fontFamily: "var(--font-display)" }}
-				>
+				<Typography variant="h3">
 					Disponibles en tu organización{" "}
 					<span className="text-ink-3 font-semibold">· {unassigned.length}</span>
-				</h2>
+				</Typography>
 			</div>
 
 			<div className="grid grid-cols-3 gap-3">

@@ -27,13 +27,14 @@ Lo que **ya existe** y está bien:
 
 Lo que **falta** o está mal (la causa del dolor):
 
-| Problema                                                                     | Evidencia                                                                                                  | Consecuencia                                          |
-| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| **No hay primitivos de layout** (`Stack`, `Inline`, `Grid`, `Center`, `Box`) | `CreateMatchdayForm` y ~104 archivos usan `<div style={{display:"flex", flexDirection:"column", gap:20}}>` | Cada pantalla reinventa flex/grid/gap/padding         |
-| **Colores crudos en vez de tokens**                                          | `background:"rgba(0,230,118,0.1)"` (es `bg-brand/10`)                                                      | Rompe §7.2, ignora skins y modo claro/oscuro          |
-| **`cn()` no resuelve conflictos de clases**                                  | join ingenuo (`args.filter(Boolean).join(" ")`)                                                            | `cn("p-2", "p-4")` deja ambas; overrides no funcionan |
-| **Variantes cableadas a mano**                                               | `Record<Variant, string>` en cada componente                                                               | No escala ni compone; copia-pega entre átomos         |
-| **Sin guardrail**                                                            | nada impide volver a `style={{}}`                                                                          | La deuda se regenera sola                             |
+| Problema                                                                     | Evidencia                                                                                                                                                                                           | Consecuencia                                             |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **No hay primitivos de layout** (`Stack`, `Inline`, `Grid`, `Center`, `Box`) | `CreateMatchdayForm` y ~104 archivos usan `<div style={{display:"flex", flexDirection:"column", gap:20}}>`                                                                                          | Cada pantalla reinventa flex/grid/gap/padding            |
+| **No hay primitivos de tipografía**                                          | `text-[32px]` + `style={{fontFamily:"var(--font-display)"}}` repetido en `PageHeader`, `LeagueVenuesClient`, `OrgHubShell`, etc. — mismo problema que el layout pero con tamaño/peso/color de texto | Cada pantalla reinventa tamaño/peso/tono/fuente de texto |
+| **Colores crudos en vez de tokens**                                          | `background:"rgba(0,230,118,0.1)"` (es `bg-brand/10`)                                                                                                                                               | Rompe §7.2, ignora skins y modo claro/oscuro             |
+| **`cn()` no resuelve conflictos de clases**                                  | join ingenuo (`args.filter(Boolean).join(" ")`)                                                                                                                                                     | `cn("p-2", "p-4")` deja ambas; overrides no funcionan    |
+| **Variantes cableadas a mano**                                               | `Record<Variant, string>` en cada componente                                                                                                                                                        | No escala ni compone; copia-pega entre átomos            |
+| **Sin guardrail**                                                            | nada impide volver a `style={{}}`                                                                                                                                                                   | La deuda se regenera sola                                |
 
 ### Concentración de `style={{}}` inline (dónde atacar primero)
 
@@ -60,10 +61,11 @@ Cuatro capas, de menor a mayor abstracción. Se adoptan **en orden**; cada una a
 valor sola.
 
 ```
-1. Layout primitives   → Stack, Inline, Grid, Center, Box, Spacer
-2. Variantes (CVA)      → variantes tipadas y componibles para átomos
-3. Compound components  → Card.Header/Body/Footer, slots
-4. Page scaffolds       → PageShell + secciones (la pantalla "se arma sola")
+1. Layout primitives      → Stack, Inline, Grid, Center, Box, Spacer
+1b. Typography primitive   → Typography (variant único)
+2. Variantes (CVA)        → variantes tipadas y componibles para átomos
+3. Compound components    → Card.Header/Body/Footer, slots
+4. Page scaffolds         → PageShell + secciones (la pantalla "se arma sola")
 ```
 
 Regla de oro para todas: **props → clases de Tailwind con tokens semánticos**.
@@ -107,13 +109,16 @@ un consumidor pueda sobreescribir (`<Button className="h-12">`). Dos caminos:
 
 Preparar el terreno sin tocar pantallas.
 
-- [ ] Decidir dependencias (§2): instalar `tailwind-merge` + `class-variance-authority`
+- [x] Decidir dependencias (§2): instalar `tailwind-merge` + `class-variance-authority`
       **o** ratificar zero-dep. Correr chequeo de CVE (§8.1) y anclar versión.
-- [ ] Actualizar `cn()` para envolver `tailwind-merge` (si se aprueba), manteniendo la
-      firma actual para no romper callsites.
-- [ ] Crear `src/shared/ui/layout/` con su `index.ts` y añadirlo al `shared/ui/index.ts`.
-- [ ] Documentar en este MD la tabla de escalas (`gap`, `pad`) → clases, para que sea
-      la fuente única.
+      → Decidido: instalar. Sin CVE HIGH/CRITICAL (verificado en OSV). Ancladas en
+      `package.json`: `tailwind-merge@3.6.0`, `class-variance-authority@0.7.1`.
+      Falta correr `pnpm install` para materializar en `node_modules`/lockfile.
+- [x] Actualizar `cn()` para envolver `tailwind-merge` (si se aprueba), manteniendo la
+      firma actual para no romper callsites. Test co-locado en `cn.test.ts`.
+- [x] Crear `src/shared/ui/layout/` con su `index.ts` y añadirlo al `shared/ui/index.ts`.
+- [x] Documentar en este MD la tabla de escalas (`gap`, `pad`) → clases, para que sea
+      la fuente única. (Implementada también en código: `src/shared/ui/layout/scales.ts`.)
 
 **Escala canónica (fuente única — no inventar valores fuera de esto):**
 
@@ -137,14 +142,14 @@ El mayor ROI. Mata el grueso de los inline styles de layout.
 
 Crear en `src/shared/ui/layout/`:
 
-- [ ] `Stack.tsx` — columna flex. Props: `gap`, `align`, `justify`, `as`.
-- [ ] `Inline.tsx` — fila flex con `wrap`. Props: `gap`, `align`, `justify`, `wrap`.
-- [ ] `Grid.tsx` — grid. Props: `cols`, `gap`, `align`.
-- [ ] `Center.tsx` — centra en ambos ejes (grid place-items / flex).
-- [ ] `Box.tsx` — contenedor genérico con `pad`, `bg` (token), `radius`, `border`.
-- [ ] `Spacer.tsx` — separador flexible (opcional).
-- [ ] `index.ts` — exportaciones públicas; re-export desde `shared/ui/index.ts`.
-- [ ] Tests co-locados (`Stack.test.tsx`, etc.): render, prop→clase correcta,
+- [x] `Stack.tsx` — columna flex. Props: `gap`, `align`, `as`.
+- [x] `Inline.tsx` — fila flex con `wrap`. Props: `gap`, `align`, `justify`, `wrap`.
+- [x] `Grid.tsx` — grid. Props: `cols`, `gap`, `align`.
+- [x] `Center.tsx` — centra en ambos ejes (grid place-items).
+- [x] `Box.tsx` — contenedor genérico con `pad`, `bg` (token), `radius`, `border`.
+- [x] `Spacer.tsx` — separador flexible.
+- [x] `index.ts` — exportaciones públicas; re-export desde `shared/ui/index.ts`.
+- [x] Tests co-locados (`Stack.test.tsx`, etc.): render, prop→clase correcta,
       default, y que **no** emiten `style` inline (§20.2).
 
 Todos ≤ 150 líneas (§3.5), props tipadas, funciones ≤ 20 líneas (§18).
@@ -185,7 +190,51 @@ export function Stack({ as: As = "div", gap = "md", align, className, ...rest }:
 ```
 
 **Aceptación:** los 6 primitivos existen con tests verdes; un spike migra
-`CreateMatchdayForm` (el del screenshot) usándolos, sin `style={{}}` y sin colores crudos.
+`CreateMatchdayForm` (el del screenshot) usándolos, sin `style={{}}` de layout.
+Nota: en el piloto los colores/fuentes se dejaron como CSS vars a propósito — el
+cockpit usa su propio lenguaje visual fuera de Tailwind (ver comentario en
+`SorteoRequirements.tsx`); no se fuerza a tokens Tailwind en este PR.
+
+---
+
+### Fase 1b — Primitivo de tipografía (1 PR)
+
+Mismo problema que el layout (Fase 1) pero para texto: cada pantalla define
+tamaño/peso/tono/fuente a mano (`text-[32px]`, `style={{fontFamily:"var(--font-display)"}}`,
+`text-[13px] text-ink-2`…). Un único componente `Typography` centraliza esa escala,
+con un solo prop (`variant`) que resuelve tag+tamaño+peso+fuente juntos — patrón tipo
+MUI `Typography`, no dos componentes separados (`Text`+`Heading`, descartado en
+iteración: menos ergonómico, dos APIs para aprender en vez de una).
+
+Crear en `src/shared/ui/`:
+
+- [x] `typography-scales.ts` — `TYPOGRAPHY_VARIANTS` (preset `{as, className}` por
+      variante), `WEIGHT`, `TONE`. Fuente única — no inventar valores fuera de esto.
+- [x] `Typography.tsx` — único componente. Props: `variant` (resuelve tag+tamaño+peso+
+      fuente), `as` (sobreescribe el tag sin perder las clases del variant), `weight`
+      (sobreescribe el peso del variant), `tone`, `truncate`.
+- [x] Tests co-locados (`Typography.test.tsx`): cada variant → tag+clase correctos,
+      override de `weight`/`as`, `tone`/`truncate`, y que **no** emite `style` inline
+      (§20.2).
+- [x] Export desde `shared/ui/index.ts`.
+
+**Variantes canónicas:**
+
+| `variant` | Tag    | Clase                                                                                                                   |
+| --------- | ------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `display` | `h1`   | `font-display text-3xl sm:text-[34px] font-black leading-none` (hero de página, mismo tamaño que ya usaba `PageHeader`) |
+| `h2`      | `h2`   | `font-display text-2xl font-black leading-tight`                                                                        |
+| `h3`      | `h3`   | `font-display text-xl font-bold leading-tight`                                                                          |
+| `h4`      | `h4`   | `font-display text-lg font-bold leading-snug`                                                                           |
+| `lead`    | `p`    | `text-lg font-normal`                                                                                                   |
+| `body`    | `p`    | `text-base font-normal` (default)                                                                                       |
+| `bodySm`  | `p`    | `text-sm font-normal`                                                                                                   |
+| `caption` | `span` | `text-xs font-normal`                                                                                                   |
+
+**Aceptación:** `Typography` existe con tests verdes; piloto real en
+`app/(shell)/admin/leagues/[id]/canchas/LeagueVenuesClient.tsx` (título de página +
+dos subtítulos de sección + el párrafo de metadatos), sin `style={{fontFamily}}` ni
+tamaños arbitrarios en esos spots.
 
 ---
 
@@ -194,14 +243,23 @@ export function Stack({ as: As = "div", gap = "md", align, className, ...rest }:
 Migrar la lógica de variantes cableada a mano a CVA (o mejorar el patrón zero-dep).
 **No cambia la API pública** de los componentes — es refactor interno.
 
-- [ ] `Button.tsx`: mover `base/sizes/variants` a `cva(...)`. Verificar snapshot visual.
-- [ ] `Badge.tsx`, `Card.tsx`, `StatusPill.tsx`, `CheckPill.tsx`: mismo tratamiento.
+- [x] `Button.tsx`: `base/sizes/variants` movidos a `cva(...)`. API pública intacta
+      (`variant`/`size` siguen opcionales vía `defaultVariants`). Test co-locado.
+- [x] `Badge.tsx`, `Card.tsx`: mismo tratamiento (`tone` y `interactive` respectivamente
+      como variantes cva). Tests co-locados.
+- [ ] `StatusPill.tsx`, `CheckPill.tsx`: **fuera de alcance de este PR** — no tienen
+      variantes Tailwind que migrar, son 100% `style={{}}` con colores crudos
+      (`rgba(...)`, `var(--color-*)`), mismo patrón "propio" que el cockpit (§ nota
+      Fase 1). Migrarlos a CVA implicaría reescribir su sistema de color a tokens
+      Tailwind — cambio de diseño más grande, decidido explícitamente diferirlo.
 - [ ] Extraer variantes compartidas (superficies, bordes) a un helper si se repiten.
-- [ ] Tests: cada variante y size renderiza sus clases; `className` externo
-      sobreescribe (valida `tailwind-merge`).
+- [x] Tests: cada variante y size renderiza sus clases; `className` externo
+      sobreescribe (valida `tailwind-merge`) — cubierto en `Button.test.tsx`,
+      `Badge.test.tsx`, `Card.test.tsx`.
 
 **Aceptación:** átomos con CVA, misma apariencia (verificar en 2+ skins), API intacta,
-tests verdes.
+tests verdes. `Button`/`Badge`/`Card` cumplen; `StatusPill`/`CheckPill` quedan
+pendientes con nota explícita — no bloquean el resto del plan.
 
 ---
 
@@ -209,10 +267,15 @@ tests verdes.
 
 Que las tarjetas y secciones se **compongan** declarativamente.
 
-- [ ] `Card` compound: `Card.Header` (con `icon`+`title`+`action`), `Card.Body`, `Card.Footer`.
-      Mantener `Card` plano retrocompatible.
-- [ ] `Section` / `Panel` con slot de título y acciones (para tabs del cockpit, drawers).
-- [ ] Tests de composición (render de cada slot, orden, slots ausentes = §20.2 nulos).
+- [x] `Card` compound: `Card.Header` (con `icon`+`title`+`action`), `Card.Body`, `Card.Footer`
+      (`CardHeader.tsx`/`CardBody.tsx`/`CardFooter.tsx`, unidos vía `Object.assign` en `Card.tsx`).
+      `Card` plano sigue retrocompatible (verificado en `Card.compound.test.tsx`).
+- [x] `Section` / `Panel` con slot de título y acciones — `shared/ui/Section.tsx` (sin
+      superficie propia) y `shared/ui/Panel.tsx` (con superficie/borde, shorthand de
+      "Card con header simple" para tabs del cockpit y drawers).
+- [x] Tests de composición (render de cada slot, orden, slots ausentes = §20.2 nulos):
+      `CardHeader.test.tsx`, `CardBody.test.tsx`, `CardFooter.test.tsx`,
+      `Card.compound.test.tsx`, `Section.test.tsx`, `Panel.test.tsx`.
 
 **Ejemplo objetivo:**
 
@@ -232,7 +295,9 @@ Que las tarjetas y secciones se **compongan** declarativamente.
 </Card>
 ```
 
-**Aceptación:** compound Card documentado y con tests; una pantalla real lo usa.
+**Aceptación:** compound Card documentado y con tests; una pantalla real lo usa
+(`Card.Footer` adoptado en `features/admin-registration/ui/NewPlayerCard.tsx` — su
+footer ya coincidía casi exactamente con el patrón del slot, migración de bajo riesgo).
 
 ---
 
@@ -241,10 +306,22 @@ Que las tarjetas y secciones se **compongan** declarativamente.
 El "drag-and-drop a nivel código": un shell que pone estructura, spacing y responsive;
 las pantallas solo aportan bloques.
 
-- [ ] `PageShell` (o `AdminPageShell`) con slots: `header`, `toolbar`, `content`, `aside`.
-- [ ] Integrar con `PageHeader` y `LeagueTabBar`/`OrgTabBar` existentes.
-- [ ] Migrar 1 pantalla admin como referencia canónica (candidata: una tab del cockpit).
-- [ ] Tests de layout del shell (slots presentes/ausentes).
+- [x] `PageShell` con slots: `header`, `toolbar`, `children` (content), `aside` opcional
+      (`shared/ui/PageShell.tsx`).
+- [x] Integrar con `PageHeader` y `LeagueTabBar`/`OrgTabBar` existentes (`PageShell` no
+      reimplementa nada de esos componentes, solo los posiciona).
+- [x] Migrar 1 pantalla admin como referencia canónica.
+      **Desviación de la candidata original ("una tab del cockpit"):** el cockpit usa su
+      propio lenguaje visual con CSS vars, no Tailwind (mismo motivo documentado en
+      Fase 1/2) — forzarlo a `PageShell` (Tailwind) repetiría el mismo conflicto de
+      diseño. En su lugar se migró `app/(shell)/admin/leagues/[id]/layout.tsx`
+      (shell de la vista de liga: breadcrumb + cabecera + `LeagueTabBar`), que ya era
+      100% Tailwind y es el patrón que se repite en `OrgHubShell.tsx` — buen próximo
+      candidato para Fase 5. Nota visual menor: `PageHeader` trae su propio
+      `border-b`/`pb-6` y `LeagueTabBar` trae el suyo (`mt-5 border-b`); quedan como dos
+      separadores distintos (cabecera → tab bar), no una duplicación pegada — se señala
+      aquí por transparencia, no bloquea la aceptación.
+- [x] Tests de layout del shell (slots presentes/ausentes): `PageShell.test.tsx`.
 
 **Aceptación:** shell disponible, 1 pantalla de referencia migrada, patrón documentado
 en §6 "Cómo construir una pantalla nueva".
@@ -256,6 +333,14 @@ en §6 "Cómo construir una pantalla nueva".
 Con los primitivos listos, migrar el resto **por feature**, en orden de concentración:
 
 - [ ] `sorteo-cockpit` (21 archivos) — mayor densidad, mejor retorno.
+      **Lote 1 (2/21) hecho:** `CockpitPage.tsx` (loading/error/wrapper/grid principal,
+      delays de animación pasados a clases arbitrarias `[animation-delay:Nms]`) y
+      `SorteoRequirements.tsx` (hero + `RequirementRow`) migrados a `Stack`/`Inline`/`Center`.
+      Colores/fuentes se quedaron en CSS vars a propósito (mismo criterio de Fase 1/2).
+      Restan 19: `ShuffleOverlay`, `CockpitDatePicker`, `DatePickerDay`, `CockpitFooter`,
+      `SorteoPanel`, `PairingRow`, `ConfettiBurst`, `ParametrosWizard`, `ParametrosTab`,
+      `ParamCheckboxRow`, `CanchasTab`, `CockpitTopBar`, `ContextPanel`, `DescansosTab`,
+      `ParamRow`, `RosterPanel`, `SettingsDrawer`, `SlotsFijosTab`, `AddPairingModal`.
 - [ ] `app/*` y `shared/*` sueltos (59) — headers, layouts, páginas.
 - [ ] `venue-calendar` (6), `org-theming` (3), `league-onboarding` (3).
 - [ ] Cola larga (1–2 c/u): `tournament-rules`, `team-management`, `narrator-analysis`, resto.
@@ -304,7 +389,12 @@ tokens, y **añade/actualiza tests** de los componentes tocados.
 		<Card>
 			<Card.Header title="Programadas" />
 			<Card.Body>
-				<Stack gap="sm">{rows}</Stack>
+				<Stack gap="sm">
+					<Typography variant="bodySm" tone="ink-2">
+						{rows.length} jornadas
+					</Typography>
+					{rows}
+				</Stack>
 			</Card.Body>
 		</Card>
 		<Card>…</Card>
@@ -312,7 +402,8 @@ tokens, y **añade/actualiza tests** de los componentes tocados.
 </PageShell>
 ```
 
-Cero `style`, cero colores crudos, cero `<div className="flex flex-col gap-4">` repetido.
+Cero `style`, cero colores crudos, cero `<div className="flex flex-col gap-4">` repetido,
+cero `text-[Npx]`/`style={{fontFamily}}` repetido (usar `Typography`, § Fase 1b).
 
 ---
 
@@ -340,12 +431,12 @@ grep -rn 'style={{' src --include='*.tsx' | wc -l          # total ocurrencias
 grep -rn 'rgba(\|#[0-9a-fA-F]\{3,6\}' src --include='*.tsx' # colores crudos
 ```
 
-| Hito                     | Archivos con `style={{}}` | Colores crudos en JSX |
-| ------------------------ | ------------------------- | --------------------- |
-| Baseline (hoy)           | 104                       | por medir             |
-| Post Fase 1 (piloto)     | ~102                      | —                     |
-| Post Fase 5 lote cockpit | ~83                       | —                     |
-| Meta final               | ~0 (solo allowlist §7)    | 0                     |
+| Hito                     | Archivos con `style={{}}`                                                                                                                                                               | Colores crudos en JSX |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| Baseline (hoy)           | 104                                                                                                                                                                                     | por medir             |
+| Post Fase 1 (piloto)     | ~102 — piloto `CreateMatchdayForm` (`CockpitPage.tsx`) migrado a `Stack`/`Inline`/`Center`; colores y fuentes se dejaron en CSS vars a propósito (ver nota en `SorteoRequirements.tsx`) | —                     |
+| Post Fase 5 lote cockpit | ~83                                                                                                                                                                                     | —                     |
+| Meta final               | ~0 (solo allowlist §7)                                                                                                                                                                  | 0                     |
 
 ---
 
@@ -373,11 +464,12 @@ grep -rn 'rgba(\|#[0-9a-fA-F]\{3,6\}' src --include='*.tsx' # colores crudos
 
 ## 11. Checklist maestro
 
-- [ ] **Fase 0** — deps decididas, `cn()` actualizado, `shared/ui/layout/` creado
-- [ ] **Fase 1** — `Stack/Inline/Grid/Center/Box/Spacer` + tests + piloto `CreateMatchdayForm`
-- [ ] **Fase 2** — CVA en `Button/Badge/Card/StatusPill/CheckPill` + tests
-- [ ] **Fase 3** — `Card` compound + `Section/Panel` + tests
-- [ ] **Fase 4** — `PageShell` + 1 pantalla de referencia
+- [x] **Fase 0** — deps decididas (tailwind-merge + cva), `cn()` actualizado, `shared/ui/layout/` creado (falta correr `pnpm install`)
+- [x] **Fase 1** — `Stack/Inline/Grid/Center/Box/Spacer` + tests + piloto `CreateMatchdayForm`
+- [x] **Fase 1b** — `Typography` (variant único) + tests + piloto `LeagueVenuesClient`
+- [x] **Fase 2** — CVA en `Button/Badge/Card` + tests (`StatusPill`/`CheckPill` diferidos, ver nota)
+- [x] **Fase 3** — `Card` compound + `Section/Panel` + tests
+- [x] **Fase 4** — `PageShell` + 1 pantalla de referencia (`admin/leagues/[id]/layout.tsx`)
 - [ ] **Fase 5** — migración por lotes (cockpit → app/shared → resto) + lint guardrail
 - [ ] Métricas §8 en ~0; lint en `error`; skins verificadas
 

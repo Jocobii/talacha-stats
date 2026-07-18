@@ -55,6 +55,7 @@ function makeGlobalPlayers(n: number): GlobalPlayer[] {
 		birthDate: "1995-01-01",
 		gender: null,
 		avatarUrl: null,
+		registeredByOrganizationId: null,
 		createdAt: new Date(),
 	}));
 }

@@ -13,6 +13,7 @@
 import type { ComponentType } from "react";
 import Link from "next/link";
 import { MapPin, Users, CheckCircle2, Circle, ClipboardList } from "lucide-react";
+import { Stack, Inline, Center } from "@/shared/ui/layout";
 import { MIN_TEAMS_FOR_MATCHDAY } from "../constants";
 
 type Props = {
@@ -25,38 +26,21 @@ export function SorteoRequirements({ leagueId, teamsCount, hasVenue }: Props) {
 	const hasEnoughTeams = teamsCount >= MIN_TEAMS_FOR_MATCHDAY;
 
 	return (
-		<div
-			style={{
-				display: "flex",
-				flexDirection: "column",
-				alignItems: "center",
-				justifyContent: "center",
-				height: "100%",
-				gap: 20,
-				padding: "0 20px",
-			}}
-		>
-			<div style={{ textAlign: "center" }}>
-				<div
-					style={{
-						width: 52,
-						height: 52,
-						borderRadius: 16,
-						background: "rgba(0,230,118,0.1)",
-						display: "grid",
-						placeItems: "center",
-						margin: "0 auto 14px",
-					}}
+		<Stack align="center" gap="lg" className="h-full justify-center px-5">
+			<div className="text-center">
+				<Center
+					className="mx-auto mb-3.5 h-[52px] w-[52px] rounded-2xl"
+					style={{ background: "rgba(0,230,118,0.1)" }}
 				>
 					<ClipboardList size={24} strokeWidth={2} color="var(--color-brand)" />
-				</div>
+				</Center>
 				<div
+					className="mb-1.5"
 					style={{
 						fontFamily: "var(--font-display)",
 						fontSize: 20,
 						fontWeight: 800,
 						color: "var(--color-ink)",
-						marginBottom: 6,
 					}}
 				>
 					Antes de generar la jornada
@@ -66,9 +50,7 @@ export function SorteoRequirements({ leagueId, teamsCount, hasVenue }: Props) {
 				</div>
 			</div>
 
-			<div
-				style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 420 }}
-			>
+			<Stack gap="sm" className="w-full max-w-[420px]">
 				<RequirementRow
 					icon={MapPin}
 					done={hasVenue}
@@ -87,8 +69,8 @@ export function SorteoRequirements({ leagueId, teamsCount, hasVenue }: Props) {
 					href="/admin/teams"
 					cta="Ir a Equipos"
 				/>
-			</div>
-		</div>
+			</Stack>
+		</Stack>
 	);
 }
 
@@ -112,37 +94,28 @@ function RequirementRow({
 	cta,
 }: RequirementRowProps) {
 	return (
-		<div
-			className="surface-card"
+		<Inline
+			align="center"
+			gap="md"
+			className="surface-card px-4 py-3.5"
 			style={{
-				display: "flex",
-				alignItems: "center",
-				gap: 14,
-				padding: "14px 16px",
 				border: done ? undefined : "1px solid rgba(0,230,118,0.25)",
 				background: done ? undefined : "rgba(0,230,118,0.04)",
 			}}
 		>
-			<div
-				style={{
-					width: 36,
-					height: 36,
-					borderRadius: 10,
-					display: "grid",
-					placeItems: "center",
-					flexShrink: 0,
-					background: done ? "var(--color-surface-2)" : "rgba(0,230,118,0.1)",
-				}}
+			<Center
+				className="h-9 w-9 shrink-0 rounded-[10px]"
+				style={{ background: done ? "var(--color-surface-2)" : "rgba(0,230,118,0.1)" }}
 			>
 				<Icon
 					size={17}
 					strokeWidth={2}
 					color={done ? "var(--color-ink-3)" : "var(--color-brand)"}
 				/>
-			</div>
+			</Center>
 
-			<div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-				<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+			<div className="min-w-0 flex-1 text-left">
+				<Inline align="center" gap="xs">
 					{done ? (
 						<CheckCircle2 size={13} strokeWidth={2.5} color="var(--color-brand)" />
 					) : (
@@ -151,8 +124,8 @@ function RequirementRow({
 					<span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--color-ink)" }}>
 						{title}
 					</span>
-				</div>
-				<div style={{ fontSize: 11.5, color: "var(--color-ink-3)", marginTop: 2 }}>
+				</Inline>
+				<div className="mt-0.5" style={{ fontSize: 11.5, color: "var(--color-ink-3)" }}>
 					{done ? doneHint : description}
 				</div>
 			</div>
@@ -160,23 +133,17 @@ function RequirementRow({
 			{!done && (
 				<Link
 					href={href}
+					className="inline-flex h-[34px] shrink-0 items-center rounded-lg px-3.5 no-underline"
 					style={{
-						flexShrink: 0,
-						display: "inline-flex",
-						alignItems: "center",
-						height: 34,
-						padding: "0 14px",
 						fontSize: 12.5,
 						fontWeight: 700,
-						borderRadius: 8,
 						background: "var(--color-brand)",
 						color: "var(--color-pitch)",
-						textDecoration: "none",
 					}}
 				>
 					{cta}
 				</Link>
 			)}
-		</div>
+		</Inline>
 	);
 }

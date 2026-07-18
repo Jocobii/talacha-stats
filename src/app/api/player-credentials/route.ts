@@ -26,8 +26,13 @@ async function resolveScopeOptions(organizationId: string): Promise<CredentialSc
 	const resolution = await resolveCredentialScope(db, undefined, organizationId);
 	if (resolution.ok) return { mode: "auto", scope: resolution.scope };
 	// requestedScope=undefined nunca produce SCOPE_NOT_ALLOWED — solo queda
-	// SCOPE_SELECTION_REQUIRED cuando la org permite ambas modalidades.
-	return { mode: "choice", allowedScopes: resolution.allowedScopes ?? [] };
+	// SCOPE_SELECTION_REQUIRED cuando la org permite ambas modalidades. El check
+	// de `code` es solo para que TS angoste la unión (allowedScopes no existe
+	// en la variante SCOPE_NOT_ALLOWED).
+	return {
+		mode: "choice",
+		allowedScopes: resolution.code === "SCOPE_SELECTION_REQUIRED" ? resolution.allowedScopes : [],
+	};
 }
 
 // GET /api/player-credentials?leagueId=&globalPlayerId=

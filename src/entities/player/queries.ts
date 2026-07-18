@@ -753,6 +753,7 @@ export async function findLeagueMember(
 		internalNotes: row.internalNotes ?? null,
 		createdAt: row.createdAt,
 		credentialCode: row.credentialCode ?? null,
+		credentialId: row.credentialId ?? null,
 	};
 }
 
@@ -795,6 +796,7 @@ export async function createLeagueMember(data: CreateLeagueMember): Promise<Leag
 			status: row.status,
 			dorsal: row.dorsal ?? null,
 			credentialCode: row.credentialCode ?? null,
+			credentialId: row.credentialId ?? null,
 			inscriptionDate: row.inscriptionDate,
 			institutionPhotoUrl: row.institutionPhotoUrl ?? null,
 			internalNotes: row.internalNotes ?? null,
