@@ -23,7 +23,12 @@ export async function detectDeficit(leagueId: string): Promise<DetectDeficitResu
 			where: eq(leagueSchedulingConfig.leagueId, leagueId),
 			columns: { regularMatchdays: true },
 		}),
-		db.select({ id: teams.id }).from(teams).where(eq(teams.leagueId, leagueId)),
+		// 'pending' (banca) y 'disbanded' no generan déficit — mismo trato
+		// deportivo que en el sorteo (NUEVA-TEMPORADA-V2.md §3.2).
+		db
+			.select({ id: teams.id })
+			.from(teams)
+			.where(and(eq(teams.leagueId, leagueId), eq(teams.status, "active"))),
 		db.query.matchdays.findMany({
 			where: and(eq(matchdays.leagueId, leagueId), eq(matchdays.phase, "regular")),
 			columns: { id: true },

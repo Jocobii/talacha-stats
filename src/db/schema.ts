@@ -285,6 +285,10 @@ export const leagues = pgTable("leagues", {
 	// Código corto de liga (3-8 letras) usado para prefijo de cédula: "LCN-0001"
 	// Auto-generado desde el nombre, editable por el organizador.
 	code: text("code"),
+	// Hasta qué jornada se aceptan altas de equipo (rollover de temporada nueva
+	// o reactivación desde la banca). NULL = sin límite. Solo informativo/
+	// advertencia en v2; bloqueo duro queda para v2.1.
+	registrationCutoffMatchday: integer("registration_cutoff_matchday"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -332,15 +336,30 @@ export const teams = pgTable(
 			.notNull()
 			.references(() => leagues.id, { onDelete: "cascade" }),
 		color: text("color"),
-		// 'active' | 'disbanded' — disbanded teams are excluded from standings, sorteo, and new-season copy
+		// 'active' | 'pending' | 'disbanded'
+		//   active    → juega, cuenta en tabla, sorteo, cédula
+		//   pending   → inscrito en la banca de la temporada (new-season rollover),
+		//               NO cuenta en nada deportivo; reactivable con su roster histórico
+		//   disbanded → desapareció, excluido de standings, sorteo y copia de new-season
 		status: text("status").notNull().default("active"),
+		// Equipo del que se clonó (temporada anterior). Permite reconstruir el
+		// roster al reactivar desde la banca sin recapturar. NULL para equipos
+		// creados de cero.
+		sourceTeamId: uuid("source_team_id").references((): AnyPgColumn => teams.id, {
+			onDelete: "set null",
+		}),
+		// Jornada en la que el equipo se incorporó al torneo (altas tardías,
+		// incluida la reactivación desde la banca). NULL = arrancó en la jornada 1.
+		joinedAtMatchday: integer("joined_at_matchday"),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [
 		index("teams_league_idx").on(t.leagueId),
+		index("teams_source_team_idx").on(t.sourceTeamId),
 		// Previene dos equipos con el mismo nombre canónico en la misma liga.
 		// "Deportivo FC" y "Deportivo F.C." colisionan → error de negocio claro.
 		unique("uq_teams_league_canonical").on(t.leagueId, t.nameCanonical),
+		check("chk_teams_status", drizzleSql`${t.status} IN ('active','pending','disbanded')`),
 	],
 );
 

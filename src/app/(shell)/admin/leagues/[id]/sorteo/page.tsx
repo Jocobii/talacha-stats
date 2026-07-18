@@ -7,6 +7,12 @@
  * Altura: el CockpitPage necesita llenar el viewport. Dado que ahora vive dentro
  * del layout con tab bar, usamos min-height calculado en lugar de height:100%
  * para evitar colapso cuando el contenedor padre no tiene altura explícita.
+ *
+ * Si la fase final ya arrancó (existe playoff_bracket para la liga), este tab
+ * no tiene nada que ofrecer — el bracket vive en el tab Calendario. En vez de
+ * cargar el cockpit y mostrar un panel "ya arrancó, ve al otro tab" cada vez
+ * que el organizador entra aquí, se redirige directo a Calendario en el
+ * servidor (sin flash de UI intermedio).
  */
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
@@ -14,7 +20,7 @@ import { eq } from "drizzle-orm";
 import { Settings } from "lucide-react";
 import { getSessionUser } from "@/shared/lib/auth";
 import { db } from "@/db";
-import { leagues } from "@/db/schema";
+import { leagues, playoffBrackets } from "@/db/schema";
 import { CockpitPage } from "@/features/sorteo-cockpit";
 
 export const metadata = { title: "Sorteo · TalachaStats" };
@@ -35,6 +41,12 @@ export default async function SorteoPage({ params }: Params) {
 		user.role === "owner" ||
 		(user.role === "organizer" && user.organizationId === league.organizationId);
 	if (!canManage) redirect("/admin/leagues");
+
+	const bracket = await db.query.playoffBrackets.findFirst({
+		where: eq(playoffBrackets.leagueId, id),
+		columns: { id: true },
+	});
+	if (bracket) redirect(`/admin/leagues/${id}/calendario`);
 
 	// Scheduling desactivado → estado inline en el tab (sin redirect)
 	if (!league.schedulingEnabled) {

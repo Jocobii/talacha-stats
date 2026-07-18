@@ -48,11 +48,11 @@ export async function getLeaguesView(
 				: { city };
 
 	const searchParams = toSearchParams(params);
+	// Más nuevas primero. "creada" no está en el FilterMap (no es filtrable,
+	// solo se usa como default de orden) — parseSort acepta un defaultSort
+	// arbitrario sin validarlo contra la allowlist de campos `sortable`.
 	const { query } = parseListQuery(searchParams, leagueFilters, {
-		defaultSort: [
-			{ field: "estado", dir: "asc" },
-			{ field: "nombre", dir: "asc" },
-		],
+		defaultSort: [{ field: "creada", dir: "desc" }],
 		pageSize: DEFAULT_LEAGUES_PAGE_SIZE,
 		maxPageSize: 100,
 	});

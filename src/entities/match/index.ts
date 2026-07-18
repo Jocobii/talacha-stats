@@ -23,4 +23,5 @@ export {
 	listMatchesByRound,
 	findMatchByCedula,
 	getNextScheduledMatch,
+	getNextScheduledPlayoffMatch,
 } from "./queries";

@@ -22,6 +22,7 @@ function makeLeague(): League {
 		status: "active",
 		schedulingEnabled: true,
 		code: "LT",
+		registrationCutoffMatchday: null,
 		createdAt: new Date("2026-01-05T00:00:00Z"),
 	};
 }

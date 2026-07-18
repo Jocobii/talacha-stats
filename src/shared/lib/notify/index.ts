@@ -26,9 +26,11 @@
  * El Toaster se monta una sola vez en el root layout (ver shared/ui/Toaster).
  */
 import { sileo, type SileoOptions } from "sileo";
+import { NotifyCloseIcon } from "./NotifyCloseIcon";
 import type {
 	NotifyAction,
 	NotifyBranch,
+	NotifyIconState,
 	NotifyId,
 	NotifyInput,
 	NotifyOptions,
@@ -60,6 +62,38 @@ function toOptions(input: NotifyInput): NotifyOptions {
 	return typeof input === "string" ? { title: input } : input;
 }
 
+/**
+ * El ícono del badge (✓ / ✕ / ⚠) por default de sileo es solo estado visual
+ * — no cierra nada, y el toast solo se cierra por timeout o con swipe
+ * (arrastrar >30px verticalmente), nunca con un click plano. En vez de sumar
+ * un botón "Cerrar" aparte (se veía fuera de lugar dentro del toast), el
+ * mismo ícono de estado SE VUELVE el cierre: mismo glyph, mismo color,
+ * clickeable (ver NotifyCloseIcon). `sileo.success/error/...` devuelve el id
+ * de forma síncrona, así que lo capturamos en una caja mutable — el
+ * `onClick` del ícono solo se ejecuta al hacer click, momento en el que la
+ * caja ya tiene el id (§18.4: no tragamos el caso `id` ausente, solo no-op).
+ * Si el caller ya pasó su propio `icon`, no lo pisamos.
+ */
+function withDismissIcon(
+	opts: NotifyOptions,
+	state: NotifyIconState,
+): { opts: NotifyOptions; idBox: { id?: NotifyId } } {
+	if (opts.icon) return { opts, idBox: {} };
+	const idBox: { id?: NotifyId } = {};
+	return {
+		opts: {
+			...opts,
+			icon: NotifyCloseIcon({
+				state,
+				onDismiss: () => {
+					if (idBox.id) sileo.dismiss(idBox.id);
+				},
+			}),
+		},
+		idBox,
+	};
+}
+
 /** Traduce nuestras opciones al shape que espera `sileo`. */
 function toSileo(opts: NotifyOptions, fallbackDuration: number): SileoOptions {
 	const { action, duration, ...rest } = opts;
@@ -83,17 +117,25 @@ function resolveBranch<T>(branch: NotifyBranch<T>, value: T): SileoOptions {
 }
 
 export const notify = {
-	success: (input: NotifyInput): NotifyId =>
-		sileo.success(toSileo(toOptions(input), DEFAULT_DURATION.success)),
+	success: (input: NotifyInput): NotifyId => {
+		const { opts, idBox } = withDismissIcon(toOptions(input), "success");
+		return (idBox.id = sileo.success(toSileo(opts, DEFAULT_DURATION.success)));
+	},
 
-	error: (input: NotifyInput): NotifyId =>
-		sileo.error(toSileo(toOptions(input), DEFAULT_DURATION.error)),
+	error: (input: NotifyInput): NotifyId => {
+		const { opts, idBox } = withDismissIcon(toOptions(input), "error");
+		return (idBox.id = sileo.error(toSileo(opts, DEFAULT_DURATION.error)));
+	},
 
-	warning: (input: NotifyInput): NotifyId =>
-		sileo.warning(toSileo(toOptions(input), DEFAULT_DURATION.warning)),
+	warning: (input: NotifyInput): NotifyId => {
+		const { opts, idBox } = withDismissIcon(toOptions(input), "warning");
+		return (idBox.id = sileo.warning(toSileo(opts, DEFAULT_DURATION.warning)));
+	},
 
-	info: (input: NotifyInput): NotifyId =>
-		sileo.info(toSileo(toOptions(input), DEFAULT_DURATION.info)),
+	info: (input: NotifyInput): NotifyId => {
+		const { opts, idBox } = withDismissIcon(toOptions(input), "info");
+		return (idBox.id = sileo.info(toSileo(opts, DEFAULT_DURATION.info)));
+	},
 
 	/** Notificación con botón de acción (p. ej. "Deshacer"). */
 	action: (input: NotifyInput, action: NotifyAction): NotifyId => {

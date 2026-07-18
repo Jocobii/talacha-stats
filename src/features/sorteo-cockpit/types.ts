@@ -46,6 +46,10 @@ export type SaveStatus = "idle" | "saving" | "saved" | "error";
 export type CockpitHookReturn = {
 	matchday: CockpitMatchday | null;
 	totalMatchdays: number;
+	completedMatchdays: number;
+	playoffStarted: boolean;
+	/** true cuando ya se jugaron/cerraron todas las jornadas configuradas (regularMatchdays). */
+	seasonComplete: boolean;
 	leagueName: string;
 	teamsCount: number;
 	config: CockpitConfig | null;

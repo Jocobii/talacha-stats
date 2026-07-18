@@ -6,8 +6,8 @@
  * bundle cliente, ver regla del split barrel entity en AGENTS.md §3).
  *
  * Espejo de entities/player/filters.ts, acotado a los campos que aplican a
- * equipos: nombre (búsqueda), estado (active/disbanded) y liga (dependiente
- * del FilterBar).
+ * equipos: nombre (búsqueda), estado (active/pending/disbanded) y liga
+ * (dependiente del FilterBar).
  *
  * "estado" es distinto al de jugadores: si el usuario NO manda ?estado= en la
  * URL, listOrgTeams/listAllTeams aplican un default de "active" a mano (ver
@@ -20,7 +20,7 @@ import { teams } from "@/db";
 import { defineFilterMap } from "@/shared/lib/list-query";
 import { sanitizeToCanonical } from "@/shared/lib/normalize";
 
-export const TEAM_STATUS_VALUES = ["active", "disbanded"] as const;
+export const TEAM_STATUS_VALUES = ["active", "pending", "disbanded"] as const;
 
 export const orgTeamFilters = defineFilterMap({
 	nombre: {

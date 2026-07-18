@@ -16,7 +16,7 @@ import {
 	venueTimeWindows,
 	teamPurchasedTimeslots,
 } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { generatePairings } from "@/features/scheduling/pairing-generator/generate-pairings";
 import { assignSlots } from "@/features/scheduling/slot-assigner/assign-slots";
 import type { VenueWithWindows } from "@/features/scheduling/slot-assigner/assign-slots";
@@ -46,7 +46,12 @@ export async function POST(request: Request, { params }: Params) {
 
 	const [config, teamRows, restRows, venueRows, windowRows, purchasedRows] = await Promise.all([
 		db.query.leagueSchedulingConfig.findFirst({ where: eq(leagueSchedulingConfig.leagueId, id) }),
-		db.select({ id: teams.id }).from(teams).where(eq(teams.leagueId, id)),
+		// 'pending' (banca) y 'disbanded' quedan fuera del sorteo — mismo trato
+		// deportivo (NUEVA-TEMPORADA-V2.md §3.2).
+		db
+			.select({ id: teams.id })
+			.from(teams)
+			.where(and(eq(teams.leagueId, id), eq(teams.status, "active"))),
 		db.query.teamRestRequests.findMany({ where: eq(teamRestRequests.leagueId, id) }),
 		db
 			.select({ venueId: leagueVenues.venueId, priority: leagueVenues.priority })

@@ -9,7 +9,7 @@ import { db } from "@/db";
 import { matches } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { resolveMatch } from "@/features/match-resolution/resolve-match";
-import { getNextScheduledMatch } from "@/entities/match/queries";
+import { getNextScheduledMatch, getNextScheduledPlayoffMatch } from "@/entities/match/queries";
 import { ResolveMatchSchema } from "@/entities/match/model";
 import { propagatePlayoffWinner } from "@/features/playoffs/lib/winner-propagator";
 
@@ -37,7 +37,13 @@ export async function POST(request: Request, { params }: Params) {
 
 	await resolveMatch(id, parsed.data, session.id);
 
-	// Propagate playoff winner if this match belongs to a bracket slot
+	// Propagate playoff winner if this match belongs to a bracket slot. `playoffRound`
+	// queda null para partidos regulares (sin playoff_slot) — en ese caso el "siguiente
+	// partido" se calcula igual que siempre. Si SÍ es un partido de playoff, acotamos el
+	// auto-avance a la MISMA ronda: sin esto, en cuanto se resuelve el último partido de
+	// una ronda, propagatePlayoffWinner puede crear al instante el partido de la ronda
+	// siguiente y el flujo "Guardar y siguiente" saltaría ahí sin que se haya jugado.
+	let playoffRound: number | null = null;
 	if (
 		parsed.data.status === "played" ||
 		parsed.data.status === "walkover_home" ||
@@ -45,10 +51,15 @@ export async function POST(request: Request, { params }: Params) {
 	) {
 		const homeScore = parsed.data.homeScore ?? 0;
 		const awayScore = parsed.data.awayScore ?? 0;
-		await propagatePlayoffWinner(id, homeScore, awayScore);
+		const propagateResult = await propagatePlayoffWinner(id, homeScore, awayScore);
+		playoffRound = propagateResult.round;
 	}
 
-	const nextMatch = match.matchdayId ? await getNextScheduledMatch(match.matchdayId, id) : null;
+	const nextMatch = match.matchdayId
+		? playoffRound !== null
+			? await getNextScheduledPlayoffMatch(match.matchdayId, id, playoffRound)
+			: await getNextScheduledMatch(match.matchdayId, id)
+		: null;
 
 	return apiSuccess({ nextMatchId: nextMatch?.id ?? null });
 }

@@ -3,6 +3,11 @@
  *
  * Devuelve la jornada activa (menor número con status draft|published, phase=regular)
  * junto con config de la liga, venues y conteo de partidos ya persistidos.
+ *
+ * También devuelve `completedMatchdays` y `playoffStarted` para que el
+ * Cockpit de Sorteo sepa distinguir "temporada regular terminada, hay que
+ * iniciar la fase final" de "hay que crear la siguiente jornada" cuando no
+ * hay jornada activa (ver useCockpitState.ts).
  */
 
 import { apiSuccess, apiError } from "@/types";
@@ -17,6 +22,7 @@ import {
 	leagueVenues,
 	venues,
 	venueTimeWindows,
+	playoffBrackets,
 } from "@/db/schema";
 import { eq, and, inArray, asc, desc, count } from "drizzle-orm";
 import { MATCHDAY_STATUSES } from "@/features/scheduling/constants";
@@ -45,23 +51,40 @@ export async function GET(request: Request, { params }: Params) {
 	if (!league.schedulingEnabled) return apiError("Módulo de sorteo no habilitado", 400);
 	if (!canManageLeague(session, league.organizationId ?? null)) return apiError("Sin permiso", 403);
 
-	const [config, activeDays, teamsCountRow] = await Promise.all([
-		db.query.leagueSchedulingConfig.findFirst({
-			where: eq(leagueSchedulingConfig.leagueId, id),
-		}),
-		db.query.matchdays.findMany({
-			where: and(
-				eq(matchdays.leagueId, id),
-				eq(matchdays.phase, "regular"),
-				inArray(matchdays.status, ACTIVE_STATUSES),
-			),
-			orderBy: [asc(matchdays.number)],
-			columns: { id: true, number: true, scheduledDate: true, status: true },
-			limit: 1,
-		}),
-		db.select({ total: count() }).from(teams).where(eq(teams.leagueId, id)),
-	]);
+	const [config, activeDays, teamsCountRow, completedMatchdaysRow, playoffBracketRow] =
+		await Promise.all([
+			db.query.leagueSchedulingConfig.findFirst({
+				where: eq(leagueSchedulingConfig.leagueId, id),
+			}),
+			db.query.matchdays.findMany({
+				where: and(
+					eq(matchdays.leagueId, id),
+					eq(matchdays.phase, "regular"),
+					inArray(matchdays.status, ACTIVE_STATUSES),
+				),
+				orderBy: [asc(matchdays.number)],
+				columns: { id: true, number: true, scheduledDate: true, status: true },
+				limit: 1,
+			}),
+			db.select({ total: count() }).from(teams).where(eq(teams.leagueId, id)),
+			db
+				.select({ total: count() })
+				.from(matchdays)
+				.where(
+					and(
+						eq(matchdays.leagueId, id),
+						eq(matchdays.phase, "regular"),
+						eq(matchdays.status, "completed"),
+					),
+				),
+			db.query.playoffBrackets.findFirst({
+				where: eq(playoffBrackets.leagueId, id),
+				columns: { id: true },
+			}),
+		]);
 	const teamsCount = teamsCountRow[0]?.total ?? 0;
+	const completedMatchdays = completedMatchdaysRow[0]?.total ?? 0;
+	const playoffStarted = playoffBracketRow !== undefined;
 
 	const currentMatchday = activeDays[0] ?? null;
 
@@ -152,6 +175,8 @@ export async function GET(request: Request, { params }: Params) {
 			: null,
 		suggestedNextDate,
 		totalMatchdays: config?.regularMatchdays ?? 0,
+		completedMatchdays,
+		playoffStarted,
 		leagueName: league.name,
 		teamsCount,
 		venues: venuesOut,

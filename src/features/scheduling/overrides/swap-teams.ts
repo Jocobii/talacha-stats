@@ -48,8 +48,15 @@ export async function swapTeams(args: SwapTeamsArgs): Promise<SwapTeamsResult> {
 				matchdayId: true,
 			},
 		}),
+		// El equipo entrante debe estar 'active' — no se puede meter un equipo
+		// de la banca ('pending') o disuelto en un partido ya calendarizado
+		// (NUEVA-TEMPORADA-V2.md §3.2).
 		db.query.teams.findFirst({
-			where: and(eq(teams.id, args.newTeamId), eq(teams.leagueId, args.leagueId)),
+			where: and(
+				eq(teams.id, args.newTeamId),
+				eq(teams.leagueId, args.leagueId),
+				eq(teams.status, "active"),
+			),
 			columns: { id: true },
 		}),
 		db.query.leagueSchedulingConfig.findFirst({
@@ -65,7 +72,8 @@ export async function swapTeams(args: SwapTeamsArgs): Promise<SwapTeamsResult> {
 		return { ok: false, error: "No se puede modificar un partido ya completado" };
 	if (match.status === "cancelled")
 		return { ok: false, error: "No se puede modificar un partido cancelado" };
-	if (!newTeamRow) return { ok: false, error: "El equipo nuevo no pertenece a esta liga" };
+	if (!newTeamRow)
+		return { ok: false, error: "El equipo nuevo no pertenece a esta liga o no está activo" };
 
 	const position = resolvePosition(match.homeTeamId, match.awayTeamId, args.oldTeamId);
 	if (!position) return { ok: false, error: "El equipo indicado no participa en este partido" };

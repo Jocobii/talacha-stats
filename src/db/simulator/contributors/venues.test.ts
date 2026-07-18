@@ -34,6 +34,7 @@ function makeLeagues(orgs: Organization[], perOrg: number): League[] {
 			status: "active" as const,
 			schedulingEnabled: true,
 			code: `L${oi}${i}`,
+			registrationCutoffMatchday: null,
 			createdAt: new Date(),
 		})),
 	);

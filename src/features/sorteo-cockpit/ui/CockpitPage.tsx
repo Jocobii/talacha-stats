@@ -15,6 +15,7 @@ import { CockpitFooter } from "./CockpitFooter";
 import { SettingsDrawer } from "./SettingsDrawer";
 import { SorteoRequirements } from "./SorteoRequirements";
 import { CockpitDatePicker } from "./CockpitDatePicker";
+import { SeasonCompletePanel } from "./SeasonCompletePanel";
 
 type CockpitPageProps = {
 	leagueId: string;
@@ -149,7 +150,13 @@ export function CockpitPage({ leagueId, leagueName }: CockpitPageProps) {
 							: undefined
 					}
 				>
-					{meetsRequirements ? (
+					{state.seasonComplete ? (
+						<SeasonCompletePanel
+							leagueId={leagueId}
+							leagueName={state.leagueName || leagueName}
+							playoffStarted={state.playoffStarted}
+						/>
+					) : meetsRequirements ? (
 						<CreateMatchdayForm
 							leagueName={state.leagueName || leagueName}
 							onCreate={state.createMatchday}

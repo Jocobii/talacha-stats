@@ -5,7 +5,7 @@
 
 import { db } from "@/db";
 import { leagueSchedulingConfig, teams } from "@/db/schema";
-import { eq, count } from "drizzle-orm";
+import { and, eq, count } from "drizzle-orm";
 import type { LeagueSchedulingConfig } from "@/db/schema";
 
 export type ConfigWithDefaults = LeagueSchedulingConfig & { teamCount: number };
@@ -15,7 +15,12 @@ export async function getSchedulingConfig(leagueId: string): Promise<ConfigWithD
 		db.query.leagueSchedulingConfig.findFirst({
 			where: eq(leagueSchedulingConfig.leagueId, leagueId),
 		}),
-		db.select({ total: count() }).from(teams).where(eq(teams.leagueId, leagueId)),
+		// Solo equipos 'active' cuentan para el sorteo — 'pending' (banca) y
+		// 'disbanded' quedan fuera (NUEVA-TEMPORADA-V2.md §3.2).
+		db
+			.select({ total: count() })
+			.from(teams)
+			.where(and(eq(teams.leagueId, leagueId), eq(teams.status, "active"))),
 	]);
 
 	const teamCount = teamCountRow[0]?.total ?? 0;

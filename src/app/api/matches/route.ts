@@ -1,4 +1,5 @@
 import { db, matches } from "@/db";
+import { teams } from "@/db/schema";
 import { eq, desc, count, and, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { MATCH_STATUSES } from "@/db/schema";
@@ -60,6 +61,20 @@ export async function POST(request: Request) {
 
 	if (parsed.data.homeTeamId === parsed.data.awayTeamId)
 		return apiError("El equipo local y visitante no pueden ser el mismo", 400);
+
+	// Ambos equipos deben existir en la liga y estar 'active' — un equipo en
+	// la banca ('pending') o disuelto no puede jugar un partido nuevo
+	// (NUEVA-TEMPORADA-V2.md §3.2).
+	const matchTeams = await db.query.teams.findMany({
+		where: and(
+			inArray(teams.id, [parsed.data.homeTeamId, parsed.data.awayTeamId]),
+			eq(teams.leagueId, parsed.data.leagueId),
+			eq(teams.status, "active"),
+		),
+		columns: { id: true },
+	});
+	if (matchTeams.length !== 2)
+		return apiError("Ambos equipos deben pertenecer a la liga y estar activos", 400);
 
 	const [match] = await db
 		.insert(matches)

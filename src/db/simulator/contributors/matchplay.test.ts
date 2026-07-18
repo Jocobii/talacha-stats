@@ -30,6 +30,7 @@ function makeLeague(overrides: Partial<League> = {}): League {
 		status: "active",
 		schedulingEnabled: true,
 		code: "LT",
+		registrationCutoffMatchday: null,
 		createdAt: new Date("2026-01-05T00:00:00Z"),
 		...overrides,
 	};
@@ -43,6 +44,8 @@ function makeTeams(leagueId: string, count: number): Team[] {
 		leagueId,
 		color: "#000000",
 		status: "active" as const,
+		sourceTeamId: null,
+		joinedAtMatchday: null,
 		createdAt: new Date(),
 	}));
 }

@@ -2,40 +2,48 @@
 /**
  * StartPlayoffsButton.tsx
  *
- * Botón "Iniciar Fase Final" — llama al endpoint POST /playoffs/start
- * y recarga la página al tener éxito.
+ * Botón "Iniciar Fase Final" — abre un ConfirmDialog (tone="brand", ver
+ * shared/ui/ConfirmDialog.tsx) en vez del confirm() nativo del navegador,
+ * llama a POST /playoffs/start y recarga la página al tener éxito.
+ *
+ * Feedback obligatorio (AGENTS.md §7.2b): el error del backend (ej. "No hay
+ * zonas de clasificación configuradas") se muestra por `notify.error` — antes
+ * solo se guardaba en `error` y se pintaba en un <p> del panel de atrás, que
+ * quedaba tapado por el propio ConfirmDialog (overlay fixed inset-0) porque
+ * el diálogo se queda abierto tras un error. El toast sí es visible siempre,
+ * encima del modal.
  */
 
 import { useState } from "react";
 import { Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/shared/api/client";
+import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { notify } from "@/shared/lib/notify";
 
 type Props = { leagueId: string };
 
 export function StartPlayoffsButton({ leagueId }: Props) {
 	const router = useRouter();
+	const [showConfirm, setShowConfirm] = useState(false);
 	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
 
 	const handleStart = async () => {
-		if (!confirm("¿Iniciar la fase final ahora? Se generarán los brackets para todas las zonas.")) {
-			return;
-		}
-		setError(null);
 		setLoading(true);
 		try {
 			const result = await apiFetch(`/api/leagues/${leagueId}/playoffs/start`, {
 				method: "POST",
 			});
 			if (!result.ok) {
-				setError(result.error ?? "Error al iniciar la fase final.");
+				notify.error(result.error ?? "Error al iniciar la fase final.");
 				return;
 			}
+			setShowConfirm(false);
+			notify.success("Fase final iniciada.");
 			router.refresh();
 		} catch (networkError) {
 			console.error("[StartPlayoffsButton] start", networkError);
-			setError("Error de red. Intenta de nuevo.");
+			notify.error("Error de red. Intenta de nuevo.");
 		} finally {
 			setLoading(false);
 		}
@@ -50,13 +58,25 @@ export function StartPlayoffsButton({ leagueId }: Props) {
 				siembran con la posición de la última jornada.
 			</p>
 			<button
-				onClick={handleStart}
+				onClick={() => setShowConfirm(true)}
 				disabled={loading}
 				className="bg-brand hover:bg-brand-dim text-pitch font-bold text-sm px-5 py-2.5 rounded-lg transition-colors disabled:opacity-50"
 			>
 				{loading ? "Generando…" : "Iniciar Fase Final"}
 			</button>
-			{error && <p className="text-xs text-rose">{error}</p>}
+
+			{showConfirm && (
+				<ConfirmDialog
+					tone="brand"
+					icon={Trophy}
+					title="¿Iniciar la fase final?"
+					description="Se generarán los brackets de eliminación directa para todas las zonas configuradas, sembrados con la posición de la última jornada."
+					confirmLabel="Iniciar Fase Final"
+					onConfirm={handleStart}
+					onClose={() => setShowConfirm(false)}
+					loading={loading}
+				/>
+			)}
 		</div>
 	);
 }

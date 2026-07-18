@@ -6,7 +6,7 @@
 
 import { db } from "@/db";
 import { leagueSchedulingConfig, teams } from "@/db/schema";
-import { eq, count } from "drizzle-orm";
+import { and, eq, count } from "drizzle-orm";
 import type { SchedulingConfigInput } from "@/types";
 import type { LeagueSchedulingConfig } from "@/db/schema";
 
@@ -26,10 +26,12 @@ export async function upsertSchedulingConfig(
 		};
 	}
 
+	// Solo equipos 'active' cuentan para el máximo de jornadas — 'pending'
+	// (banca) y 'disbanded' quedan fuera (NUEVA-TEMPORADA-V2.md §3.2).
 	const [teamCountRow] = await db
 		.select({ total: count() })
 		.from(teams)
-		.where(eq(teams.leagueId, leagueId));
+		.where(and(eq(teams.leagueId, leagueId), eq(teams.status, "active")));
 
 	const teamCount = teamCountRow?.total ?? 0;
 	const maxMatchdays = teamCount <= 1 ? 1 : teamCount - 1;

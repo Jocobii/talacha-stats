@@ -14,7 +14,16 @@ import { playoffSlots, matchdays, matches } from "@/db/schema";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type PropagateResult = { ok: true; propagated: number } | { ok: false; reason: string };
+/**
+ * `round` es la ronda del playoff_slot del partido resuelto (null si el
+ * partido no pertenece a ningún slot, es decir, es un partido regular). El
+ * caller (route.ts) lo usa para acotar el "siguiente partido" del flujo de
+ * captura a la MISMA ronda — ver getNextScheduledPlayoffMatch en
+ * entities/match/queries.ts.
+ */
+type PropagateResult =
+	| { ok: true; propagated: number; round: number | null }
+	| { ok: false; reason: string; round: number | null };
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
@@ -31,13 +40,13 @@ export async function propagatePlayoffWinner(
 		},
 	});
 
-	if (!slot) return { ok: true, propagated: 0 };
+	if (!slot) return { ok: true, propagated: 0, round: null };
 	if (!slot.homeTeamId || !slot.awayTeamId) {
-		return { ok: false, reason: "Slot has no teams assigned." };
+		return { ok: false, reason: "Slot has no teams assigned.", round: slot.round };
 	}
 
 	// Ties don't auto-propagate — admin must manually edit next slot
-	if (homeScore === awayScore) return { ok: true, propagated: 0 };
+	if (homeScore === awayScore) return { ok: true, propagated: 0, round: slot.round };
 
 	const winnerId = homeScore > awayScore ? slot.homeTeamId : slot.awayTeamId;
 	const loserId = homeScore > awayScore ? slot.awayTeamId : slot.homeTeamId;
@@ -50,7 +59,7 @@ export async function propagatePlayoffWinner(
 		where: or(eq(playoffSlots.homeFromSlotId, slot.id), eq(playoffSlots.awayFromSlotId, slot.id)),
 	});
 
-	if (downstream.length === 0) return { ok: true, propagated: 0 };
+	if (downstream.length === 0) return { ok: true, propagated: 0, round: slot.round };
 
 	// 4. Get the playoff matchday for this league (for creating new matches)
 	const playoffMatchday = await db.query.matchdays.findFirst({
@@ -107,5 +116,5 @@ export async function propagatePlayoffWinner(
 		}
 	}
 
-	return { ok: true, propagated };
+	return { ok: true, propagated, round: slot.round };
 }

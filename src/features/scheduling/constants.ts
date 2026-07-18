@@ -22,5 +22,14 @@ export const DEFAULT_BUFFER_MINUTES = 0;
 /** Máximo de jornadas regulares permitidas */
 export const MAX_REGULAR_MATCHDAYS = 60;
 
+/**
+ * Jornadas regulares por defecto cuando la organización deja `regularMatchdays`
+ * en automático (null) y todavía no hay equipos para calcularlo (alta de
+ * liga). `league_scheduling_config.regular_matchdays` es NOT NULL, así que
+ * necesitamos un valor sembrable; el organizador lo ajusta después en
+ * Parámetros (§ ParametrosTab) sin bloqueo.
+ */
+export const DEFAULT_REGULAR_MATCHDAYS = 14;
+
 /** Máximo de equipos soportados por el generador en MVP */
 export const MAX_TEAMS = 32;

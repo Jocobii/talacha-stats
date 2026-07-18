@@ -122,9 +122,6 @@ export function RosterPanel({
 					>
 						Roster de jornada
 					</h2>
-					<button className="btn-ghost" style={{ padding: "5px 9px" }} disabled={disabled}>
-						+ Equipo
-					</button>
 				</div>
 				<div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
 					<span className="chip brand">

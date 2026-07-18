@@ -50,6 +50,9 @@ export type NotifyId = string;
 /** Una rama de `notify.promise`: estática o derivada del valor resuelto/rechazado. */
 export type NotifyBranch<T> = NotifyInput | ((value: T) => NotifyInput);
 
+/** Estados con ícono propio — usado por `NotifyCloseIcon` para elegir el glyph. */
+export type NotifyIconState = "success" | "error" | "warning" | "info";
+
 export type NotifyPromiseOptions<T> = {
 	loading: NotifyInput;
 	success: NotifyBranch<T>;
