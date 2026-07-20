@@ -5,9 +5,25 @@
  * Una píldora = un dato curioso / highlight listo para copiar y pegar
  * en WhatsApp, o para renderizar en la imagen de jornada.
  *
+ * Migrado a V2 (jul 2026, docs/V1-REMOVAL-PLAN.md Fase 1, P6/D2): antes leía
+ * `player_season_stats_snapshot`/`team_standings_snapshot` (V1, snapshots por
+ * jornada del import de Excel — nunca escritos por ninguna liga 100% en-app).
+ * Ahora todo se calcula en memoria a partir de `matches` + `match_player_stats`
+ * (V2): se trae una sola vez todos los partidos contados de la liga
+ * (`matchdayNumber` vía `matches.matchdayId → matchdays.number`) y sus stats de
+ * jugador, y se recalculan los totales "hasta la jornada N" y "hasta N-1" —
+ * el mismo patrón que ya usa `db/simulator/contributors/aggregates.ts` para
+ * poblar los snapshots V1 (aquí solo se lee, nunca se escribe).
+ *
+ * Sin backfill (D1): una liga cuyo único historial vive en Excel no tiene
+ * partidos en `matches`/`match_player_stats` y simplemente no genera píldoras
+ * (mismo resultado que antes si esa liga nunca tuvo snapshot).
+ *
  * Fuentes de datos:
- *   - player_season_stats_snapshot (jornada N y N-1) → deltas por jugador
- *   - team_standings_snapshot (jornada N)            → forma y posición por equipo
+ *   - matches + matchdays        → partidos contados por jornada
+ *   - match_player_stats         → goles/asistencias por jugador y partido
+ *   - league_playoff_zones       → zonas de clasificación (reemplaza el enum
+ *                                  fijo `zone` de team_standings_snapshot)
  *
  * Reglas de diseño:
  *   - Función pura con respecto a efectos secundarios (solo lee de DB)
@@ -15,9 +31,21 @@
  *   - Devuelve datos, nunca JSX
  */
 
-import { and, desc, eq, inArray, or } from "drizzle-orm";
-import { db, playerSeasonStatsSnapshot, teamStandingsSnapshot } from "@/db";
+import { and, eq, inArray } from "drizzle-orm";
+import {
+	db,
+	matches,
+	matchdays,
+	matchPlayerStats,
+	inscriptions,
+	leagueMembers,
+	globalPlayers,
+	teams,
+	leaguePlayoffZones,
+} from "@/db";
+import { COUNTED_MATCH_STATUSES } from "@/entities/player/live-stats";
 import { titleCase } from "@/shared/lib/normalize";
+import { findZone, type ZoneInfo } from "@/shared/lib/zone-colors";
 
 // ---------------------------------------------------------------------------
 // Tipos públicos
@@ -42,11 +70,67 @@ export type JornadaPill = {
 };
 
 // ---------------------------------------------------------------------------
+// Datos crudos de la liga (una sola carga, compartida por ambos bloques)
+// ---------------------------------------------------------------------------
+
+type LeagueMatchRow = {
+	id: string;
+	homeTeamId: string;
+	awayTeamId: string;
+	homeScore: number | null;
+	awayScore: number | null;
+	matchdayNumber: number | null;
+};
+
+type PlayerMatchStatRow = {
+	matchId: string;
+	globalPlayerId: string;
+	fullName: string;
+	teamName: string | null;
+	goals: number;
+	assists: number;
+};
+
+async function fetchLeagueMatches(leagueId: string): Promise<LeagueMatchRow[]> {
+	return db
+		.select({
+			id: matches.id,
+			homeTeamId: matches.homeTeamId,
+			awayTeamId: matches.awayTeamId,
+			homeScore: matches.homeScore,
+			awayScore: matches.awayScore,
+			matchdayNumber: matchdays.number,
+		})
+		.from(matches)
+		.leftJoin(matchdays, eq(matches.matchdayId, matchdays.id))
+		.where(and(eq(matches.leagueId, leagueId), inArray(matches.status, COUNTED_MATCH_STATUSES)));
+}
+
+async function fetchLeaguePlayerMatchStats(matchIds: string[]): Promise<PlayerMatchStatRow[]> {
+	if (matchIds.length === 0) return [];
+	return db
+		.select({
+			matchId: matchPlayerStats.matchId,
+			globalPlayerId: leagueMembers.globalPlayerId,
+			fullName: globalPlayers.fullName,
+			teamName: teams.name,
+			goals: matchPlayerStats.goals,
+			assists: matchPlayerStats.assists,
+		})
+		.from(matchPlayerStats)
+		.innerJoin(inscriptions, eq(matchPlayerStats.playerRegistrationId, inscriptions.id))
+		.innerJoin(leagueMembers, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.innerJoin(globalPlayers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+		.leftJoin(teams, eq(inscriptions.teamId, teams.id))
+		.where(inArray(matchPlayerStats.matchId, matchIds));
+}
+
+// ---------------------------------------------------------------------------
 // API pública
 // ---------------------------------------------------------------------------
 
 /**
- * Genera entre 3 y 8 píldoras para una jornada importada.
+ * Genera entre 3 y 8 píldoras para una jornada.
  * Si la jornada es la 1 (sin historial previo), solo genera píldoras
  * de liderato y goleadores del corte actual.
  */
@@ -54,9 +138,17 @@ export async function generateJornadaPills(
 	leagueId: string,
 	jornada: number,
 ): Promise<JornadaPill[]> {
+	const leagueMatches = await fetchLeagueMatches(leagueId);
+	if (leagueMatches.length === 0) return [];
+
+	const matchIdsUpToJornada = leagueMatches
+		.filter((m) => (m.matchdayNumber ?? Infinity) <= jornada)
+		.map((m) => m.id);
+	const playerStats = await fetchLeaguePlayerMatchStats(matchIdsUpToJornada);
+
 	const [playerPills, teamPills] = await Promise.all([
-		buildPlayerPills(leagueId, jornada),
-		buildTeamPills(leagueId, jornada),
+		buildPlayerPills(leagueId, jornada, leagueMatches, playerStats),
+		buildTeamPills(leagueId, jornada, leagueMatches),
 	]);
 
 	// Mezcla y ordena por prioridad, máximo 8 píldoras
@@ -67,55 +159,54 @@ export async function generateJornadaPills(
 // Píldoras de jugadores
 // ---------------------------------------------------------------------------
 
-// Clave unificada para identificar un jugador en el snapshot, independientemente
-// del pipeline (legacy usa playerId, nuevo usa playerProfileId).
-function snapshotKey(s: { playerId: string | null; playerProfileId: string | null }): string {
-	return s.playerProfileId ?? s.playerId ?? "";
+type PlayerCumulative = { name: string; teamName: string; goals: number; assists: number };
+
+/** Totales acumulados de cada jugador considerando solo partidos con jornada <= uptoJornada. */
+function cumulativePlayerTotals(
+	leagueMatches: LeagueMatchRow[],
+	playerStats: PlayerMatchStatRow[],
+	uptoJornada: number,
+): Map<string, PlayerCumulative> {
+	const matchIdsUpTo = new Set(
+		leagueMatches.filter((m) => (m.matchdayNumber ?? Infinity) <= uptoJornada).map((m) => m.id),
+	);
+
+	const totals = new Map<string, PlayerCumulative>();
+	for (const s of playerStats) {
+		if (!matchIdsUpTo.has(s.matchId)) continue;
+		const acc = totals.get(s.globalPlayerId) ?? {
+			name: s.fullName,
+			teamName: s.teamName ?? "",
+			goals: 0,
+			assists: 0,
+		};
+		acc.goals += s.goals;
+		acc.assists += s.assists;
+		if (s.teamName) acc.teamName = s.teamName;
+		totals.set(s.globalPlayerId, acc);
+	}
+	return totals;
 }
 
-// Nombre de visualización: prefiere el perfil nuevo, cae en el legacy.
-function snapshotName(s: {
-	player: { fullName: string; alias: string | null } | null;
-	playerProfile: { fullName: string; alias: string | null } | null;
-}): string {
-	const src = s.playerProfile ?? s.player;
-	if (!src) return "Jugador";
-	return src.alias ? `"${titleCase(src.alias)}"` : titleCase(src.fullName);
-}
-
-async function buildPlayerPills(leagueId: string, jornada: number): Promise<JornadaPill[]> {
+async function buildPlayerPills(
+	_leagueId: string,
+	jornada: number,
+	leagueMatches: LeagueMatchRow[],
+	playerStats: PlayerMatchStatRow[],
+): Promise<JornadaPill[]> {
 	const pills: JornadaPill[] = [];
 
-	// Obtener snapshots de jornada N — incluye ambos pipelines
-	const snapshotN = await db.query.playerSeasonStatsSnapshot.findMany({
-		where: and(
-			eq(playerSeasonStatsSnapshot.leagueId, leagueId),
-			eq(playerSeasonStatsSnapshot.jornada, jornada),
-		),
-		with: {
-			player: { columns: { id: true, fullName: true, alias: true } },
-			playerProfile: { columns: { id: true, fullName: true, alias: true } },
-			team: { columns: { id: true, name: true } },
-		},
-	});
+	const hasMatchesAtJornada = leagueMatches.some((m) => m.matchdayNumber === jornada);
+	if (!hasMatchesAtJornada) return pills;
 
-	if (snapshotN.length === 0) return pills;
+	const totalsN = cumulativePlayerTotals(leagueMatches, playerStats, jornada);
+	if (totalsN.size === 0) return pills;
 
-	// Snapshot anterior — puede no existir en jornada 1
-	const snapshotPrev =
+	const totalsPrev =
 		jornada > 1
-			? await db.query.playerSeasonStatsSnapshot.findMany({
-					where: and(
-						eq(playerSeasonStatsSnapshot.leagueId, leagueId),
-						eq(playerSeasonStatsSnapshot.jornada, jornada - 1),
-					),
-					columns: { playerId: true, playerProfileId: true, goals: true, assists: true },
-				})
-			: [];
+			? cumulativePlayerTotals(leagueMatches, playerStats, jornada - 1)
+			: new Map<string, PlayerCumulative>();
 
-	const prevByPlayer = new Map(snapshotPrev.map((s) => [snapshotKey(s), s]));
-
-	// Calcular deltas de esta jornada
 	type Delta = {
 		playerKey: string;
 		name: string;
@@ -126,17 +217,16 @@ async function buildPlayerPills(leagueId: string, jornada: number): Promise<Jorn
 		assistsThisJornada: number;
 	};
 
-	const deltas: Delta[] = snapshotN.map((s) => {
-		const key = snapshotKey(s);
-		const prev = prevByPlayer.get(key);
+	const deltas: Delta[] = [...totalsN.entries()].map(([playerId, t]) => {
+		const prev = totalsPrev.get(playerId);
 		return {
-			playerKey: key,
-			name: snapshotName(s),
-			teamName: titleCase(s.team?.name ?? ""),
-			goalsTotal: s.goals,
-			assistsTotal: s.assists,
-			goalsThisJornada: s.goals - (prev?.goals ?? 0),
-			assistsThisJornada: s.assists - (prev?.assists ?? 0),
+			playerKey: playerId,
+			name: titleCase(t.name),
+			teamName: titleCase(t.teamName),
+			goalsTotal: t.goals,
+			assistsTotal: t.assists,
+			goalsThisJornada: t.goals - (prev?.goals ?? 0),
+			assistsThisJornada: t.assists - (prev?.assists ?? 0),
 		};
 	});
 
@@ -193,17 +283,8 @@ async function buildPlayerPills(leagueId: string, jornada: number): Promise<Jorn
 
 	// ── Rachas goleadoras (anotó en 3+ jornadas consecutivas) ────────────────
 	if (jornada >= 3) {
-		// Separar IDs por pipeline para la query del historial
-		const profileIds = snapshotN
-			.map((s) => s.playerProfileId)
-			.filter((id): id is string => id !== null);
-		const legacyPlayerIds = snapshotN
-			.map((s) => s.playerId)
-			.filter((id): id is string => id !== null);
-
-		const streaks = await buildScoringStreaks(leagueId, jornada, profileIds, legacyPlayerIds);
+		const streaks = buildScoringStreaks(leagueMatches, playerStats, jornada);
 		for (const [playerKey, count] of streaks) {
-			if (count < 3) continue;
 			const player = deltas.find((d) => d.playerKey === playerKey);
 			if (!player) continue;
 			pills.push({
@@ -221,67 +302,31 @@ async function buildPlayerPills(leagueId: string, jornada: number): Promise<Jorn
 /**
  * Para cada jugador, calcula cuántas jornadas consecutivas hasta `jornada`
  * tiene con al menos 1 gol (delta positivo respecto a la jornada anterior).
- * Soporta ambos pipelines: profileIds (nuevo) y legacyPlayerIds (legacy).
+ * Recalcula los totales acumulados en memoria (ya tenemos leagueMatches/
+ * playerStats cargados) — no hace falta ninguna query adicional.
  */
-async function buildScoringStreaks(
-	leagueId: string,
+function buildScoringStreaks(
+	leagueMatches: LeagueMatchRow[],
+	playerStats: PlayerMatchStatRow[],
 	currentJornada: number,
-	profileIds: string[],
-	legacyPlayerIds: string[],
-): Promise<Map<string, number>> {
-	if (profileIds.length === 0 && legacyPlayerIds.length === 0) return new Map();
+): Map<string, number> {
 	if (currentJornada < 2) return new Map();
 
 	const lookback = Math.min(currentJornada, 5);
-	const jornadaRange = Array.from({ length: lookback }, (_, i) => currentJornada - i);
-
-	// Construir cláusula WHERE que incluye ambos pipelines
-	const playerFilter = [
-		...(profileIds.length > 0
-			? [inArray(playerSeasonStatsSnapshot.playerProfileId, profileIds)]
-			: []),
-		...(legacyPlayerIds.length > 0
-			? [inArray(playerSeasonStatsSnapshot.playerId, legacyPlayerIds)]
-			: []),
-	];
-
-	const history = await db.query.playerSeasonStatsSnapshot.findMany({
-		where: and(
-			eq(playerSeasonStatsSnapshot.leagueId, leagueId),
-			or(...playerFilter),
-			inArray(playerSeasonStatsSnapshot.jornada, jornadaRange),
-		),
-		columns: { playerId: true, playerProfileId: true, jornada: true, goals: true },
-		orderBy: [desc(playerSeasonStatsSnapshot.jornada)],
-	});
-
-	// Agrupar por clave unificada (playerProfileId ?? playerId)
-	const byPlayer = new Map<string, { jornada: number; goals: number }[]>();
-	for (const row of history) {
-		const key = row.playerProfileId ?? row.playerId ?? "";
-		if (!key) continue;
-		const arr = byPlayer.get(key) ?? [];
-		arr.push({ jornada: row.jornada, goals: row.goals });
-		byPlayer.set(key, arr);
-	}
+	// series[0] = jornada actual (más reciente) ... series[last] = la más vieja del lookback
+	const series = Array.from({ length: lookback }, (_, i) =>
+		cumulativePlayerTotals(leagueMatches, playerStats, currentJornada - i),
+	);
 
 	const streaks = new Map<string, number>();
-
-	for (const [playerId, rows] of byPlayer) {
-		rows.sort((a, b) => b.jornada - a.jornada); // más reciente primero
+	for (const playerId of series[0].keys()) {
 		let streak = 0;
-
-		for (let i = 0; i < rows.length - 1; i++) {
-			const curr = rows[i];
-			const prev = rows[i + 1];
-			// Solo contar si las jornadas son consecutivas
-			if (curr.jornada !== prev.jornada + 1) break;
-			const goalsThisJornada = curr.goals - prev.goals;
-			if (goalsThisJornada <= 0) break;
+		for (let i = 0; i < series.length - 1; i++) {
+			const curr = series[i].get(playerId)?.goals ?? 0;
+			const prev = series[i + 1].get(playerId)?.goals ?? 0;
+			if (curr - prev <= 0) break;
 			streak++;
 		}
-
-		// La jornada actual cuenta como +1 si anotó
 		if (streak > 0) streaks.set(playerId, streak + 1);
 	}
 
@@ -292,136 +337,173 @@ async function buildScoringStreaks(
 // Píldoras de equipos
 // ---------------------------------------------------------------------------
 
-async function buildTeamPills(leagueId: string, jornada: number): Promise<JornadaPill[]> {
+type TeamStandingAcc = {
+	played: number;
+	wins: number;
+	draws: number;
+	losses: number;
+	goalsFor: number;
+	goalsAgainst: number;
+	points: number;
+};
+
+function emptyStanding(): TeamStandingAcc {
+	return { played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, points: 0 };
+}
+
+/** Tabla de posiciones acumulada considerando solo partidos con jornada <= uptoJornada. */
+function computeTeamStandingsUpTo(
+	leagueMatches: LeagueMatchRow[],
+	uptoJornada: number,
+): Map<string, TeamStandingAcc> {
+	const acc = new Map<string, TeamStandingAcc>();
+	const relevant = leagueMatches.filter((m) => (m.matchdayNumber ?? Infinity) <= uptoJornada);
+
+	for (const m of relevant) {
+		const hg = m.homeScore ?? 0;
+		const ag = m.awayScore ?? 0;
+		const home = acc.get(m.homeTeamId) ?? emptyStanding();
+		const away = acc.get(m.awayTeamId) ?? emptyStanding();
+
+		home.played++;
+		away.played++;
+		home.goalsFor += hg;
+		home.goalsAgainst += ag;
+		away.goalsFor += ag;
+		away.goalsAgainst += hg;
+
+		if (hg > ag) {
+			home.wins++;
+			home.points += 3;
+			away.losses++;
+		} else if (hg < ag) {
+			away.wins++;
+			away.points += 3;
+			home.losses++;
+		} else {
+			home.draws++;
+			home.points++;
+			away.draws++;
+			away.points++;
+		}
+
+		acc.set(m.homeTeamId, home);
+		acc.set(m.awayTeamId, away);
+	}
+
+	return acc;
+}
+
+function sortTeamIdsByStanding(standings: Map<string, TeamStandingAcc>): string[] {
+	return [...standings.entries()]
+		.sort((a, b) => b[1].points - a[1].points || b[1].goalsFor - a[1].goalsFor)
+		.map(([id]) => id);
+}
+
+/** Jornadas consecutivas (hasta `currentJornada`, hacia atrás) sin perder. Un bye no la corta. */
+function computeUnbeatenStreak(
+	leagueMatches: LeagueMatchRow[],
+	teamId: string,
+	currentJornada: number,
+): number {
+	const lookback = Math.min(currentJornada, 6);
+	let streak = 0;
+
+	for (let j = currentJornada; j > currentJornada - lookback; j--) {
+		const teamMatches = leagueMatches.filter(
+			(m) => m.matchdayNumber === j && (m.homeTeamId === teamId || m.awayTeamId === teamId),
+		);
+		if (teamMatches.length === 0) continue; // bye — no interrumpe la racha
+
+		const lostThisJornada = teamMatches.some((m) => {
+			const isHome = m.homeTeamId === teamId;
+			const gf = (isHome ? m.homeScore : m.awayScore) ?? 0;
+			const ga = (isHome ? m.awayScore : m.homeScore) ?? 0;
+			return gf < ga;
+		});
+		if (lostThisJornada) break;
+		streak++;
+	}
+
+	return streak;
+}
+
+async function buildTeamPills(
+	leagueId: string,
+	jornada: number,
+	leagueMatches: LeagueMatchRow[],
+): Promise<JornadaPill[]> {
 	const pills: JornadaPill[] = [];
 
-	const standingsN = await db.query.teamStandingsSnapshot.findMany({
-		where: and(
-			eq(teamStandingsSnapshot.leagueId, leagueId),
-			eq(teamStandingsSnapshot.jornada, jornada),
-		),
-		with: { team: { columns: { id: true, name: true } } },
-		orderBy: [desc(teamStandingsSnapshot.points), desc(teamStandingsSnapshot.goalsFor)],
-	});
+	const hasMatchesAtJornada = leagueMatches.some((m) => m.matchdayNumber === jornada);
+	if (!hasMatchesAtJornada) return pills;
 
-	if (standingsN.length === 0) return pills;
+	const standingsN = computeTeamStandingsUpTo(leagueMatches, jornada);
+	if (standingsN.size === 0) return pills;
+
+	const leagueTeams = await db.query.teams.findMany({
+		where: eq(teams.leagueId, leagueId),
+		columns: { id: true, name: true },
+	});
+	const teamNameById = new Map(leagueTeams.map((t) => [t.id, t.name]));
+
+	const sortedTeamIds = sortTeamIdsByStanding(standingsN);
 
 	// ── Líder de tabla ────────────────────────────────────────────────────────
-	const leader = standingsN[0];
+	const leaderId = sortedTeamIds[0];
+	const leaderStanding = standingsN.get(leaderId)!;
 	pills.push({
 		type: "leader",
-		headline: `${titleCase(leader.team.name)} comanda la tabla`,
-		detail: `${leader.points} pts · ${leader.wins}G ${leader.draws}E ${leader.losses}P · J${jornada}`,
+		headline: `${titleCase(teamNameById.get(leaderId) ?? "")} comanda la tabla`,
+		detail: `${leaderStanding.points} pts · ${leaderStanding.wins}G ${leaderStanding.draws}E ${leaderStanding.losses}P · J${jornada}`,
 		priority: 4,
 	});
 
-	// ── Cambios de zona (entró a liguilla / copa) ─────────────────────────────
+	// ── Cambios de zona (entró a liguilla / copa / etc.) ─────────────────────
 	if (jornada > 1) {
-		const standingsPrev = await db.query.teamStandingsSnapshot.findMany({
-			where: and(
-				eq(teamStandingsSnapshot.leagueId, leagueId),
-				eq(teamStandingsSnapshot.jornada, jornada - 1),
-			),
-			columns: { teamId: true, zone: true },
+		const zones: ZoneInfo[] = await db.query.leaguePlayoffZones.findMany({
+			where: eq(leaguePlayoffZones.leagueId, leagueId),
+			columns: { id: true, name: true, fromPosition: true, toPosition: true, color: true },
 		});
 
-		const prevZoneByTeam = new Map(standingsPrev.map((s) => [s.teamId, s.zone]));
+		if (zones.length > 0) {
+			const standingsPrev = computeTeamStandingsUpTo(leagueMatches, jornada - 1);
+			const sortedPrevIds = sortTeamIdsByStanding(standingsPrev);
 
-		for (const curr of standingsN) {
-			const prevZone = prevZoneByTeam.get(curr.teamId);
-			if (!prevZone && curr.zone) {
-				const zoneLabel =
-					curr.zone === "LIGUILLA"
-						? "la liguilla"
-						: curr.zone === "COPA"
-							? "la copa"
-							: curr.zone === "RECOPA"
-								? "la recopa"
-								: curr.zone;
+			sortedTeamIds.forEach((teamId, idx) => {
+				const currZone = findZone(zones, idx + 1);
+				if (!currZone) return;
+				const prevIdx = sortedPrevIds.indexOf(teamId);
+				const prevZone = prevIdx >= 0 ? findZone(zones, prevIdx + 1) : null;
+				if (prevZone) return; // ya estaba en una zona — solo interesa la entrada
+
 				pills.push({
 					type: "zone_change",
-					headline: `${titleCase(curr.team.name)} entró a ${zoneLabel}`,
-					detail: `${curr.points} pts · J${jornada}`,
+					headline: `${titleCase(teamNameById.get(teamId) ?? "")} entró a ${currZone.name}`,
+					detail: `${standingsN.get(teamId)!.points} pts · J${jornada}`,
 					priority: 2,
 				});
-			}
+			});
 		}
 	}
 
 	// ── Racha invicta ─────────────────────────────────────────────────────────
-	// Equipo con más jornadas sin perder (wins + draws consecutivos al final)
-	if (jornada >= 3 && standingsN.length > 0) {
-		const teamIds = standingsN.map((s) => s.teamId);
-		const unbeatenStreaks = await buildUnbeatenStreaks(leagueId, jornada, teamIds);
-
-		for (const [teamId, count] of unbeatenStreaks) {
-			if (count < 3) continue;
-			const team = standingsN.find((s) => s.teamId === teamId);
-			if (!team) continue;
+	// Equipo con más jornadas sin perder (solo se reporta la más larga).
+	if (jornada >= 3) {
+		let best: { teamId: string; count: number } | null = null;
+		for (const teamId of sortedTeamIds) {
+			const count = computeUnbeatenStreak(leagueMatches, teamId, jornada);
+			if (count >= 3 && (!best || count > best.count)) best = { teamId, count };
+		}
+		if (best) {
 			pills.push({
 				type: "unbeaten_streak",
-				headline: `${titleCase(team.team.name)} lleva ${count} jornadas sin perder`,
-				detail: `${team.points} pts · J${jornada}`,
+				headline: `${titleCase(teamNameById.get(best.teamId) ?? "")} lleva ${best.count} jornadas sin perder`,
+				detail: `${standingsN.get(best.teamId)!.points} pts · J${jornada}`,
 				priority: 3,
 			});
-			break; // solo el más largo
 		}
 	}
 
 	return pills;
-}
-
-/**
- * Calcula cuántas jornadas consecutivas al final lleva cada equipo sin perder.
- */
-async function buildUnbeatenStreaks(
-	leagueId: string,
-	currentJornada: number,
-	teamIds: string[],
-): Promise<Map<string, number>> {
-	if (teamIds.length === 0) return new Map();
-
-	const lookback = Math.min(currentJornada, 6);
-	const jornadaRange = Array.from({ length: lookback }, (_, i) => currentJornada - i);
-
-	const history = await db.query.teamStandingsSnapshot.findMany({
-		where: and(
-			eq(teamStandingsSnapshot.leagueId, leagueId),
-			inArray(teamStandingsSnapshot.teamId, teamIds),
-			inArray(teamStandingsSnapshot.jornada, jornadaRange),
-		),
-		columns: { teamId: true, jornada: true, wins: true, draws: true, losses: true },
-		orderBy: [desc(teamStandingsSnapshot.jornada)],
-	});
-
-	// Agrupar y calcular wins/draws/losses por jornada (deltas)
-	const byTeam = new Map<
-		string,
-		{ jornada: number; wins: number; draws: number; losses: number }[]
-	>();
-	for (const row of history) {
-		const arr = byTeam.get(row.teamId) ?? [];
-		arr.push(row);
-		byTeam.set(row.teamId, arr);
-	}
-
-	const streaks = new Map<string, number>();
-
-	for (const [teamId, rows] of byTeam) {
-		rows.sort((a, b) => b.jornada - a.jornada);
-		let streak = 0;
-
-		for (let i = 0; i < rows.length - 1; i++) {
-			const curr = rows[i];
-			const prev = rows[i + 1];
-			if (curr.jornada !== prev.jornada + 1) break;
-			const lossesThisJornada = curr.losses - prev.losses;
-			if (lossesThisJornada > 0) break;
-			streak++;
-		}
-
-		if (streak >= 3) streaks.set(teamId, streak);
-	}
-
-	return streaks;
 }

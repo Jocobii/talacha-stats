@@ -24,7 +24,7 @@
  * vivo reporta `mvpCount = 0`.
  */
 
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import {
 	db,
 	matches,
@@ -205,4 +205,142 @@ export async function getLivePlayerMatchGoals(
 		.orderBy(asc(matchdays.number), asc(matches.resolvedAt));
 
 	return rows.map((r) => ({ leagueId: r.leagueId, jornada: r.jornada, goals: r.goals }));
+}
+
+// ── Tabla de honor por jornada (en vivo) ─────────────────────────────────────
+// Reemplaza la lectura de player_season_stats en entities/player/ranking.ts
+// (docs/V1-REMOVAL-PLAN.md, Fase 1, P3/D2 — jul 2026). No hay backfill (D1):
+// una liga cuyo único historial vive en Excel simplemente no aparece aquí
+// (antes tampoco aparecía si nunca corrió import, así que no es una regresión
+// nueva para ligas 100% en-app — sí lo es para ligas de Excel, aceptado).
+
+export type LiveJornadaHero = {
+	playerId: string;
+	fullName: string;
+	teamName: string | null;
+	goals: number;
+	matchesPlayed: number;
+};
+
+export type LiveJornadaHonor = {
+	jornada: number;
+	heroes: LiveJornadaHero[];
+};
+
+/**
+ * Última jornada de la liga con al menos un gol capturado vía cédula, y sus
+ * hasta 3 goleadores de ESA jornada (no acumulado de temporada). `null` si la
+ * liga no tiene ninguna jornada con goles en `match_player_stats`.
+ */
+export async function getLiveJornadaHonor(leagueId: string): Promise<LiveJornadaHonor | null> {
+	const latest = await db
+		.select({ matchdayId: matchdays.id, number: matchdays.number })
+		.from(matchdays)
+		.innerJoin(matches, eq(matches.matchdayId, matchdays.id))
+		.innerJoin(matchPlayerStats, eq(matchPlayerStats.matchId, matches.id))
+		.where(
+			and(
+				eq(matchdays.leagueId, leagueId),
+				inArray(matches.status, COUNTED_MATCH_STATUSES),
+				sql`${matchPlayerStats.goals} > 0`,
+			),
+		)
+		.groupBy(matchdays.id, matchdays.number)
+		.orderBy(desc(matchdays.number))
+		.limit(1);
+
+	const jornada = latest[0];
+	if (!jornada) return null;
+
+	const heroRows = await db
+		.select({
+			playerId: leagueMembers.globalPlayerId,
+			fullName: globalPlayers.fullName,
+			teamName: teams.name,
+			goals: sql<number>`SUM(${matchPlayerStats.goals})::int`,
+			matchesPlayed: sql<number>`COUNT(*) FILTER (WHERE ${matchPlayerStats.isPresent})::int`,
+		})
+		.from(matchPlayerStats)
+		.innerJoin(matches, eq(matchPlayerStats.matchId, matches.id))
+		.innerJoin(inscriptions, eq(matchPlayerStats.playerRegistrationId, inscriptions.id))
+		.innerJoin(leagueMembers, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.innerJoin(globalPlayers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+		.leftJoin(teams, eq(inscriptions.teamId, teams.id))
+		.where(
+			and(
+				eq(matches.matchdayId, jornada.matchdayId),
+				inArray(matches.status, COUNTED_MATCH_STATUSES),
+			),
+		)
+		.groupBy(leagueMembers.globalPlayerId, globalPlayers.fullName, teams.name)
+		.having(sql`SUM(${matchPlayerStats.goals}) > 0`)
+		.orderBy(desc(sql`SUM(${matchPlayerStats.goals})`))
+		.limit(3);
+
+	return {
+		jornada: jornada.number,
+		heroes: heroRows.map((r) => ({
+			playerId: r.playerId!,
+			fullName: r.fullName,
+			teamName: r.teamName,
+			goals: r.goals,
+			matchesPlayed: r.matchesPlayed,
+		})),
+	};
+}
+
+// ── Roster de un equipo con stats V2 sobre un subconjunto de partidos ───────
+// Reemplaza el roster V1 (`player_registrations` + `player_season_stats`/
+// `match_events`) que usaban `lib/narrator.ts` y `lib/preview.ts`
+// (docs/V1-REMOVAL-PLAN.md, Fase 1, P4/P5 — jul 2026). El caller decide qué
+// partidos entran en la agregación (temporada completa, últimos 3, etc.) —
+// esta función solo agrega. LEFT JOIN desde `inscriptions`: un jugador sin
+// ninguna stat en los `matchIds` dados igual aparece, con todo en 0 (mismo
+// comportamiento que el roster V1 original, que incluía jugadores sin goles).
+
+export type TeamMatchStatsRosterEntry = {
+	playerId: string; // global_player_id
+	fullName: string;
+	goals: number;
+	assists: number;
+	yellowCards: number;
+	redCards: number;
+	matchesPlayed: number;
+};
+
+export async function getTeamMatchStatsRoster(
+	teamId: string,
+	matchIds: string[],
+): Promise<TeamMatchStatsRosterEntry[]> {
+	const statsFilter =
+		matchIds.length > 0
+			? and(eq(matchPlayerStats.playerRegistrationId, inscriptions.id), inArray(matchPlayerStats.matchId, matchIds))
+			: sql`false`; // sin partidos → LEFT JOIN no matchea nada, todo en 0
+
+	const rows = await db
+		.select({
+			playerId: leagueMembers.globalPlayerId,
+			fullName: globalPlayers.fullName,
+			goals: sql<number>`COALESCE(SUM(${matchPlayerStats.goals}), 0)::int`,
+			assists: sql<number>`COALESCE(SUM(${matchPlayerStats.assists}), 0)::int`,
+			yellowCards: sql<number>`COALESCE(SUM(${matchPlayerStats.yellowCards}), 0)::int`,
+			redCards: sql<number>`COALESCE(SUM(${matchPlayerStats.redCards}), 0)::int`,
+			matchesPlayed: sql<number>`COUNT(*) FILTER (WHERE ${matchPlayerStats.isPresent})::int`,
+		})
+		.from(inscriptions)
+		.innerJoin(leagueMembers, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.innerJoin(globalPlayers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+		.leftJoin(matchPlayerStats, statsFilter)
+		.where(eq(inscriptions.teamId, teamId))
+		.groupBy(leagueMembers.globalPlayerId, globalPlayers.fullName);
+
+	return rows.map((r) => ({
+		playerId: r.playerId,
+		fullName: r.fullName,
+		goals: r.goals,
+		assists: r.assists,
+		yellowCards: r.yellowCards,
+		redCards: r.redCards,
+		matchesPlayed: r.matchesPlayed,
+	}));
 }

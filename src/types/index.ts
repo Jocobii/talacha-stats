@@ -81,38 +81,6 @@ export const CreateMatchEventSchema = z.object({
 // Tipos de respuesta para las APIs
 // ---------------------------------------------------------------------------
 
-export type PlayerStats = {
-	playerId: string;
-	fullName: string;
-	alias: string | null;
-	leagueId: string;
-	leagueName: string;
-	season: string;
-	teamId: string;
-	teamName: string;
-	matchesPlayed: number;
-	goals: number;
-	assists: number;
-	yellowCards: number;
-	redCards: number;
-	ownGoals: number;
-	mvpCount: number;
-};
-
-export type PlayerGlobalStats = {
-	playerId: string;
-	fullName: string;
-	alias: string | null;
-	totalMatches: number;
-	totalGoals: number;
-	totalAssists: number;
-	totalYellowCards: number;
-	totalRedCards: number;
-	totalOwnGoals: number;
-	totalMvp: number;
-	leaguesCount: number;
-};
-
 export type TeamStanding = {
 	teamId: string;
 	teamName: string;
@@ -127,7 +95,6 @@ export type TeamStanding = {
 	goalsAgainst: number;
 	goalDifference: number;
 	points: number;
-	zone?: string; // LIGUILLA | COPA | RECOPA — solo en imports desde Excel
 };
 
 export type DangerRating = "ALTO" | "MEDIO" | "BAJO";

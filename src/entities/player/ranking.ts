@@ -24,7 +24,7 @@ import {
 	teams,
 	organizations,
 } from "@/db";
-import { getMergedLeagueStatsRows } from "./live-stats";
+import { getMergedLeagueStatsRows, getLiveJornadaHonor } from "./live-stats";
 import {
 	type PaginationParams,
 	paginateArray,
@@ -519,6 +519,12 @@ export async function getPlayerPositions(
 }
 
 // ── Tabla de honor por jornada ────────────────────────────────────────────────
+// Migrado a V2 (jul 2026, docs/V1-REMOVAL-PLAN.md Fase 1 P3/D2): antes leía
+// player_season_stats (V1, snapshot cumulativo por jornada del import de
+// Excel) — sin backfill, ninguna liga capturada 100% en-app vía cédula
+// aparecía nunca aquí. Ahora se calcula en vivo desde match_player_stats
+// (getLiveJornadaHonor). Sin backfill de Excel (D1): una liga cuyo único
+// historial vivía en Excel deja de aparecer — pérdida aceptada.
 
 export async function getJornadaHonor(city: string): Promise<JornadaLeague[]> {
 	const cityLeagues = await db.query.leagues.findMany({
@@ -530,55 +536,26 @@ export async function getJornadaHonor(city: string): Promise<JornadaLeague[]> {
 	const results: JornadaLeague[] = [];
 
 	for (const league of cityLeagues) {
-		const latestRow = await db
-			.select({ maxJornada: sql<number>`max(jornada)::int` })
-			.from(playerSeasonStats)
-			.where(eq(playerSeasonStats.leagueId, league.id));
-
-		const jornada = latestRow[0]?.maxJornada;
-		if (!jornada) continue;
-
-		const topRows = await db
-			.select({
-				playerId: playerSeasonStats.globalPlayerId,
-				fullName: globalPlayers.fullName,
-				alias: sql<string | null>`null`,
-				goals: playerSeasonStats.goals,
-				matchesPlayed: playerSeasonStats.matchesPlayed,
-				teamName: teams.name,
-			})
-			.from(playerSeasonStats)
-			.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
-			.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-			.where(
-				and(
-					eq(playerSeasonStats.leagueId, league.id),
-					eq(playerSeasonStats.jornada, jornada),
-					sql`${playerSeasonStats.goals} > 0`,
-				),
-			)
-			.orderBy(desc(playerSeasonStats.goals))
-			.limit(3);
-
-		if (topRows.length === 0) continue;
+		const honor = await getLiveJornadaHonor(league.id);
+		if (!honor || honor.heroes.length === 0) continue;
 
 		results.push({
 			leagueId: league.id,
 			leagueName: league.name,
 			season: league.season,
 			dayOfWeek: league.dayOfWeek,
-			jornada,
-			heroes: topRows.map((r) => ({
-				playerId: r.playerId!,
-				fullName: r.fullName,
-				alias: r.alias,
-				goals: r.goals,
-				matchesPlayed: r.matchesPlayed,
+			jornada: honor.jornada,
+			heroes: honor.heroes.map((h) => ({
+				playerId: h.playerId,
+				fullName: h.fullName,
+				alias: null,
+				goals: h.goals,
+				matchesPlayed: h.matchesPlayed,
 				goalsPerMatch:
-					r.matchesPlayed > 0 ? Math.round((r.goals / r.matchesPlayed) * 100) / 100 : 0,
+					h.matchesPlayed > 0 ? Math.round((h.goals / h.matchesPlayed) * 100) / 100 : 0,
 				leagueName: league.name,
-				teamName: r.teamName ?? "—",
-				jornada,
+				teamName: h.teamName ?? "—",
+				jornada: honor.jornada,
 			})),
 		});
 	}

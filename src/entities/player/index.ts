@@ -7,7 +7,6 @@ export type {
 	PlayerTeamGoalShare,
 	PlayerBadge,
 	PlayerEgoStats,
-	PlayerGlobalStats,
 	// Breaking Change — identidad global
 	GlobalPlayer,
 	CreateGlobalPlayer,
@@ -45,8 +44,6 @@ export {
 	searchDirectoryPlayers,
 	getPlayerProfile,
 	getPlayerEgoStats,
-	getPlayerGlobalStats,
-	listTopScorers,
 	// Breaking Change — identidad global
 	findGlobalPlayerByHash,
 	createGlobalPlayer,
