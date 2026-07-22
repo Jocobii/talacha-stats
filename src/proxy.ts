@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import createMiddleware from "next-intl/middleware";
 import { routing } from "@/shared/i18n/routing";
-import { classifyHost, getRootDomain } from "@/shared/tenant/host";
+import { classifyHost } from "@/shared/tenant/host";
 
 const SESSION_COOKIE = "ts_session";
 
@@ -48,9 +48,28 @@ function guardSession(request: NextRequest): NextResponse {
 // subdominio. `/org/{slug}` en el apex es solo un alias legacy que redirige.
 const ORG_PATH_PREFIX = /^\/org\/([^/]+)(\/.*)?$/;
 
-function redirectOrgPathToSubdomain(request: NextRequest, slug: string, rest: string): NextResponse {
-	const target = new URL(`${rest || "/"}${request.nextUrl.search}`, `https://${slug}.${getRootDomain()}`);
-	return NextResponse.redirect(target, 301);
+// Preserva protocolo y puerto del request original al saltar de host — así
+// un redirect en dev (`http://localhost:3000`) no termina apuntando a
+// `https://…` sin puerto, que en local no resuelve a nada.
+function sameOriginAuthority(request: NextRequest, hostname: string): string {
+	const port = request.nextUrl.port;
+	return `${request.nextUrl.protocol}//${hostname}${port ? `:${port}` : ""}`;
+}
+
+// Familias de dev — nunca queremos que un navegador cachee PERMANENTEMENTE
+// (301) un redirect que apunta a un puerto/host de desarrollo: un 301 se
+// queda pegado en el caché HTTP del navegador incluso después de arreglar
+// el código o cambiar el env var, y el único síntoma visible es "sigue
+// redirigiendo a X" sin ninguna petición nueva en el log del server.
+const DEV_ROOT_FAMILIES = new Set(["localhost", "lvh.me"]);
+
+function redirectOrgPathToSubdomain(request: NextRequest, root: string, slug: string, rest: string): NextResponse {
+	const target = new URL(
+		`${rest || "/"}${request.nextUrl.search}`,
+		sameOriginAuthority(request, `${slug}.${root}`),
+	);
+	const status = DEV_ROOT_FAMILIES.has(root) ? 307 : 301;
+	return NextResponse.redirect(target, status);
 }
 
 export function proxy(request: NextRequest) {
@@ -58,11 +77,12 @@ export function proxy(request: NextRequest) {
 	const ctx = classifyHost(request.headers.get("host"));
 
 	// Host de org (miliga.talachastats.com, §2.2): el subdominio es un mundo
-	// PÚBLICO. El panel/auth nunca vive aquí — se manda al apex para no
-	// fragmentar la sesión (la cookie ts_session es host-only, §8).
+	// PÚBLICO. El panel/auth nunca vive aquí — se manda al apex (misma
+	// familia de dominio que `ctx.root`, nunca un dominio hardcodeado) para
+	// no fragmentar la sesión (la cookie ts_session es host-only, §8).
 	if (ctx.kind === "org") {
 		if (isProtectedRoute(pathname) || isAuthPage(pathname)) {
-			return NextResponse.redirect(new URL(pathname, `https://${getRootDomain()}`));
+			return NextResponse.redirect(new URL(pathname, sameOriginAuthority(request, ctx.root)));
 		}
 		const rewritten = request.nextUrl.clone();
 		rewritten.pathname = `/org/${ctx.slug}${pathname === "/" ? "" : pathname}`;
@@ -78,9 +98,15 @@ export function proxy(request: NextRequest) {
 	}
 
 	// Apex / `app.`: alias legacy `/org/{slug}` → 301 a su subdominio (§5).
-	const orgAlias = pathname.match(ORG_PATH_PREFIX);
-	if (orgAlias) {
-		return redirectOrgPathToSubdomain(request, orgAlias[1], orgAlias[2] ?? "");
+	// Solo si `isRootHost` confirma que este host SÍ es el apex de esa
+	// familia de dominio — nunca a ciegas. Sin esto, un `localhost` sin
+	// `NEXT_PUBLIC_ROOT_DOMAIN` configurado (o un preview `*.vercel.app`)
+	// terminaba redirigido a producción real (bug detectado en desarrollo).
+	if (ctx.kind === "apex" && ctx.isRootHost) {
+		const orgAlias = pathname.match(ORG_PATH_PREFIX);
+		if (orgAlias) {
+			return redirectOrgPathToSubdomain(request, ctx.root, orgAlias[1], orgAlias[2] ?? "");
+		}
 	}
 
 	// Rutas protegidas/auth: se componen ANTES del i18n, nunca junto a él.

@@ -118,6 +118,25 @@ describe("proxy — /org/{slug} en el apex redirige 301 al subdominio (§5)", ()
 		expect(response.status).toBe(301);
 		expect(response.headers.get("location")).toBe("https://miliga.talachastats.com/liga-1?foo=bar");
 	});
+
+	it("regresión: en localhost redirige dentro de la familia localhost, NUNCA a producción", () => {
+		// Bug real observado en dev: sin NEXT_PUBLIC_ROOT_DOMAIN configurado,
+		// esto mandaba a https://miliga.talachastats.com (producción real).
+		const response = proxy(buildRequest("/org/miliga", { host: "localhost:3000" }));
+		// 307, no 301: un 301 en dev queda cacheado PERMANENTEMENTE en el
+		// navegador — el síntoma real que reportó Jocobi (seguía redirigiendo
+		// a la URL vieja tras arreglar el código y poner el env var, porque el
+		// navegador nunca volvía a pedirle nada al server).
+		expect(response.status).toBe(307);
+		expect(response.headers.get("location")).toBe("https://miliga.localhost:3000/");
+	});
+
+	it("un host desconocido (preview *.vercel.app) NO redirige — sirve /org/{slug} tal cual", () => {
+		const request = buildRequest("/org/miliga", { host: "talacha-stats-git-main.vercel.app" });
+		const response = proxy(request);
+		expect(response.status).toBe(200);
+		expect(handleI18nRoutingMock).toHaveBeenCalledWith(request);
+	});
 });
 
 describe("proxy — subdominios reservados", () => {
