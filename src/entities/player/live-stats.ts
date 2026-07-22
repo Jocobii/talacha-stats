@@ -344,3 +344,85 @@ export async function getTeamMatchStatsRoster(
 		matchesPlayed: r.matchesPlayed,
 	}));
 }
+
+// ── Goles acumulados a la jornada anterior, por liga ────────────────────────
+// Reemplaza `player_season_stats_snapshot` en `entities/player/ranking.ts::
+// getPrevGoalsByLeague` (docs/V1-REMOVAL-PLAN.md, Fase 1, P9 — jul 2026), que
+// solo cubría ligas con snapshot V1 — cualquier liga 100% en-app siempre
+// salía como "isNew" (sin positionDelta). Esta versión cubre TODAS las ligas
+// con jornadas registradas vía `matchdays`, sea cual sea su fuente de stats.
+
+/**
+ * Para cada liga en `leagueIds` con al menos 2 jornadas distintas jugadas,
+ * retorna los goles acumulados de cada jugador HASTA la penúltima jornada
+ * (la "anterior" a la más reciente) — insumo para calcular `positionDelta`
+ * comparando ranking actual vs. ranking de la jornada pasada. Ligas con 0 o 1
+ * jornada no aportan entrada (no hay "anterior" con qué comparar).
+ */
+export async function getPrevJornadaGoalsByLeague(
+	leagueIds: string[],
+): Promise<Map<string, Map<string, number>>> {
+	if (leagueIds.length === 0) return new Map();
+
+	const matchRows = await db
+		.select({
+			id: matches.id,
+			leagueId: matches.leagueId,
+			jornada: matchdays.number,
+		})
+		.from(matches)
+		.leftJoin(matchdays, eq(matches.matchdayId, matchdays.id))
+		.where(
+			and(inArray(matches.leagueId, leagueIds), inArray(matches.status, COUNTED_MATCH_STATUSES)),
+		);
+
+	// Jornadas distintas por liga, para encontrar la "anterior" (penúltima).
+	const jornadasByLeague = new Map<string, Set<number>>();
+	for (const m of matchRows) {
+		if (m.jornada == null) continue;
+		const set = jornadasByLeague.get(m.leagueId) ?? new Set<number>();
+		set.add(m.jornada);
+		jornadasByLeague.set(m.leagueId, set);
+	}
+
+	const prevJornadaByLeague = new Map<string, number>();
+	for (const [leagueId, jornadas] of jornadasByLeague) {
+		const sorted = [...jornadas].sort((a, b) => b - a);
+		if (sorted.length >= 2) prevJornadaByLeague.set(leagueId, sorted[1]);
+	}
+
+	if (prevJornadaByLeague.size === 0) return new Map();
+
+	const matchIdsUpToPrev = matchRows
+		.filter((m) => {
+			const prev = prevJornadaByLeague.get(m.leagueId);
+			return prev !== undefined && (m.jornada ?? Infinity) <= prev;
+		})
+		.map((m) => m.id);
+
+	if (matchIdsUpToPrev.length === 0) return new Map();
+
+	const statRows = await db
+		.select({
+			matchId: matchPlayerStats.matchId,
+			globalPlayerId: leagueMembers.globalPlayerId,
+			goals: matchPlayerStats.goals,
+		})
+		.from(matchPlayerStats)
+		.innerJoin(inscriptions, eq(matchPlayerStats.playerRegistrationId, inscriptions.id))
+		.innerJoin(leagueMembers, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.where(inArray(matchPlayerStats.matchId, matchIdsUpToPrev));
+
+	const leagueIdByMatch = new Map(matchRows.map((m) => [m.id, m.leagueId]));
+
+	const result = new Map<string, Map<string, number>>();
+	for (const s of statRows) {
+		const leagueId = leagueIdByMatch.get(s.matchId);
+		if (!leagueId) continue;
+		const leagueMap = result.get(leagueId) ?? new Map<string, number>();
+		leagueMap.set(s.globalPlayerId, (leagueMap.get(s.globalPlayerId) ?? 0) + s.goals);
+		result.set(leagueId, leagueMap);
+	}
+
+	return result;
+}

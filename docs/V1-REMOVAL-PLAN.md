@@ -60,12 +60,14 @@ rompe compilación y runtime.
 | P5 | `src/lib/preview.ts` | `player_registrations`, `match_events` | preview de partido (narrador) |
 | P6 | `src/features/post-import-content/pills.ts` — `generateJornadaPills` | `player_season_stats_snapshot`, `team_standings_snapshot` | `/api/content/jornada-pills`, `/api/content/jornada-image` |
 | P7 | `src/lib/standings.ts` | `team_standings_snapshot` (fallback Prioridad 2) | `getLeagueStandings` → standings + `/api/content/standings-image` |
-| P8 | `src/entities/player/ranking.ts` — `searchPlayersForDisambiguation` | `player_season_stats` | Desambiguación de jugadores por nombre (búsqueda del ranking público). Encontrado 2026-07-20 al migrar P3; no estaba en el inventario original. |
-| P9 | `src/entities/player/ranking.ts` — `getPrevGoalsByLeague` | `player_season_stats_snapshot` | `positionDelta` en `getCityRanking`/`getLeagueRanking`/`getGlobalRanking`. Encontrado 2026-07-20 al migrar P3; comparte tabla con P6 pero es un consumidor propio. |
+| P8 | ~~`src/entities/player/ranking.ts` — `searchPlayersForDisambiguation`~~ **RESUELTO 2026-07-20** | `player_season_stats` | Desambiguación de jugadores por nombre (búsqueda del ranking público). Encontrado 2026-07-20 al migrar P3; no estaba en el inventario original. |
+| P9 | ~~`src/entities/player/ranking.ts` — `getPrevGoalsByLeague`~~ **RESUELTO 2026-07-20** | `player_season_stats_snapshot` | `positionDelta` en `getCityRanking`/`getLeagueRanking`/`getGlobalRanking`. Encontrado 2026-07-20 al migrar P3; comparte tabla con P6 pero es un consumidor propio. |
 | P10 | `src/entities/organization/queries.ts` — `getLatestStandings` | `team_standings_snapshot` (+ fallback propio a `matches`, duplica `lib/standings.ts` pre-P7) | Tabla pública de una liga. Encontrado 2026-07-20 al migrar P7. |
 | P11 | `src/entities/organization/queries.ts` — `getStandingsHistory` | `team_standings_snapshot` | Gráfico de evolución de posiciones por jornada, página de liga. 100% V1, sin equivalente V2 construido aún. Encontrado 2026-07-20 al migrar P7. |
 | P12 | `src/entities/organization/queries.ts` — `getLeagueSnapshot` | `team_standings_snapshot`, `player_season_stats` | Cards del hub de organización (líder/goleador/última jornada). Encontrado 2026-07-20 al migrar P7. |
 | P13 | `src/entities/organization/queries.ts` — función ~línea 830 (agregación multi-liga) | `player_season_stats`, `team_standings_snapshot` | Suma goles + última jornada across varias ligas — probable dashboard cross-liga. Encontrado 2026-07-20 al migrar P7. |
+| P14 | `src/entities/organization/queries.ts` — `searchTopScorers` | `player_season_stats` | Tabla de goleadores paginada/buscable de una liga, página pública `/org/[slug]/[leagueSlug]`. Encontrado 2026-07-20 al migrar P10-P13, no estaba en el inventario original. |
+| P15 | `src/entities/organization/queries.ts` — `getLeaguesShowcase` | `player_season_stats` | Vitrina de ligas en la homepage (playerCount + topScorer). Encontrado 2026-07-20 al migrar P10-P13, no estaba en el inventario original. |
 
 **Ya migrados (leen de la fuente combinada / en vivo — no bloquean):**
 `ranking.ts` (`getCityRanking`, `getLeagueRanking`, `getGlobalRanking`, `getPlayerPositions`),
@@ -228,11 +230,50 @@ Por cada consumidor de §2, o se reescribe contra la fuente V2/combinada, o se r
       y el máximo de `team_standings_snapshot.jornada` a través de varias ligas — probablemente
       alimenta un dashboard cross-liga. **P13, pendiente.**
     - Ninguna de estas cuatro estaba en el inventario original de §2 (P1–P7). Se agregan a la tabla
-      de consumidores como P10–P13. **No se tocaron en este paso** — este archivo (`entities/
-      organization/queries.ts`) es grande (850+ líneas) y merece su propio paso dedicado.
+      de consumidores como P10–P13.
+
+### P10–P15 — RESUELTO 2026-07-20 (`entities/organization/queries.ts`)
+
+Al abrir el archivo para resolver P10–P13 aparecieron dos consumidores V1 más, no listados antes:
+`searchTopScorers` (P14, tabla de goleadores de `/org/[slug]/[leagueSlug]`) y `getLeaguesShowcase`
+(P15, vitrina de ligas de la homepage). Los seis se resolvieron en el mismo paso:
+
+- **Helpers locales nuevos** (auto-contenidos, no importan `entities/player/live-stats.ts` — FSD
+  §3.1 prohíbe imports laterales entre entities): `getMergedLeagueScorers(leagueIds)` (goleo
+  combinado Excel-si-existe/en-vivo, mismo criterio que `live-stats.ts` pero implementación propia)
+  y `getLastJornadaForLeagues(leagueIds)` (última jornada con partido contado, vía `matchdays`).
+- **P10 `getLatestStandings`** → se retira la Prioridad 1 (`team_standings_snapshot`), igual que
+  P7 en `lib/standings.ts` (archivo distinto, misma duplicación preexistente). `jornada` ya no es
+  siempre `null`: ahora sale de `getLastJornadaForLeagues`.
+- **P14 `searchTopScorers`** → usa `getMergedLeagueScorers` + filtro/orden/paginado en memoria
+  (aceptable: acotado a una sola liga, nunca miles de filas — no vale la pena reimplementar la
+  lógica "Excel vs. en vivo" dos veces en SQL paginado).
+- **P11 `getStandingsHistory`** → **retirada, no migrada.** Cero callers reales en `src/app` (el
+  "gráfico de evolución" de su comentario nunca se construyó) — mismo patrón que P1/P2.
+- **P15 `getLeaguesShowcase`** → `playerCount`/`topScorer` migrados a `getMergedLeagueScorers`.
+- **P12 `getLeagueSnapshot`** → ya no duplica lectura de standings/goleo: delega a
+  `getLatestStandings` (mismo archivo, ya migrado) + `getMergedLeagueScorers`.
+- **P13 `getOrgHubStats`** → `totalGoals` desde `getMergedLeagueScorers` across las ligas de la org;
+  `lastJornada` desde `getLastJornadaForLeagues`.
+- Mejora real (no solo limpieza V1): en los 5 puntos migrados (P10, P12–P15), cualquier liga 100%
+  en-app antes aportaba 0 a estos totales/vitrinas — ahora sí cuenta.
 
 Salida de fase: **cero referencias a tablas/ vista V1 en `src/` fuera de `db/` infra.**
 Verificar con grep (ver §6).
+
+### Fase 1 — P8/P9 (RESUELTO 2026-07-20)
+
+- **`searchPlayersForDisambiguation`** → reescrita: busca en `global_players` por nombre, resuelve
+  sus `league_members` para saber en qué ligas participan, y usa `getMergedLeagueStatsRows`
+  (fuente combinada, misma que el resto del módulo) para los goles por liga. Ya no lee
+  `player_season_stats` directo. `season` (antes venía del join a `playerSeasonStats`/`leagues`)
+  ahora sale de un lookup aparte a `leagues` (`getMergedLeagueStatsRows` no expone ese campo).
+- **`getPrevGoalsByLeague`** → reemplazada por `getPrevJornadaGoalsByLeague` (nueva, en
+  `entities/player/live-stats.ts`): en vez de leer `player_season_stats_snapshot`, calcula las dos
+  jornadas más recientes de cada liga desde `matches`+`matchdays` y agrega goles acumulados hasta
+  la penúltima directamente desde `match_player_stats`. Cubre TODAS las ligas con 2+ jornadas
+  registradas (antes solo las que tenían snapshot V1) — una liga 100% en-app ya no sale siempre
+  como "isNew" en `positionDelta`, mejora real de producto, no solo limpieza V1.
 
 ### Fase 2 — Retirar la vista SQL
 4. Migración nueva que hace `DROP VIEW IF EXISTS player_global_stats;`

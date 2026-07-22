@@ -24,7 +24,6 @@ export {
 	getPublicLeague,
 	getLatestStandings,
 	searchTopScorers,
-	getStandingsHistory,
 	getPublicMatchdays,
 	getLeagueZones,
 	// Público — hub
