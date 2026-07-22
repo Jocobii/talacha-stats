@@ -213,7 +213,6 @@ function buildPlayerSeasonStatsRows(
 		globalPlayerId,
 		leagueMemberId: null,
 		playerProfileId: null,
-		legacyPlayerId: null,
 		leagueId: league.id,
 		teamId: teamByPlayer.get(globalPlayerId) ?? null,
 		...acc,

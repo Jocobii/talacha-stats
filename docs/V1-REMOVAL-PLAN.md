@@ -68,6 +68,8 @@ rompe compilación y runtime.
 | P13 | `src/entities/organization/queries.ts` — función ~línea 830 (agregación multi-liga) | `player_season_stats`, `team_standings_snapshot` | Suma goles + última jornada across varias ligas — probable dashboard cross-liga. Encontrado 2026-07-20 al migrar P7. |
 | P14 | `src/entities/organization/queries.ts` — `searchTopScorers` | `player_season_stats` | Tabla de goleadores paginada/buscable de una liga, página pública `/org/[slug]/[leagueSlug]`. Encontrado 2026-07-20 al migrar P10-P13, no estaba en el inventario original. |
 | P15 | `src/entities/organization/queries.ts` — `getLeaguesShowcase` | `player_season_stats` | Vitrina de ligas en la homepage (playerCount + topScorer). Encontrado 2026-07-20 al migrar P10-P13, no estaba en el inventario original. |
+| P16 | ~~`src/entities/player-profile/*` (queries.ts, model.ts, index.ts)~~ **RETIRADO 2026-07-22** | `player_profiles.claimed_player_id` (FK a `players`) | Sin caller real en `src/`. Encontrado 2026-07-22 al soltar FKs puente (Fase 3). |
+| P17 | ~~`src/app/api/teams/[id]/roster/route.ts` (POST), `src/app/api/matches/[id]/events/route.ts` (POST)~~ **RETIRADO 2026-07-22** | `player_registrations.legacy_player_id`, `match_events.legacy_player_id` | Dos rutas API sin caller real que ESCRIBÍAN en las FKs puente (V1 no era 100% solo-lectura). Encontrado 2026-07-22 al soltar FKs puente (Fase 3). |
 
 **Ya migrados (leen de la fuente combinada / en vivo — no bloquean):**
 `ranking.ts` (`getCityRanking`, `getLeagueRanking`, `getGlobalRanking`, `getPlayerPositions`),
@@ -291,10 +293,37 @@ Verificar con grep (ver §6).
    VIEW` a correr manualmente en Supabase (no hay migración Drizzle para esto,
    porque nunca fueron parte del schema gestionado).
 
-### Fase 3 — Soltar FKs puente
-7. Migración nueva: `DROP` de las columnas/constraints `legacy_player_id` en
-   `player_registrations`, `player_season_stats`, `match_events`, y de
-   `player_profiles.claimed_player_id`. (Solo las columnas legacy; NO tocar `global_player_id`.)
+### Fase 3 — Soltar FKs puente — RESUELTO 2026-07-22
+
+7. Se quitaron de `schema.ts` las columnas `legacy_player_id` (`player_registrations`,
+   `player_season_stats`, `match_events`) y `claimed_player_id` (`player_profiles`), junto
+   con sus índices (`registrations_legacy_player_idx`, `pss_legacy_player_idx`,
+   `events_legacy_player_idx`, `idx_player_profiles_claimed`) y sus relations Drizzle
+   (`legacyPlayer`, `claimedPlayer`). **Pendiente para ti:** `pnpm db:generate` (genera el
+   `ALTER TABLE ... DROP COLUMN` a partir del diff) + `pnpm db:migrate:run`.
+   - **P16, descubierto al abrir el archivo:** el módulo completo `entities/player-profile`
+     (`queries.ts`: `claimProfile`/`rejectClaim`/etc., `model.ts`, `index.ts`) no tenía NINGÚN
+     caller real fuera de sí mismo — la identidad local hoy vive en `league_members`, no en
+     `player_profiles` (que ya estaba marcada `@deprecated` en el comentario del schema). Se
+     retiró completo (mismo patrón que P1/P2), no solo la función que usaba `claimedPlayerId`.
+   - **P17, descubierto al abrir el archivo:** dos rutas API con cero callers reales seguían
+     ESCRIBIENDO en las columnas puente: `POST /api/teams/[id]/roster` (`playerRegistrations.legacyPlayerId`)
+     y `POST /api/matches/[id]/events` (`matchEvents.legacyPlayerId`) — contradice la premisa
+     original del plan de que V1 era "solo lectura" en producción. El roster real V2 usa
+     `/api/teams/[id]/members` y `/roster/[memberId]` (+ `/transfer`), rutas distintas que
+     siguen vivas; `match_events` no tiene ningún flujo V2 (se dropea completa en Fase 4, D3).
+     Ambas rutas se retiraron (vaciadas a `export {}`), no se migraron.
+   - **Efecto en scripts de infra** (rompían compilación al quitar las columnas, se arreglaron
+     en el mismo paso para no violar R4):
+     - `db/migrate-to-league-members.ts` — script one-off ya corrido, dependía 100% de
+       `claimed_player_id`/`legacy_player_id` para resolver `global_player_id`. Retirado
+       (no puede volver a correr sin esas columnas, y no lo necesita — ya migró los datos).
+     - `db/seed.ts` — seguía poblando `players`/`playerRegistrations`/`playerSeasonStats`
+       (tablas V1, aún existen hasta Fase 4) usando `legacyPlayerId` como vínculo al jugador.
+       Se reemplazó por un campo local `_playerId` (no persistido, se filtra antes del insert)
+       para que el seed siga pudiendo construir snapshots/eventos deterministas sin la columna.
+     - `db/simulator/contributors/aggregates.ts` — tenía un `legacyPlayerId: null` literal en
+       la fila de `playerSeasonStats` que arma; se quitó (ya no es un campo válido).
 
 ### Fase 4 — Dropear tablas V1 + `match_events` (D3)
 8. Migración nueva, en orden hijo→padre:

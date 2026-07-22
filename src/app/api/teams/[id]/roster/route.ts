@@ -1,54 +1,6 @@
-import { db, playerRegistrations, teams } from "@/db";
-import { eq } from "drizzle-orm";
-import { RegisterPlayerSchema, apiSuccess, apiError } from "@/types";
-
-// GET /api/teams/:id/roster
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
-	const { id } = await params;
-
-	const team = await db.query.teams.findFirst({ where: eq(teams.id, id) });
-	if (!team) return apiError("Equipo no encontrado", 404);
-
-	const roster = await db.query.playerRegistrations.findMany({
-		where: eq(playerRegistrations.teamId, id),
-		with: { legacyPlayer: true },
-		orderBy: (r, { asc }) => [asc(r.jerseyNumber)],
-	});
-
-	return apiSuccess({ team, roster });
-}
-
-// POST /api/teams/:id/roster — registrar jugador en el equipo
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-	const { id } = await params;
-	const body = await request.json().catch(() => null);
-
-	const parsed = RegisterPlayerSchema.safeParse({ ...body, teamId: id });
-	if (!parsed.success) return apiError(parsed.error.message);
-
-	// Verificar que el equipo pertenezca a la liga indicada
-	const team = await db.query.teams.findFirst({ where: eq(teams.id, id) });
-	if (!team) return apiError("Equipo no encontrado", 404);
-	if (team.leagueId !== parsed.data.leagueId)
-		return apiError("El equipo no pertenece a esa liga", 400);
-
-	try {
-		const [registration] = await db
-			.insert(playerRegistrations)
-			.values({
-				legacyPlayerId: parsed.data.playerId,
-				teamId: id,
-				leagueId: parsed.data.leagueId,
-				jerseyNumber: parsed.data.jerseyNumber ?? null,
-			})
-			.returning();
-
-		return apiSuccess(registration, 201);
-	} catch (err: unknown) {
-		const error = err as { code?: string };
-		if (error?.code === "23505") {
-			return apiError("El jugador ya está registrado en otro equipo de esta liga", 409);
-		}
-		throw err;
-	}
-}
+// RETIRADO (docs/V1-REMOVAL-PLAN.md, Fase 3, jul 2026): POST escribía
+// `playerRegistrations.legacyPlayerId` (FK puente V1) y GET usaba la relación
+// `legacyPlayer`. Cero callers reales — el roster real V2 usa
+// `/api/teams/[id]/members` y `/api/teams/[id]/roster/[memberId]` (y
+// `/transfer`), rutas distintas que siguen vivas. Pendiente `git rm`.
+export {};
