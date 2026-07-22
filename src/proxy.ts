@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import createMiddleware from "next-intl/middleware";
 import { routing } from "@/shared/i18n/routing";
+import { classifyHost, getRootDomain } from "@/shared/tenant/host";
 
 const SESSION_COOKIE = "ts_session";
 
@@ -44,8 +44,44 @@ function guardSession(request: NextRequest): NextResponse {
 	return NextResponse.next();
 }
 
+// docs/SUBDOMINIOS-MULTITENANT.md §5: la URL canónica de una org es su
+// subdominio. `/org/{slug}` en el apex es solo un alias legacy que redirige.
+const ORG_PATH_PREFIX = /^\/org\/([^/]+)(\/.*)?$/;
+
+function redirectOrgPathToSubdomain(request: NextRequest, slug: string, rest: string): NextResponse {
+	const target = new URL(`${rest || "/"}${request.nextUrl.search}`, `https://${slug}.${getRootDomain()}`);
+	return NextResponse.redirect(target, 301);
+}
+
 export function proxy(request: NextRequest) {
 	const { pathname } = request.nextUrl;
+	const ctx = classifyHost(request.headers.get("host"));
+
+	// Host de org (miliga.talachastats.com, §2.2): el subdominio es un mundo
+	// PÚBLICO. El panel/auth nunca vive aquí — se manda al apex para no
+	// fragmentar la sesión (la cookie ts_session es host-only, §8).
+	if (ctx.kind === "org") {
+		if (isProtectedRoute(pathname) || isAuthPage(pathname)) {
+			return NextResponse.redirect(new URL(pathname, `https://${getRootDomain()}`));
+		}
+		const rewritten = request.nextUrl.clone();
+		rewritten.pathname = `/org/${ctx.slug}${pathname === "/" ? "" : pathname}`;
+		const rewrittenRequest = new NextRequest(rewritten, request);
+		return handleI18nRouting(rewrittenRequest);
+	}
+
+	// Subdominio reservado que aún no usamos (api., cdn., etc.) — passthrough.
+	// `app.` se reserva para el panel a futuro (§9.1) pero hoy se comporta
+	// como apex: cae al bloque de abajo sin `return` anticipado.
+	if (ctx.kind === "reserved" && ctx.sub !== "app") {
+		return NextResponse.next();
+	}
+
+	// Apex / `app.`: alias legacy `/org/{slug}` → 301 a su subdominio (§5).
+	const orgAlias = pathname.match(ORG_PATH_PREFIX);
+	if (orgAlias) {
+		return redirectOrgPathToSubdomain(request, orgAlias[1], orgAlias[2] ?? "");
+	}
 
 	// Rutas protegidas/auth: se componen ANTES del i18n, nunca junto a él.
 	if (isProtectedRoute(pathname) || isAuthPage(pathname)) {
