@@ -275,11 +275,21 @@ Verificar con grep (ver §6).
   registradas (antes solo las que tenían snapshot V1) — una liga 100% en-app ya no sale siempre
   como "isNew" en `positionDelta`, mejora real de producto, no solo limpieza V1.
 
-### Fase 2 — Retirar la vista SQL
-4. Migración nueva que hace `DROP VIEW IF EXISTS player_global_stats;`
-   (y `player_league_stats`, `league_top_scorers` de `views.sql` si ya nadie las usa).
-5. Quitar `pgView("player_global_stats")` y tipos derivados de `schema.ts`.
-6. Actualizar/retirar `src/db/views.sql`.
+### Fase 2 — Retirar la vista SQL — RESUELTO 2026-07-22
+
+4. `pgView("player_global_stats")` y su tipo `PlayerGlobalStatsRow` se quitaron de
+   `schema.ts` (junto con el import ahora-huérfano de `pgView`). Cero referencias
+   restantes a `playerGlobalStats`/`PlayerGlobalStatsRow` en `src/` (confirmado por
+   grep). **Pendiente para ti:** correr `pnpm db:generate` para que Drizzle genere
+   la migración `DROP VIEW player_global_stats` a partir de este diff, revisarla, y
+   `pnpm db:migrate:run` para aplicarla.
+5. `src/db/views.sql` reescrito: las 4 vistas (`player_league_stats`,
+   `player_global_stats`, `league_standings`, `league_top_scorers`) no tenían NINGÚN
+   lector en `src/` (se crearon a mano en Supabase, fuera del flujo de migraciones
+   Drizzle — solo `player_global_stats` tenía su espejo en `schema.ts`, ya cubierto
+   por el punto 4). El archivo ahora es solo un registro histórico con los `DROP
+   VIEW` a correr manualmente en Supabase (no hay migración Drizzle para esto,
+   porque nunca fueron parte del schema gestionado).
 
 ### Fase 3 — Soltar FKs puente
 7. Migración nueva: `DROP` de las columnas/constraints `legacy_player_id` en

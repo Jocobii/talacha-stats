@@ -1,6 +1,5 @@
 import {
 	pgTable,
-	pgView,
 	uuid,
 	text,
 	integer,
@@ -2059,67 +2058,12 @@ export const playoffSlotsRelations = relations(playoffSlots, ({ one }) => ({
 	match: one(matches, { fields: [playoffSlots.matchId], references: [matches.id] }),
 }));
 
-// ---------------------------------------------------------------------------
-// PLAYER_GLOBAL_STATS — Vista agregada cross-org (Historia 05)
-//
-// Agrega estadísticas de un jugador a través de todos sus player_profiles
-// con claim_status = 'verified'. Profiles unclaimed / proposed / rejected
-// quedan EXCLUIDOS — garantía de privacidad cross-org.
-//
-// Vista REGULAR (no materializada) para MVP.
-// Deuda técnica: migrar a MATERIALIZED VIEW si el costo de query sube.
-// ---------------------------------------------------------------------------
-export const playerGlobalStats = pgView("player_global_stats").as((qb) =>
-	qb
-		.select({
-			playerId: players.id,
-			fullName: players.fullName,
-			alias: players.alias,
-			organizationsCount:
-				drizzleSql<number>`COUNT(DISTINCT ${playerProfiles.organizationId})::int`.as(
-					"organizations_count",
-				),
-			leaguesCount: drizzleSql<number>`COUNT(DISTINCT ${playerRegistrations.leagueId})::int`.as(
-				"leagues_count",
-			),
-			totalGoals: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.goals}), 0)::int`.as(
-				"total_goals",
-			),
-			totalAssists: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.assists}), 0)::int`.as(
-				"total_assists",
-			),
-			totalMatchesPlayed:
-				drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.matchesPlayed}), 0)::int`.as(
-					"total_matches_played",
-				),
-			totalYellowCards:
-				drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.yellowCards}), 0)::int`.as(
-					"total_yellow_cards",
-				),
-			totalRedCards: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.redCards}), 0)::int`.as(
-				"total_red_cards",
-			),
-			lastUpdatedAt: drizzleSql<Date | null>`MAX(${playerSeasonStats.updatedAt})`.as(
-				"last_updated_at",
-			),
-		})
-		.from(players)
-		.innerJoin(
-			playerProfiles,
-			drizzleSql`${playerProfiles.claimedPlayerId} = ${players.id} AND ${playerProfiles.claimStatus} = 'verified'`,
-		)
-		.leftJoin(
-			playerRegistrations,
-			drizzleSql`${playerRegistrations.playerProfileId} = ${playerProfiles.id}`,
-		)
-		.leftJoin(
-			playerSeasonStats,
-			drizzleSql`${playerSeasonStats.playerProfileId} = ${playerProfiles.id}`,
-		)
-		.groupBy(players.id, players.fullName, players.alias),
-);
-
-export type PlayerGlobalStatsRow = typeof playerGlobalStats.$inferSelect;
+// La vista `player_global_stats` (pgView, Historia 05) se retiró aquí
+// (docs/V1-REMOVAL-PLAN.md, Fase 2 — jul 2026): 100% V1 (players +
+// playerRegistrations + playerSeasonStats), sin caller real desde P1/P2.
+// Corre `pnpm db:generate` para generar la migración `DROP VIEW
+// player_global_stats` a partir de este diff de schema, y `pnpm
+// db:migrate:run` para aplicarla.
 
 // ---------------------------------------------------------------------------
 // SKIN_ACTIVATIONS — Temas visuales por torneo (Mundial, Copa América, Liga MX…)
