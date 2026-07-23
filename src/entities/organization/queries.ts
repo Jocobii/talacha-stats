@@ -18,6 +18,7 @@ import {
 } from "@/db/schema";
 import { eq, asc, desc, and, sql, inArray, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { cache } from "react";
 import type { Organization } from "@/db/schema";
 import type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
 import { deriveArranqueState, type ArranqueState } from "./lib/derive-arranque-state";
@@ -312,9 +313,13 @@ export async function listOrganizationsPublic() {
 
 /**
  * Obtiene una organización pública con sus ligas activas + último snapshot de cada liga.
- * Usada en /org/[slug].
+ * Usada en /org/[slug] Y en org/[slug]/layout.tsx (nav público, docs/SUBDOMINIOS-MULTITENANT.md §4).
+ *
+ * Envuelta en `cache()` de React: layout.tsx y page.tsx la llaman por
+ * separado en el mismo request (uno para el nav, otro para el contenido) —
+ * sin memoización esto sería una consulta a DB duplicada en cada visita.
  */
-export async function getPublicOrganization(slug: string) {
+export const getPublicOrganization = cache(async function getPublicOrganization(slug: string) {
 	const org = await db.query.organizations.findFirst({
 		// Trial orgs are not publicly accessible
 		// comment only for testing
@@ -329,7 +334,7 @@ export async function getPublicOrganization(slug: string) {
 		},
 	});
 	return org ?? null;
-}
+});
 
 /**
  * Obtiene una liga pública por slug de org + slug de liga.
@@ -879,6 +884,146 @@ export async function getOrgHubStats(orgId: string): Promise<OrgHubStats> {
 	const totalGoals = scorerRows.reduce((sum, r) => sum + r.goals, 0);
 
 	return { totalGoals, lastJornada };
+}
+
+// ---------------------------------------------------------------------------
+// Público — feed de partidos de la organización (próxima jornada + recientes)
+//
+// Agregados cross-liga para el home del subdominio. A diferencia de
+// getPublicMatchdays (por liga), estos barren TODAS las ligas activas de la
+// org y devuelven un puñado de partidos ya ordenado, listo para pintar.
+// Fechas serializadas a ISO string para cruzar la frontera Server → Client.
+// ---------------------------------------------------------------------------
+
+export type OrgFeedMatch = {
+	matchId: string;
+	leagueName: string;
+	leagueSlug: string | null;
+	homeTeamName: string;
+	awayTeamName: string;
+	venueName: string | null;
+	/** ISO string, null si no hay hora definida */
+	kickoffAt: string | null;
+	/** "YYYY-MM-DD" (columna date) */
+	matchDate: string;
+	/** null en próximos (aún sin capturar); número en recientes */
+	homeScore: number | null;
+	awayScore: number | null;
+};
+
+const ORG_FEED_COUNTED_STATUSES = ["played", "walkover_home", "walkover_away", "completed"] as const;
+
+/** W.O. = 3-0 para el ganador; el resto usa el marcador capturado. */
+function resolveFeedScore(
+	status: string,
+	home: number | null,
+	away: number | null,
+): [number, number] {
+	if (status === "walkover_home") return [3, 0];
+	if (status === "walkover_away") return [0, 3];
+	return [home ?? 0, away ?? 0];
+}
+
+/**
+ * Próximos partidos programados de toda la org (todas las ligas activas),
+ * ordenados por fecha/hora ascendente. Usado en el home del subdominio.
+ */
+export async function getOrgUpcomingMatches(orgId: string, limit = 6): Promise<OrgFeedMatch[]> {
+	const homeTeams = alias(teams, "up_home_teams");
+	const awayTeams = alias(teams, "up_away_teams");
+
+	const rows = await db
+		.select({
+			matchId: matches.id,
+			leagueName: leagues.name,
+			leagueSlug: leagues.slug,
+			homeTeamName: homeTeams.name,
+			awayTeamName: awayTeams.name,
+			venueName: venues.name,
+			kickoffAt: matches.kickoffAt,
+			matchDate: matches.matchDate,
+		})
+		.from(matches)
+		.innerJoin(leagues, and(eq(leagues.id, matches.leagueId), eq(leagues.status, "active")))
+		.innerJoin(homeTeams, eq(homeTeams.id, matches.homeTeamId))
+		.innerJoin(awayTeams, eq(awayTeams.id, matches.awayTeamId))
+		.leftJoin(venues, eq(venues.id, matches.venueId))
+		.where(
+			and(
+				eq(leagues.organizationId, orgId),
+				eq(matches.status, "scheduled"),
+				sql`coalesce(${matches.kickoffAt}::date, ${matches.matchDate}) >= current_date`,
+			),
+		)
+		.orderBy(
+			sql`coalesce(${matches.kickoffAt}::date, ${matches.matchDate}) asc`,
+			asc(matches.kickoffAt),
+		)
+		.limit(limit);
+
+	return rows.map((r) => ({
+		matchId: r.matchId,
+		leagueName: r.leagueName,
+		leagueSlug: r.leagueSlug ?? null,
+		homeTeamName: r.homeTeamName,
+		awayTeamName: r.awayTeamName,
+		venueName: r.venueName ?? null,
+		kickoffAt: r.kickoffAt ? new Date(r.kickoffAt).toISOString() : null,
+		matchDate: r.matchDate,
+		homeScore: null,
+		awayScore: null,
+	}));
+}
+
+/**
+ * Últimos partidos jugados de toda la org (todas las ligas activas),
+ * ordenados por fecha descendente, con marcador (W.O. = 3-0). Usado en el
+ * home del subdominio.
+ */
+export async function getOrgRecentResults(orgId: string, limit = 6): Promise<OrgFeedMatch[]> {
+	const homeTeams = alias(teams, "rc_home_teams");
+	const awayTeams = alias(teams, "rc_away_teams");
+
+	const rows = await db
+		.select({
+			matchId: matches.id,
+			leagueName: leagues.name,
+			leagueSlug: leagues.slug,
+			homeTeamName: homeTeams.name,
+			awayTeamName: awayTeams.name,
+			venueName: venues.name,
+			kickoffAt: matches.kickoffAt,
+			matchDate: matches.matchDate,
+			status: matches.status,
+			homeScore: matches.homeScore,
+			awayScore: matches.awayScore,
+		})
+		.from(matches)
+		.innerJoin(leagues, and(eq(leagues.id, matches.leagueId), eq(leagues.status, "active")))
+		.innerJoin(homeTeams, eq(homeTeams.id, matches.homeTeamId))
+		.innerJoin(awayTeams, eq(awayTeams.id, matches.awayTeamId))
+		.leftJoin(venues, eq(venues.id, matches.venueId))
+		.where(
+			and(eq(leagues.organizationId, orgId), inArray(matches.status, [...ORG_FEED_COUNTED_STATUSES])),
+		)
+		.orderBy(desc(matches.matchDate), desc(matches.kickoffAt))
+		.limit(limit);
+
+	return rows.map((r) => {
+		const [homeScore, awayScore] = resolveFeedScore(r.status, r.homeScore, r.awayScore);
+		return {
+			matchId: r.matchId,
+			leagueName: r.leagueName,
+			leagueSlug: r.leagueSlug ?? null,
+			homeTeamName: r.homeTeamName,
+			awayTeamName: r.awayTeamName,
+			venueName: r.venueName ?? null,
+			kickoffAt: r.kickoffAt ? new Date(r.kickoffAt).toISOString() : null,
+			matchDate: r.matchDate,
+			homeScore,
+			awayScore,
+		};
+	});
 }
 
 // ---------------------------------------------------------------------------

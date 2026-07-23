@@ -160,8 +160,10 @@ export default async function LeaguePublicPage({ params, searchParams }: Props) 
 	// La sección de goleadores muestra su propio empty state según el caso
 	// (liga sin goleadores vs. sin resultados para la búsqueda) — ver abajo.
 
+	// Relativa al mundo de la org (SIN prefijo /org/{slug}): proxy.ts ya lo
+	// antepone via el rewrite de host (docs/SUBDOMINIOS-MULTITENANT.md §2.2).
 	const localePath = locale === defaultLocale ? "" : `/${locale}`;
-	const scorersBaseHref = `${localePath}/org/${slug}/${leagueSlug}`;
+	const scorersBaseHref = `${localePath}/${leagueSlug}`;
 
 	// ── Sección de posiciones (pasada como slot al tab) ──────────────────────
 	const standingsSection = (
@@ -295,8 +297,10 @@ export default async function LeaguePublicPage({ params, searchParams }: Props) 
 			{/* ── Header ── */}
 			<header className="relative px-5 pt-8 pb-0 max-w-lg mx-auto w-full overflow-hidden">
 				<div className="relative z-10 pb-6">
+					{/* Relativo al hub de la org (SIN prefijo /org/{slug}): proxy.ts ya lo
+					    antepone via el rewrite de host (docs/SUBDOMINIOS-MULTITENANT.md §2.2). */}
 					<Link
-						href={`/org/${org.slug}`}
+						href="/"
 						className="inline-flex items-center gap-1.5 text-ink-3 hover:text-ink text-sm transition mb-5"
 					>
 						<ArrowLeft size={16} strokeWidth={2} />

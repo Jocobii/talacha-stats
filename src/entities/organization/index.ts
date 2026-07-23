@@ -30,6 +30,8 @@ export {
 	getLeagueSnapshot,
 	getOrgHubStats,
 	getLeaguesShowcase,
+	getOrgUpcomingMatches,
+	getOrgRecentResults,
 	// Verificaciones
 	listPendingVerifications,
 	approveOrganization,
@@ -48,6 +50,7 @@ export type { ArranqueState, ArranqueCounts } from "./lib/derive-arranque-state"
 export type {
 	LeagueSnapshot,
 	OrgHubStats,
+	OrgFeedMatch,
 	LeagueShowcaseItem,
 	PendingVerification,
 	PublicMatchday,

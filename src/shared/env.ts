@@ -47,10 +47,21 @@ const EnvSchema = z.object({
 
 	SETUP_SECRET: z.string().optional(),
 
+	SESSION_SECRET: z
+		.string()
+		.min(32, "SESSION_SECRET debe tener al menos 32 caracteres")
+		.optional(), // sin ella, session.ts usa un valor de desarrollo (inseguro en prod)
+
 	// Email transaccional via Resend
 	RESEND_API_KEY: z.string().optional(), // requerida en produccion
 	EMAIL_DOMAIN: z.string().optional(), // ej: "talachastats.com" — deriva support@, hello@, etc.
 	EMAIL_FROM: z.string().optional(), // legacy: remitente unico "TalachaStats <noreply@...>"
+
+	// Multi-tenant / subdominios
+	NEXT_PUBLIC_ROOT_DOMAIN: z.string().optional(), // fallback: "talachastats.com" — ver shared/tenant/host.ts
+
+	// Feature flags
+	FEATURE_CROSS_ORG_SUGGESTIONS: z.string().optional(), // "true" activa L4 cross-org — ver shared/config/flags.ts
 });
 
 export type Env = z.infer<typeof EnvSchema>;

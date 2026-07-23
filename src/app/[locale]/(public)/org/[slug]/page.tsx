@@ -1,22 +1,28 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowLeft } from "lucide-react";
-import { Link } from "@/shared/i18n/navigation";
-import { getPublicOrganization, getLeagueSnapshot, getOrgHubStats } from "@/entities/organization";
-import { buildLeagueStories, buildTickerItems, buildNarrativeLine } from "@/features/org-hub";
+import { CalendarDays } from "lucide-react";
+import {
+	getPublicOrganization,
+	getLeagueSnapshot,
+	getOrgHubStats,
+	getOrgUpcomingMatches,
+	getOrgRecentResults,
+} from "@/entities/organization";
 import { getOrgTheme } from "@/features/org-theming";
-import OrgHeroHeader from "./OrgHeroHeader";
-import OrgStatsStrip from "./OrgStatsStrip";
-import OrgTicker from "./OrgTicker";
-import LeagueStoryCarousel from "./LeagueStoryCarousel";
-import LeagueNarrativeCard from "./LeagueNarrativeCard";
-import ShareButton from "@/shared/ui/ShareButton";
+import OrgHomeHero from "./OrgHomeHero";
+import OrgStatCard from "./OrgStatCard";
+import OrgLeagueCard from "./OrgLeagueCard";
+import OrgMatchFeed from "./OrgMatchFeed";
 import TrialWarning from "./[leagueSlug]/TrialWarning";
 import { isAppLocale } from "@/shared/i18n/config";
 import { buildLocaleAlternates, ogLocale } from "@/shared/i18n/seo";
 
 type Props = { params: Promise<{ slug: string; locale: string }> };
+
+// Puntos de color por liga — decorativos (diferencian ligas visualmente), no
+// salen del tema. Se ciclan por índice.
+const LEAGUE_DOTS = ["#ec1f7a", "#60a5fa", "#fbbf24", "#a78bfa", "#34d399", "#f472b6"];
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	const { slug, locale } = await params;
@@ -78,77 +84,91 @@ export default async function OrgPublicPage({ params }: Props) {
 
 	const totalTeams = org.leagues.reduce((acc, l) => acc + l.teams.length, 0);
 
-	const [hubStats, snapshots] = await Promise.all([
+	const [hubStats, snapshots, upcoming, recent] = await Promise.all([
 		getOrgHubStats(org.id),
 		Promise.all(org.leagues.map((l) => getLeagueSnapshot(l.id))),
+		getOrgUpcomingMatches(org.id),
+		getOrgRecentResults(org.id),
 	]);
 
-	// Transformaciones de datos — toda la lógica de negocio en features/
-	const tickerItems = buildTickerItems(org.leagues, snapshots);
-	const leagueData = org.leagues.map((league, i) => ({
-		league,
-		snapshot: snapshots[i],
-		stories: buildLeagueStories(league, snapshots[i], hubStats.totalGoals),
-		narrative: buildNarrativeLine(league, snapshots[i]),
-	}));
+	const jornadaValue = hubStats.lastJornada != null ? `J${hubStats.lastJornada}` : "—";
 
 	return (
-		<div className="text-ink flex flex-col flex-1 bg-pitch">
-			{/* ── Header — info de org + grid de stats ── */}
-			<header className="relative px-5 pt-8 pb-5 overflow-hidden">
-				<div className="relative z-10 max-w-lg mx-auto">
-					<div className="flex items-center justify-between mb-5">
-						<Link
-							href="/ligas"
-							className="inline-flex items-center gap-1.5 text-ink-3 hover:text-ink text-sm transition"
-						>
-							<ArrowLeft size={16} strokeWidth={2} />
-							{t("backToLigas")}
-						</Link>
-						<ShareButton title={org.name} variant="icon" />
-					</div>
+		<div className="px-5 sm:px-7 py-7 pb-16">
+			<div className="max-w-4xl mx-auto flex flex-col gap-8">
+				<OrgHomeHero
+					name={org.name}
+					city={org.city}
+					logoUrl={org.logoUrl ?? null}
+					leaguesLabel={t("hero.leagues", { count: org.leagues.length })}
+					teamsLabel={t("hero.teams", { count: totalTeams })}
+				/>
 
-					<OrgHeroHeader
-						name={org.name}
-						city={org.city}
-						logoUrl={org.logoUrl ?? null}
-						totalLeagues={org.leagues.length}
-						totalTeams={totalTeams}
-					/>
+				{org.status === "trial" && <TrialWarning org={org} />}
 
-					{/* Grid de 3 stats — llena el header, elimina el vacío */}
-					<OrgStatsStrip stats={hubStats} totalTeams={totalTeams} />
+				{/* Trío de stats */}
+				<div className="flex gap-3.5 flex-wrap">
+					<OrgStatCard value={hubStats.totalGoals} label={t("home.statGoals")} accent />
+					<OrgStatCard value={totalTeams} label={t("home.statTeams")} />
+					<OrgStatCard value={jornadaValue} label={t("home.statMatchday")} />
 				</div>
-			</header>
-			{org.status === "trial" && <TrialWarning org={org} />}
-			{/* ── Ticker B ── */}
-			{tickerItems.length > 0 && <OrgTicker items={tickerItems} />}
 
-			{/* ── Ligas: carrusel A + narrativa D — sin corte visual ── */}
-			<div className="flex-1 bg-surface px-4 pt-5 pb-16">
-				<div className="max-w-lg mx-auto space-y-8">
-					{org.leagues.length === 0 ? (
-						<p className="text-sm text-ink-3 text-center py-10">{t("noActiveLeagues")}</p>
-					) : (
-						leagueData.map(({ league, snapshot, stories, narrative }) => (
-							<section key={league.id} className="space-y-3">
-								<h2 className="text-[10px] font-bold text-ink-3 uppercase tracking-widest px-0.5">
-									{league.name}
-								</h2>
-
-								{/* A — carrusel rotante */}
-								<LeagueStoryCarousel stories={stories} />
-
-								{/* D — narrativa + stats + link */}
-								<LeagueNarrativeCard
-									league={league}
-									snapshot={snapshot}
-									narrative={narrative}
-									orgSlug={org.slug}
+				{/* Ligas destacadas */}
+				{org.leagues.length === 0 ? (
+					<p className="text-sm text-ink-3 text-center py-6">{t("noActiveLeagues")}</p>
+				) : (
+					<section id="ligas" className="scroll-mt-6">
+						<h2 className="font-display font-extrabold text-lg text-ink tracking-tight mb-3.5">
+							{t("home.featuredLeagues")}
+						</h2>
+						<div
+							className="grid gap-3.5"
+							style={{ gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))" }}
+						>
+							{org.leagues.map((l, i) => (
+								<OrgLeagueCard
+									key={l.id}
+									slug={l.slug ?? ""}
+									name={l.name}
+									season={l.season}
+									teamsCount={l.teams.length}
+									jornada={snapshots[i].lastJornada}
+									dotColor={LEAGUE_DOTS[i % LEAGUE_DOTS.length]}
+									inCourseLabel={t("home.inCourse")}
+									viewLabel={t("home.viewTableScorers")}
+									teamsWord={t("home.teamsWord")}
+									matchdayWord={t("home.matchdayWord")}
 								/>
-							</section>
-						))
-					)}
+							))}
+						</div>
+					</section>
+				)}
+
+				{/* Próxima jornada + Partidos recientes */}
+				<div className="grid gap-5 md:grid-cols-2">
+					<section>
+						<h2 className="flex items-center gap-2 font-display font-extrabold text-lg text-ink tracking-tight mb-3.5">
+							<CalendarDays size={16} strokeWidth={2} className="text-brand-ink" />
+							{t("home.nextMatchday")}
+						</h2>
+						<OrgMatchFeed
+							variant="upcoming"
+							matches={upcoming}
+							vsWord={t("home.vs")}
+							emptyLabel={t("home.noUpcoming")}
+						/>
+					</section>
+					<section>
+						<h2 className="font-display font-extrabold text-lg text-ink tracking-tight mb-3.5">
+							{t("home.recentMatches")}
+						</h2>
+						<OrgMatchFeed
+							variant="recent"
+							matches={recent}
+							vsWord={t("home.vs")}
+							emptyLabel={t("home.noRecent")}
+						/>
+					</section>
 				</div>
 			</div>
 		</div>
