@@ -161,27 +161,15 @@ function computeDeltas(currentRanking: RankingEntry[], prevTotals: Map<string, n
 const EMPTY_PAGINATION = (total: number) =>
 	({ total, page: 1, limit: total, totalPages: 1, hasNext: false, hasPrev: false }) as const;
 
-// ── Ranking por ciudad ────────────────────────────────────────────────────────
+// ── Agregación multi-liga (compartida por ciudad, org, global) ───────────────
+// Extraído de getCityRanking (jul 2026): mismo cálculo de goles/deltas para
+// CUALQUIER conjunto de leagueIds, solo cambia cómo se resuelve ese conjunto
+// (por ciudad, por org, o "todas"). Ver getCityRanking y getOrgRanking.
 
-export async function getCityRanking(
-	city: string,
+async function buildAggregatedRanking(
+	leagueIds: string[],
 	pagination?: PaginationParams,
 ): Promise<PaginatedResult<RankingEntry>> {
-	// Ligas de la ciudad (scope de org igual que antes) — la fuente de stats
-	// (Excel vs en vivo) se resuelve por liga dentro de getMergedLeagueStatsRows.
-	const cityLeagueRows = await db
-		.select({ id: leagues.id })
-		.from(leagues)
-		.leftJoin(organizations, eq(leagues.organizationId, organizations.id))
-		.where(
-			and(
-				eq(leagues.city, city),
-				// Exclude leagues from trial organizations
-				or(isNull(leagues.organizationId), eq(organizations.status, "verified")),
-			),
-		);
-	const leagueIds = cityLeagueRows.map((l) => l.id);
-
 	const rows = (await getMergedLeagueStatsRows(leagueIds)).filter((r) => r.goals > 0);
 
 	type Acc = {
@@ -222,7 +210,7 @@ export async function getCityRanking(
 		),
 	);
 
-	// Deltas vs jornada anterior (agrega goles previos de todas las ligas de la ciudad).
+	// Deltas vs jornada anterior (agrega goles previos de todas las ligas del scope).
 	// Cubre cualquier liga con 2+ jornadas registradas en `matchdays`, sea cual
 	// sea su fuente de stats (P9, jul 2026) — antes solo cubría ligas con
 	// snapshot V1, así que cualquier liga 100% en vivo salía siempre "isNew".
@@ -237,6 +225,42 @@ export async function getCityRanking(
 
 	if (!pagination) return { items: ranking, meta: EMPTY_PAGINATION(ranking.length) };
 	return paginateArray(ranking, pagination);
+}
+
+// ── Ranking por ciudad ────────────────────────────────────────────────────────
+
+export async function getCityRanking(
+	city: string,
+	pagination?: PaginationParams,
+): Promise<PaginatedResult<RankingEntry>> {
+	// Ligas de la ciudad (scope de org igual que antes) — la fuente de stats
+	// (Excel vs en vivo) se resuelve por liga dentro de getMergedLeagueStatsRows.
+	const cityLeagueRows = await db
+		.select({ id: leagues.id })
+		.from(leagues)
+		.leftJoin(organizations, eq(leagues.organizationId, organizations.id))
+		.where(
+			and(
+				eq(leagues.city, city),
+				// Exclude leagues from trial organizations
+				or(isNull(leagues.organizationId), eq(organizations.status, "verified")),
+			),
+		);
+	const leagueIds = cityLeagueRows.map((l) => l.id);
+
+	return buildAggregatedRanking(leagueIds, pagination);
+}
+
+// ── Ranking de una org (docs/SUBDOMINIOS-MULTITENANT.md §3, §9.4) ────────────
+// Todas las ligas de la org combinadas — el mismo cálculo que ciudad/global,
+// solo que el conjunto de leagueIds ya lo resuelve el caller (org.leagues,
+// desde getPublicOrganization) en vez de resolverlo aquí por ciudad.
+
+export async function getOrgRanking(
+	leagueIds: string[],
+	pagination?: PaginationParams,
+): Promise<PaginatedResult<RankingEntry>> {
+	return buildAggregatedRanking(leagueIds, pagination);
 }
 
 // ── Ranking por liga ──────────────────────────────────────────────────────────

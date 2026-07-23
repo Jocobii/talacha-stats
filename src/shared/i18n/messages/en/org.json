@@ -30,6 +30,13 @@
 		"noUpcoming": "No scheduled matches.",
 		"noRecent": "No results yet."
 	},
+	"ranking": {
+		"title": "Goleo de {orgName}",
+		"subtitle": "Top {count} goleadores de todas las ligas de la organización.",
+		"empty": "Aún no hay goles registrados en esta organización.",
+		"goals": "Goles",
+		"leaguesSuffix": "{count, plural, one {+# liga} other {+# ligas}}"
+	},
 	"noActiveLeagues": "No hay ligas activas en este momento.",
 	"narrativeCta": "Ver tabla y goleadores completos",
 	"hero": {
