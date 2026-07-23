@@ -36,7 +36,7 @@ export function OrgWallOfFame({
 		// <main>, no de un scroll real). Bug clásico de flex/grid: los items
 		// tienen `min-width:auto` por default.
 		<Stack gap="sm" className="min-w-0">
-			<Inline justify="between" align="baseline">
+			<Inline justify="between" align="center">
 				<Typography
 					variant="caption"
 					weight="bold"

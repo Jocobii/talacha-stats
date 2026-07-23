@@ -28,7 +28,7 @@ export function OrgTodaysMatches({
 		// min-w-0: mismo motivo que OrgWallOfFame — columna de un CSS grid;
 		// sin esto, `truncate` en OrgMatchFeed no puede recortar nombres largos.
 		<Stack gap="sm" className="min-w-0">
-			<Inline justify="between" align="baseline">
+			<Inline justify="between" align="center">
 				<Typography
 					variant="caption"
 					weight="bold"
