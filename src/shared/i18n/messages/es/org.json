@@ -1,6 +1,12 @@
 {
 	"_status": "source",
 	"notFound": "Organización no encontrada",
+	"notFoundLanding": {
+		"title": "Esta liga aún no existe",
+		"subtitle": "Ninguna organización usa todavía este subdominio en TalachaStats.",
+		"cta": "¿Organizas una liga? Pide la tuya gratis",
+		"backHome": "Ir a TalachaStats"
+	},
 	"backToLigas": "Ligas",
 	"nav": {
 		"viewCityLeagues": "Ver todas las ligas de la ciudad",
