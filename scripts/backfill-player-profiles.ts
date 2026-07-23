@@ -150,7 +150,6 @@ async function main(): Promise<void> {
 							alias: player.alias ?? null,
 							normalizedName,
 							fingerprint: fp,
-							claimedPlayerId: playerId,
 							claimStatus: "verified",
 						})
 						.onConflictDoUpdate({
