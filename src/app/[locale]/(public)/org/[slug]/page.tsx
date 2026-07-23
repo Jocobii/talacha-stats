@@ -16,7 +16,7 @@ import OrgLeagueCard from "./OrgLeagueCard";
 import OrgMatchFeed from "./OrgMatchFeed";
 import TrialWarning from "./[leagueSlug]/TrialWarning";
 import { isAppLocale } from "@/shared/i18n/config";
-import { buildLocaleAlternates, ogLocale } from "@/shared/i18n/seo";
+import { buildOrgLocaleAlternates, ogLocale } from "@/shared/i18n/seo";
 
 type Props = { params: Promise<{ slug: string; locale: string }> };
 
@@ -54,14 +54,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	}
 
 	const ogImageUrl = `/api/og?${ogParams.toString()}`;
+	// Canónica = subdominio, no /org/{slug} (docs/SUBDOMINIOS-MULTITENANT.md §5).
+	const alternates = buildOrgLocaleAlternates(appLocale, slug, "/");
 
 	return {
 		title: `${org.name} — TalachaStats`,
 		description,
-		alternates: buildLocaleAlternates(appLocale, `/org/${slug}`),
+		alternates,
 		openGraph: {
 			title: `${org.name} — TalachaStats`,
 			description,
+			url: alternates.canonical,
 			images: [{ url: ogImageUrl, width: 1200, height: 630, alt: org.name }],
 			type: "website",
 			locale: ogLocale(appLocale),

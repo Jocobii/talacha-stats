@@ -5,6 +5,7 @@
 // página (AGENTS.md §3.5 DRY).
 
 import { locales, defaultLocale, type AppLocale } from "./config";
+import { getRootDomain } from "@/shared/tenant/host";
 
 /** Mapea cada locale soportado a su código `og:locale` (Open Graph). */
 const OG_LOCALES: Record<AppLocale, string> = {
@@ -59,14 +60,7 @@ export type LocaleAlternates = {
 	languages: Record<AppLocale | "x-default", string>;
 };
 
-/**
- * Construye `alternates.canonical` (autorreferente, apunta a la URL del
- * locale actual) + `alternates.languages` (una entrada `hreflang` por
- * locale soportado, más `x-default` → `es`) para un `pathname` dado
- * (sin prefijo de locale, ej. `/ligas`, `/player/abc123`).
- */
-export function buildLocaleAlternates(locale: AppLocale, pathname: string): LocaleAlternates {
-	const base = siteUrl();
+function buildAlternatesFromBase(base: string, locale: AppLocale, pathname: string): LocaleAlternates {
 	const languages = Object.fromEntries(
 		locales.map((l) => [l, `${base}${localizedPathname(l, pathname)}`]),
 	) as Record<AppLocale, string>;
@@ -78,4 +72,43 @@ export function buildLocaleAlternates(locale: AppLocale, pathname: string): Loca
 			"x-default": `${base}${localizedPathname(defaultLocale, pathname)}`,
 		},
 	};
+}
+
+/**
+ * Construye `alternates.canonical` (autorreferente, apunta a la URL del
+ * locale actual) + `alternates.languages` (una entrada `hreflang` por
+ * locale soportado, más `x-default` → `es`) para un `pathname` dado
+ * (sin prefijo de locale, ej. `/ligas`, `/player/abc123`). Base = apex.
+ */
+export function buildLocaleAlternates(locale: AppLocale, pathname: string): LocaleAlternates {
+	return buildAlternatesFromBase(siteUrl(), locale, pathname);
+}
+
+/**
+ * URL base del subdominio de una org (`https://{slug}.talachastats.com`).
+ * Mismo protocolo que `NEXT_PUBLIC_BASE_URL` (así dev con `http://localhost`
+ * no genera canonicals `https://` rotos), dominio raíz de
+ * `NEXT_PUBLIC_ROOT_DOMAIN` (shared/tenant/host.ts — misma fuente que usa
+ * proxy.ts para el rewrite real, nunca un segundo lugar donde hardcodear
+ * el dominio).
+ */
+export function buildOrgSiteUrl(orgSlug: string): string {
+	const protocol = siteUrl().startsWith("https") ? "https" : "http";
+	return `${protocol}://${orgSlug}.${getRootDomain()}`;
+}
+
+/**
+ * Igual que `buildLocaleAlternates`, pero para páginas del subárbol de una
+ * org (docs/SUBDOMINIOS-MULTITENANT.md §5): la URL canónica de esas páginas
+ * es el SUBDOMINIO, no `/org/{slug}` en el apex (eso es un alias legacy que
+ * 301/307-redirige, ver proxy.ts). `pathname` va SIN el prefijo `/org/{slug}`
+ * — es relativo al subdominio (`/`, `/ranking`, `/{leagueSlug}`, etc.), igual
+ * que los `Link` internos del subárbol (ver OrgPublicShell.tsx).
+ */
+export function buildOrgLocaleAlternates(
+	locale: AppLocale,
+	orgSlug: string,
+	pathname: string,
+): LocaleAlternates {
+	return buildAlternatesFromBase(buildOrgSiteUrl(orgSlug), locale, pathname);
 }

@@ -25,7 +25,7 @@ import SuspendedList from "./SuspendedList";
 import TrialWarning from "./TrialWarning";
 import LeaguePublicTabs from "./LeaguePublicTabs";
 import { isAppLocale, defaultLocale } from "@/shared/i18n/config";
-import { buildLocaleAlternates, ogLocale } from "@/shared/i18n/seo";
+import { buildOrgLocaleAlternates, ogLocale } from "@/shared/i18n/seo";
 
 const SCORERS_PAGE_SIZE = 10;
 
@@ -68,14 +68,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	}
 
 	const ogImageUrl = `/api/og?${ogParams.toString()}`;
+	// Canónica = subdominio, no /org/{slug}/{leagueSlug} (docs/SUBDOMINIOS-MULTITENANT.md §5).
+	const alternates = buildOrgLocaleAlternates(appLocale, slug, `/${leagueSlug}`);
 
 	return {
 		title: `${title} · TalachaStats`,
 		description,
-		alternates: buildLocaleAlternates(appLocale, `/org/${slug}/${leagueSlug}`),
+		alternates,
 		openGraph: {
 			title: `${title} · TalachaStats`,
 			description,
+			url: alternates.canonical,
 			images: [{ url: ogImageUrl, width: 1200, height: 630, alt: league.name }],
 			type: "website",
 			locale: ogLocale(appLocale),

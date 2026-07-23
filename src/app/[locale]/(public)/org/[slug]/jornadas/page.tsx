@@ -20,7 +20,7 @@ import { getPublicOrganization, getOrgUpcomingMatches, getOrgRecentResults } fro
 import OrgMatchFeed from "../OrgMatchFeed";
 import { titleCase } from "@/shared/lib/normalize";
 import { isAppLocale } from "@/shared/i18n/config";
-import { buildLocaleAlternates } from "@/shared/i18n/seo";
+import { buildOrgLocaleAlternates } from "@/shared/i18n/seo";
 
 const FEED_LIMIT = 30;
 
@@ -33,9 +33,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	const org = await getPublicOrganization(slug);
 	if (!org) return { title: t("notFound") };
 
+	// Canónica = subdominio, no /org/{slug}/jornadas (docs/SUBDOMINIOS-MULTITENANT.md §5).
 	return {
 		title: `${t("jornadas.title", { orgName: titleCase(org.name) })} — TalachaStats`,
-		alternates: buildLocaleAlternates(appLocale, `/org/${slug}/jornadas`),
+		alternates: buildOrgLocaleAlternates(appLocale, slug, "/jornadas"),
 	};
 }
 

@@ -22,7 +22,7 @@ import { getPublicOrganization } from "@/entities/organization";
 import { getOrgRanking } from "@/entities/player/ranking";
 import { titleCase } from "@/shared/lib/normalize";
 import { isAppLocale } from "@/shared/i18n/config";
-import { buildLocaleAlternates } from "@/shared/i18n/seo";
+import { buildOrgLocaleAlternates } from "@/shared/i18n/seo";
 
 const TOP_N = 50;
 
@@ -36,9 +36,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	if (!org) return { title: t("notFound") };
 
 	const title = t("ranking.title", { orgName: titleCase(org.name) });
+	// Canónica = subdominio, no /org/{slug}/ranking (docs/SUBDOMINIOS-MULTITENANT.md §5).
 	return {
 		title: `${title} — TalachaStats`,
-		alternates: buildLocaleAlternates(appLocale, `/org/${slug}/ranking`),
+		alternates: buildOrgLocaleAlternates(appLocale, slug, "/ranking"),
 	};
 }
 
