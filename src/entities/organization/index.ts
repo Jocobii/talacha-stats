@@ -20,6 +20,7 @@ export {
 	listAllLeaguesWithTeamCount,
 	// Público — directorio
 	listOrganizationsPublic,
+	listOrganizationsPublicPaginated,
 	getPublicOrganization,
 	getPublicLeague,
 	getLatestStandings,
@@ -58,6 +59,9 @@ export type {
 	PublicZone,
 	LeagueWithTeamCount,
 	TopScorerRow,
+	OrgDirectoryItem,
+	OrgDirectoryFilters,
+	OrgDirectorySort,
 } from "./queries";
 
 // Tema visual (docs/ORG-THEMING.md)

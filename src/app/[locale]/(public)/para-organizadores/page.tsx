@@ -48,7 +48,7 @@ export default async function ParaOrganizadoresPage({ params }: ParaOrganizadore
 					<Link href="/register" className="btn-primary text-base px-8 py-3 rounded-xl font-bold">
 						{t("hero.ctaRegister")}
 					</Link>
-					<Link href="/ligas" className="btn-ghost text-base px-8 py-3 rounded-xl">
+					<Link href="/organizaciones" className="btn-ghost text-base px-8 py-3 rounded-xl">
 						{t("hero.ctaViewLigas")}
 					</Link>
 				</div>

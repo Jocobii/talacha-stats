@@ -1,0 +1,30 @@
+{
+	"_status": "placeholder-untranslated",
+	"meta": {
+		"title": "Organizaciones — TalachaStats",
+		"description": "Encuentra tu liga de fútbol amateur. Tablas de posiciones, goleadores y estadísticas de todas las organizaciones."
+	},
+	"title": "Organizaciones",
+	"activeLeagues": "{count, plural, one {# liga activa} other {# ligas activas}}",
+	"organizations": "{count, plural, one {# organización} other {# organizaciones}}",
+	"searchPlaceholder": "Buscar organización...",
+	"cityAll": "Todas",
+	"statusActive": "Activo",
+	"enterUniverse": "Entrar al universo",
+	"viewGrid": "Ver como cuadrícula",
+	"viewList": "Ver como lista",
+	"sort": {
+		"name_asc": "Nombre A-Z",
+		"name_desc": "Nombre Z-A",
+		"leagues_desc": "Más ligas",
+		"players_desc": "Más jugadores"
+	},
+	"resultsCount": "{loaded} de {total} organizaciones",
+	"loading": "Cargando organizaciones…",
+	"loadMore": "Cargar más",
+	"error": "No pudimos cargar las organizaciones. Intenta de nuevo.",
+	"empty": "No encontramos organizaciones con esos filtros.",
+	"leagues": "{count, plural, one {# liga} other {# ligas}}",
+	"teams": "{count, plural, one {# equipo} other {# equipos}}",
+	"players": "{count, plural, one {# jugador} other {# jugadores}}"
+}

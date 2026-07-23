@@ -176,9 +176,6 @@ export default async function RankingPage({ params, searchParams }: RankingPageP
 						<ScopeTab href={leagueTabHref} active={scope === "league"}>
 							{t("tabs.league")}
 						</ScopeTab>
-						<ScopeTab href={globalTabHref} active={scope === "global"}>
-							{t("tabs.global")}
-						</ScopeTab>
 					</div>
 
 					{scope === "league" && (

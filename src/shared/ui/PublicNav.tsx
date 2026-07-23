@@ -3,25 +3,12 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/shared/i18n/navigation";
-import {
-	Home,
-	Trophy,
-	Building2,
-	Users,
-	CalendarDays,
-	BarChart3,
-	Info,
-	Settings,
-	Menu,
-	X,
-} from "lucide-react";
+import { Home, Trophy, Building2, BarChart3, Info, Settings, Menu, X } from "lucide-react";
 
 const NAV_ITEMS = [
 	{ href: "/", key: "home", Icon: Home },
-	{ href: "/ligas", key: "ligas", Icon: Building2 },
+	{ href: "/organizaciones", key: "organizaciones", Icon: Building2 },
 	{ href: "/ranking", key: "ranking", Icon: Trophy },
-	{ href: "/players", key: "players", Icon: Users },
-	{ href: "/matchday", key: "matchday", Icon: CalendarDays },
 	{ href: "/analisis-excel", key: "analysis", Icon: BarChart3 },
 	{ href: "/about", key: "about", Icon: Info },
 ] as const;

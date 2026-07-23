@@ -75,6 +75,13 @@ export const queryKeys = {
 			[...queryKeys.organizations.all, "slug-availability", "new", slug] as const,
 		slugAvailabilityForEdit: (slug: string) =>
 			[...queryKeys.organizations.all, "slug-availability", "edit", slug] as const,
+		// Hub de Portales (/organizaciones, features/org-directory). `limit`
+		// entra en la key a propósito: "cargar más" no acumula páginas en
+		// estado local, vuelve a pedir el mismo listado con más `limit` (offset
+		// 0) — cada `limit` distinto es, para TanStack Query, una entrada de
+		// caché propia.
+		directory: (filters: { city?: string; q?: string; sort: string }, limit: number) =>
+			[...queryKeys.organizations.all, "directory", filters, limit] as const,
 	},
 
 	// Sanciones — dominio jerárquico. `admin()` es la vista global (todas las

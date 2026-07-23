@@ -15,11 +15,11 @@ export default async function LeaguesTeaser() {
 				<div className="flex items-center gap-2">
 					<Building2 size={18} strokeWidth={2} className="text-brand-ink" />
 					<h2 className="font-display font-black text-lg uppercase tracking-tight">
-						Ligas activas
+						Organizaciones activas
 					</h2>
 				</div>
 				<Link
-					href="/ligas"
+					href="/organizaciones"
 					className="flex items-center gap-1 text-xs font-semibold text-brand-ink hover:text-brand-ink/70 transition-colors"
 				>
 					Ver todas
@@ -74,7 +74,7 @@ export default async function LeaguesTeaser() {
 
 			{orgs.filter((o) => o.leagues.length > 0).length > 3 && (
 				<Link
-					href="/ligas"
+					href="/organizaciones"
 					className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-line text-xs font-semibold text-ink-3 hover:border-brand/40 hover:text-brand-ink transition-colors"
 				>
 					Ver {orgs.filter((o) => o.leagues.length > 0).length - 3} más
