@@ -8,7 +8,7 @@ import {
 	getOrgMatchesToday,
 } from "@/entities/organization";
 import { getOrgTheme } from "@/features/org-theming";
-import { OrgHomeSearch } from "@/features/org-home-search";
+import { GlobalSearch } from "@/features/global-search";
 import { Inline, Stack } from "@/shared/ui/layout";
 import { OrgWallOfFame } from "./OrgWallOfFame";
 import { OrgTodaysMatches } from "./OrgTodaysMatches";
@@ -114,15 +114,25 @@ export default async function OrgPublicPage({ params }: Props) {
 			<div className="max-w-4xl mx-auto flex flex-col gap-8">
 				{org.status === "trial" && <TrialWarning org={org} />}
 
-				{/* Zona 1 — Hero Search */}
+				{/* Zona 1 — Hero Search. Probando el buscador universal (Fase C v1,
+				    docs/UNIVERSAL-SEARCH.md) en vez de OrgHomeSearch (solo equipos) —
+				    §8.2 del doc sigue sin decidir si lo reemplaza definitivo o
+				    conviven; por ahora es un swap para poder probarlo en vivo. */}
 				<Inline justify="center">
-					<OrgHomeSearch
+					<GlobalSearch
 						orgSlug={slug}
+						placeholder={t("home.universalSearch.placeholder")}
+						minCharsLabel={t("home.universalSearch.minChars")}
 						labels={{
-							placeholder: t("home.searchPlaceholder"),
-							minChars: t("home.searchMinChars"),
-							noResults: t("home.searchNoResults"),
-							loading: t("home.searchLoading"),
+							noResults: t("home.universalSearch.noResults"),
+							loading: t("home.universalSearch.loading"),
+							kindGroups: {
+								team: t("home.universalSearch.kindTeam"),
+								league: t("home.universalSearch.kindLeague"),
+								player: t("home.universalSearch.kindPlayer"),
+								suspension: t("home.universalSearch.kindSuspension"),
+								venue: t("home.universalSearch.kindVenue"),
+							},
 						}}
 					/>
 				</Inline>

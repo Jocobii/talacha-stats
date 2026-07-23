@@ -48,7 +48,18 @@
 		"searchPlaceholder": "¿En qué equipo juegas?",
 		"searchMinChars": "Escribe al menos 2 letras para buscar.",
 		"searchNoResults": "Sin resultados.",
-		"searchLoading": "Buscando…"
+		"searchLoading": "Buscando…",
+		"universalSearch": {
+			"placeholder": "Busca equipos, ligas, jugadores, canchas…",
+			"minChars": "Escribe al menos 2 letras para buscar.",
+			"noResults": "Sin resultados.",
+			"loading": "Buscando…",
+			"kindTeam": "Equipos",
+			"kindLeague": "Ligas",
+			"kindPlayer": "Jugadores",
+			"kindSuspension": "Sancionados",
+			"kindVenue": "Canchas"
+		}
 	},
 	"jornadas": {
 		"title": "Jornadas de {orgName}",
