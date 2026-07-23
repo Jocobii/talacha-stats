@@ -1,6 +1,5 @@
 import {
 	pgTable,
-	pgView,
 	uuid,
 	text,
 	integer,
@@ -238,10 +237,9 @@ export const playerProfiles = pgTable(
 		alias: text("alias"),
 		normalizedName: text("normalized_name").notNull(),
 		fingerprint: text("fingerprint").notNull(),
-		// Vínculo a la identidad global (nullable — puede estar unclaimed)
-		claimedPlayerId: uuid("claimed_player_id").references(() => players.id, {
-			onDelete: "set null",
-		}),
+		// claimedPlayerId (FK puente a players V1) retirada — docs/V1-REMOVAL-PLAN.md
+		// Fase 3, jul 2026. El módulo entero `entities/player-profile` que la
+		// escribía/leía (claimProfile/rejectClaim) no tenía callers reales (P16).
 		claimStatus: text("claim_status").notNull().default("unclaimed").$type<ClaimStatus>(),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -249,7 +247,6 @@ export const playerProfiles = pgTable(
 	(t) => [
 		unique("uq_player_profile_org_name").on(t.organizationId, t.normalizedName),
 		index("idx_player_profiles_org").on(t.organizationId),
-		index("idx_player_profiles_claimed").on(t.claimedPlayerId),
 		index("idx_player_profiles_normalized").on(t.normalizedName),
 		check(
 			"chk_claim_status",
@@ -378,10 +375,8 @@ export const playerRegistrations = pgTable(
 		playerProfileId: uuid("player_profile_id").references(() => playerProfiles.id, {
 			onDelete: "cascade",
 		}),
-		// FK original mantenida como legacy durante transición
-		legacyPlayerId: uuid("legacy_player_id").references(() => players.id, {
-			onDelete: "set null",
-		}),
+		// legacyPlayerId (FK puente a players V1) retirada — docs/V1-REMOVAL-PLAN.md
+		// Fase 3, jul 2026. Sin lectores/escritores reales (P17).
 		teamId: uuid("team_id")
 			.notNull()
 			.references(() => teams.id, { onDelete: "cascade" }),
@@ -394,7 +389,6 @@ export const playerRegistrations = pgTable(
 	(t) => [
 		unique("unique_profile_per_league").on(t.playerProfileId, t.leagueId),
 		index("registrations_profile_idx").on(t.playerProfileId),
-		index("registrations_legacy_player_idx").on(t.legacyPlayerId),
 		index("registrations_team_idx").on(t.teamId),
 		index("registrations_league_idx").on(t.leagueId),
 	],
@@ -644,10 +638,8 @@ export const matchEvents = pgTable(
 		playerProfileId: uuid("player_profile_id").references(() => playerProfiles.id, {
 			onDelete: "cascade",
 		}),
-		// @deprecated — FK original legacy
-		legacyPlayerId: uuid("legacy_player_id").references(() => players.id, {
-			onDelete: "set null",
-		}),
+		// legacyPlayerId (FK puente a players V1) retirada — docs/V1-REMOVAL-PLAN.md
+		// Fase 3, jul 2026. Sin lectores/escritores reales (P17).
 		teamId: uuid("team_id")
 			.notNull()
 			.references(() => teams.id),
@@ -660,7 +652,6 @@ export const matchEvents = pgTable(
 		index("events_global_player_idx").on(t.globalPlayerId),
 		index("events_league_member_idx").on(t.leagueMemberId),
 		index("events_profile_idx").on(t.playerProfileId),
-		index("events_legacy_player_idx").on(t.legacyPlayerId),
 		index("events_type_idx").on(t.eventType),
 	],
 );
@@ -801,10 +792,6 @@ export const playerProfilesRelations = relations(playerProfiles, ({ one, many })
 		fields: [playerProfiles.organizationId],
 		references: [organizations.id],
 	}),
-	claimedPlayer: one(players, {
-		fields: [playerProfiles.claimedPlayerId],
-		references: [players.id],
-	}),
 	registrations: many(playerRegistrations),
 	seasonStats: many(playerSeasonStats),
 	events: many(matchEvents),
@@ -866,11 +853,6 @@ export const playerRegistrationsRelations = relations(playerRegistrations, ({ on
 		fields: [playerRegistrations.playerProfileId],
 		references: [playerProfiles.id],
 	}),
-	// Legacy relation — kept during Historia 02 transition
-	legacyPlayer: one(players, {
-		fields: [playerRegistrations.legacyPlayerId],
-		references: [players.id],
-	}),
 	team: one(teams, {
 		fields: [playerRegistrations.teamId],
 		references: [teams.id],
@@ -922,11 +904,6 @@ export const matchEventsRelations = relations(matchEvents, ({ one }) => ({
 	playerProfile: one(playerProfiles, {
 		fields: [matchEvents.playerProfileId],
 		references: [playerProfiles.id],
-	}),
-	// Legacy relation — kept during Historia 02 transition
-	legacyPlayer: one(players, {
-		fields: [matchEvents.legacyPlayerId],
-		references: [players.id],
 	}),
 	team: one(teams, { fields: [matchEvents.teamId], references: [teams.id] }),
 }));
@@ -980,10 +957,10 @@ export const playerSeasonStats = pgTable(
 		playerProfileId: uuid("player_profile_id").references(() => playerProfiles.id, {
 			onDelete: "cascade",
 		}),
-		// @deprecated — FK original legacy
-		legacyPlayerId: uuid("legacy_player_id").references(() => players.id, {
-			onDelete: "set null",
-		}),
+		// legacyPlayerId (FK puente a players V1) retirada — docs/V1-REMOVAL-PLAN.md
+		// Fase 3, jul 2026. Sigue usándose desde `getMergedLeagueScorers`/
+		// `getMergedLeagueStatsRows` (dato histórico de Excel), pero por
+		// `leagueId`/`playerProfileId`, nunca por `legacyPlayerId`.
 		leagueId: uuid("league_id")
 			.notNull()
 			.references(() => leagues.id, { onDelete: "cascade" }),
@@ -1004,7 +981,6 @@ export const playerSeasonStats = pgTable(
 		index("pss_global_player_idx").on(t.globalPlayerId),
 		index("pss_league_member_idx").on(t.leagueMemberId),
 		index("pss_profile_idx").on(t.playerProfileId),
-		index("pss_legacy_player_idx").on(t.legacyPlayerId),
 		index("pss_league_idx").on(t.leagueId),
 	],
 );
@@ -1046,11 +1022,6 @@ export const playerSeasonStatsRelations = relations(playerSeasonStats, ({ one })
 	playerProfile: one(playerProfiles, {
 		fields: [playerSeasonStats.playerProfileId],
 		references: [playerProfiles.id],
-	}),
-	// Legacy relation — kept during Historia 02 transition
-	legacyPlayer: one(players, {
-		fields: [playerSeasonStats.legacyPlayerId],
-		references: [players.id],
 	}),
 	league: one(leagues, {
 		fields: [playerSeasonStats.leagueId],
@@ -2059,67 +2030,12 @@ export const playoffSlotsRelations = relations(playoffSlots, ({ one }) => ({
 	match: one(matches, { fields: [playoffSlots.matchId], references: [matches.id] }),
 }));
 
-// ---------------------------------------------------------------------------
-// PLAYER_GLOBAL_STATS — Vista agregada cross-org (Historia 05)
-//
-// Agrega estadísticas de un jugador a través de todos sus player_profiles
-// con claim_status = 'verified'. Profiles unclaimed / proposed / rejected
-// quedan EXCLUIDOS — garantía de privacidad cross-org.
-//
-// Vista REGULAR (no materializada) para MVP.
-// Deuda técnica: migrar a MATERIALIZED VIEW si el costo de query sube.
-// ---------------------------------------------------------------------------
-export const playerGlobalStats = pgView("player_global_stats").as((qb) =>
-	qb
-		.select({
-			playerId: players.id,
-			fullName: players.fullName,
-			alias: players.alias,
-			organizationsCount:
-				drizzleSql<number>`COUNT(DISTINCT ${playerProfiles.organizationId})::int`.as(
-					"organizations_count",
-				),
-			leaguesCount: drizzleSql<number>`COUNT(DISTINCT ${playerRegistrations.leagueId})::int`.as(
-				"leagues_count",
-			),
-			totalGoals: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.goals}), 0)::int`.as(
-				"total_goals",
-			),
-			totalAssists: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.assists}), 0)::int`.as(
-				"total_assists",
-			),
-			totalMatchesPlayed:
-				drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.matchesPlayed}), 0)::int`.as(
-					"total_matches_played",
-				),
-			totalYellowCards:
-				drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.yellowCards}), 0)::int`.as(
-					"total_yellow_cards",
-				),
-			totalRedCards: drizzleSql<number>`COALESCE(SUM(${playerSeasonStats.redCards}), 0)::int`.as(
-				"total_red_cards",
-			),
-			lastUpdatedAt: drizzleSql<Date | null>`MAX(${playerSeasonStats.updatedAt})`.as(
-				"last_updated_at",
-			),
-		})
-		.from(players)
-		.innerJoin(
-			playerProfiles,
-			drizzleSql`${playerProfiles.claimedPlayerId} = ${players.id} AND ${playerProfiles.claimStatus} = 'verified'`,
-		)
-		.leftJoin(
-			playerRegistrations,
-			drizzleSql`${playerRegistrations.playerProfileId} = ${playerProfiles.id}`,
-		)
-		.leftJoin(
-			playerSeasonStats,
-			drizzleSql`${playerSeasonStats.playerProfileId} = ${playerProfiles.id}`,
-		)
-		.groupBy(players.id, players.fullName, players.alias),
-);
-
-export type PlayerGlobalStatsRow = typeof playerGlobalStats.$inferSelect;
+// La vista `player_global_stats` (pgView, Historia 05) se retiró aquí
+// (docs/V1-REMOVAL-PLAN.md, Fase 2 — jul 2026): 100% V1 (players +
+// playerRegistrations + playerSeasonStats), sin caller real desde P1/P2.
+// Corre `pnpm db:generate` para generar la migración `DROP VIEW
+// player_global_stats` a partir de este diff de schema, y `pnpm
+// db:migrate:run` para aplicarla.
 
 // ---------------------------------------------------------------------------
 // SKIN_ACTIVATIONS — Temas visuales por torneo (Mundial, Copa América, Liga MX…)

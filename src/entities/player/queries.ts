@@ -210,6 +210,28 @@ async function resolveFinishedLeagues(leagueIds: string[]): Promise<Set<string>>
 	return new Set(rows.map((r) => r.id));
 }
 
+// ── Perfil scoped a una org (docs/SUBDOMINIOS-MULTITENANT.md §3, §9.5) ───────
+// Alcance decidido: en el subdominio de una org solo se ven los números del
+// jugador EN ESA ORG (el mismo global_player puede jugar en varias orgs).
+// Reutiliza getPlayerProfile (misma fuente de stats, cero lógica duplicada)
+// y recorta `leagues` a las que pertenecen a la org — sin volver a tocar
+// live-stats.ts. Si el jugador no tiene actividad en esas ligas, null
+// (la page hace notFound(): no existe "su" perfil en esta org).
+
+export async function getPlayerProfileForLeagues(
+	globalPlayerId: string,
+	leagueIds: readonly string[],
+): Promise<PlayerView | null> {
+	const profile = await getPlayerProfile(globalPlayerId);
+	if (!profile) return null;
+
+	const scopeIds = new Set(leagueIds);
+	const scopedLeagues = profile.leagues.filter((l) => scopeIds.has(l.leagueId));
+	if (scopedLeagues.length === 0) return null;
+
+	return { ...profile, global: computeGlobal(scopedLeagues), leagues: scopedLeagues };
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function computeGlobal(leagues: PlayerLeagueStats[]): PlayerGlobalProfile {
@@ -522,73 +544,6 @@ function emptyEgoStats(): PlayerEgoStats {
 		teamGoalShares: [],
 		badges: [],
 	};
-}
-
-// ---------------------------------------------------------------------------
-// Historia 05 — Queries sobre la vista player_global_stats
-// ---------------------------------------------------------------------------
-
-import { playerGlobalStats } from "@/db/schema";
-import type { PlayerGlobalStats } from "./model";
-
-/**
- * Retorna las estadísticas globales verificadas de un jugador.
- * Devuelve null si el jugador no tiene profiles con claim_status='verified'.
- */
-export async function getPlayerGlobalStats(playerId: string): Promise<PlayerGlobalStats | null> {
-	const rows = await db
-		.select()
-		.from(playerGlobalStats)
-		.where(eq(playerGlobalStats.playerId, playerId))
-		.limit(1);
-
-	if (rows.length === 0) return null;
-	const r = rows[0];
-	return {
-		playerId: r.playerId,
-		fullName: r.fullName,
-		alias: r.alias ?? null,
-		organizationsCount: r.organizationsCount,
-		leaguesCount: r.leaguesCount,
-		totalGoals: r.totalGoals,
-		totalAssists: r.totalAssists,
-		totalMatchesPlayed: r.totalMatchesPlayed,
-		totalYellowCards: r.totalYellowCards,
-		totalRedCards: r.totalRedCards,
-		lastUpdatedAt: r.lastUpdatedAt,
-	};
-}
-
-/**
- * Lista los jugadores con más goles verificados en toda la plataforma.
- * Excluye jugadores sin ningun partido jugado (minMatches guard).
- */
-export async function listTopScorers(opts: {
-	limit?: number;
-	minMatches?: number;
-}): Promise<PlayerGlobalStats[]> {
-	const { limit = 20, minMatches = 1 } = opts;
-
-	const rows = await db
-		.select()
-		.from(playerGlobalStats)
-		.where(sql`${playerGlobalStats.totalMatchesPlayed} >= ${minMatches}`)
-		.orderBy(desc(playerGlobalStats.totalGoals), desc(playerGlobalStats.totalMatchesPlayed))
-		.limit(limit);
-
-	return rows.map((r) => ({
-		playerId: r.playerId,
-		fullName: r.fullName,
-		alias: r.alias ?? null,
-		organizationsCount: r.organizationsCount,
-		leaguesCount: r.leaguesCount,
-		totalGoals: r.totalGoals,
-		totalAssists: r.totalAssists,
-		totalMatchesPlayed: r.totalMatchesPlayed,
-		totalYellowCards: r.totalYellowCards,
-		totalRedCards: r.totalRedCards,
-		lastUpdatedAt: r.lastUpdatedAt,
-	}));
 }
 
 // ===========================================================================

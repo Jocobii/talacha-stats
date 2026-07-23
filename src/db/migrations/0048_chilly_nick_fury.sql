@@ -1,0 +1,1 @@
+DROP VIEW "public"."player_global_stats";

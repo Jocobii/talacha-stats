@@ -3,24 +3,36 @@
  * A diferencia de preview.ts (ligado a un match_id), este módulo funciona
  * con cualquier par de equipos que el narrador elija libremente.
  *
- * Fuentes de datos, en orden de prioridad:
- *  1. player_season_stats  → stats acumuladas importadas desde Excel
- *  2. match_events         → fallback si no hay import
- *  3. team_standings_snapshot → forma/récord del equipo (desde Excel)
- *  4. matches              → fallback + últimos 5 resultados + H2H
+ * Migrado a V2 (jul 2026, docs/V1-REMOVAL-PLAN.md Fase 1, P4/D3):
+ *  - Roster + stats de jugador: antes `player_registrations` +
+ *    `player_season_stats`/`match_events` (V1) — ahora
+ *    `getTeamMatchStatsRoster` (entities/player/live-stats.ts), que agrega
+ *    `match_player_stats` sobre el subconjunto de partidos que le pasa este
+ *    módulo (todos los completados de la liga).
+ *  - Tabla de posiciones / récord de equipo: antes `team_standings_snapshot`
+ *    con fallback a cálculo manual — ahora `getLeagueStandings`
+ *    (lib/standings.ts), que ya resuelve snapshot-Excel-si-existe vs. cálculo
+ *    en vivo y aplica los tiebreakers configurados de la liga. Este módulo ya
+ *    no lee `team_standings_snapshot` directamente.
+ *  - Partidos "completados": antes filtraba `matches.status = 'completed'`
+ *    (solo el status legacy de import Excel — nunca marcaba partidos
+ *    capturados vía cédula). Ahora usa `COUNTED_MATCH_STATUSES`
+ *    (`played`/`walkover_home`/`walkover_away`), igual que
+ *    `live-stats.ts`/`standings.ts`.
+ *  - `match_events` (D3 del plan) sale por completo: no hay reemplazo de
+ *    "eventos finos" (quién asistió en qué minuto, MVP) — `match_player_stats`
+ *    solo tiene totales agregados por partido. Se acepta la pérdida (D3).
+ *  - Sin backfill de Excel (D1): una liga cuyo único historial vive en
+ *    `player_season_stats`/`player_registrations` deja de aportar roster —
+ *    `getLeagueStandings` sí conserva snapshot-Excel para la tabla de
+ *    posiciones (no es parte de este alcance, ver P7 del plan).
  */
 
-import {
-	db,
-	matches,
-	matchEvents,
-	playerRegistrations,
-	playerSeasonStats,
-	teamStandingsSnapshot,
-	teams,
-	leagues,
-} from "@/db";
-import { eq, and, desc, inArray, sql } from "drizzle-orm";
+import { db, matches, matchdays, teams, leagues } from "@/db";
+import { eq, and, desc, inArray } from "drizzle-orm";
+import { getLeagueStandings } from "@/lib/standings";
+import { getTeamMatchStatsRoster, COUNTED_MATCH_STATUSES } from "@/entities/player/live-stats";
+import type { TeamStanding } from "@/types";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Tipos públicos del módulo
@@ -39,7 +51,6 @@ import type {
 	WinProbability,
 	PositionScenario,
 	PositionSimulator,
-	LeagueStandingRow,
 	MatchPrediction,
 	NarratorAnalysis,
 } from "@/entities/narrator";
@@ -55,6 +66,16 @@ export type {
 	PositionSimulator,
 	MatchPrediction,
 	NarratorAnalysis,
+};
+
+type CompletedMatchRow = {
+	id: string;
+	homeTeamId: string;
+	awayTeamId: string;
+	homeScore: number | null;
+	awayScore: number | null;
+	matchDate: string;
+	jornada: number | null;
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -75,24 +96,35 @@ export async function generateNarratorAnalysis(
 
 	if (!league || !teamA || !teamB) return null;
 
-	// Partidos completados de la liga (para H2H, last5, fallback de stats)
-	const completedMatches = await db.query.matches.findMany({
-		where: and(eq(matches.leagueId, leagueId), eq(matches.status, "completed")),
-		orderBy: [desc(matches.matchDate)],
-	});
+	// Partidos contados de la liga (para H2H, last5, jornada, roster).
+	const completedMatches = await db
+		.select({
+			id: matches.id,
+			homeTeamId: matches.homeTeamId,
+			awayTeamId: matches.awayTeamId,
+			homeScore: matches.homeScore,
+			awayScore: matches.awayScore,
+			matchDate: matches.matchDate,
+			jornada: matchdays.number,
+		})
+		.from(matches)
+		.leftJoin(matchdays, eq(matches.matchdayId, matchdays.id))
+		.where(and(eq(matches.leagueId, leagueId), inArray(matches.status, COUNTED_MATCH_STATUSES)))
+		.orderBy(desc(matches.matchDate));
 
-	// Análisis paralelo de ambos equipos + standings de la liga
-	const [analysisA, analysisB, allStandings] = await Promise.all([
-		buildTeamAnalysis(teamA, leagueId, completedMatches),
-		buildTeamAnalysis(teamB, leagueId, completedMatches),
-		getAllLeagueStandings(leagueId, completedMatches),
+	const matchIds = completedMatches.map((m) => m.id);
+	const allStandings = await getLeagueStandings(leagueId);
+
+	// Análisis paralelo de ambos equipos
+	const [analysisA, analysisB] = await Promise.all([
+		buildTeamAnalysis(teamA, matchIds, completedMatches, allStandings),
+		buildTeamAnalysis(teamB, matchIds, completedMatches, allStandings),
 	]);
 
-	const latestJornadaRow = await db
-		.select({ maxJornada: sql<number>`max(jornada)::int` })
-		.from(teamStandingsSnapshot)
-		.where(eq(teamStandingsSnapshot.leagueId, leagueId));
-	const lastMatchday: number | null = latestJornadaRow[0]?.maxJornada ?? null;
+	const lastMatchday = completedMatches.reduce<number | null>((max, m) => {
+		if (m.jornada == null) return max;
+		return max === null ? m.jornada : Math.max(max, m.jornada);
+	}, null);
 
 	const positionSimulator = buildPositionSimulator(teamAId, teamBId, allStandings);
 	const rankA = computeLeagueRanks(teamAId, allStandings);
@@ -142,19 +174,18 @@ export async function generateNarratorAnalysis(
 
 async function buildTeamAnalysis(
 	team: { id: string; name: string },
-	leagueId: string,
-	completedMatches: Awaited<ReturnType<typeof db.query.matches.findMany>>,
+	matchIds: string[],
+	completedMatches: CompletedMatchRow[],
+	allStandings: TeamStanding[],
 ): Promise<TeamAnalysis> {
-	const [record, roster] = await Promise.all([
-		getTeamRecord(team.id, leagueId, completedMatches),
-		getTeamRoster(team.id, leagueId, completedMatches),
-	]);
+	const standingIdx = allStandings.findIndex((s) => s.teamId === team.id);
+	const standing = standingIdx >= 0 ? allStandings[standingIdx] : null;
+	const position = standingIdx >= 0 ? standingIdx + 1 : null;
+
+	const roster = await getTeamRoster(team.id, matchIds);
 
 	const last5 = getLast5(team.id, completedMatches);
 	const currentStreak = calcStreak(team.id, completedMatches);
-
-	// Posición en tabla
-	const position = await getTeamPosition(team.id, leagueId);
 
 	const topScorer = roster.find((p) => p.goals > 0) ?? null;
 	const topAssist =
@@ -175,20 +206,27 @@ async function buildTeamAnalysis(
 					: `${p.yellowCards} amarillas — 1 más = suspensión`,
 		}));
 
+	const played = standing?.played ?? 0;
+	const goalsFor = standing?.goalsFor ?? 0;
+	const goalsAgainst = standing?.goalsAgainst ?? 0;
+
 	return {
 		team,
 		position,
-		record: record.record,
-		points: record.points,
-		goalsFor: record.goalsFor,
-		goalsAgainst: record.goalsAgainst,
-		goalDiff: record.goalsFor - record.goalsAgainst,
-		avgGoalsFor:
-			record.record.played > 0 ? Math.round((record.goalsFor / record.record.played) * 10) / 10 : 0,
-		avgGoalsAgainst:
-			record.record.played > 0
-				? Math.round((record.goalsAgainst / record.record.played) * 10) / 10
-				: 0,
+		record: standing
+			? {
+					wins: standing.wins,
+					draws: standing.draws,
+					losses: standing.losses,
+					played: standing.played,
+				}
+			: { wins: 0, draws: 0, losses: 0, played: 0 },
+		points: standing?.points ?? 0,
+		goalsFor,
+		goalsAgainst,
+		goalDiff: goalsFor - goalsAgainst,
+		avgGoalsFor: played > 0 ? Math.round((goalsFor / played) * 10) / 10 : 0,
+		avgGoalsAgainst: played > 0 ? Math.round((goalsAgainst / played) * 10) / 10 : 0,
 		last5,
 		currentStreak,
 		roster,
@@ -204,162 +242,30 @@ async function buildTeamAnalysis(
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Récord del equipo: snapshot primero, luego matches
+// Plantel con estadísticas (V2 — match_player_stats)
 // ────────────────────────────────────────────────────────────────────────────
 
-async function getTeamRecord(
-	teamId: string,
-	leagueId: string,
-	completedMatches: Awaited<ReturnType<typeof db.query.matches.findMany>>,
-) {
-	// Intento 1: snapshot importado desde Excel (jornada más reciente)
-	const snapshot = await db.query.teamStandingsSnapshot.findFirst({
-		where: and(
-			eq(teamStandingsSnapshot.teamId, teamId),
-			eq(teamStandingsSnapshot.leagueId, leagueId),
-		),
-		orderBy: [desc(teamStandingsSnapshot.jornada)],
-	});
+async function getTeamRoster(teamId: string, matchIds: string[]): Promise<RosterPlayer[]> {
+	const stats = await getTeamMatchStatsRoster(teamId, matchIds);
 
-	if (snapshot) {
+	const roster: RosterPlayer[] = stats.map((s) => {
+		const gpm = s.matchesPlayed > 0 ? Math.round((s.goals / s.matchesPlayed) * 100) / 100 : 0;
 		return {
-			record: {
-				wins: snapshot.wins,
-				draws: snapshot.draws,
-				losses: snapshot.losses,
-				played: snapshot.played,
-			},
-			points: snapshot.points,
-			goalsFor: snapshot.goalsFor,
-			goalsAgainst: snapshot.goalsAgainst,
-		};
-	}
-
-	// Intento 2: calcular desde partidos completados
-	const teamMatches = completedMatches.filter(
-		(m) => m.homeTeamId === teamId || m.awayTeamId === teamId,
-	);
-
-	let wins = 0,
-		draws = 0,
-		losses = 0,
-		goalsFor = 0,
-		goalsAgainst = 0;
-	for (const m of teamMatches) {
-		const isHome = m.homeTeamId === teamId;
-		const gf = isHome ? m.homeScore : m.awayScore;
-		const ga = isHome ? m.awayScore : m.homeScore;
-		if (gf == null || ga == null) continue;
-		goalsFor += gf;
-		goalsAgainst += ga;
-		if (gf > ga) wins++;
-		else if (gf === ga) draws++;
-		else losses++;
-	}
-
-	return {
-		record: { wins, draws, losses, played: wins + draws + losses },
-		points: wins * 3 + draws,
-		goalsFor,
-		goalsAgainst,
-	};
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// Plantel con estadísticas
-// ────────────────────────────────────────────────────────────────────────────
-
-async function getTeamRoster(
-	teamId: string,
-	leagueId: string,
-	completedMatches: Awaited<ReturnType<typeof db.query.matches.findMany>>,
-): Promise<RosterPlayer[]> {
-	const regs = await db.query.playerRegistrations.findMany({
-		where: and(eq(playerRegistrations.teamId, teamId), eq(playerRegistrations.leagueId, leagueId)),
-		with: { legacyPlayer: true },
-	});
-
-	if (regs.length === 0) return [];
-
-	const playerIds = regs.map((r) => r.legacyPlayerId).filter((id): id is string => id !== null);
-	if (playerIds.length === 0) return [];
-
-	// Traer todos los season_stats de una sola query
-	const allStats = await db.query.playerSeasonStats.findMany({
-		where: and(
-			eq(playerSeasonStats.leagueId, leagueId),
-			inArray(playerSeasonStats.legacyPlayerId, playerIds),
-		),
-	});
-
-	const statsMap = new Map(allStats.map((s) => [s.legacyPlayerId, s]));
-
-	// Si hay season_stats para al menos la mitad del plantel, usar ese método
-	const useSeasonStats = allStats.length > 0;
-
-	const roster: RosterPlayer[] = [];
-
-	for (const reg of regs) {
-		const pid = reg.legacyPlayerId;
-		if (!pid) continue; // nuevo pipeline — sin legacyPlayerId
-		const player = reg.legacyPlayer;
-
-		let goals = 0,
-			assists = 0,
-			yellowCards = 0,
-			redCards = 0,
-			matchesPlayed = 0;
-
-		if (useSeasonStats && statsMap.has(pid)) {
-			const s = statsMap.get(pid)!;
-			goals = s.goals;
-			assists = s.assists;
-			yellowCards = s.yellowCards;
-			redCards = s.redCards;
-			matchesPlayed = s.matchesPlayed;
-		} else {
-			// Fallback desde match_events
-			const matchIds = completedMatches.map((m) => m.id);
-			if (matchIds.length > 0) {
-				const events = await db
-					.select({
-						eventType: matchEvents.eventType,
-						count: sql<number>`count(*)::int`,
-					})
-					.from(matchEvents)
-					.where(and(eq(matchEvents.legacyPlayerId, pid), inArray(matchEvents.matchId, matchIds)))
-					.groupBy(matchEvents.eventType);
-
-				const counts = Object.fromEntries(events.map((e) => [e.eventType, e.count]));
-				goals = counts["goal"] ?? 0;
-				assists = counts["assist"] ?? 0;
-				yellowCards = counts["yellow_card"] ?? 0;
-				redCards = counts["red_card"] ?? 0;
-
-				const played = await db
-					.selectDistinct({ matchId: matchEvents.matchId })
-					.from(matchEvents)
-					.where(and(eq(matchEvents.legacyPlayerId, pid), inArray(matchEvents.matchId, matchIds)));
-				matchesPlayed = played.length;
-			}
-		}
-
-		const gpm = matchesPlayed > 0 ? Math.round((goals / matchesPlayed) * 100) / 100 : 0;
-
-		roster.push({
-			playerId: pid!,
-			fullName: player?.fullName ?? "",
-			alias: player?.alias ?? "",
-			goals,
-			assists,
-			contributions: goals + assists,
-			yellowCards,
-			redCards,
-			matchesPlayed,
+			playerId: s.playerId,
+			fullName: s.fullName,
+			// global_players no tiene alias (apodo) — solo existía en la tabla V1
+			// `players`. Se mantiene el campo por contrato de tipo (RosterPlayer).
+			alias: null,
+			goals: s.goals,
+			assists: s.assists,
+			contributions: s.goals + s.assists,
+			yellowCards: s.yellowCards,
+			redCards: s.redCards,
+			matchesPlayed: s.matchesPlayed,
 			goalsPerMatch: gpm,
-			dangerRating: calcDangerRating(gpm, goals),
-		});
-	}
+			dangerRating: calcDangerRating(gpm, s.goals),
+		};
+	});
 
 	// Ordenar: más contribuciones → más goles → nombre
 	return roster.sort((a, b) => {
@@ -373,10 +279,7 @@ async function getTeamRoster(
 // Últimos 5 resultados y racha actual
 // ────────────────────────────────────────────────────────────────────────────
 
-function getLast5(
-	teamId: string,
-	completedMatches: Awaited<ReturnType<typeof db.query.matches.findMany>>,
-): ("W" | "D" | "L")[] {
+function getLast5(teamId: string, completedMatches: CompletedMatchRow[]): ("W" | "D" | "L")[] {
 	return completedMatches
 		.filter((m) => m.homeTeamId === teamId || m.awayTeamId === teamId)
 		.slice(0, 5)
@@ -388,10 +291,7 @@ function getLast5(
 		});
 }
 
-function calcStreak(
-	teamId: string,
-	completedMatches: Awaited<ReturnType<typeof db.query.matches.findMany>>,
-): TeamStreak | null {
+function calcStreak(teamId: string, completedMatches: CompletedMatchRow[]): TeamStreak | null {
 	const results = getLast5(teamId, completedMatches);
 	if (results.length === 0) return null;
 
@@ -403,28 +303,6 @@ function calcStreak(
 	}
 
 	return count >= 2 ? { type: current, count } : null;
-}
-
-async function getTeamPosition(teamId: string, leagueId: string): Promise<number | null> {
-	// Traer todos los snapshots de la liga en la jornada más reciente
-	const latestJornada = await db
-		.select({ maxJornada: sql<number>`max(jornada)::int` })
-		.from(teamStandingsSnapshot)
-		.where(eq(teamStandingsSnapshot.leagueId, leagueId));
-
-	const jornada = latestJornada[0]?.maxJornada;
-	if (!jornada) return null;
-
-	const standings = await db.query.teamStandingsSnapshot.findMany({
-		where: and(
-			eq(teamStandingsSnapshot.leagueId, leagueId),
-			eq(teamStandingsSnapshot.jornada, jornada),
-		),
-		orderBy: [desc(teamStandingsSnapshot.points)],
-	});
-
-	const idx = standings.findIndex((s) => s.teamId === teamId);
-	return idx >= 0 ? idx + 1 : null;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -466,11 +344,7 @@ function calcWinProbability(a: TeamAnalysis, b: TeamAnalysis): WinProbability {
 // Head to Head
 // ────────────────────────────────────────────────────────────────────────────
 
-function buildH2H(
-	aId: string,
-	bId: string,
-	completedMatches: Awaited<ReturnType<typeof db.query.matches.findMany>>,
-): H2HRecord {
+function buildH2H(aId: string, bId: string, completedMatches: CompletedMatchRow[]): H2HRecord {
 	const h2hMatches = completedMatches.filter(
 		(m) =>
 			(m.homeTeamId === aId && m.awayTeamId === bId) ||
@@ -788,59 +662,13 @@ function round1(n: number): number {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Standings de la liga y simulador de posición
+// Simulador de posición y ranks de ataque/defensa
 // ────────────────────────────────────────────────────────────────────────────
 
-async function getAllLeagueStandings(
-	leagueId: string,
-	completedMatches: Awaited<ReturnType<typeof db.query.matches.findMany>>,
-): Promise<LeagueStandingRow[]> {
-	const latestJornada = await db
-		.select({ maxJornada: sql<number>`max(jornada)::int` })
-		.from(teamStandingsSnapshot)
-		.where(eq(teamStandingsSnapshot.leagueId, leagueId));
-
-	const jornada = latestJornada[0]?.maxJornada;
-
-	if (jornada) {
-		const rows = await db.query.teamStandingsSnapshot.findMany({
-			where: and(
-				eq(teamStandingsSnapshot.leagueId, leagueId),
-				eq(teamStandingsSnapshot.jornada, jornada),
-			),
-		});
-		return rows.map((r) => ({
-			teamId: r.teamId,
-			points: r.points,
-			goalsFor: r.goalsFor,
-			goalsAgainst: r.goalsAgainst,
-		}));
-	}
-
-	// Fallback: calcular desde partidos completados
-	const map = new Map<string, LeagueStandingRow>();
-	for (const m of completedMatches) {
-		for (const [tid, gf, ga] of [
-			[m.homeTeamId, m.homeScore, m.awayScore],
-			[m.awayTeamId, m.awayScore, m.homeScore],
-		] as [string, number, number][]) {
-			const row = map.get(tid) ?? { teamId: tid, points: 0, goalsFor: 0, goalsAgainst: 0 };
-			row.goalsFor += gf;
-			row.goalsAgainst += ga;
-			if (gf > ga) row.points += 3;
-			else if (gf === ga) row.points += 1;
-			map.set(tid, row);
-		}
-	}
-	return [...map.values()];
-}
-
-function rankByStandings(rows: LeagueStandingRow[]): Map<string, number> {
+function rankByStandings(rows: TeamStanding[]): Map<string, number> {
 	const sorted = [...rows].sort((a, b) => {
 		if (b.points !== a.points) return b.points - a.points;
-		const aDiff = a.goalsFor - a.goalsAgainst;
-		const bDiff = b.goalsFor - b.goalsAgainst;
-		if (bDiff !== aDiff) return bDiff - aDiff;
+		if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
 		return b.goalsFor - a.goalsFor;
 	});
 	return new Map(sorted.map((r, i) => [r.teamId, i + 1]));
@@ -849,7 +677,7 @@ function rankByStandings(rows: LeagueStandingRow[]): Map<string, number> {
 function buildPositionSimulator(
 	teamAId: string,
 	teamBId: string,
-	allStandings: LeagueStandingRow[],
+	allStandings: TeamStanding[],
 ): PositionSimulator {
 	const empty: PositionScenario = {
 		currentPoints: 0,
@@ -899,7 +727,7 @@ function buildPositionSimulator(
 
 function computeLeagueRanks(
 	teamId: string,
-	allStandings: LeagueStandingRow[],
+	allStandings: TeamStanding[],
 ): { attackRank: number | null; defenseRank: number | null } {
 	if (allStandings.length === 0) return { attackRank: null, defenseRank: null };
 

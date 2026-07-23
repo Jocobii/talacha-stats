@@ -1,5 +1,6 @@
-import { db, matches, matchEvents, playerRegistrations } from "@/db";
+import { db, matches, matchdays } from "@/db";
 import { eq, and, inArray, desc } from "drizzle-orm";
+import { getTeamMatchStatsRoster, COUNTED_MATCH_STATUSES } from "@/entities/player/live-stats";
 import type {
 	MatchPreview,
 	TeamFormStats,
@@ -13,6 +14,18 @@ import type {
  * Genera el informe pre-partido para el narrador del live.
  * Calcula forma de los equipos, jugadores clave, riesgo de tarjetas
  * y probabilidad de victoria — sin AI, solo matemática sobre datos históricos.
+ *
+ * Migrado a V2 (jul 2026, docs/V1-REMOVAL-PLAN.md Fase 1, P5/D3):
+ *  - Jugadores clave / riesgo de tarjetas: antes `player_registrations` +
+ *    `match_events` (V1, por evento) — ahora `getTeamMatchStatsRoster`
+ *    (entities/player/live-stats.ts), que agrega `match_player_stats` (totales
+ *    por partido) sobre el subconjunto de partidos relevante.
+ *  - Partidos "completados": antes filtraba `matches.status = 'completed'`
+ *    (solo el status legacy de import Excel). Ahora usa
+ *    `COUNTED_MATCH_STATUSES` (`played`/`walkover_home`/`walkover_away`).
+ *  - `match_events` (D3 del plan) sale por completo: no hay "goles último
+ *    partido" a nivel evento — se acepta la pérdida de granularidad fina
+ *    (minuto exacto, MVP); los totales por partido sí se conservan.
  */
 export async function generateMatchPreview(matchId: string): Promise<MatchPreview | null> {
 	const match = await db.query.matches.findFirst({
@@ -30,11 +43,26 @@ export async function generateMatchPreview(matchId: string): Promise<MatchPrevie
 	const homeTeamId = match.homeTeamId;
 	const awayTeamId = match.awayTeamId;
 
+	// Jornada (matchday.number) del partido — el campo legacy `matches.matchday`
+	// (integer) solo lo escribía el import de Excel; los partidos capturados
+	// vía cédula solo tienen `matchdayId` (FK a `matchdays`).
+	const matchdayRow = match.matchdayId
+		? await db.query.matchdays.findFirst({ where: eq(matchdays.id, match.matchdayId) })
+		: null;
+
 	// Partidos completados de la liga (excluyendo el partido actual)
-	const completedMatches = await db.query.matches.findMany({
-		where: and(eq(matches.leagueId, leagueId), eq(matches.status, "completed")),
-		orderBy: [desc(matches.matchDate)],
-	});
+	const completedMatches = await db
+		.select({
+			id: matches.id,
+			homeTeamId: matches.homeTeamId,
+			awayTeamId: matches.awayTeamId,
+			homeScore: matches.homeScore,
+			awayScore: matches.awayScore,
+			matchDate: matches.matchDate,
+		})
+		.from(matches)
+		.where(and(eq(matches.leagueId, leagueId), inArray(matches.status, COUNTED_MATCH_STATUSES)))
+		.orderBy(desc(matches.matchDate));
 
 	const [homeForm, awayForm] = await Promise.all([
 		getTeamForm(homeTeamId, completedMatches),
@@ -43,14 +71,16 @@ export async function generateMatchPreview(matchId: string): Promise<MatchPrevie
 
 	const winProb = calculateWinProbability(homeForm, awayForm);
 
+	const matchIds = completedMatches.map((m) => m.id);
+
 	const [homeThreats, awayThreats] = await Promise.all([
-		getTopThreats(homeTeamId, leagueId, completedMatches),
-		getTopThreats(awayTeamId, leagueId, completedMatches),
+		getTopThreats(homeTeamId, matchIds, completedMatches),
+		getTopThreats(awayTeamId, matchIds, completedMatches),
 	]);
 
 	const [homeCardRisk, awayCardRisk] = await Promise.all([
-		getCardRisk(homeTeamId, leagueId, completedMatches),
-		getCardRisk(awayTeamId, leagueId, completedMatches),
+		getCardRisk(homeTeamId, matchIds),
+		getCardRisk(awayTeamId, matchIds),
 	]);
 
 	const h2h = getHeadToHead(homeTeamId, awayTeamId, completedMatches);
@@ -74,7 +104,7 @@ export async function generateMatchPreview(matchId: string): Promise<MatchPrevie
 			homeTeam: match.homeTeam.name,
 			awayTeam: match.awayTeam.name,
 			league: match.league.name,
-			matchday: match.matchday,
+			matchday: matchdayRow?.number ?? null,
 			date: match.matchDate,
 		},
 		teamForm: { home: homeForm, away: awayForm },
@@ -86,13 +116,19 @@ export async function generateMatchPreview(matchId: string): Promise<MatchPrevie
 	};
 }
 
+type CompletedMatchRow = {
+	id: string;
+	homeTeamId: string;
+	awayTeamId: string;
+	homeScore: number | null;
+	awayScore: number | null;
+	matchDate: string;
+};
+
 // ---------------------------------------------------------------------------
 // Forma del equipo: historial de partidos completados en la liga
 // ---------------------------------------------------------------------------
-function getTeamForm(
-	teamId: string,
-	completedMatches: Awaited<ReturnType<typeof db.query.matches.findMany>>,
-): TeamFormStats {
+function getTeamForm(teamId: string, completedMatches: CompletedMatchRow[]): TeamFormStats {
 	const teamMatches = completedMatches.filter(
 		(m) => m.homeTeamId === teamId || m.awayTeamId === teamId,
 	);
@@ -191,89 +227,43 @@ function calculateWinProbability(
 }
 
 // ---------------------------------------------------------------------------
-// Jugadores más peligrosos de un equipo en la liga
+// Jugadores más peligrosos de un equipo en la liga (V2 — match_player_stats)
 // ---------------------------------------------------------------------------
 async function getTopThreats(
 	teamId: string,
-	leagueId: string,
-	completedMatches: Awaited<ReturnType<typeof db.query.matches.findMany>>,
+	matchIds: string[],
+	completedMatches: CompletedMatchRow[],
 ): Promise<TopThreat[]> {
-	const matchIds = completedMatches.map((m) => m.id);
 	if (matchIds.length === 0) return [];
 
-	// Jugadores del equipo en esta liga
-	const roster = await db.query.playerRegistrations.findMany({
-		where: and(eq(playerRegistrations.teamId, teamId), eq(playerRegistrations.leagueId, leagueId)),
-		with: { legacyPlayer: true },
-	});
+	const last3MatchIds = completedMatches
+		.filter((m) => m.homeTeamId === teamId || m.awayTeamId === teamId)
+		.slice(0, 3)
+		.map((m) => m.id);
 
-	if (roster.length === 0) return [];
+	const [seasonStats, last3Stats] = await Promise.all([
+		getTeamMatchStatsRoster(teamId, matchIds),
+		last3MatchIds.length > 0 ? getTeamMatchStatsRoster(teamId, last3MatchIds) : Promise.resolve([]),
+	]);
+
+	const last3ByPlayer = new Map(last3Stats.map((s) => [s.playerId, s.goals]));
 
 	const threats: TopThreat[] = [];
-
-	for (const reg of roster) {
-		const pid = reg.legacyPlayerId;
-		if (!pid) continue; // nuevo pipeline — sin legacyPlayerId
-
-		// Todos los goles de la temporada
-		const seasonGoalEvents = await db.query.matchEvents.findMany({
-			where: and(
-				eq(matchEvents.legacyPlayerId, pid),
-				eq(matchEvents.eventType, "goal"),
-				inArray(matchEvents.matchId, matchIds),
-			),
-		});
-
-		// Goles en los últimos 3 partidos del equipo
-		const last3MatchIds = completedMatches
-			.filter((m) => m.homeTeamId === teamId || m.awayTeamId === teamId)
-			.slice(0, 3)
-			.map((m) => m.id);
-
-		const last3Goals =
-			last3MatchIds.length > 0
-				? await db.query.matchEvents.findMany({
-						where: and(
-							eq(matchEvents.legacyPlayerId, pid),
-							eq(matchEvents.eventType, "goal"),
-							inArray(matchEvents.matchId, last3MatchIds),
-						),
-					})
-				: [];
-
-		// Asistencias en la temporada
-		const assistEvents = await db.query.matchEvents.findMany({
-			where: and(
-				eq(matchEvents.legacyPlayerId, pid),
-				eq(matchEvents.eventType, "assist"),
-				inArray(matchEvents.matchId, matchIds),
-			),
-		});
-
-		// Partidos jugados
-		const matchesPlayedIds = new Set(
-			(
-				await db.query.matchEvents.findMany({
-					where: and(eq(matchEvents.legacyPlayerId, pid), inArray(matchEvents.matchId, matchIds)),
-					columns: { matchId: true },
-				})
-			).map((e) => e.matchId),
-		);
-
-		const goalsThisSeason = seasonGoalEvents.length;
-		const goalsLast3 = last3Goals.length;
-		const assists = assistEvents.length;
-		const matchesPlayed = matchesPlayedIds.size;
-		const goalsPerMatch =
-			matchesPlayed > 0 ? Math.round((goalsThisSeason / matchesPlayed) * 100) / 100 : 0;
-
+	for (const s of seasonStats) {
+		const goalsThisSeason = s.goals;
+		const assists = s.assists;
 		// Solo incluir jugadores con al menos 1 gol o asistencia
 		if (goalsThisSeason === 0 && assists === 0) continue;
 
+		const goalsLast3 = last3ByPlayer.get(s.playerId) ?? 0;
+		const goalsPerMatch =
+			s.matchesPlayed > 0 ? Math.round((goalsThisSeason / s.matchesPlayed) * 100) / 100 : 0;
+
 		threats.push({
-			playerId: pid!,
-			player: reg?.legacyPlayer?.fullName ?? "",
-			alias: reg?.legacyPlayer?.alias ?? "",
+			playerId: s.playerId,
+			player: s.fullName,
+			// global_players no tiene alias (apodo) — solo existía en la tabla V1 `players`.
+			alias: null,
 			goalsThisSeason,
 			goalsLast3Matches: goalsLast3,
 			assists,
@@ -300,59 +290,27 @@ function calcDangerRating(goalsPerMatch: number, goalsLast3: number): DangerRati
 }
 
 // ---------------------------------------------------------------------------
-// Jugadores en riesgo de tarjeta/suspensión
+// Jugadores en riesgo de tarjeta/suspensión (V2 — match_player_stats)
 // ---------------------------------------------------------------------------
-async function getCardRisk(
-	teamId: string,
-	leagueId: string,
-	completedMatches: Awaited<ReturnType<typeof db.query.matches.findMany>>,
-): Promise<CardRiskPlayer[]> {
-	const matchIds = completedMatches.map((m) => m.id);
+async function getCardRisk(teamId: string, matchIds: string[]): Promise<CardRiskPlayer[]> {
 	if (matchIds.length === 0) return [];
 
-	const roster = await db.query.playerRegistrations.findMany({
-		where: and(eq(playerRegistrations.teamId, teamId), eq(playerRegistrations.leagueId, leagueId)),
-		with: { legacyPlayer: true },
-	});
+	const stats = await getTeamMatchStatsRoster(teamId, matchIds);
 
 	const risks: CardRiskPlayer[] = [];
-
-	for (const reg of roster) {
-		const pid = reg.legacyPlayerId;
-		if (!pid) continue; // nuevo pipeline — sin legacyPlayerId
-
-		const [yellows, reds] = await Promise.all([
-			db.query.matchEvents.findMany({
-				where: and(
-					eq(matchEvents.legacyPlayerId, pid),
-					eq(matchEvents.eventType, "yellow_card"),
-					inArray(matchEvents.matchId, matchIds),
-				),
-			}),
-			db.query.matchEvents.findMany({
-				where: and(
-					eq(matchEvents.legacyPlayerId, pid),
-					eq(matchEvents.eventType, "red_card"),
-					inArray(matchEvents.matchId, matchIds),
-				),
-			}),
-		]);
-
-		const yellowCount = yellows.length;
-		const redCount = reds.length;
-
+	for (const s of stats) {
 		// Incluir solo jugadores con riesgo real: 2+ amarillas o alguna roja
-		if (yellowCount < 2 && redCount === 0) continue;
+		if (s.yellowCards < 2 && s.redCards === 0) continue;
 
 		let note = "";
-		if (yellowCount >= 2) note = `${yellowCount} amarillas — 1 más = suspensión`;
-		if (redCount > 0) note = `${redCount} tarjeta(s) roja — revisar suspensión vigente`;
+		if (s.yellowCards >= 2) note = `${s.yellowCards} amarillas — 1 más = suspensión`;
+		if (s.redCards > 0) note = `${s.redCards} tarjeta(s) roja — revisar suspensión vigente`;
 
 		risks.push({
-			playerId: pid,
-			player: reg?.legacyPlayer?.fullName ?? "",
-			yellowCards: yellowCount,
-			redCards: redCount,
+			playerId: s.playerId,
+			player: s.fullName,
+			yellowCards: s.yellowCards,
+			redCards: s.redCards,
 			note,
 		});
 	}
@@ -366,7 +324,7 @@ async function getCardRisk(
 function getHeadToHead(
 	homeTeamId: string,
 	awayTeamId: string,
-	completedMatches: Awaited<ReturnType<typeof db.query.matches.findMany>>,
+	completedMatches: CompletedMatchRow[],
 ): HeadToHead {
 	const h2hMatches = completedMatches.filter(
 		(m) =>

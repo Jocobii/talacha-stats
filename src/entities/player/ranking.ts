@@ -12,19 +12,21 @@
  * goleo — eso no significa que no se capturen: la cédula sí registra
  * asistencias (match_player_stats.assists), solo que este módulo no las
  * agrega. El perfil de jugador (entities/player/queries.ts) sí las expone.
+ *
+ * P8/P9 (docs/V1-REMOVAL-PLAN.md, Fase 1 — jul 2026): `searchPlayersForDisambiguation`
+ * y el cálculo de `positionDelta` (vía `getPrevJornadaGoalsByLeague`,
+ * live-stats.ts) migrados de `player_season_stats`/`player_season_stats_snapshot`
+ * (V1) a `match_player_stats`/`matchdays` (V2) — ya no quedan lecturas V1 en
+ * este archivo.
  */
 
-import { eq, desc, sql, and, or, ilike, inArray, isNull } from "drizzle-orm";
+import { eq, and, or, ilike, isNull, inArray } from "drizzle-orm";
+import { db, globalPlayers, leagueMembers, leagues, organizations } from "@/db";
 import {
-	db,
-	globalPlayers,
-	playerSeasonStats,
-	playerSeasonStatsSnapshot,
-	leagues,
-	teams,
-	organizations,
-} from "@/db";
-import { getMergedLeagueStatsRows } from "./live-stats";
+	getMergedLeagueStatsRows,
+	getLiveJornadaHonor,
+	getPrevJornadaGoalsByLeague,
+} from "./live-stats";
 import {
 	type PaginationParams,
 	paginateArray,
@@ -133,62 +135,6 @@ function sortRanking(ranking: RankingEntry[]): RankingEntry[] {
 	});
 }
 
-// Retorna para cada jugador sus goles acumulados en la jornada anterior (N-1)
-// agrupados por liga. Usa las dos jornadas más recientes de cada liga en el snapshot.
-async function getPrevGoalsByLeague(
-	leagueIds: string[],
-): Promise<Map<string, Map<string, number>>> {
-	if (leagueIds.length === 0) return new Map();
-
-	// Dos jornadas más recientes por liga
-	const jornadaRows = await db
-		.select({
-			leagueId: playerSeasonStatsSnapshot.leagueId,
-			jornada: playerSeasonStatsSnapshot.jornada,
-		})
-		.from(playerSeasonStatsSnapshot)
-		.where(inArray(playerSeasonStatsSnapshot.leagueId, leagueIds))
-		.groupBy(playerSeasonStatsSnapshot.leagueId, playerSeasonStatsSnapshot.jornada)
-		.orderBy(playerSeasonStatsSnapshot.leagueId, desc(playerSeasonStatsSnapshot.jornada));
-
-	// Por liga: tomar la segunda jornada más reciente (la anterior)
-	const prevJornadaByLeague = new Map<string, number>();
-	const seenLeagues = new Map<string, number>(); // leagueId → count of jornadas seen
-
-	for (const row of jornadaRows) {
-		const count = (seenLeagues.get(row.leagueId) ?? 0) + 1;
-		seenLeagues.set(row.leagueId, count);
-		if (count === 2) prevJornadaByLeague.set(row.leagueId, row.jornada);
-	}
-
-	if (prevJornadaByLeague.size === 0) return new Map();
-
-	// Fetch snapshots de la jornada anterior para cada liga
-	// result: Map<leagueId, Map<playerId, goals>>
-	const result = new Map<string, Map<string, number>>();
-
-	for (const [leagueId, jornada] of prevJornadaByLeague) {
-		const rows = await db
-			.select({
-				playerId: playerSeasonStatsSnapshot.playerId,
-				goals: playerSeasonStatsSnapshot.goals,
-			})
-			.from(playerSeasonStatsSnapshot)
-			.where(
-				and(
-					eq(playerSeasonStatsSnapshot.leagueId, leagueId),
-					eq(playerSeasonStatsSnapshot.jornada, jornada),
-				),
-			);
-
-		const playerMap = new Map<string, number>();
-		for (const r of rows) playerMap.set(r.playerId ?? "", r.goals);
-		result.set(leagueId, playerMap);
-	}
-
-	return result;
-}
-
 // Calcula positionDelta comparando ranking actual vs ranking previo.
 // prevTotals: Map<playerId, totalGoals en jornada anterior>
 function computeDeltas(currentRanking: RankingEntry[], prevTotals: Map<string, number>): void {
@@ -215,27 +161,15 @@ function computeDeltas(currentRanking: RankingEntry[], prevTotals: Map<string, n
 const EMPTY_PAGINATION = (total: number) =>
 	({ total, page: 1, limit: total, totalPages: 1, hasNext: false, hasPrev: false }) as const;
 
-// ── Ranking por ciudad ────────────────────────────────────────────────────────
+// ── Agregación multi-liga (compartida por ciudad, org, global) ───────────────
+// Extraído de getCityRanking (jul 2026): mismo cálculo de goles/deltas para
+// CUALQUIER conjunto de leagueIds, solo cambia cómo se resuelve ese conjunto
+// (por ciudad, por org, o "todas"). Ver getCityRanking y getOrgRanking.
 
-export async function getCityRanking(
-	city: string,
+async function buildAggregatedRanking(
+	leagueIds: string[],
 	pagination?: PaginationParams,
 ): Promise<PaginatedResult<RankingEntry>> {
-	// Ligas de la ciudad (scope de org igual que antes) — la fuente de stats
-	// (Excel vs en vivo) se resuelve por liga dentro de getMergedLeagueStatsRows.
-	const cityLeagueRows = await db
-		.select({ id: leagues.id })
-		.from(leagues)
-		.leftJoin(organizations, eq(leagues.organizationId, organizations.id))
-		.where(
-			and(
-				eq(leagues.city, city),
-				// Exclude leagues from trial organizations
-				or(isNull(leagues.organizationId), eq(organizations.status, "verified")),
-			),
-		);
-	const leagueIds = cityLeagueRows.map((l) => l.id);
-
 	const rows = (await getMergedLeagueStatsRows(leagueIds)).filter((r) => r.goals > 0);
 
 	type Acc = {
@@ -276,10 +210,11 @@ export async function getCityRanking(
 		),
 	);
 
-	// Deltas vs jornada anterior (agrega goles previos de todas las ligas de la ciudad).
-	// Solo cubre ligas con snapshot (V1/Excel) — ligas 100% en vivo no tienen
-	// snapshot por jornada aún, así que sus jugadores salen como "isNew".
-	const prevByLeague = await getPrevGoalsByLeague(leagueIds);
+	// Deltas vs jornada anterior (agrega goles previos de todas las ligas del scope).
+	// Cubre cualquier liga con 2+ jornadas registradas en `matchdays`, sea cual
+	// sea su fuente de stats (P9, jul 2026) — antes solo cubría ligas con
+	// snapshot V1, así que cualquier liga 100% en vivo salía siempre "isNew".
+	const prevByLeague = await getPrevJornadaGoalsByLeague(leagueIds);
 	const prevTotals = new Map<string, number>();
 	for (const playerMap of prevByLeague.values()) {
 		for (const [pid, goals] of playerMap) {
@@ -290,6 +225,42 @@ export async function getCityRanking(
 
 	if (!pagination) return { items: ranking, meta: EMPTY_PAGINATION(ranking.length) };
 	return paginateArray(ranking, pagination);
+}
+
+// ── Ranking por ciudad ────────────────────────────────────────────────────────
+
+export async function getCityRanking(
+	city: string,
+	pagination?: PaginationParams,
+): Promise<PaginatedResult<RankingEntry>> {
+	// Ligas de la ciudad (scope de org igual que antes) — la fuente de stats
+	// (Excel vs en vivo) se resuelve por liga dentro de getMergedLeagueStatsRows.
+	const cityLeagueRows = await db
+		.select({ id: leagues.id })
+		.from(leagues)
+		.leftJoin(organizations, eq(leagues.organizationId, organizations.id))
+		.where(
+			and(
+				eq(leagues.city, city),
+				// Exclude leagues from trial organizations
+				or(isNull(leagues.organizationId), eq(organizations.status, "verified")),
+			),
+		);
+	const leagueIds = cityLeagueRows.map((l) => l.id);
+
+	return buildAggregatedRanking(leagueIds, pagination);
+}
+
+// ── Ranking de una org (docs/SUBDOMINIOS-MULTITENANT.md §3, §9.4) ────────────
+// Todas las ligas de la org combinadas — el mismo cálculo que ciudad/global,
+// solo que el conjunto de leagueIds ya lo resuelve el caller (org.leagues,
+// desde getPublicOrganization) en vez de resolverlo aquí por ciudad.
+
+export async function getOrgRanking(
+	leagueIds: string[],
+	pagination?: PaginationParams,
+): Promise<PaginatedResult<RankingEntry>> {
+	return buildAggregatedRanking(leagueIds, pagination);
 }
 
 // ── Ranking por liga ──────────────────────────────────────────────────────────
@@ -309,7 +280,7 @@ export async function getLeagueRanking(
 	);
 
 	// Deltas vs jornada anterior
-	const prevByLeague = await getPrevGoalsByLeague([leagueId]);
+	const prevByLeague = await getPrevJornadaGoalsByLeague([leagueId]);
 	const prevTotals = new Map<string, number>();
 	for (const [pid, goals] of prevByLeague.get(leagueId) ?? []) {
 		prevTotals.set(pid, goals);
@@ -388,7 +359,7 @@ export async function getGlobalRanking(
 
 	// Deltas vs jornada anterior (todas las ligas con resultados en el ranking)
 	const resultLeagueIds = [...new Set(rows.map((r) => r.leagueId))];
-	const prevByLeague = await getPrevGoalsByLeague(resultLeagueIds);
+	const prevByLeague = await getPrevJornadaGoalsByLeague(resultLeagueIds);
 	const prevTotals = new Map<string, number>();
 	for (const playerMap of prevByLeague.values()) {
 		for (const [pid, goals] of playerMap) {
@@ -407,32 +378,42 @@ export async function getGlobalRanking(
 export async function searchPlayersForDisambiguation(q: string): Promise<PlayerSearchResult[]> {
 	if (!q.trim()) return [];
 
-	const rows = await db
-		.select({
-			playerId: globalPlayers.id,
-			fullName: globalPlayers.fullName,
-			alias: sql<string | null>`null`,
-			goals: playerSeasonStats.goals,
-			leagueId: leagues.id,
-			leagueName: leagues.name,
-			season: leagues.season,
-			city: leagues.city,
-			teamName: teams.name,
-		})
-		.from(globalPlayers)
-		.innerJoin(playerSeasonStats, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
-		.innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
-		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-		.where(ilike(globalPlayers.fullName, `%${q}%`))
-		.limit(50);
+	// 1. Jugadores cuyo nombre matchea (identidad global, V2).
+	const matchedPlayers = await db.query.globalPlayers.findMany({
+		where: ilike(globalPlayers.fullName, `%${q}%`),
+		columns: { id: true, fullName: true },
+		limit: 50,
+	});
+	if (matchedPlayers.length === 0) return [];
+
+	const playerIds = new Set(matchedPlayers.map((p) => p.id));
+
+	// 2. Ligas donde participan (para poder pedir sus stats por liga).
+	const memberships = await db
+		.select({ leagueId: leagueMembers.leagueId })
+		.from(leagueMembers)
+		.where(inArray(leagueMembers.globalPlayerId, [...playerIds]));
+	const leagueIds = [...new Set(memberships.map((m) => m.leagueId))];
+	if (leagueIds.length === 0) return [];
+
+	const leagueSeasonRows = await db.query.leagues.findMany({
+		where: inArray(leagues.id, leagueIds),
+		columns: { id: true, season: true },
+	});
+	const seasonByLeague = new Map(leagueSeasonRows.map((l) => [l.id, l.season]));
+
+	// 3. Stats por liga (fuente combinada — Excel histórico o cálculo en vivo).
+	const statsRows = await getMergedLeagueStatsRows(leagueIds);
 
 	const map = new Map<string, PlayerSearchResult>();
-	for (const row of rows) {
+	for (const row of statsRows) {
+		if (!playerIds.has(row.playerId)) continue;
 		if (!map.has(row.playerId)) {
 			map.set(row.playerId, {
 				playerId: row.playerId,
 				fullName: row.fullName,
-				alias: row.alias,
+				// global_players no tiene alias (apodo) — solo existía en la tabla V1 `players`.
+				alias: null,
 				totalGoals: 0,
 				participations: [],
 			});
@@ -444,7 +425,7 @@ export async function searchPlayersForDisambiguation(q: string): Promise<PlayerS
 			leagueName: row.leagueName,
 			teamName: row.teamName ?? "—",
 			city: row.city,
-			season: row.season,
+			season: seasonByLeague.get(row.leagueId) ?? "",
 			goals: row.goals,
 		});
 	}
@@ -519,6 +500,12 @@ export async function getPlayerPositions(
 }
 
 // ── Tabla de honor por jornada ────────────────────────────────────────────────
+// Migrado a V2 (jul 2026, docs/V1-REMOVAL-PLAN.md Fase 1 P3/D2): antes leía
+// player_season_stats (V1, snapshot cumulativo por jornada del import de
+// Excel) — sin backfill, ninguna liga capturada 100% en-app vía cédula
+// aparecía nunca aquí. Ahora se calcula en vivo desde match_player_stats
+// (getLiveJornadaHonor). Sin backfill de Excel (D1): una liga cuyo único
+// historial vivía en Excel deja de aparecer — pérdida aceptada.
 
 export async function getJornadaHonor(city: string): Promise<JornadaLeague[]> {
 	const cityLeagues = await db.query.leagues.findMany({
@@ -530,55 +517,26 @@ export async function getJornadaHonor(city: string): Promise<JornadaLeague[]> {
 	const results: JornadaLeague[] = [];
 
 	for (const league of cityLeagues) {
-		const latestRow = await db
-			.select({ maxJornada: sql<number>`max(jornada)::int` })
-			.from(playerSeasonStats)
-			.where(eq(playerSeasonStats.leagueId, league.id));
-
-		const jornada = latestRow[0]?.maxJornada;
-		if (!jornada) continue;
-
-		const topRows = await db
-			.select({
-				playerId: playerSeasonStats.globalPlayerId,
-				fullName: globalPlayers.fullName,
-				alias: sql<string | null>`null`,
-				goals: playerSeasonStats.goals,
-				matchesPlayed: playerSeasonStats.matchesPlayed,
-				teamName: teams.name,
-			})
-			.from(playerSeasonStats)
-			.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
-			.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-			.where(
-				and(
-					eq(playerSeasonStats.leagueId, league.id),
-					eq(playerSeasonStats.jornada, jornada),
-					sql`${playerSeasonStats.goals} > 0`,
-				),
-			)
-			.orderBy(desc(playerSeasonStats.goals))
-			.limit(3);
-
-		if (topRows.length === 0) continue;
+		const honor = await getLiveJornadaHonor(league.id);
+		if (!honor || honor.heroes.length === 0) continue;
 
 		results.push({
 			leagueId: league.id,
 			leagueName: league.name,
 			season: league.season,
 			dayOfWeek: league.dayOfWeek,
-			jornada,
-			heroes: topRows.map((r) => ({
-				playerId: r.playerId!,
-				fullName: r.fullName,
-				alias: r.alias,
-				goals: r.goals,
-				matchesPlayed: r.matchesPlayed,
+			jornada: honor.jornada,
+			heroes: honor.heroes.map((h) => ({
+				playerId: h.playerId,
+				fullName: h.fullName,
+				alias: null,
+				goals: h.goals,
+				matchesPlayed: h.matchesPlayed,
 				goalsPerMatch:
-					r.matchesPlayed > 0 ? Math.round((r.goals / r.matchesPlayed) * 100) / 100 : 0,
+					h.matchesPlayed > 0 ? Math.round((h.goals / h.matchesPlayed) * 100) / 100 : 0,
 				leagueName: league.name,
-				teamName: r.teamName ?? "—",
-				jornada,
+				teamName: h.teamName ?? "—",
+				jornada: honor.jornada,
 			})),
 		});
 	}

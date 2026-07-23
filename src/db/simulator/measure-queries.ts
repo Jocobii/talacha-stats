@@ -22,11 +22,14 @@
  *     desde match_player_stats si no). Racha/hat-tricks también migrados
  *     (por jornada si la liga usa scheduling, si no por partido). MVP sigue
  *     en 0 siempre — no se captura en la cédula.
- *   - Pendiente real: `getJornadaHonor` (héroe de jornada, matchday) y
- *     `listTopScorers`/`getPlayerGlobalStats` (vista SQL `player_global_stats`
- *     en src/db/views.sql) siguen 100% en la cadena V1 — no se tocaron en
- *     esta migración. `listTopScorers` requiere una migración de la vista
- *     SQL, no solo cambios de código.
+ *   - `getJornadaHonor` (héroe de jornada, matchday) migrado a V2 (jul 2026,
+ *     docs/V1-REMOVAL-PLAN.md Fase 1 P3/D2): ahora calcula en vivo desde
+ *     match_player_stats (getLiveJornadaHonor); sin backfill de Excel (D1),
+ *     una liga cuyo único historial vivía en Excel deja de aparecer aquí.
+ *   - `listTopScorers`/`getPlayerGlobalStats` (vista SQL `player_global_stats`)
+ *     se retiraron por completo (docs/V1-REMOVAL-PLAN.md Fase 1 P1/P2): cero
+ *     callers reales, no se migraron. La vista SQL en sí sigue viva en
+ *     schema.ts/views.sql — se dropea en la Fase 2 del plan, no antes.
  *   - Las queries medidas aquí SÍ ven datos del simulador: ranking (ciudad/
  *     liga/global), showcase de homepage, snapshot de liga, goleo por
  *     jornada (matchday → getJornadaHonor) y tabla de posiciones en vivo

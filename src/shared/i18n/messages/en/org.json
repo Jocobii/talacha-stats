@@ -1,7 +1,52 @@
 {
 	"_status": "placeholder-untranslated",
 	"notFound": "Organización no encontrada",
+	"notFoundLanding": {
+		"title": "Esta liga aún no existe",
+		"subtitle": "Ninguna organización usa todavía este subdominio en TalachaStats.",
+		"cta": "¿Organizas una liga? Pide la tuya gratis",
+		"backHome": "Ir a TalachaStats"
+	},
 	"backToLigas": "Ligas",
+	"nav": {
+		"viewCityLeagues": "Ver todas las ligas de la ciudad",
+		"tagline": "Tu liga, en serio.",
+		"cta": "¿Organizas otra liga? Pide la tuya gratis.",
+		"home": "Home",
+		"ligas": "Leagues",
+		"ranking": "Standings",
+		"jornadas": "Matchdays",
+		"analisis": "Analysis",
+		"reglamento": "Rules",
+		"soon": "Soon",
+		"poweredBy": "Powered by"
+	},
+	"home": {
+		"featuredLeagues": "Featured leagues",
+		"inCourse": "In progress",
+		"viewTableScorers": "View table and scorers",
+		"teamsWord": "teams",
+		"matchdayWord": "Matchday",
+		"statGoals": "Goals this season",
+		"statTeams": "Active teams",
+		"statMatchday": "Current matchday",
+		"nextMatchday": "Next matchday",
+		"recentMatches": "Recent matches",
+		"vs": "vs",
+		"noUpcoming": "No scheduled matches.",
+		"noRecent": "No results yet."
+	},
+	"jornadas": {
+		"title": "Jornadas de {orgName}",
+		"subtitle": "Próximos partidos y resultados recientes de todas las ligas de la organización."
+	},
+	"ranking": {
+		"title": "Goleo de {orgName}",
+		"subtitle": "Top {count} goleadores de todas las ligas de la organización.",
+		"empty": "Aún no hay goles registrados en esta organización.",
+		"goals": "Goles",
+		"leaguesSuffix": "{count, plural, one {+# liga} other {+# ligas}}"
+	},
 	"noActiveLeagues": "No hay ligas activas en este momento.",
 	"narrativeCta": "Ver tabla y goleadores completos",
 	"hero": {

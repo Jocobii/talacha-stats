@@ -423,8 +423,15 @@ async function run(): Promise<void> {
 	// first 60 (10 teams × 6 players). Across leagues different shuffles cause
 	// many players to appear in multiple leagues — exercising the cross-liga
 	// queries — while keeping the per-league UNIQUE constraint clean.
-	const registrationRows: schema.NewPlayerRegistration[] = [];
-	const statRows: schema.NewPlayerSeasonStats[] = [];
+	// legacyPlayerId (FK puente a `players`) se retiró de playerRegistrations/
+	// playerSeasonStats en docs/V1-REMOVAL-PLAN.md Fase 3 (jul 2026). El seed
+	// sigue necesitando saber qué `players.id` corresponde a cada fila para
+	// armar snapshots/eventos más abajo — se guarda aparte en `_playerId`
+	// (no es una columna real, se filtra antes de insertar).
+	type SeedRegistration = schema.NewPlayerRegistration & { _playerId: string };
+	type SeedStat = schema.NewPlayerSeasonStats & { _playerId: string };
+	const registrationRows: SeedRegistration[] = [];
+	const statRows: SeedStat[] = [];
 	for (let li = 0; li < leagues.length; li++) {
 		const league = leagues[li];
 		const leagueTeams = teamsByLeague.get(league.id)!;
@@ -435,7 +442,7 @@ async function run(): Promise<void> {
 			const teamIdx = Math.floor(s / PLAYERS_PER_TEAM);
 			const team = leagueTeams[teamIdx];
 			registrationRows.push({
-				legacyPlayerId: players[playerIdx].id,
+				_playerId: players[playerIdx].id,
 				teamId: team.id,
 				leagueId: league.id,
 				jerseyNumber: (s % PLAYERS_PER_TEAM) + 1,
@@ -443,7 +450,7 @@ async function run(): Promise<void> {
 			// Stats vary by both player and league index so the same player
 			// has different numbers per league (which is realistic).
 			statRows.push({
-				legacyPlayerId: players[playerIdx].id,
+				_playerId: players[playerIdx].id,
 				leagueId: league.id,
 				teamId: team.id,
 				goals: det(playerIdx + li * 7, 26, 1),
@@ -472,7 +479,7 @@ async function run(): Promise<void> {
 		for (const s of sortedByGoals) {
 			const factor = j / 18; // partial accumulation
 			snapshotRows.push({
-				playerId: s.legacyPlayerId!,
+				playerId: s._playerId,
 				leagueId: s.leagueId,
 				teamId: s.teamId,
 				jornada: j,
@@ -554,7 +561,7 @@ async function run(): Promise<void> {
 	console.log(`✓ matches:          ${matches.length}  (completed, across 6 active leagues)`);
 
 	// Events: pick scorers from registered players of the league for that team.
-	const regsByLeagueTeam = new Map<string, schema.NewPlayerRegistration[]>();
+	const regsByLeagueTeam = new Map<string, SeedRegistration[]>();
 	for (const r of registrationRows) {
 		const key = `${r.leagueId}:${r.teamId}`;
 		const arr = regsByLeagueTeam.get(key) ?? [];
@@ -573,7 +580,7 @@ async function run(): Promise<void> {
 			const r = homeRoster[det(mi * 13 + g, homeRoster.length, 7)];
 			eventRows.push({
 				matchId: m.id,
-				playerProfileId: r.legacyPlayerId!,
+				playerProfileId: r._playerId,
 				teamId: m.homeTeamId,
 				eventType: "goal",
 				minute: 5 + det(mi * 17 + g, 80, 8),
@@ -583,7 +590,7 @@ async function run(): Promise<void> {
 			const r = awayRoster[det(mi * 19 + g, awayRoster.length, 9)];
 			eventRows.push({
 				matchId: m.id,
-				playerProfileId: r.legacyPlayerId!,
+				playerProfileId: r._playerId,
 				teamId: m.awayTeamId,
 				eventType: "goal",
 				minute: 5 + det(mi * 23 + g, 80, 10),
@@ -594,7 +601,7 @@ async function run(): Promise<void> {
 			const yc = homeRoster[det(mi, homeRoster.length, 12)];
 			eventRows.push({
 				matchId: m.id,
-				playerProfileId: yc.legacyPlayerId!,
+				playerProfileId: yc._playerId,
 				teamId: m.homeTeamId,
 				eventType: "yellow_card",
 				minute: 30 + det(mi, 50, 13),
@@ -604,7 +611,7 @@ async function run(): Promise<void> {
 			const rc = awayRoster[det(mi, awayRoster.length, 14)];
 			eventRows.push({
 				matchId: m.id,
-				playerProfileId: rc.legacyPlayerId!,
+				playerProfileId: rc._playerId,
 				teamId: m.awayTeamId,
 				eventType: "red_card",
 				minute: 60 + det(mi, 30, 15),

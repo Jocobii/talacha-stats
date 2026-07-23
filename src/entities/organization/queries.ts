@@ -3,23 +3,136 @@ import {
 	organizations,
 	users,
 	leagues,
-	teamStandingsSnapshot,
 	playerSeasonStats,
 	teams,
 	globalPlayers,
 	matchdays,
 	matches,
+	matchPlayerStats,
+	inscriptions,
+	leagueMembers,
 	venues,
 	leagueVenues,
 	venueTimeWindows,
 	leaguePlayoffZones,
 } from "@/db/schema";
-import { eq, asc, desc, and, sql, inArray, isNotNull, gt, ilike } from "drizzle-orm";
+import { eq, asc, desc, and, sql, inArray, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { cache } from "react";
 import type { Organization } from "@/db/schema";
 import type { CreateOrganizationInput, UpdateOrganizationInput } from "./model";
 import { deriveArranqueState, type ArranqueState } from "./lib/derive-arranque-state";
 import { sanitizeToCanonical } from "@/shared/lib/normalize";
+
+// ---------------------------------------------------------------------------
+// Helpers V2 — goleo combinado y última jornada, por liga
+//
+// Auto-contenidos a propósito (no importan entities/player/live-stats.ts):
+// FSD (§3.1 AGENTS.md) prohíbe imports laterales entre entities del mismo
+// nivel. Duplica el patrón "player_season_stats si existe, si no
+// match_player_stats" que ya usa entities/player/live-stats.ts — mismo
+// criterio de negocio (§1 AGENTS.md), implementación local.
+// (docs/V1-REMOVAL-PLAN.md, Fase 1, P10-P15 — jul 2026)
+// ---------------------------------------------------------------------------
+
+const COUNTED_MATCH_STATUSES = ["played", "walkover_home", "walkover_away"] as const;
+
+type LeagueScorerRow = {
+	playerId: string; // global_player_id
+	fullName: string;
+	leagueId: string;
+	teamName: string | null;
+	goals: number;
+	assists: number;
+	matchesPlayed: number;
+};
+
+async function getLeagueIdsWithSeasonStatsLocal(leagueIds: string[]): Promise<Set<string>> {
+	if (leagueIds.length === 0) return new Set();
+	const rows = await db
+		.selectDistinct({ leagueId: playerSeasonStats.leagueId })
+		.from(playerSeasonStats)
+		.where(inArray(playerSeasonStats.leagueId, leagueIds));
+	return new Set(rows.map((r) => r.leagueId));
+}
+
+async function fetchSeasonScorerRows(leagueIds: string[]): Promise<LeagueScorerRow[]> {
+	if (leagueIds.length === 0) return [];
+	const rows = await db
+		.select({
+			playerId: playerSeasonStats.globalPlayerId,
+			fullName: globalPlayers.fullName,
+			leagueId: playerSeasonStats.leagueId,
+			teamName: teams.name,
+			goals: playerSeasonStats.goals,
+			assists: playerSeasonStats.assists,
+			matchesPlayed: playerSeasonStats.matchesPlayed,
+		})
+		.from(playerSeasonStats)
+		.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
+		.leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
+		.where(inArray(playerSeasonStats.leagueId, leagueIds));
+
+	return rows
+		.filter((r): r is (typeof rows)[number] & { playerId: string } => r.playerId !== null)
+		.map((r) => ({ ...r }));
+}
+
+async function fetchLiveScorerRows(leagueIds: string[]): Promise<LeagueScorerRow[]> {
+	if (leagueIds.length === 0) return [];
+	return db
+		.select({
+			playerId: leagueMembers.globalPlayerId,
+			fullName: globalPlayers.fullName,
+			leagueId: leagueMembers.leagueId,
+			teamName: teams.name,
+			goals: sql<number>`COALESCE(SUM(${matchPlayerStats.goals}), 0)::int`,
+			assists: sql<number>`COALESCE(SUM(${matchPlayerStats.assists}), 0)::int`,
+			matchesPlayed: sql<number>`COUNT(*) FILTER (WHERE ${matchPlayerStats.isPresent})::int`,
+		})
+		.from(matchPlayerStats)
+		.innerJoin(matches, eq(matchPlayerStats.matchId, matches.id))
+		.innerJoin(inscriptions, eq(matchPlayerStats.playerRegistrationId, inscriptions.id))
+		.innerJoin(leagueMembers, eq(inscriptions.leagueMemberId, leagueMembers.id))
+		.innerJoin(globalPlayers, eq(leagueMembers.globalPlayerId, globalPlayers.id))
+		.leftJoin(teams, eq(inscriptions.teamId, teams.id))
+		.where(
+			and(inArray(matches.leagueId, leagueIds), inArray(matches.status, COUNTED_MATCH_STATUSES)),
+		)
+		.groupBy(leagueMembers.globalPlayerId, globalPlayers.fullName, leagueMembers.leagueId, teams.name);
+}
+
+/**
+ * Goleo combinado por jugador: `player_season_stats` (Excel, histórico) si la
+ * liga lo tiene, o cálculo en vivo desde `match_player_stats` (cédula) si no
+ * — nunca ambos para la misma liga (§1 AGENTS.md).
+ */
+async function getMergedLeagueScorers(leagueIds: string[]): Promise<LeagueScorerRow[]> {
+	if (leagueIds.length === 0) return [];
+	const withSeasonStats = await getLeagueIdsWithSeasonStatsLocal(leagueIds);
+	const seasonIds = leagueIds.filter((id) => withSeasonStats.has(id));
+	const liveIds = leagueIds.filter((id) => !withSeasonStats.has(id));
+
+	const [seasonRows, liveRows] = await Promise.all([
+		fetchSeasonScorerRows(seasonIds),
+		fetchLiveScorerRows(liveIds),
+	]);
+
+	return [...seasonRows, ...liveRows];
+}
+
+/** Última jornada (matchday.number) con al menos un partido contado, a través de una o más ligas. */
+async function getLastJornadaForLeagues(leagueIds: string[]): Promise<number | null> {
+	if (leagueIds.length === 0) return null;
+	const rows = await db
+		.select({ max: sql<number | null>`max(${matchdays.number})` })
+		.from(matches)
+		.innerJoin(matchdays, eq(matches.matchdayId, matchdays.id))
+		.where(
+			and(inArray(matches.leagueId, leagueIds), inArray(matches.status, COUNTED_MATCH_STATUSES)),
+		);
+	return rows[0]?.max ?? null;
+}
 
 // ---------------------------------------------------------------------------
 // Lectura — Admin
@@ -200,9 +313,13 @@ export async function listOrganizationsPublic() {
 
 /**
  * Obtiene una organización pública con sus ligas activas + último snapshot de cada liga.
- * Usada en /org/[slug].
+ * Usada en /org/[slug] Y en org/[slug]/layout.tsx (nav público, docs/SUBDOMINIOS-MULTITENANT.md §4).
+ *
+ * Envuelta en `cache()` de React: layout.tsx y page.tsx la llaman por
+ * separado en el mismo request (uno para el nav, otro para el contenido) —
+ * sin memoización esto sería una consulta a DB duplicada en cada visita.
  */
-export async function getPublicOrganization(slug: string) {
+export const getPublicOrganization = cache(async function getPublicOrganization(slug: string) {
 	const org = await db.query.organizations.findFirst({
 		// Trial orgs are not publicly accessible
 		// comment only for testing
@@ -217,7 +334,7 @@ export async function getPublicOrganization(slug: string) {
 		},
 	});
 	return org ?? null;
-}
+});
 
 /**
  * Obtiene una liga pública por slug de org + slug de liga.
@@ -241,49 +358,22 @@ export async function getPublicLeague(orgSlug: string, leagueSlug: string) {
 }
 
 /**
- * Obtiene la tabla de posiciones para la vista pública de una liga.
+ * Obtiene la tabla de posiciones para la vista pública de una liga, calculada
+ * en vivo desde partidos capturados. Cuenta played + walkover_home +
+ * walkover_away + completed (este último es status legacy de partidos reales
+ * en `matches` desde el import de Excel, no infra V1 — se conserva). Los W.O.
+ * se contabilizan como 3-0 para el ganador.
  *
- * Prioridad 1 — snapshots importados desde Excel (V1 legacy):
- *   Devuelve la jornada más reciente disponible en teamStandingsSnapshot.
- *
- * Prioridad 2 — cálculo en vivo desde partidos capturados (V2):
- *   Se activa cuando no hay snapshots. Cuenta played + walkover_home +
- *   walkover_away. Los W.O. se contabilizan como 3-0 para el ganador.
- *   Devuelve filas con la misma forma que los snapshots ({ team: { id, name }, ... })
- *   para que la plantilla pública no necesite cambios.
+ * Migrado a V2 (jul 2026, docs/V1-REMOVAL-PLAN.md Fase 1, P10/D1): antes
+ * priorizaba `team_standings_snapshot` (V1) sobre este cálculo. Se retiró esa
+ * prioridad — sin backfill (D1), una liga cuyo único historial vive en el
+ * snapshot ahora no tiene tabla de posiciones. `jornada` ya no sale siempre
+ * `null`: se calcula desde `matchdays` (última jornada con partido contado).
  */
 export async function getLatestStandings(leagueId: string) {
-	// ── Prioridad 1: snapshots Excel ──────────────────────────────────────────
-	const lastJornada = await db
-		.select({ jornada: sql<number>`max(${teamStandingsSnapshot.jornada})` })
-		.from(teamStandingsSnapshot)
-		.where(eq(teamStandingsSnapshot.leagueId, leagueId));
-
-	const jornada = lastJornada[0]?.jornada ?? null;
-
-	if (jornada) {
-		const rows = await db.query.teamStandingsSnapshot.findMany({
-			where: and(
-				eq(teamStandingsSnapshot.leagueId, leagueId),
-				eq(teamStandingsSnapshot.jornada, jornada),
-			),
-			with: { team: { columns: { id: true, name: true, status: true } } },
-			orderBy: [
-				desc(teamStandingsSnapshot.points),
-				desc(sql`${teamStandingsSnapshot.goalsFor} - ${teamStandingsSnapshot.goalsAgainst}`),
-				desc(teamStandingsSnapshot.goalsFor),
-			],
-		});
-		// `pending` (banca) y `disbanded` no cuentan en la tabla pública — mismo
-		// tratamiento deportivo (AGENTS.md / NUEVA-TEMPORADA-V2.md §3.2).
-		const activeRows = rows.filter((r) => r.team.status === "active");
-		return { standings: activeRows, jornada };
-	}
-
-	// ── Prioridad 2: cálculo en vivo desde partidos capturados (V2) ───────────
 	const COUNTED_STATUSES = ["played", "walkover_home", "walkover_away", "completed"] as const;
 
-	const [leagueTeams, countedMatches] = await Promise.all([
+	const [leagueTeams, countedMatches, jornada] = await Promise.all([
 		db.query.teams.findMany({
 			where: and(eq(teams.leagueId, leagueId), eq(teams.status, "active")),
 			columns: { id: true, name: true },
@@ -299,6 +389,7 @@ export async function getLatestStandings(leagueId: string) {
 				status: true,
 			},
 		}),
+		getLastJornadaForLeagues([leagueId]),
 	]);
 
 	if (countedMatches.length === 0) return { standings: [], jornada: null };
@@ -364,7 +455,7 @@ export async function getLatestStandings(leagueId: string) {
 		return a.team.name.localeCompare(b.team.name);
 	});
 
-	return { standings: sorted, jornada: null };
+	return { standings: sorted, jornada };
 }
 
 export type TopScorerRow = {
@@ -379,65 +470,51 @@ export type TopScorerRow = {
 
 /**
  * Goleadores de una liga (cualquiera con al menos 1 gol, sin excluir a
- * nadie), paginado y con búsqueda por nombre — el filtrado/paginado se hace
- * en DB, nunca "traer todo y recortar/filtrar en memoria" (ver AGENTS.md
- * §17.3). Mismo molde que `listAllGlobalPlayers` (entities/player/queries.ts):
- * paginación simple con `page`/`pageSize`/`search`, sin el registro
- * `defineFilterMap` completo porque solo hay un campo buscable (no hace
- * falta un FilterBar con múltiples controles).
+ * nadie), paginado y con búsqueda por nombre.
+ *
+ * Migrado a V2 (jul 2026, docs/V1-REMOVAL-PLAN.md Fase 1, P14): antes leía
+ * `player_season_stats` directo (100% V1) — cualquier liga capturada
+ * en-app vía cédula no aparecía nunca aquí. Ahora usa `getMergedLeagueScorers`
+ * (Excel histórico si la liga lo tiene, o cálculo en vivo desde
+ * `match_player_stats` si no).
+ *
+ * Filtro/orden se hacen en memoria (no en DB, a diferencia de
+ * `listAllGlobalPlayers`) porque la fuente combinada ya no es una sola
+ * columna de una sola tabla — está acotado a UNA liga (decenas de jugadores,
+ * nunca miles), así que el costo es despreciable frente a reimplementar la
+ * lógica de "Excel vs. en vivo" dos veces en SQL con paginación nativa.
  */
 export async function searchTopScorers(
 	leagueId: string,
 	opts: { q?: string; page: number; pageSize: number },
 ): Promise<{ rows: TopScorerRow[]; total: number }> {
 	const canonical = opts.q?.trim() ? sanitizeToCanonical(opts.q) : "";
-	const where = and(
-		eq(playerSeasonStats.leagueId, leagueId),
-		gt(playerSeasonStats.goals, 0),
-		canonical ? ilike(globalPlayers.fullNameCanonical, `%${canonical}%`) : undefined,
-	);
+
+	const allRows = (await getMergedLeagueScorers([leagueId]))
+		.filter((r) => r.goals > 0)
+		.filter((r) => !canonical || sanitizeToCanonical(r.fullName).includes(canonical))
+		.sort((a, b) => b.goals - a.goals || b.assists - a.assists);
+
 	const offset = (opts.page - 1) * opts.pageSize;
+	const rows: TopScorerRow[] = allRows.slice(offset, offset + opts.pageSize).map((r) => ({
+		playerId: r.playerId,
+		fullName: r.fullName,
+		alias: null,
+		goals: r.goals,
+		assists: r.assists,
+		matchesPlayed: r.matchesPlayed,
+		teamName: r.teamName ?? "—",
+	}));
 
-	const [rows, countResult] = await Promise.all([
-		db
-			.select({
-				playerId: playerSeasonStats.globalPlayerId,
-				fullName: globalPlayers.fullName,
-				alias: sql<string | null>`null`,
-				goals: playerSeasonStats.goals,
-				assists: playerSeasonStats.assists,
-				matchesPlayed: playerSeasonStats.matchesPlayed,
-				teamName: teams.name,
-			})
-			.from(playerSeasonStats)
-			.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
-			.innerJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-			.where(where)
-			.orderBy(desc(playerSeasonStats.goals), desc(playerSeasonStats.assists))
-			.limit(opts.pageSize)
-			.offset(offset),
-		db
-			.select({ total: sql<number>`COUNT(*)::int` })
-			.from(playerSeasonStats)
-			.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
-			.where(where),
-	]);
-
-	return { rows, total: countResult[0]?.total ?? 0 };
+	return { rows, total: allRows.length };
 }
 
-/**
- * Obtiene el historial de posiciones por jornada para un equipo.
- * Usado en el gráfico de evolución dentro de la página de liga.
- */
-export async function getStandingsHistory(leagueId: string) {
-	const rows = await db.query.teamStandingsSnapshot.findMany({
-		where: eq(teamStandingsSnapshot.leagueId, leagueId),
-		with: { team: { columns: { id: true, name: true } } },
-		orderBy: [asc(teamStandingsSnapshot.jornada)],
-	});
-	return rows;
-}
+// `getStandingsHistory` (historial de posiciones por jornada, 100%
+// `team_standings_snapshot`) se retiró aquí (docs/V1-REMOVAL-PLAN.md, Fase 1,
+// P11 — jul 2026): cero callers reales en `src/app` (el "gráfico de
+// evolución" mencionado en su comentario nunca se construyó). Se retiró en
+// vez de migrarse — reimplementar "tabla en cada jornada pasada" sobre V2
+// (cumulativo por matchday) no tiene sentido para una función sin consumidor.
 
 // ---------------------------------------------------------------------------
 // Público — jornadas (sorteo)
@@ -669,38 +746,22 @@ export async function getLeaguesShowcase(city: string, limit = 6): Promise<Leagu
 
 	const leagueIds = verifiedLeagues.map((l) => l.id);
 
-	// Conteo de jugadores y datos de goleadores en paralelo
-	const [playerCounts, scorerRows] = await Promise.all([
-		db
-			.select({
-				leagueId: playerSeasonStats.leagueId,
-				count: sql<number>`count(*)`,
-			})
-			.from(playerSeasonStats)
-			.where(inArray(playerSeasonStats.leagueId, leagueIds))
-			.groupBy(playerSeasonStats.leagueId),
+	// Goleo combinado (Excel histórico o cálculo en vivo, por liga) — migrado a
+	// V2 (jul 2026, docs/V1-REMOVAL-PLAN.md Fase 1, P15): antes leía
+	// `player_season_stats` directo, así que cualquier liga 100% en-app
+	// siempre salía con 0 jugadores y sin goleador en la vitrina de home.
+	const scorerRows = await getMergedLeagueScorers(leagueIds);
 
-		db
-			.select({
-				leagueId: playerSeasonStats.leagueId,
-				fullName: globalPlayers.fullName,
-				alias: sql<string | null>`null`,
-				goals: playerSeasonStats.goals,
-			})
-			.from(playerSeasonStats)
-			.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
-			.where(inArray(playerSeasonStats.leagueId, leagueIds))
-			.orderBy(desc(playerSeasonStats.goals), desc(playerSeasonStats.assists)),
-	]);
-
-	// Construir mapas para O(1) lookup
-	const playerCountMap = new Map(playerCounts.map((r) => [r.leagueId, Number(r.count)]));
-
-	// Top scorer por liga: primer row encontrado por leagueId (ya vienen ordenados)
-	const topScorerMap = new Map<string, (typeof scorerRows)[0]>();
+	// playerCount = jugadores con al menos una fila de stats en la liga (Excel
+	// o en vivo) — mismo criterio que antes (contaba filas de player_season_stats
+	// sin filtrar por goles).
+	const playerCountMap = new Map<string, number>();
+	const topScorerMap = new Map<string, { fullName: string; goals: number }>();
 	for (const row of scorerRows) {
-		if (!topScorerMap.has(row.leagueId)) {
-			topScorerMap.set(row.leagueId, row);
+		playerCountMap.set(row.leagueId, (playerCountMap.get(row.leagueId) ?? 0) + 1);
+		const existing = topScorerMap.get(row.leagueId);
+		if (row.goals > 0 && (!existing || row.goals > existing.goals)) {
+			topScorerMap.set(row.leagueId, { fullName: row.fullName, goals: row.goals });
 		}
 	}
 
@@ -713,9 +774,7 @@ export async function getLeaguesShowcase(city: string, limit = 6): Promise<Leagu
 			season: league.season ?? "",
 			teamCount: league.teams.length,
 			playerCount: playerCountMap.get(league.id) ?? 0,
-			topScorer: scorer
-				? { fullName: scorer.fullName, alias: scorer.alias, goals: scorer.goals }
-				: null,
+			topScorer: scorer ? { fullName: scorer.fullName, alias: null, goals: scorer.goals } : null,
 			orgSlug: league.organization?.slug ?? null,
 			leagueSlug: league.slug ?? null,
 		};
@@ -740,48 +799,29 @@ export type OrgHubStats = {
 /**
  * Retorna el líder de tabla, top goleador y última jornada de una liga.
  * Usado en las cards del hub de organización.
+ *
+ * Migrado a V2 (jul 2026, docs/V1-REMOVAL-PLAN.md Fase 1, P12): antes leía
+ * `team_standings_snapshot` (líder + jornada) y `player_season_stats`
+ * (goleador) directo — ambas 100% V1. El líder y la jornada ahora salen de
+ * `getLatestStandings` (ya migrado, P10); el goleador de
+ * `getMergedLeagueScorers` (Excel histórico o cálculo en vivo).
  */
 export async function getLeagueSnapshot(leagueId: string): Promise<LeagueSnapshot> {
-	const jornadaRows = await db
-		.select({ max: sql<number>`max(${teamStandingsSnapshot.jornada})` })
-		.from(teamStandingsSnapshot)
-		.where(eq(teamStandingsSnapshot.leagueId, leagueId));
-
-	const lastJornada = jornadaRows[0]?.max ?? null;
-
-	const [leaderRow, scorerRows] = await Promise.all([
-		lastJornada
-			? db.query.teamStandingsSnapshot.findFirst({
-					where: and(
-						eq(teamStandingsSnapshot.leagueId, leagueId),
-						eq(teamStandingsSnapshot.jornada, lastJornada),
-					),
-					with: { team: { columns: { name: true } } },
-					orderBy: [desc(teamStandingsSnapshot.points)],
-				})
-			: Promise.resolve(null),
-		db
-			.select({
-				fullName: globalPlayers.fullName,
-				alias: sql<string | null>`null`,
-				goals: playerSeasonStats.goals,
-			})
-			.from(playerSeasonStats)
-			.innerJoin(globalPlayers, eq(playerSeasonStats.globalPlayerId, globalPlayers.id))
-			.where(eq(playerSeasonStats.leagueId, leagueId))
-			.orderBy(desc(playerSeasonStats.goals))
-			.limit(1),
+	const [{ standings, jornada }, scorerRows] = await Promise.all([
+		getLatestStandings(leagueId),
+		getMergedLeagueScorers([leagueId]),
 	]);
 
+	const leader = standings[0] ?? null;
+	const topScorerRow = scorerRows
+		.filter((r) => r.goals > 0)
+		.sort((a, b) => b.goals - a.goals)[0];
+
 	return {
-		lastJornada,
-		leader: leaderRow ? { teamName: leaderRow.team.name, points: leaderRow.points } : null,
-		topScorer: scorerRows[0]
-			? {
-					fullName: scorerRows[0].fullName,
-					alias: scorerRows[0].alias,
-					goals: scorerRows[0].goals,
-				}
+		lastJornada: jornada,
+		leader: leader ? { teamName: leader.team.name, points: leader.points } : null,
+		topScorer: topScorerRow
+			? { fullName: topScorerRow.fullName, alias: null, goals: topScorerRow.goals }
 			: null,
 	};
 }
@@ -820,6 +860,12 @@ export async function getLeagueZones(leagueId: string): Promise<PublicZone[]> {
 /**
  * Retorna el total de goles y la última jornada registrada en toda la organización.
  * Usado en el strip de stats del hub.
+ *
+ * Migrado a V2 (jul 2026, docs/V1-REMOVAL-PLAN.md Fase 1, P13): antes sumaba
+ * `player_season_stats.goals` y el máximo de `team_standings_snapshot.jornada`
+ * directo (100% V1) — cualquier liga de la org 100% en-app no aportaba nada a
+ * estos totales. Ahora usa `getMergedLeagueScorers` (Excel histórico o
+ * cálculo en vivo, por liga) y `getLastJornadaForLeagues` (vía `matchdays`).
  */
 export async function getOrgHubStats(orgId: string): Promise<OrgHubStats> {
 	const orgLeagues = await db
@@ -830,23 +876,154 @@ export async function getOrgHubStats(orgId: string): Promise<OrgHubStats> {
 	const leagueIds = orgLeagues.map((l) => l.id);
 	if (leagueIds.length === 0) return { totalGoals: 0, lastJornada: null };
 
-	const [goalsResult, jornadaResult] = await Promise.all([
-		db
-			.select({
-				total: sql<number>`coalesce(sum(${playerSeasonStats.goals}), 0)`,
-			})
-			.from(playerSeasonStats)
-			.where(inArray(playerSeasonStats.leagueId, leagueIds)),
-		db
-			.select({ max: sql<number>`max(${teamStandingsSnapshot.jornada})` })
-			.from(teamStandingsSnapshot)
-			.where(inArray(teamStandingsSnapshot.leagueId, leagueIds)),
+	const [scorerRows, lastJornada] = await Promise.all([
+		getMergedLeagueScorers(leagueIds),
+		getLastJornadaForLeagues(leagueIds),
 	]);
 
-	return {
-		totalGoals: Number(goalsResult[0]?.total ?? 0),
-		lastJornada: jornadaResult[0]?.max ?? null,
-	};
+	const totalGoals = scorerRows.reduce((sum, r) => sum + r.goals, 0);
+
+	return { totalGoals, lastJornada };
+}
+
+// ---------------------------------------------------------------------------
+// Público — feed de partidos de la organización (próxima jornada + recientes)
+//
+// Agregados cross-liga para el home del subdominio. A diferencia de
+// getPublicMatchdays (por liga), estos barren TODAS las ligas activas de la
+// org y devuelven un puñado de partidos ya ordenado, listo para pintar.
+// Fechas serializadas a ISO string para cruzar la frontera Server → Client.
+// ---------------------------------------------------------------------------
+
+export type OrgFeedMatch = {
+	matchId: string;
+	leagueName: string;
+	leagueSlug: string | null;
+	homeTeamName: string;
+	awayTeamName: string;
+	venueName: string | null;
+	/** ISO string, null si no hay hora definida */
+	kickoffAt: string | null;
+	/** "YYYY-MM-DD" (columna date) */
+	matchDate: string;
+	/** null en próximos (aún sin capturar); número en recientes */
+	homeScore: number | null;
+	awayScore: number | null;
+};
+
+const ORG_FEED_COUNTED_STATUSES = ["played", "walkover_home", "walkover_away", "completed"] as const;
+
+/** W.O. = 3-0 para el ganador; el resto usa el marcador capturado. */
+function resolveFeedScore(
+	status: string,
+	home: number | null,
+	away: number | null,
+): [number, number] {
+	if (status === "walkover_home") return [3, 0];
+	if (status === "walkover_away") return [0, 3];
+	return [home ?? 0, away ?? 0];
+}
+
+/**
+ * Próximos partidos programados de toda la org (todas las ligas activas),
+ * ordenados por fecha/hora ascendente. Usado en el home del subdominio.
+ */
+export async function getOrgUpcomingMatches(orgId: string, limit = 6): Promise<OrgFeedMatch[]> {
+	const homeTeams = alias(teams, "up_home_teams");
+	const awayTeams = alias(teams, "up_away_teams");
+
+	const rows = await db
+		.select({
+			matchId: matches.id,
+			leagueName: leagues.name,
+			leagueSlug: leagues.slug,
+			homeTeamName: homeTeams.name,
+			awayTeamName: awayTeams.name,
+			venueName: venues.name,
+			kickoffAt: matches.kickoffAt,
+			matchDate: matches.matchDate,
+		})
+		.from(matches)
+		.innerJoin(leagues, and(eq(leagues.id, matches.leagueId), eq(leagues.status, "active")))
+		.innerJoin(homeTeams, eq(homeTeams.id, matches.homeTeamId))
+		.innerJoin(awayTeams, eq(awayTeams.id, matches.awayTeamId))
+		.leftJoin(venues, eq(venues.id, matches.venueId))
+		.where(
+			and(
+				eq(leagues.organizationId, orgId),
+				eq(matches.status, "scheduled"),
+				sql`coalesce(${matches.kickoffAt}::date, ${matches.matchDate}) >= current_date`,
+			),
+		)
+		.orderBy(
+			sql`coalesce(${matches.kickoffAt}::date, ${matches.matchDate}) asc`,
+			asc(matches.kickoffAt),
+		)
+		.limit(limit);
+
+	return rows.map((r) => ({
+		matchId: r.matchId,
+		leagueName: r.leagueName,
+		leagueSlug: r.leagueSlug ?? null,
+		homeTeamName: r.homeTeamName,
+		awayTeamName: r.awayTeamName,
+		venueName: r.venueName ?? null,
+		kickoffAt: r.kickoffAt ? new Date(r.kickoffAt).toISOString() : null,
+		matchDate: r.matchDate,
+		homeScore: null,
+		awayScore: null,
+	}));
+}
+
+/**
+ * Últimos partidos jugados de toda la org (todas las ligas activas),
+ * ordenados por fecha descendente, con marcador (W.O. = 3-0). Usado en el
+ * home del subdominio.
+ */
+export async function getOrgRecentResults(orgId: string, limit = 6): Promise<OrgFeedMatch[]> {
+	const homeTeams = alias(teams, "rc_home_teams");
+	const awayTeams = alias(teams, "rc_away_teams");
+
+	const rows = await db
+		.select({
+			matchId: matches.id,
+			leagueName: leagues.name,
+			leagueSlug: leagues.slug,
+			homeTeamName: homeTeams.name,
+			awayTeamName: awayTeams.name,
+			venueName: venues.name,
+			kickoffAt: matches.kickoffAt,
+			matchDate: matches.matchDate,
+			status: matches.status,
+			homeScore: matches.homeScore,
+			awayScore: matches.awayScore,
+		})
+		.from(matches)
+		.innerJoin(leagues, and(eq(leagues.id, matches.leagueId), eq(leagues.status, "active")))
+		.innerJoin(homeTeams, eq(homeTeams.id, matches.homeTeamId))
+		.innerJoin(awayTeams, eq(awayTeams.id, matches.awayTeamId))
+		.leftJoin(venues, eq(venues.id, matches.venueId))
+		.where(
+			and(eq(leagues.organizationId, orgId), inArray(matches.status, [...ORG_FEED_COUNTED_STATUSES])),
+		)
+		.orderBy(desc(matches.matchDate), desc(matches.kickoffAt))
+		.limit(limit);
+
+	return rows.map((r) => {
+		const [homeScore, awayScore] = resolveFeedScore(r.status, r.homeScore, r.awayScore);
+		return {
+			matchId: r.matchId,
+			leagueName: r.leagueName,
+			leagueSlug: r.leagueSlug ?? null,
+			homeTeamName: r.homeTeamName,
+			awayTeamName: r.awayTeamName,
+			venueName: r.venueName ?? null,
+			kickoffAt: r.kickoffAt ? new Date(r.kickoffAt).toISOString() : null,
+			matchDate: r.matchDate,
+			homeScore,
+			awayScore,
+		};
+	});
 }
 
 // ---------------------------------------------------------------------------

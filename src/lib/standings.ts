@@ -1,15 +1,18 @@
-import { db, matches, teams, teamStandingsSnapshot } from "@/db";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { db, matches, teams } from "@/db";
+import { and, eq, inArray } from "drizzle-orm";
 import type { TeamStanding } from "@/types";
 import { findLeagueConfigOrDefaults } from "@/entities/league-config/queries";
 import type { LeagueConfigDto, TiebreakerCriterion } from "@/entities/league-config";
 
 /**
- * Statuses que cuentan como partido jugado para la tabla (V2 capture + V1 legacy).
- * - "played"        → partido normal con marcador real.
+ * Statuses que cuentan como partido jugado para la tabla.
+ * - "played"        → partido normal con marcador real (cédula V2).
  * - "walkover_home" → local gana 3-0 por W.O. del visitante.
  * - "walkover_away" → visitante gana 3-0 por W.O. del local.
- * - "completed"     → estado legacy de partidos importados desde Excel (V1).
+ * - "completed"     → status legacy de partidos que sí quedaron en `matches`
+ *   con marcador real desde el import de Excel (V1) — se conserva porque son
+ *   filas de partido reales, no infra V1 (a diferencia del snapshot que se
+ *   retiró abajo, ver docs/V1-REMOVAL-PLAN.md P7/D1).
  * "suspended" y "postponed" no cuentan: el partido no se jugó aún.
  */
 const COUNTED_STATUSES = ["played", "walkover_home", "walkover_away", "completed"] as const;
@@ -131,17 +134,21 @@ async function getResolvedMatches(leagueId: string): Promise<ResolvedMatch[]> {
 }
 
 /**
- * Devuelve la tabla de posiciones de una liga.
+ * Devuelve la tabla de posiciones de una liga, calculada en vivo desde
+ * partidos capturados: cuenta played + walkover_home + walkover_away +
+ * completed. Los W.O. se contabilizan como 3-0 para el ganador.
  *
- * Prioridad 1 — snapshots importados desde Excel (V1 legacy):
- *   Si existen, se usa la jornada más reciente disponible.
- *
- * Prioridad 2 — cálculo en vivo desde partidos capturados (V2):
- *   Cuenta played + walkover_home + walkover_away + completed.
- *   Los W.O. se contabilizan como 3-0 para el ganador.
- *
- * En ambos casos el orden final respeta `league_config.tiebreakers`
+ * El orden final respeta `league_config.tiebreakers`
  * (§4.1 de docs/MODULOS-GESTION-LIGA.md) — nunca hardcodeado.
+ *
+ * Migrado a V2 (jul 2026, docs/V1-REMOVAL-PLAN.md Fase 1, P7/D1): antes
+ * priorizaba `team_standings_snapshot` (V1, snapshot de la última jornada
+ * importada desde Excel) sobre este cálculo en vivo. Se retiró esa
+ * prioridad — sin backfill (D1), una liga cuyo único historial vive en el
+ * snapshot ahora no tiene tabla de posiciones (antes tampoco la tenía si
+ * nunca corrió el import). El campo `zone` (LIGUILLA/COPA/RECOPA, solo
+ * poblado por el snapshot) se retiró de `TeamStanding` — la zona real de una
+ * liga V2 vive en `league_playoff_zones` (ver `shared/lib/zone-colors.ts`).
  */
 export async function getLeagueStandings(leagueId: string): Promise<TeamStanding[]> {
 	const [config, resolvedMatches] = await Promise.all([
@@ -149,46 +156,6 @@ export async function getLeagueStandings(leagueId: string): Promise<TeamStanding
 		getResolvedMatches(leagueId),
 	]);
 
-	// ── Prioridad 1: snapshots Excel ──────────────────────────────────────────
-	const allSnapshots = await db.query.teamStandingsSnapshot.findMany({
-		where: eq(teamStandingsSnapshot.leagueId, leagueId),
-		orderBy: [desc(teamStandingsSnapshot.jornada), desc(teamStandingsSnapshot.points)],
-		with: { team: true, league: true },
-	});
-	// Excluye equipos disueltos: el snapshot histórico se conserva, pero un
-	// equipo disuelto no debe seguir apareciendo en la tabla de posiciones.
-	const snapshots = allSnapshots.filter((s) => s.team.status === "active");
-
-	if (snapshots.length > 0) {
-		const latestJornada = snapshots[0].jornada;
-		const latest = snapshots.filter((s) => s.jornada === latestJornada);
-
-		const standings = latest.map((s) => ({
-			teamId: s.teamId,
-			teamName: s.team.name,
-			leagueId,
-			leagueName: s.league.name,
-			season: s.league.season,
-			played: s.played,
-			wins: s.wins,
-			draws: s.draws,
-			losses: s.losses,
-			goalsFor: s.goalsFor,
-			goalsAgainst: s.goalsAgainst,
-			goalDifference: s.goalsFor - s.goalsAgainst,
-			points: s.points,
-			zone: s.zone ?? undefined,
-		}));
-
-		return sortStandings(
-			standings,
-			config.tiebreakers as TiebreakerCriterion[],
-			resolvedMatches,
-			config,
-		);
-	}
-
-	// ── Prioridad 2: cálculo en vivo desde partidos capturados (V2) ───────────
 	const leagueTeams = await db.query.teams.findMany({
 		where: and(eq(teams.leagueId, leagueId), eq(teams.status, "active")),
 		with: { league: true },

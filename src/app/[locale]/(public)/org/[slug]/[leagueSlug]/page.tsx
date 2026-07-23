@@ -25,7 +25,7 @@ import SuspendedList from "./SuspendedList";
 import TrialWarning from "./TrialWarning";
 import LeaguePublicTabs from "./LeaguePublicTabs";
 import { isAppLocale, defaultLocale } from "@/shared/i18n/config";
-import { buildLocaleAlternates, ogLocale } from "@/shared/i18n/seo";
+import { buildOrgLocaleAlternates, ogLocale } from "@/shared/i18n/seo";
 
 const SCORERS_PAGE_SIZE = 10;
 
@@ -68,14 +68,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	}
 
 	const ogImageUrl = `/api/og?${ogParams.toString()}`;
+	// Canónica = subdominio, no /org/{slug}/{leagueSlug} (docs/SUBDOMINIOS-MULTITENANT.md §5).
+	const alternates = buildOrgLocaleAlternates(appLocale, slug, `/${leagueSlug}`);
 
 	return {
 		title: `${title} · TalachaStats`,
 		description,
-		alternates: buildLocaleAlternates(appLocale, `/org/${slug}/${leagueSlug}`),
+		alternates,
 		openGraph: {
 			title: `${title} · TalachaStats`,
 			description,
+			url: alternates.canonical,
 			images: [{ url: ogImageUrl, width: 1200, height: 630, alt: league.name }],
 			type: "website",
 			locale: ogLocale(appLocale),
@@ -160,8 +163,10 @@ export default async function LeaguePublicPage({ params, searchParams }: Props) 
 	// La sección de goleadores muestra su propio empty state según el caso
 	// (liga sin goleadores vs. sin resultados para la búsqueda) — ver abajo.
 
+	// Relativa al mundo de la org (SIN prefijo /org/{slug}): proxy.ts ya lo
+	// antepone via el rewrite de host (docs/SUBDOMINIOS-MULTITENANT.md §2.2).
 	const localePath = locale === defaultLocale ? "" : `/${locale}`;
-	const scorersBaseHref = `${localePath}/org/${slug}/${leagueSlug}`;
+	const scorersBaseHref = `${localePath}/${leagueSlug}`;
 
 	// ── Sección de posiciones (pasada como slot al tab) ──────────────────────
 	const standingsSection = (
@@ -295,8 +300,10 @@ export default async function LeaguePublicPage({ params, searchParams }: Props) 
 			{/* ── Header ── */}
 			<header className="relative px-5 pt-8 pb-0 max-w-lg mx-auto w-full overflow-hidden">
 				<div className="relative z-10 pb-6">
+					{/* Relativo al hub de la org (SIN prefijo /org/{slug}): proxy.ts ya lo
+					    antepone via el rewrite de host (docs/SUBDOMINIOS-MULTITENANT.md §2.2). */}
 					<Link
-						href={`/org/${org.slug}`}
+						href="/"
 						className="inline-flex items-center gap-1.5 text-ink-3 hover:text-ink text-sm transition mb-5"
 					>
 						<ArrowLeft size={16} strokeWidth={2} />
