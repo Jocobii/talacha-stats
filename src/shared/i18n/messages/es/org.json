@@ -34,7 +34,21 @@
 		"recentMatches": "Partidos recientes",
 		"vs": "vs",
 		"noUpcoming": "No hay partidos programados.",
-		"noRecent": "Aún no hay resultados."
+		"noRecent": "Aún no hay resultados.",
+		"wallOfFame": "Muro de la Fama",
+		"topScorersLink": "Top goleadores",
+		"wallOfFameCta": "¿Quién es el rey de la ciudad?",
+		"wallOfFameCtaLink": "Ver ranking global →",
+		"noScorers": "Aún no hay goleadores registrados.",
+		"playingToday": "Jugando Hoy",
+		"todaysMatchesCount": "{count, plural, one {# partido} other {# partidos}}",
+		"noMatchesToday": "No hay partidos programados para hoy.",
+		"activeLeagues": "Ligas Activas",
+		"viewTable": "Ver tabla →",
+		"searchPlaceholder": "¿En qué equipo juegas?",
+		"searchMinChars": "Escribe al menos 2 letras para buscar.",
+		"searchNoResults": "Sin resultados.",
+		"searchLoading": "Buscando…"
 	},
 	"jornadas": {
 		"title": "Jornadas de {orgName}",

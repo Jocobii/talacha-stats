@@ -196,6 +196,16 @@ body {
 	background: var(--scroll-thumb-hv);
 }
 
+/* Oculta el scrollbar en tiras de scroll horizontal decorativas (carruseles,
+   chips) donde el gesto de swipe ya es suficiente affordance — usado por
+   OrgWallOfFame y otros carruseles del mundo público de la org. */
+.no-scrollbar {
+	scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+	display: none;
+}
+
 /* ── Animaciones hero ─────────────────────────────────────────── */
 @keyframes fadeSlideUp {
 	from {

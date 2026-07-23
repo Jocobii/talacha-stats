@@ -33,6 +33,9 @@ export {
 	getLeaguesShowcase,
 	getOrgUpcomingMatches,
 	getOrgRecentResults,
+	getOrgTopScorers,
+	getOrgMatchesToday,
+	searchOrgTeams,
 	// Verificaciones
 	listPendingVerifications,
 	approveOrganization,
@@ -62,6 +65,8 @@ export type {
 	OrgDirectoryItem,
 	OrgDirectoryFilters,
 	OrgDirectorySort,
+	OrgTopScorer,
+	OrgTeamSearchResult,
 } from "./queries";
 
 // Tema visual (docs/ORG-THEMING.md)
