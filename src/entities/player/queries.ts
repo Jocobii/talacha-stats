@@ -210,6 +210,28 @@ async function resolveFinishedLeagues(leagueIds: string[]): Promise<Set<string>>
 	return new Set(rows.map((r) => r.id));
 }
 
+// ── Perfil scoped a una org (docs/SUBDOMINIOS-MULTITENANT.md §3, §9.5) ───────
+// Alcance decidido: en el subdominio de una org solo se ven los números del
+// jugador EN ESA ORG (el mismo global_player puede jugar en varias orgs).
+// Reutiliza getPlayerProfile (misma fuente de stats, cero lógica duplicada)
+// y recorta `leagues` a las que pertenecen a la org — sin volver a tocar
+// live-stats.ts. Si el jugador no tiene actividad en esas ligas, null
+// (la page hace notFound(): no existe "su" perfil en esta org).
+
+export async function getPlayerProfileForLeagues(
+	globalPlayerId: string,
+	leagueIds: readonly string[],
+): Promise<PlayerView | null> {
+	const profile = await getPlayerProfile(globalPlayerId);
+	if (!profile) return null;
+
+	const scopeIds = new Set(leagueIds);
+	const scopedLeagues = profile.leagues.filter((l) => scopeIds.has(l.leagueId));
+	if (scopedLeagues.length === 0) return null;
+
+	return { ...profile, global: computeGlobal(scopedLeagues), leagues: scopedLeagues };
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function computeGlobal(leagues: PlayerLeagueStats[]): PlayerGlobalProfile {

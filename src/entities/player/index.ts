@@ -43,6 +43,7 @@ export type {
 export {
 	searchDirectoryPlayers,
 	getPlayerProfile,
+	getPlayerProfileForLeagues,
 	getPlayerEgoStats,
 	// Breaking Change — identidad global
 	findGlobalPlayerByHash,

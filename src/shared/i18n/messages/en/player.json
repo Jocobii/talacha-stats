@@ -67,6 +67,11 @@
 		"titular": "<strong>{name}</strong> fue titular en {matches} partidos esta temporada.",
 		"default": "<strong>{name}</strong> juega en {leagues, plural, one {# liga} other {# ligas}} y acumula {matches} PJ."
 	},
+	"orgScoped": {
+		"title": "Estadísticas en {orgName}",
+		"viewGlobalProfile": "Ver perfil global en TalachaStats",
+		"byLeague": "Por liga en esta organización"
+	},
 	"enCurso": "En curso",
 	"teamGoalsShare": "{pct}% goles equipo",
 	"shareFooter": {
