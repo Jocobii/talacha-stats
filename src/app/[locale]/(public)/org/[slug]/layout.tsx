@@ -63,7 +63,9 @@ export default async function OrgLayout({ params, children }: OrgLayoutProps) {
 						name: org.name,
 						logoUrl: org.logoUrl,
 						city: org.city,
-						leagues: org.leagues.map((league) => ({ slug: league.slug, name: league.name })),
+						leagues: org.leagues
+							.filter((league): league is typeof league & { slug: string } => league.slug !== null)
+							.map((league) => ({ slug: league.slug, name: league.name })),
 					}}
 					labels={labels}
 					viewCityLeaguesHref={viewCityLeaguesHref}
