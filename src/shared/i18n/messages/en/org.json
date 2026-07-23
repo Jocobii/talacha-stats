@@ -30,6 +30,10 @@
 		"noUpcoming": "No scheduled matches.",
 		"noRecent": "No results yet."
 	},
+	"jornadas": {
+		"title": "Jornadas de {orgName}",
+		"subtitle": "Próximos partidos y resultados recientes de todas las ligas de la organización."
+	},
 	"ranking": {
 		"title": "Goleo de {orgName}",
 		"subtitle": "Top {count} goleadores de todas las ligas de la organización.",

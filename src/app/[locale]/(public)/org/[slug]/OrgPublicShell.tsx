@@ -14,14 +14,15 @@
  * resto del mundo público.
  *
  * NAV — "cablear a lo existente": a nivel org existen el home (`/`), las
- * páginas por liga (`/{leagueSlug}` con tabs tabla/goleadores/jornada), y
- * `/ranking` (goleo agregado de TODAS las ligas de la org, docs/
- * SUBDOMINIOS-MULTITENANT.md §6a). Jornadas/Análisis/Reglamento aún no
- * tienen agregado cross-liga. Por eso:
+ * páginas por liga (`/{leagueSlug}` con tabs tabla/goleadores/jornada),
+ * `/ranking` (goleo agregado de TODAS las ligas, §6a) y `/jornadas`
+ * (próximos partidos + resultados agregados, §6b — mismos datos que el feed
+ * del home, límite más alto). Análisis y Reglamento aún no tienen ninguna
+ * superficie pública. Por eso:
  *   • con UNA liga activa, "Ranking"/"Jornadas" apuntan a los tabs de esa liga
  *     (para una sola liga, el agregado y el tab individual son lo mismo);
  *   • con varias, "Ligas" ancla al grid del home, "Ranking" va a `/ranking`,
- *     y "Jornadas" queda "Pronto" (no hay agregado cross-liga todavía);
+ *     "Jornadas" va a `/jornadas`;
  *   • Análisis y Reglamento siempre "Pronto" (sin superficie pública aún).
  *
  * LINKS — dentro del mundo de la org, `Link` (next-intl) solo navega a rutas
@@ -98,7 +99,7 @@ function buildNav(leagues: OrgShellData["leagues"], labels: OrgShellLabels): Nav
 			id: "jornadas",
 			label: labels.nav.jornadas,
 			icon: CalendarDays,
-			href: single ? `/${single.slug}?tab=jornada` : null,
+			href: single ? `/${single.slug}?tab=jornada` : "/jornadas",
 		},
 		{ id: "analisis", label: labels.nav.analisis, icon: BarChart3, href: null },
 		{ id: "reglamento", label: labels.nav.reglamento, icon: BookOpen, href: null },
@@ -127,16 +128,22 @@ export default function OrgPublicShell({
 	const nav = buildNav(org.leagues, labels);
 	const initial = org.name.charAt(0).toUpperCase();
 
-	// "Home" activo solo en la raíz del subdominio; "Ranking" en /ranking;
-	// "Ligas" en cualquier página de liga (pero NO en /ranking ni /player/...
-	// — antes de agregar /ranking, "Ligas" hacía match de CUALQUIER pathname
-	// no-raíz, incluyendo esas rutas). El resto no marca activo (tabs vía
+	// "Home" activo solo en la raíz del subdominio; "Ranking"/"Jornadas" en sus
+	// propias rutas; "Ligas" en cualquier página de liga (pero NO en /ranking,
+	// /jornadas ni /player/... — antes de agregar esas rutas, "Ligas" hacía
+	// match de CUALQUIER pathname no-raíz). El resto no marca activo (tabs vía
 	// searchParams, o "Pronto").
 	const isActive = (item: NavItem): boolean => {
 		if (item.id === "home") return pathname === "/";
 		if (item.id === "ranking") return pathname === "/ranking";
+		if (item.id === "jornadas") return pathname === "/jornadas";
 		if (item.id === "ligas") {
-			return pathname !== "/" && pathname !== "/ranking" && !pathname.startsWith("/player/");
+			return (
+				pathname !== "/" &&
+				pathname !== "/ranking" &&
+				pathname !== "/jornadas" &&
+				!pathname.startsWith("/player/")
+			);
 		}
 		return false;
 	};
