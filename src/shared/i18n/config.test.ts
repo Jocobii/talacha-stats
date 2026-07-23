@@ -26,7 +26,7 @@ describe("i18n config", () => {
 		expect(messageNamespaces).toEqual([
 			"common",
 			"home",
-			"ligas",
+			"organizaciones",
 			"ranking",
 			"player",
 			"matchday",
