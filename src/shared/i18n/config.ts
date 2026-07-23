@@ -33,7 +33,7 @@ export const localeDetection = false;
 export const messageNamespaces = [
 	"common",
 	"home",
-	"ligas",
+	"organizaciones",
 	"ranking",
 	"player",
 	"matchday",

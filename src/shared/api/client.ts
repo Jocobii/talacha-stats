@@ -22,6 +22,13 @@ export type ApiSuccess<T> = { ok: true; data: T };
 export type ApiError = { ok: false; error: string };
 export type ApiResult<T> = ApiSuccess<T> | ApiError;
 
+export type ApiSuccessPaginated<T> = {
+	ok: true;
+	data: T[];
+	meta: import("@/shared/lib/pagination").PaginationMeta;
+};
+export type ApiPaginatedResult<T> = ApiSuccessPaginated<T> | ApiError;
+
 // ---------------------------------------------------------------------------
 // Helpers de narrowing — usar en callsites para mayor claridad
 // ---------------------------------------------------------------------------
@@ -84,6 +91,42 @@ export async function apiFetch<T>(url: string, options: FetchOptions = {}): Prom
 	}
 
 	return { ok: true, data: (payload as { data: T }).data };
+}
+
+/**
+ * Variante de `apiFetch` para rutas que responden con `apiSuccessPaginated`
+ * (`{ ok, data, meta }`). `apiFetch` normal descarta `meta`; úsala cuando el
+ * caller necesite `total`/`hasNext` (p. ej. contador "X de Y" o "cargar más").
+ */
+export async function apiFetchPaginated<T>(
+	url: string,
+	options: FetchOptions = {},
+): Promise<ApiPaginatedResult<T>> {
+	const { body, headers, ...rest } = options;
+
+	const res = await fetch(url, {
+		...rest,
+		headers: {
+			"Content-Type": "application/json",
+			...headers,
+		},
+		body: body !== undefined ? JSON.stringify(body) : undefined,
+	});
+
+	const payload: unknown = await res.json();
+
+	if (!res.ok || !(payload as { ok?: boolean }).ok) {
+		return {
+			ok: false,
+			error: (payload as { error?: string }).error ?? "Error inesperado",
+		};
+	}
+
+	const typed = payload as {
+		data: T[];
+		meta: import("@/shared/lib/pagination").PaginationMeta;
+	};
+	return { ok: true, data: typed.data, meta: typed.meta };
 }
 
 /**

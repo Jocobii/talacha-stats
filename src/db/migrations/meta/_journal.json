@@ -1,125 +1,132 @@
 {
-  "version": "7",
-  "dialect": "postgresql",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1779320229419,
-      "tag": "0000_slim_reaper",
-      "breakpoints": true
-    },
-    {
-      "idx": 33,
-      "version": "7",
-      "when": 1747872000000,
-      "tag": "0033_teams_status",
-      "breakpoints": true
-    },
-    {
-      "idx": 34,
-      "version": "7",
-      "when": 1779326463433,
-      "tag": "0034_dry_skrulls",
-      "breakpoints": true
-    },
-    {
-      "idx": 35,
-      "version": "7",
-      "when": 1782508064739,
-      "tag": "0035_demonic_madame_hydra",
-      "breakpoints": true
-    },
-    {
-      "idx": 36,
-      "version": "7",
-      "when": 1783071351911,
-      "tag": "0036_lonely_dark_beast",
-      "breakpoints": true
-    },
-    {
-      "idx": 37,
-      "version": "7",
-      "when": 1783071360000,
-      "tag": "0037_needy_hydra",
-      "breakpoints": true
-    },
-    {
-      "idx": 38,
-      "version": "7",
-      "when": 1784010246866,
-      "tag": "0038_polite_namora",
-      "breakpoints": true
-    },
-    {
-      "idx": 39,
-      "version": "7",
-      "when": 1784011031336,
-      "tag": "0039_organic_mongoose",
-      "breakpoints": true
-    },
-    {
-      "idx": 40,
-      "version": "7",
-      "when": 1784072792831,
-      "tag": "0040_volatile_bug",
-      "breakpoints": true
-    },
-    {
-      "idx": 41,
-      "version": "7",
-      "when": 1784126727225,
-      "tag": "0041_little_wallop",
-      "breakpoints": true
-    },
-    {
-      "idx": 42,
-      "version": "7",
-      "when": 1784128579888,
-      "tag": "0042_clear_morlun",
-      "breakpoints": true
-    },
-    {
-      "idx": 43,
-      "version": "7",
-      "when": 1784199023218,
-      "tag": "0043_optimal_exiles",
-      "breakpoints": true
-    },
-    {
-      "idx": 44,
-      "version": "7",
-      "when": 1784241529770,
-      "tag": "0044_fair_master_chief",
-      "breakpoints": true
-    },
-    {
-      "idx": 45,
-      "version": "7",
-      "when": 1784242830619,
-      "tag": "0045_spicy_punisher",
-      "breakpoints": true
-    },
-    {
-      "idx": 46,
-      "version": "7",
-      "when": 1784244592772,
-      "tag": "0046_common_pyro",
-      "breakpoints": true
-    },
-    {
-      "idx": 47,
-      "version": "7",
-      "when": 1784381306087,
-      "tag": "0047_nueva_temporada_v2_rollover",
-      "breakpoints": true
-    },
-    {
-      "idx": 48,
-      "version": "7",
-      "when": 1784705161327,
-      "tag": "0048_chilly_nick_fury",
-      "breakpoints": true
-    }
-  ]
+	"version": "7",
+	"dialect": "postgresql",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "7",
+			"when": 1779320229419,
+			"tag": "0000_slim_reaper",
+			"breakpoints": true
+		},
+		{
+			"idx": 33,
+			"version": "7",
+			"when": 1747872000000,
+			"tag": "0033_teams_status",
+			"breakpoints": true
+		},
+		{
+			"idx": 34,
+			"version": "7",
+			"when": 1779326463433,
+			"tag": "0034_dry_skrulls",
+			"breakpoints": true
+		},
+		{
+			"idx": 35,
+			"version": "7",
+			"when": 1782508064739,
+			"tag": "0035_demonic_madame_hydra",
+			"breakpoints": true
+		},
+		{
+			"idx": 36,
+			"version": "7",
+			"when": 1783071351911,
+			"tag": "0036_lonely_dark_beast",
+			"breakpoints": true
+		},
+		{
+			"idx": 37,
+			"version": "7",
+			"when": 1783071360000,
+			"tag": "0037_needy_hydra",
+			"breakpoints": true
+		},
+		{
+			"idx": 38,
+			"version": "7",
+			"when": 1784010246866,
+			"tag": "0038_polite_namora",
+			"breakpoints": true
+		},
+		{
+			"idx": 39,
+			"version": "7",
+			"when": 1784011031336,
+			"tag": "0039_organic_mongoose",
+			"breakpoints": true
+		},
+		{
+			"idx": 40,
+			"version": "7",
+			"when": 1784072792831,
+			"tag": "0040_volatile_bug",
+			"breakpoints": true
+		},
+		{
+			"idx": 41,
+			"version": "7",
+			"when": 1784126727225,
+			"tag": "0041_little_wallop",
+			"breakpoints": true
+		},
+		{
+			"idx": 42,
+			"version": "7",
+			"when": 1784128579888,
+			"tag": "0042_clear_morlun",
+			"breakpoints": true
+		},
+		{
+			"idx": 43,
+			"version": "7",
+			"when": 1784199023218,
+			"tag": "0043_optimal_exiles",
+			"breakpoints": true
+		},
+		{
+			"idx": 44,
+			"version": "7",
+			"when": 1784241529770,
+			"tag": "0044_fair_master_chief",
+			"breakpoints": true
+		},
+		{
+			"idx": 45,
+			"version": "7",
+			"when": 1784242830619,
+			"tag": "0045_spicy_punisher",
+			"breakpoints": true
+		},
+		{
+			"idx": 46,
+			"version": "7",
+			"when": 1784244592772,
+			"tag": "0046_common_pyro",
+			"breakpoints": true
+		},
+		{
+			"idx": 47,
+			"version": "7",
+			"when": 1784381306087,
+			"tag": "0047_nueva_temporada_v2_rollover",
+			"breakpoints": true
+		},
+		{
+			"idx": 48,
+			"version": "7",
+			"when": 1784705161327,
+			"tag": "0048_chilly_nick_fury",
+			"breakpoints": true
+		},
+		{
+			"idx": 49,
+			"version": "7",
+			"when": 1784908800000,
+			"tag": "0049_universal_search_trgm_indexes",
+			"breakpoints": true
+		}
+	]
 }

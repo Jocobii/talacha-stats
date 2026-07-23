@@ -75,6 +75,17 @@ export const queryKeys = {
 			[...queryKeys.organizations.all, "slug-availability", "new", slug] as const,
 		slugAvailabilityForEdit: (slug: string) =>
 			[...queryKeys.organizations.all, "slug-availability", "edit", slug] as const,
+		// Hub de Portales (/organizaciones, features/org-directory). `limit`
+		// entra en la key a propósito: "cargar más" no acumula páginas en
+		// estado local, vuelve a pedir el mismo listado con más `limit` (offset
+		// 0) — cada `limit` distinto es, para TanStack Query, una entrada de
+		// caché propia.
+		directory: (filters: { city?: string; q?: string; sort: string }, limit: number) =>
+			[...queryKeys.organizations.all, "directory", filters, limit] as const,
+		// Buscador "¿En qué equipo juegas?" del home del subdominio
+		// (features/org-home-search). Scoped por slug de org + término debounced.
+		teamSearch: (slug: string, q: string) =>
+			[...queryKeys.organizations.all, "team-search", slug, q] as const,
 	},
 
 	// Sanciones — dominio jerárquico. `admin()` es la vista global (todas las
@@ -192,5 +203,16 @@ export const queryKeys = {
 			[...queryKeys.credentials.all, "status", leagueId, globalPlayerId] as const,
 		orgConfig: (organizationId: string) =>
 			[...queryKeys.credentials.all, "org-config", organizationId] as const,
+	},
+
+	// Buscador universal por organización (docs/UNIVERSAL-SEARCH.md).
+	// Dominio propio: distinto del `organizations.teamSearch` existente (solo
+	// equipos, sin fuzzy) — este es multi-entidad y puede convivir con aquel
+	// hasta que se resuelva §8.2 del doc. `types` entra en la key porque un
+	// subconjunto de kinds es una respuesta distinta para el mismo `q`.
+	search: {
+		all: ["search"] as const,
+		universal: (orgSlug: string, q: string, types?: string[]) =>
+			[...queryKeys.search.all, "universal", orgSlug, q, types ?? []] as const,
 	},
 } as const;

@@ -9,7 +9,7 @@ const siteUrl = getSiteUrl();
 // el sitemap, plan I18N §7.2).
 const STATIC_PUBLIC_PATHS = [
 	"/",
-	"/ligas",
+	"/organizaciones",
 	"/ranking",
 	"/matchday",
 	"/players",

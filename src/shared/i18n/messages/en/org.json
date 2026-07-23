@@ -34,7 +34,32 @@
 		"recentMatches": "Recent matches",
 		"vs": "vs",
 		"noUpcoming": "No scheduled matches.",
-		"noRecent": "No results yet."
+		"noRecent": "No results yet.",
+		"wallOfFame": "Wall of Fame",
+		"topScorersLink": "Top scorers",
+		"wallOfFameCta": "Who's the king of the city?",
+		"wallOfFameCtaLink": "View global ranking →",
+		"noScorers": "No scorers registered yet.",
+		"playingToday": "Playing Today",
+		"todaysMatchesCount": "{count, plural, one {# match} other {# matches}}",
+		"noMatchesToday": "No matches scheduled for today.",
+		"activeLeagues": "Active Leagues",
+		"viewTable": "View table →",
+		"searchPlaceholder": "Which team do you play for?",
+		"searchMinChars": "Type at least 2 letters to search.",
+		"searchNoResults": "No results.",
+		"searchLoading": "Searching…",
+		"universalSearch": {
+			"placeholder": "Search teams, leagues, players, venues…",
+			"minChars": "Type at least 2 letters to search.",
+			"noResults": "No results.",
+			"loading": "Searching…",
+			"kindTeam": "Teams",
+			"kindLeague": "Leagues",
+			"kindPlayer": "Players",
+			"kindSuspension": "Suspended",
+			"kindVenue": "Venues"
+		}
 	},
 	"jornadas": {
 		"title": "Jornadas de {orgName}",

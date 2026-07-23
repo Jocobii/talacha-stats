@@ -35,7 +35,7 @@ export default async function OrgLayout({ params, children }: OrgLayoutProps) {
 		getOrgTheme(slug),
 		getPublicOrganization(slug),
 		getTranslations({ locale, namespace: "org" }),
-		getApexUrl("/ligas"),
+		getApexUrl("/organizaciones"),
 	]);
 
 	// Textos del shell (Client Component) resueltos en el server: i18n cruza la

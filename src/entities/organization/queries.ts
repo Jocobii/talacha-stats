@@ -16,7 +16,7 @@ import {
 	venueTimeWindows,
 	leaguePlayoffZones,
 } from "@/db/schema";
-import { eq, asc, desc, and, sql, inArray, isNotNull } from "drizzle-orm";
+import { eq, asc, desc, and, sql, inArray, isNotNull, ilike } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { cache } from "react";
 import type { Organization } from "@/db/schema";
@@ -99,7 +99,12 @@ async function fetchLiveScorerRows(leagueIds: string[]): Promise<LeagueScorerRow
 		.where(
 			and(inArray(matches.leagueId, leagueIds), inArray(matches.status, COUNTED_MATCH_STATUSES)),
 		)
-		.groupBy(leagueMembers.globalPlayerId, globalPlayers.fullName, leagueMembers.leagueId, teams.name);
+		.groupBy(
+			leagueMembers.globalPlayerId,
+			globalPlayers.fullName,
+			leagueMembers.leagueId,
+			teams.name,
+		);
 }
 
 /**
@@ -309,6 +314,105 @@ export async function listOrganizationsPublic() {
 			},
 		},
 	});
+}
+
+// ---------------------------------------------------------------------------
+// Público — Hub de Portales (/organizaciones): directorio paginado + filtros
+// ---------------------------------------------------------------------------
+
+export type OrgDirectorySort = "name_asc" | "name_desc" | "leagues_desc" | "players_desc";
+
+export type OrgDirectoryItem = {
+	id: string;
+	name: string;
+	slug: string;
+	logoUrl: string | null;
+	city: string;
+	leagueCount: number;
+	teamCount: number;
+	playerCount: number;
+};
+
+export type OrgDirectoryFilters = {
+	/** Sin filtro = todas las ciudades ("Todas" en el dropdown del diseño). */
+	city?: string;
+	q?: string;
+	sort: OrgDirectorySort;
+	limit: number;
+	offset: number;
+};
+
+function buildOrgDirectoryWhere(city?: string, q?: string) {
+	const conditions = [eq(organizations.status, "verified")];
+	if (city) conditions.push(eq(organizations.city, city));
+	// Búsqueda simple por nombre (mismo patrón que searchDirectoryPlayers en
+	// entities/player/queries.ts) — no fuzzy/similarity, suficiente para un
+	// directorio de decenas/cientos de organizaciones.
+	if (q) conditions.push(ilike(organizations.name, `%${q}%`));
+	return and(...conditions);
+}
+
+// Expresiones de agregado reutilizadas en SELECT y ORDER BY (mismo objeto
+// `sql<T>`, no un alias por string) — Drizzle repite la expresión completa en
+// el ORDER BY, válido en Postgres para agregados de una query con GROUP BY.
+const orgLeagueCountExpr = sql<number>`count(distinct case when ${leagues.status} = 'active' then ${leagues.id} end)::int`;
+const orgTeamCountExpr = sql<number>`count(distinct case when ${leagues.status} = 'active' then ${teams.id} end)::int`;
+const orgPlayerCountExpr = sql<number>`count(distinct ${leagueMembers.globalPlayerId})::int`;
+
+function orgDirectoryOrderBy(sort: OrgDirectorySort) {
+	if (sort === "name_desc") return [desc(organizations.name)];
+	if (sort === "leagues_desc") return [desc(orgLeagueCountExpr), asc(organizations.name)];
+	if (sort === "players_desc") return [desc(orgPlayerCountExpr), asc(organizations.name)];
+	return [asc(organizations.name)];
+}
+
+/**
+ * Directorio público paginado del Hub de Portales (/organizaciones): filtro
+ * de ciudad + búsqueda por nombre + 4 modos de orden, todo a nivel SQL
+ * (filtrado/orden/paginación en la query, no en memoria — §17 AGENTS.md).
+ *
+ * Distinta de `listOrganizationsPublic` (sin filtros/paginado, usada hoy solo
+ * por consumidores que quieren TODAS las orgs con sus ligas anidadas, p. ej.
+ * `LeaguesTeaser`) — esa función se conserva tal cual.
+ *
+ * `leagueCount`/`teamCount` cuentan solo ligas/equipos activos; `playerCount`
+ * cuenta `league_members` distintos de la organización completa (todas sus
+ * ligas), sin importar el estado de la liga — mismo criterio "identidad
+ * acumulada de la org" que `getOrgHubStats`.
+ */
+export async function listOrganizationsPublicPaginated(
+	filters: OrgDirectoryFilters,
+): Promise<{ rows: OrgDirectoryItem[]; total: number }> {
+	const where = buildOrgDirectoryWhere(filters.city, filters.q);
+
+	const [totalRow, rows] = await Promise.all([
+		db
+			.select({ count: sql<number>`count(*)::int` })
+			.from(organizations)
+			.where(where),
+		db
+			.select({
+				id: organizations.id,
+				name: organizations.name,
+				slug: organizations.slug,
+				logoUrl: organizations.logoUrl,
+				city: organizations.city,
+				leagueCount: orgLeagueCountExpr,
+				teamCount: orgTeamCountExpr,
+				playerCount: orgPlayerCountExpr,
+			})
+			.from(organizations)
+			.leftJoin(leagues, eq(leagues.organizationId, organizations.id))
+			.leftJoin(teams, and(eq(teams.leagueId, leagues.id), eq(teams.status, "active")))
+			.leftJoin(leagueMembers, eq(leagueMembers.leagueId, leagues.id))
+			.where(where)
+			.groupBy(organizations.id)
+			.orderBy(...orgDirectoryOrderBy(filters.sort))
+			.limit(filters.limit)
+			.offset(filters.offset),
+	]);
+
+	return { rows, total: totalRow[0]?.count ?? 0 };
 }
 
 /**
@@ -813,9 +917,7 @@ export async function getLeagueSnapshot(leagueId: string): Promise<LeagueSnapsho
 	]);
 
 	const leader = standings[0] ?? null;
-	const topScorerRow = scorerRows
-		.filter((r) => r.goals > 0)
-		.sort((a, b) => b.goals - a.goals)[0];
+	const topScorerRow = scorerRows.filter((r) => r.goals > 0).sort((a, b) => b.goals - a.goals)[0];
 
 	return {
 		lastJornada: jornada,
@@ -911,7 +1013,12 @@ export type OrgFeedMatch = {
 	awayScore: number | null;
 };
 
-const ORG_FEED_COUNTED_STATUSES = ["played", "walkover_home", "walkover_away", "completed"] as const;
+const ORG_FEED_COUNTED_STATUSES = [
+	"played",
+	"walkover_home",
+	"walkover_away",
+	"completed",
+] as const;
 
 /** W.O. = 3-0 para el ganador; el resto usa el marcador capturado. */
 function resolveFeedScore(
@@ -1004,7 +1111,10 @@ export async function getOrgRecentResults(orgId: string, limit = 6): Promise<Org
 		.innerJoin(awayTeams, eq(awayTeams.id, matches.awayTeamId))
 		.leftJoin(venues, eq(venues.id, matches.venueId))
 		.where(
-			and(eq(leagues.organizationId, orgId), inArray(matches.status, [...ORG_FEED_COUNTED_STATUSES])),
+			and(
+				eq(leagues.organizationId, orgId),
+				inArray(matches.status, [...ORG_FEED_COUNTED_STATUSES]),
+			),
 		)
 		.orderBy(desc(matches.matchDate), desc(matches.kickoffAt))
 		.limit(limit);
@@ -1024,6 +1134,149 @@ export async function getOrgRecentResults(orgId: string, limit = 6): Promise<Org
 			awayScore,
 		};
 	});
+}
+
+// ---------------------------------------------------------------------------
+// Público — Muro de la Fama (goleadores cruzando todas las ligas de la org)
+// ---------------------------------------------------------------------------
+
+export type OrgTopScorer = {
+	playerId: string | null;
+	fullName: string;
+	teamName: string | null;
+	goals: number;
+};
+
+/**
+ * Top goleadores de TODA la organización (todas las ligas activas), goleo
+ * combinado (Excel histórico o cálculo en vivo, por liga — mismo criterio que
+ * `getMergedLeagueScorers`, §1 AGENTS.md). Usado en el Muro de la Fama del
+ * home del subdominio (Zona 2).
+ */
+export async function getOrgTopScorers(orgId: string, limit = 5): Promise<OrgTopScorer[]> {
+	const orgLeagues = await db
+		.select({ id: leagues.id })
+		.from(leagues)
+		.where(and(eq(leagues.organizationId, orgId), eq(leagues.status, "active")));
+
+	const leagueIds = orgLeagues.map((l) => l.id);
+	if (leagueIds.length === 0) return [];
+
+	const scorerRows = await getMergedLeagueScorers(leagueIds);
+
+	return scorerRows
+		.filter((r) => r.goals > 0)
+		.sort((a, b) => b.goals - a.goals)
+		.slice(0, limit)
+		.map((r) => ({
+			playerId: r.playerId,
+			fullName: r.fullName,
+			teamName: r.teamName,
+			goals: r.goals,
+		}));
+}
+
+// ---------------------------------------------------------------------------
+// Público — partidos de HOY, cruzando todas las ligas de la org
+// ---------------------------------------------------------------------------
+
+/**
+ * Partidos programados para HOY en cualquier liga activa de la organización,
+ * ordenados por hora ascendente. Usado en "Jugando Hoy" del home del
+ * subdominio (Zona 2). Mismo criterio de fecha que `getOrgUpcomingMatches`
+ * (coalesce kickoffAt/matchDate) pero acotado al día de hoy en vez de
+ * "desde hoy en adelante".
+ */
+export async function getOrgMatchesToday(orgId: string, limit = 8): Promise<OrgFeedMatch[]> {
+	const homeTeams = alias(teams, "td_home_teams");
+	const awayTeams = alias(teams, "td_away_teams");
+
+	const rows = await db
+		.select({
+			matchId: matches.id,
+			leagueName: leagues.name,
+			leagueSlug: leagues.slug,
+			homeTeamName: homeTeams.name,
+			awayTeamName: awayTeams.name,
+			venueName: venues.name,
+			kickoffAt: matches.kickoffAt,
+			matchDate: matches.matchDate,
+		})
+		.from(matches)
+		.innerJoin(leagues, and(eq(leagues.id, matches.leagueId), eq(leagues.status, "active")))
+		.innerJoin(homeTeams, eq(homeTeams.id, matches.homeTeamId))
+		.innerJoin(awayTeams, eq(awayTeams.id, matches.awayTeamId))
+		.leftJoin(venues, eq(venues.id, matches.venueId))
+		.where(
+			and(
+				eq(leagues.organizationId, orgId),
+				eq(matches.status, "scheduled"),
+				sql`coalesce(${matches.kickoffAt}::date, ${matches.matchDate}) = current_date`,
+			),
+		)
+		.orderBy(asc(matches.kickoffAt))
+		.limit(limit);
+
+	return rows.map((r) => ({
+		matchId: r.matchId,
+		leagueName: r.leagueName,
+		leagueSlug: r.leagueSlug ?? null,
+		homeTeamName: r.homeTeamName,
+		awayTeamName: r.awayTeamName,
+		venueName: r.venueName ?? null,
+		kickoffAt: r.kickoffAt ? new Date(r.kickoffAt).toISOString() : null,
+		matchDate: r.matchDate,
+		homeScore: null,
+		awayScore: null,
+	}));
+}
+
+// ---------------------------------------------------------------------------
+// Público — buscador de equipos del home del subdominio (Zona 1)
+// ---------------------------------------------------------------------------
+
+export type OrgTeamSearchResult = {
+	teamId: string;
+	teamName: string;
+	leagueName: string;
+	leagueSlug: string | null;
+};
+
+/**
+ * Busca equipos por nombre dentro de las ligas ACTIVAS de una organización.
+ * Usado por el buscador "¿En qué equipo juegas?" del home del subdominio.
+ * Búsqueda simple por `nameCanonical` (mismo patrón que `buildOrgDirectoryWhere`),
+ * no fuzzy/similarity — acotado a los equipos de una sola org.
+ */
+export async function searchOrgTeams(
+	orgId: string,
+	q: string,
+	limit = 8,
+): Promise<OrgTeamSearchResult[]> {
+	const canonical = sanitizeToCanonical(q.trim());
+	if (!canonical) return [];
+
+	const rows = await db
+		.select({
+			teamId: teams.id,
+			teamName: teams.name,
+			leagueName: leagues.name,
+			leagueSlug: leagues.slug,
+		})
+		.from(teams)
+		.innerJoin(leagues, eq(leagues.id, teams.leagueId))
+		.where(
+			and(
+				eq(leagues.organizationId, orgId),
+				eq(leagues.status, "active"),
+				eq(teams.status, "active"),
+				ilike(teams.nameCanonical, `%${canonical}%`),
+			),
+		)
+		.orderBy(asc(teams.name))
+		.limit(limit);
+
+	return rows.map((r) => ({ ...r, leagueSlug: r.leagueSlug ?? null }));
 }
 
 // ---------------------------------------------------------------------------
