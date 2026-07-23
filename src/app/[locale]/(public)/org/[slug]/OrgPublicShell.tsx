@@ -225,6 +225,7 @@ export default function OrgPublicShell({
 								<Link
 									key={item.id}
 									href={item.href as string}
+									onClick={closeDrawer}
 									className={cn(
 										base,
 										active
@@ -275,6 +276,7 @@ export default function OrgPublicShell({
 									<Link
 										key={l.slug}
 										href={`/${l.slug}`}
+										onClick={closeDrawer}
 										className="shrink-0 text-[12.5px] font-semibold text-ink-2 hover:text-brand-ink bg-surface-2 border border-line rounded-full px-3.5 py-1.5 whitespace-nowrap transition-colors"
 									>
 										{l.name}
